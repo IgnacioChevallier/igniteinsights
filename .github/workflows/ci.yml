@@ -1,0 +1,20 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --no-dev
+
+      - name: Lint with ruff
+        run: uv run ruff check app/
+
+      - name: Type check with mypy
+        run: uv run mypy app/ --ignore-missing-imports
