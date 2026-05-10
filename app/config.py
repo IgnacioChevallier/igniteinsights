@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     firms_map_key: str = ""
     opentopography_api_key: str = ""
 
-    database_url: str = "postgresql+asyncpg://ignisight:ignisight@localhost:5432/ignisight"
+    database_url: str = "postgresql+asyncpg://igniteinsights:igniteinsights@localhost:5432/igniteinsights"
 
     elmfire_runner_url: str = "http://localhost:8001"
     elmfire_runner_timeout: int = 300

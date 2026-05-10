@@ -1,4 +1,4 @@
-# IgniSight API
+# IgniteInsights API
 
 Forest fire prediction system for Patagonia — ELMFIRE + VIIRS + GFS + Copernicus DEM pipeline.
 
@@ -8,19 +8,7 @@ Forest fire prediction system for Patagonia — ELMFIRE + VIIRS + GFS + Copernic
 
 ## Architecture
 
-```
-ignisight-api
-├── Pipeline de datos
-│   satellite/ → topography/ → meteorology/ → fuels/ → canopy/ → elmfire_builder/
-└── FastAPI backend
-    Exposes: /fires/active, /ingestion/*/run, /simulations/*
-
-         │ HTTP POST /simulate
-         ▼
-elmfire-runner (separate microservice)
-Executes: elmfire_2025.0212 < elmfire.data
-Returns: isochrones, TOA rasters
-```
+![Ignite Insights architecture](public/images/architecture.png)
 
 See [docs/architecture.md](docs/architecture.md) for details.
 

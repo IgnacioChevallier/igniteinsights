@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +36,10 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
         if existing and Path(existing.file_path).exists():
             logger.info("DEM already exists at %s — skipping download", existing.file_path)
             await repository.update_ingestion_run(
-                session, run.id, status="success", metadata={"skipped": True, "existing_asset_id": str(existing.id)}
+                session,
+                run.id,
+                status="success",
+                metadata={"skipped": True, "existing_asset_id": str(existing.id)},
             )
             await session.commit()
             return run.id
@@ -50,7 +53,7 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
         raw_dir = (
             Path(settings.raw_data_dir)
             / "opentopography"
-            / datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            / datetime.now(UTC).strftime("%Y-%m-%d")
         )
         output_path = raw_dir / "dem_cop30_raw.tif"
 

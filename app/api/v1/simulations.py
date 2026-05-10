@@ -5,7 +5,7 @@ POST /simulations/run  — trigger a full ELMFIRE simulation (sprint siguiente)
 GET  /simulations/{id} — poll simulation status
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ def _envelope(status: str, data=None, error: dict | None = None) -> dict:
         "status": status,
         "data": data,
         "error": error,
-        "meta": {"timestamp": datetime.now(timezone.utc).isoformat()},
+        "meta": {"timestamp": datetime.now(UTC).isoformat()},
     }
 
 
@@ -47,7 +47,9 @@ async def get_simulation(
             "id": str(run.id),
             "status": run.status,
             "horizon_hours": run.horizon_hours,
-            "ignition_datetime": run.ignition_datetime.isoformat() if run.ignition_datetime else None,
+            "ignition_datetime": (
+                run.ignition_datetime.isoformat() if run.ignition_datetime else None
+            ),
             "started_at": run.started_at.isoformat() if run.started_at else None,
             "finished_at": run.finished_at.isoformat() if run.finished_at else None,
             "error_message": run.error_message,

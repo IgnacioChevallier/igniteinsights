@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,7 @@ def _envelope(status: str, data=None, error: dict | None = None) -> dict:
         "status": status,
         "data": data,
         "error": error,
-        "meta": {"timestamp": datetime.now(timezone.utc).isoformat()},
+        "meta": {"timestamp": datetime.now(UTC).isoformat()},
     }
 
 

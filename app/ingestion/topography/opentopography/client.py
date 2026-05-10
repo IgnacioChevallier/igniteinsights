@@ -18,7 +18,7 @@ class OpenTopographyClient:
         self._timeout = httpx.Timeout(120.0)
 
     def download_dem(self, bbox: BoundingBox, output_path: Path) -> DEMMetadata:
-        params = {
+        params: dict[str, str | float] = {
             "demtype": "COP30",
             "south": bbox.south,
             "north": bbox.north,

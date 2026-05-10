@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting ignisight-api (env=%s)", settings.app_env)
+    logger.info("Starting igniteinsights-api (env=%s)", settings.app_env)
     yield
     await engine.dispose()
-    logger.info("ignisight-api shutdown complete")
+    logger.info("igniteinsights-api shutdown complete")
 
 
 app = FastAPI(
-    title="IgniSight API",
+    title="IgniteInsights API",
     description="Pipeline de predicción de incendios forestales — Patagonia",
     version="0.1.0",
     lifespan=lifespan,
@@ -39,7 +39,7 @@ def _standard_response(status: str, data: Any = None, error: dict | None = None)
         "data": data,
         "error": error,
         "meta": {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     }
 

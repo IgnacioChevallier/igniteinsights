@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from pydantic import BaseModel
-from shapely.geometry import Point
 
 
 class FireDetectionNormalized(BaseModel):

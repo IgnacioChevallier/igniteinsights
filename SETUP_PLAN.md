@@ -1,6 +1,6 @@
 # Sistema de Predicción de Incendios Forestales en la Patagonia
 
-**Proyecto:** IgniSight — Pipeline ELMFIRE + VIIRS + GFS + Copernicus DEM  
+**Proyecto:** IgniteInsights — Pipeline ELMFIRE + VIIRS + GFS + Copernicus DEM  
 **Alumnos:** Ignacio Chevallier Boutell & Manuel Salas Seeber  
 **Fecha:** Mayo 2026  
 **Director:** Gastón Gadea
@@ -37,7 +37,7 @@ El sistema tiene dos responsabilidades claramente diferenciadas que **deben mant
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  ESTE REPOSITORIO: ignisight-api                    │
+│  ESTE REPOSITORIO: igniteinsights-api                    │
 │                                                     │
 │  1. Pipeline de datos                               │
 │     satellite/ → topography/ → meteorology/         │
@@ -65,7 +65,7 @@ El microservicio ELMFIRE es un ejecutable Linux compilado desde el repositorio o
 ## 3. Estructura del repositorio
 
 ```
-ignisight-api/
+igniteinsights-api/
 │
 ├── app/
 │   ├── main.py                   # FastAPI app, routers, lifespan
@@ -199,7 +199,7 @@ Se elige `uv` sobre Poetry porque tiene instalación sin dependencias externas, 
 ```toml
 # pyproject.toml
 [project]
-name = "ignisight-api"
+name = "igniteinsights-api"
 version = "0.1.0"
 requires-python = ">=3.12"
 
@@ -261,7 +261,7 @@ OPENTOPOGRAPHY_API_KEY=              # portal.opentopography.org
 # CDS_API_KEY=                       # Copernicus CDS (ERA5 para humedad)
 
 # Base de datos
-DATABASE_URL=postgresql+asyncpg://ignisight:ignisight@localhost:5432/ignisight
+DATABASE_URL=postgresql+asyncpg://igniteinsights:igniteinsights@localhost:5432/igniteinsights
 
 # Microservicio ELMFIRE
 ELMFIRE_RUNNER_URL=http://elmfire-runner:8001  # URL del microservicio separado
@@ -672,13 +672,13 @@ services:
   db:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_DB: ignisight
-      POSTGRES_USER: ignisight
-      POSTGRES_PASSWORD: ignisight
+      POSTGRES_DB: igniteinsights
+      POSTGRES_USER: igniteinsights
+      POSTGRES_PASSWORD: igniteinsights
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ignisight"]
+      test: ["CMD-SHELL", "pg_isready -U igniteinsights"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -974,7 +974,7 @@ jobs:
 ### `docs/architecture.md`
 
 - Las 5 capas del pipeline (detección → enriquecimiento → construcción → simulación → visualización)
-- Diagrama de separación entre `ignisight-api` y `elmfire-runner`
+- Diagrama de separación entre `igniteinsights-api` y `elmfire-runner`
 - Decisiones de arquitectura y su justificación (CRS EPSG:32719, resolución 30m, etc.)
 
 ### `docs/data-sources.md`

@@ -1,6 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
 
 from geoalchemy2.functions import ST_AsGeoJSON
 from sqlalchemy import select
@@ -57,7 +56,7 @@ async def create_ingestion_run(
         data_source_id=data_source_id,
         aoi_id=aoi_id,
         status="pending",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     session.add(run)
     await session.flush()
@@ -76,7 +75,7 @@ async def update_ingestion_run(
     if run is None:
         return None
     run.status = status
-    run.finished_at = datetime.now(timezone.utc)
+    run.finished_at = datetime.now(UTC)
     if error_message is not None:
         run.error_message = error_message
     if metadata is not None:
@@ -108,7 +107,7 @@ async def bulk_insert_fire_detections(
 async def get_active_fires(
     session: AsyncSession, hours: int = 24
 ) -> list[dict]:
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    cutoff = datetime.now(UTC) - timedelta(hours=hours)
     result = await session.execute(
         select(
             FireDetection,
@@ -195,7 +194,7 @@ async def create_simulation_run(
         status="pending",
         horizon_hours=horizon_hours,
         ignition_datetime=ignition_datetime,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     session.add(run)
     await session.flush()

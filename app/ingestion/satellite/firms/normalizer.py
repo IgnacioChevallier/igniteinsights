@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 from shapely.geometry import Point
@@ -25,7 +25,7 @@ def normalize_firms_response(df: pd.DataFrame) -> list[FireDetectionNormalized]:
         acq_dt = datetime.strptime(
             f"{row['acq_date']} {str(int(row['acq_time'])).zfill(4)}",
             "%Y-%m-%d %H%M",
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
 
         detections.append(
             FireDetectionNormalized(

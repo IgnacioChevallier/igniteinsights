@@ -16,7 +16,7 @@
 ## Service boundary
 
 ```
-ignisight-api  ──HTTP POST /simulate──▶  elmfire-runner (separate process)
+igniteinsights-api  ──HTTP POST /simulate──▶  elmfire-runner (separate process)
                ◀─────────── result ──────
 ```
 
