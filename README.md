@@ -1,4 +1,4 @@
-# IgniSight API
+# Ignite Insights API
 
 Forest fire prediction system for Patagonia — ELMFIRE + VIIRS + GFS + Copernicus DEM pipeline.
 
