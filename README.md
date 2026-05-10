@@ -3,8 +3,7 @@
 Forest fire prediction system for Patagonia — ELMFIRE + VIIRS + GFS + Copernicus DEM pipeline.
 
 **Authors:** Ignacio Chevallier Boutell & Manuel Salas Seeber  
-**Director:** Gastón Gadea  
-**Universidad:** — Tesis 2026
+**Universidad:** Universidad Austral — Tesis 2026
 
 ## Architecture
 
