@@ -25,7 +25,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="IgniteInsights API",
-    description="Pipeline de predicción de incendios forestales — Patagonia",
+    description=(
+        "Backend API for the IgniteInsights wildfire prediction pipeline in "
+        "Patagonia. The endpoints are organized around pipeline stages: checking "
+        "service health, ingesting source datasets, reading stored fire detections, "
+        "and eventually launching ELMFIRE simulations."
+    ),
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -44,7 +49,16 @@ def _standard_response(status: str, data: Any = None, error: dict | None = None)
     }
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    summary="Check API and database health",
+    description=(
+        "Verifies that the API process is running and that it can open a connection "
+        "to Postgres. Use this endpoint first when debugging the local stack. A "
+        "`status` of `ok` means the API and database are connected; `degraded` means "
+        "the API is up but the database check failed."
+    ),
+)
 async def health() -> JSONResponse:
     db_ok = False
     try:

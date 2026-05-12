@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from io import StringIO
 
 import httpx
@@ -24,10 +25,19 @@ class FIRMSClient:
         east: float,
         north: float,
         day_range: int = 1,
+        start_date: date | None = None,
     ) -> pd.DataFrame:
         bbox = f"{west},{south},{east},{north}"
         url = f"{FIRMS_BASE_URL}/{settings.firms_map_key}/VIIRS_NOAA20_NRT/{bbox}/{day_range}"
-        logger.info("Fetching FIRMS data bbox=%s day_range=%d", bbox, day_range)
+        if start_date is not None:
+            url = f"{url}/{start_date.isoformat()}"
+
+        logger.info(
+            "Fetching FIRMS data bbox=%s day_range=%d start_date=%s",
+            bbox,
+            day_range,
+            start_date,
+        )
 
         try:
             with httpx.Client(timeout=self._timeout) as client:

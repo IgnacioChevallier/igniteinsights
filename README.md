@@ -34,6 +34,7 @@ docker compose exec api uv run alembic upgrade head
 ```
 
 ## Endpoints (Sprint actual — Hito 3)
+- [Swagger API docs](https://igniteinsights.up.railway.app/docs)
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -44,7 +45,6 @@ docker compose exec api uv run alembic upgrade head
 | `GET` | `/api/v1/ingestion/runs/{id}` | Ingestion run status |
 
 ## Documentation
-
 - [Architecture](docs/architecture.md)
 - [Data Sources](docs/data-sources.md)
 - [ELMFIRE Mapping](docs/elmfire-mapping.md)

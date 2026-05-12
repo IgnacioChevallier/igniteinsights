@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from geoalchemy2.shape import from_shape
@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 FIRMS_SOURCE_NAME = "firms_viirs_noaa20"
 
 
-async def run_firms_ingestion(session: AsyncSession) -> uuid.UUID:
+async def run_firms_ingestion(
+    session: AsyncSession,
+    day_range: int = 1,
+    start_date: date | None = None,
+) -> uuid.UUID:
     ds = await repository.get_or_create_data_source(
         session,
         name=FIRMS_SOURCE_NAME,
@@ -37,7 +41,8 @@ async def run_firms_ingestion(session: AsyncSession) -> uuid.UUID:
             south=settings.aoi_south,
             east=settings.aoi_east,
             north=settings.aoi_north,
-            day_range=1,
+            day_range=day_range,
+            start_date=start_date,
         )
 
         # Persist raw CSV for auditing
@@ -64,7 +69,14 @@ async def run_firms_ingestion(session: AsyncSession) -> uuid.UUID:
 
         count = await repository.bulk_insert_fire_detections(session, run.id, db_records)
         await repository.update_ingestion_run(
-            session, run.id, status="success", metadata={"detection_count": count}
+            session,
+            run.id,
+            status="success",
+            metadata={
+                "detection_count": count,
+                "day_range": day_range,
+                "start_date": start_date.isoformat() if start_date else None,
+            },
         )
         await session.commit()
         logger.info("FIRMS ingestion complete: %d detections inserted (run_id=%s)", count, run.id)

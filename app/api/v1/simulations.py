@@ -7,7 +7,7 @@ GET  /simulations/{id} — poll simulation status
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import repository
@@ -25,7 +25,17 @@ def _envelope(status: str, data=None, error: dict | None = None) -> dict:
     }
 
 
-@router.post("/run")
+@router.post(
+    "/run",
+    summary="Start an ELMFIRE wildfire spread simulation",
+    description=(
+        "Placeholder for the future simulation trigger. Once implemented, this "
+        "endpoint will assemble ELMFIRE inputs from stored fire detections, terrain "
+        "rasters, fuel layers, and weather data, then start a wildfire spread "
+        "simulation and return a simulation ID. It currently returns `501 Not "
+        "Implemented`."
+    ),
+)
 async def run_simulation():
     raise HTTPException(
         status_code=501,
@@ -33,9 +43,23 @@ async def run_simulation():
     )
 
 
-@router.get("/{simulation_id}")
+@router.get(
+    "/{simulation_id}",
+    summary="Get the status of an ELMFIRE simulation run",
+    description=(
+        "Looks up a simulation run by ID and returns its status, time horizon, "
+        "ignition time, timestamps, and error message if one exists. This endpoint "
+        "is intended for polling simulation progress after `POST "
+        "/api/v1/simulations/run` is implemented."
+    ),
+)
 async def get_simulation(
-    simulation_id: uuid.UUID,
+    simulation_id: uuid.UUID = Path(
+        ...,
+        description=(
+            "The simulation run ID returned by the simulation trigger endpoint."
+        ),
+    ),
     session: AsyncSession = Depends(get_db),
 ):
     run = await repository.get_simulation_run(session, simulation_id)
