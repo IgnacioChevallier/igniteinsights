@@ -30,7 +30,7 @@ docker compose up
 # Docs → http://localhost:8000/docs
 
 # First-time setup: run migrations
-uv run alembic upgrade head
+docker compose exec api uv run alembic upgrade head
 ```
 
 ## Endpoints (Sprint actual — Hito 3)

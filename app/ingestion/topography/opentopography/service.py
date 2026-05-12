@@ -31,19 +31,6 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
     try:
         await session.refresh(run)
 
-        # Idempotency: skip download if a valid asset already exists
-        existing = await repository.find_raster_asset(session, aoi.id, "dem_raw")
-        if existing and Path(existing.file_path).exists():
-            logger.info("DEM already exists at %s — skipping download", existing.file_path)
-            await repository.update_ingestion_run(
-                session,
-                run.id,
-                status="success",
-                metadata={"skipped": True, "existing_asset_id": str(existing.id)},
-            )
-            await session.commit()
-            return run.id
-
         bbox = BoundingBox(
             west=settings.aoi_west,
             south=settings.aoi_south,
@@ -58,7 +45,26 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
         output_path = raw_dir / "dem_cop30_raw.tif"
 
         client = OpenTopographyClient()
-        metadata = client.download_dem(bbox, output_path)
+
+        # Idempotency: reuse a DB-registered asset, or register the canonical file
+        # when it was downloaded manually during local setup.
+        existing = await repository.find_raster_asset(session, aoi.id, "dem_raw")
+        if existing and Path(existing.file_path).exists():
+            logger.info("DEM already exists at %s — skipping download", existing.file_path)
+            await repository.update_ingestion_run(
+                session,
+                run.id,
+                status="success",
+                metadata={"skipped": True, "existing_asset_id": str(existing.id)},
+            )
+            await session.commit()
+            return run.id
+
+        if output_path.exists():
+            logger.info("Registering existing DEM at %s", output_path)
+            metadata = client.extract_metadata(output_path, bbox)
+        else:
+            metadata = client.download_dem(bbox, output_path)
 
         await repository.create_raster_asset(
             session,

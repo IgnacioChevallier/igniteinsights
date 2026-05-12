@@ -5,16 +5,17 @@ Revises:
 Create Date: 2026-05-10
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import geoalchemy2
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -26,7 +27,9 @@ def upgrade() -> None:
         sa.Column("name", sa.Text(), nullable=False),
         sa.Column(
             "geom",
-            geoalchemy2.types.Geometry(geometry_type="POLYGON", srid=4326),
+            geoalchemy2.types.Geometry(
+                geometry_type="POLYGON", srid=4326, spatial_index=False
+            ),
             nullable=False,
         ),
         sa.Column("crs_processing", sa.Text(), nullable=False),
@@ -71,7 +74,9 @@ def upgrade() -> None:
         sa.Column("ingestion_run_id", sa.UUID(), nullable=False),
         sa.Column(
             "geom",
-            geoalchemy2.types.Geometry(geometry_type="POINT", srid=4326),
+            geoalchemy2.types.Geometry(
+                geometry_type="POINT", srid=4326, spatial_index=False
+            ),
             nullable=False,
         ),
         sa.Column("bright_ti4", sa.Float(), nullable=True),
@@ -83,10 +88,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["ingestion_run_id"], ["ingestion_runs.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "idx_fire_detections_geom", "fire_detections", ["geom"], postgresql_using="gist"
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fire_detections_acq "
+        "ON fire_detections (acq_datetime)"
     )
-    op.create_index("idx_fire_detections_acq", "fire_detections", ["acq_datetime"])
 
     op.create_table(
         "raster_assets",
@@ -98,7 +103,9 @@ def upgrade() -> None:
         sa.Column("resolution_m", sa.Float(), nullable=True),
         sa.Column(
             "bbox",
-            geoalchemy2.types.Geometry(geometry_type="POLYGON", srid=4326),
+            geoalchemy2.types.Geometry(
+                geometry_type="POLYGON", srid=4326, spatial_index=False
+            ),
             nullable=True,
         ),
         sa.Column("band_count", sa.Integer(), nullable=True),
@@ -139,7 +146,9 @@ def upgrade() -> None:
         sa.Column("output_type", sa.Text(), nullable=False),
         sa.Column(
             "geom",
-            geoalchemy2.types.Geometry(geometry_type="MULTIPOLYGON", srid=4326),
+            geoalchemy2.types.Geometry(
+                geometry_type="MULTIPOLYGON", srid=4326, spatial_index=False
+            ),
             nullable=True,
         ),
         sa.Column("file_path", sa.Text(), nullable=True),
@@ -154,13 +163,33 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
 
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_areas_of_interest_geom "
+        "ON areas_of_interest USING gist (geom)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fire_detections_geom "
+        "ON fire_detections USING gist (geom)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_raster_assets_bbox "
+        "ON raster_assets USING gist (bbox)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_simulation_outputs_geom "
+        "ON simulation_outputs USING gist (geom)"
+    )
+
 
 def downgrade() -> None:
+    op.execute("DROP INDEX IF EXISTS idx_simulation_outputs_geom")
+    op.execute("DROP INDEX IF EXISTS idx_raster_assets_bbox")
+    op.execute("DROP INDEX IF EXISTS idx_fire_detections_geom")
+    op.execute("DROP INDEX IF EXISTS idx_areas_of_interest_geom")
     op.drop_table("simulation_outputs")
     op.drop_table("simulation_runs")
     op.drop_table("raster_assets")
-    op.drop_index("idx_fire_detections_acq", table_name="fire_detections")
-    op.drop_index("idx_fire_detections_geom", table_name="fire_detections")
+    op.execute("DROP INDEX IF EXISTS idx_fire_detections_acq")
     op.drop_table("fire_detections")
     op.drop_table("ingestion_runs")
     op.drop_table("data_sources")

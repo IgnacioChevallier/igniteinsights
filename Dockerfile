@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     libgdal-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install GDAL=="$(gdal-config --version)"
+# GDAL already installed as system package; no need for wheel
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 

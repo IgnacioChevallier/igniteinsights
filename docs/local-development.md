@@ -49,7 +49,7 @@ docker compose up
 
 ```bash
 # Run migrations (first time)
-uv run alembic upgrade head
+docker compose exec api uv run alembic upgrade head
 ```
 
 ## Run locally (without Docker DB)
@@ -57,6 +57,9 @@ uv run alembic upgrade head
 ```bash
 # Start only PostGIS
 docker compose up db -d
+
+# Run migrations
+uv run alembic upgrade head
 
 # Run API
 uv run uvicorn app.main:app --reload

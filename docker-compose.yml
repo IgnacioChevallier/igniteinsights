@@ -6,6 +6,8 @@ services:
     volumes:
       - ./data:/app/data
     env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://igniteinsights:igniteinsights@db:5432/igniteinsights
     depends_on:
       db:
         condition: service_healthy

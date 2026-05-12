@@ -51,9 +51,9 @@ class OpenTopographyClient:
         output_path.write_bytes(response.content)
         logger.info("DEM saved to %s (%d bytes)", output_path, len(response.content))
 
-        return self._extract_metadata(output_path, bbox)
+        return self.extract_metadata(output_path, bbox)
 
-    def _extract_metadata(self, path: Path, bbox: BoundingBox) -> DEMMetadata:
+    def extract_metadata(self, path: Path, bbox: BoundingBox) -> DEMMetadata:
         try:
             import rasterio
 
