@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ELMFIRE Dashboard",
+  title: "IgniteInsights",
   description: "Read-only IgniteInsights ELMFIRE run and input dashboard",
 };
 

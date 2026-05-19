@@ -1,71 +1,78 @@
-# IgniteInsights API
+# IgniteInsights
 
-Forest fire prediction system for Patagonia — ELMFIRE + VIIRS + GFS + Copernicus DEM pipeline.
+**Alumnos:** Ignacio Chevallier Boutell & Manuel Salas Seeber  
+**Universidad Austral — Tesis 2026**  
+**Director:** Gastón Gadea
 
-**Authors:** Ignacio Chevallier Boutell & Manuel Salas Seeber  
-**Universidad:** Universidad Austral — Tesis 2026
+## Qué es
 
-## Architecture
+IgniteInsights es un sistema de predicción de propagación de incendios forestales para el Parque Nacional Los Alerces (Patagonia Argentina). Automatiza la descarga y procesamiento de cuatro familias de datos geoespaciales —focos activos VIIRS, pronóstico meteorológico GFS, topografía Copernicus DEM y cobertura de combustibles ESA WorldCover— y los integra como insumos del modelo de simulación ELMFIRE. Los resultados (isócronas de propagación horaria, frente de llamas, tiempo de llegada) se exponen como GeoJSON a través de una API REST y se visualizan en un dashboard web.
 
-![Ignite Insights architecture](public/images/architecture.png)
+El sistema está diseñado para correr sobre los datos reales del parque con una latencia de ingesta de pocas horas respecto al ciclo GFS más reciente.
 
-See [docs/architecture.md](docs/architecture.md) for details.
+## Stack
 
-## Requirements
 
-- Docker Desktop
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- GDAL (for rasterio — see [docs/local-development.md](docs/local-development.md))
-- API keys: FIRMS MAP_KEY, OpenTopography API Key
+| Capa                | Tecnología                               |
+| ------------------- | ---------------------------------------- |
+| Backend API         | FastAPI + Python 3.12                    |
+| Base de datos       | PostgreSQL 16 + PostGIS 3.4              |
+| ORM                 | SQLAlchemy async + GeoAlchemy2           |
+| Ingesta geoespacial | rasterio, herbie-data, xarray, rioxarray |
+| Frontend            | Next.js 15 + Tailwind CSS                |
+| Simulación          | ELMFIRE (microservicio separado)         |
+| Infraestructura     | Docker Compose                           |
+
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
-# Fill in FIRMS_MAP_KEY and OPENTOPOGRAPHY_API_KEY in .env
+# Completar FIRMS_MAP_KEY y OPENTOPOGRAPHY_API_KEY en .env
 
-docker compose up
-# API → http://localhost:8000
+docker compose up --build
+# API  → http://localhost:8000
 # Docs → http://localhost:8000/docs
+# Dashboard → http://localhost:3000
 
-# First-time setup: run migrations
+# Primera vez: correr migraciones
 docker compose exec api uv run alembic upgrade head
 ```
 
-## Local dashboard
+## Desarrollo local del frontend
 
-The read-only ELMFIRE dashboard lives in `frontend/` and reads from the API
-summary endpoint at `/api/v1/dashboard/summary`.
+Para iterar sobre el dashboard sin reconstruir la imagen Docker:
 
 ```bash
 cd frontend
-cp .env.local.example .env.local
+cp .env.local.example .env.local   # API_BASE_URL=http://localhost:8000
 npm install
 npm run dev
-# Dashboard -> http://localhost:3000
+# Dashboard → http://localhost:3000
 ```
 
-Keep `API_BASE_URL=http://localhost:8000` when the FastAPI service is running
-locally on the default port.
-
 ## Endpoints
-- [Swagger API docs](https://igniteinsights.up.railway.app/docs)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Healthcheck + DB status |
-| `GET` | `/api/v1/dashboard/summary` | Dashboard summary for runs, raster assets, and ELMFIRE files |
-| `GET` | `/api/v1/fires/active` | Active fire detections (GeoJSON) |
-| `POST` | `/api/v1/ingestion/firms/run` | Trigger FIRMS VIIRS ingestion |
-| `POST` | `/api/v1/ingestion/dem/run` | Trigger Copernicus DEM download |
-| `POST` | `/api/v1/ingestion/gfs/run` | Trigger NOAA GFS forecast ingestion |
-| `POST` | `/api/v1/ingestion/worldcover/run` | Trigger ESA WorldCover land cover ingestion |
-| `POST` | `/api/v1/ingestion/run` | Run any combination of sources simultaneously |
-| `GET` | `/api/v1/ingestion/runs/{id}` | Ingestion run status |
+- [Swagger UI](https://igniteinsights.up.railway.app/docs)
 
-## Documentation
-- [Architecture](docs/architecture.md)
-- [Data Sources](docs/data-sources.md)
-- [ELMFIRE Mapping](docs/elmfire-mapping.md)
-- [Local Development](docs/local-development.md)
+
+| Method | Path                               | Descripción                                       |
+| ------ | ---------------------------------- | ------------------------------------------------- |
+| `GET`  | `/health`                          | Healthcheck + estado de la DB                     |
+| `GET`  | `/api/v1/dashboard/summary`        | Resumen de runs, raster assets y archivos ELMFIRE |
+| `GET`  | `/api/v1/fires/active`             | Focos activos (GeoJSON)                           |
+| `POST` | `/api/v1/ingestion/firms/run`      | Ingesta NASA FIRMS VIIRS                          |
+| `POST` | `/api/v1/ingestion/dem/run`        | Descarga DEM Copernicus GLO-30                    |
+| `POST` | `/api/v1/ingestion/gfs/run`        | Ingesta pronóstico NOAA GFS                       |
+| `POST` | `/api/v1/ingestion/worldcover/run` | Ingesta ESA WorldCover 10 m                       |
+| `POST` | `/api/v1/ingestion/run`            | Ejecutar varias fuentes simultáneamente           |
+| `GET`  | `/api/v1/ingestion/runs/{id}`      | Estado de un run de ingesta                       |
+
+
+## Documentación
+
+- [Arquitectura](docs/architecture.md)
+- [Fuentes de datos](docs/data-sources.md)
+- [Mapeo a ELMFIRE](docs/elmfire-mapping.md)
+- [Desarrollo local](docs/local-development.md)
+

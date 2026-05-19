@@ -442,7 +442,7 @@ export default async function DashboardPage() {
       <main className="mx-auto flex min-h-screen max-w-6xl items-center justify-center p-6">
         <Card className="w-full max-w-xl">
           <CardHeader>
-            <CardTitle>ELMFIRE Dashboard</CardTitle>
+            <CardTitle>Dashboard</CardTitle>
             <CardDescription>API unavailable at {apiBaseUrl}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -463,7 +463,7 @@ export default async function DashboardPage() {
       <div className="mx-auto max-w-7xl px-6 py-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">ELMFIRE Dashboard</h1>
+            <h1 className="text-2xl font-semibold">Ignite Insights</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Generated {formatDate(data.generated_at)} from {apiBaseUrl}
             </p>
