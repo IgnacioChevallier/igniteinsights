@@ -11,6 +11,7 @@ from app.domain.models import (
     FireDetection,
     IngestionRun,
     RasterAsset,
+    SimulationOutput,
     SimulationRun,
 )
 
@@ -206,3 +207,121 @@ async def get_simulation_run(
 ) -> SimulationRun | None:
     result = await session.execute(select(SimulationRun).where(SimulationRun.id == run_id))
     return result.scalar_one_or_none()
+
+
+async def list_recent_ingestion_runs(
+    session: AsyncSession,
+    limit: int = 25,
+) -> list[dict]:
+    result = await session.execute(
+        select(IngestionRun, DataSource, AreaOfInterest)
+        .join(DataSource, IngestionRun.data_source_id == DataSource.id)
+        .join(AreaOfInterest, IngestionRun.aoi_id == AreaOfInterest.id)
+        .order_by(IngestionRun.started_at.desc().nullslast())
+        .limit(limit)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": str(run.id),
+            "kind": "ingestion",
+            "source": data_source.name,
+            "category": data_source.category,
+            "aoi": aoi.name,
+            "status": run.status,
+            "started_at": run.started_at.isoformat() if run.started_at else None,
+            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            "error_message": run.error_message,
+            "metadata": run.metadata_,
+        }
+        for run, data_source, aoi in rows
+    ]
+
+
+async def list_recent_simulation_runs(
+    session: AsyncSession,
+    limit: int = 25,
+) -> list[dict]:
+    result = await session.execute(
+        select(SimulationRun, AreaOfInterest)
+        .join(AreaOfInterest, SimulationRun.aoi_id == AreaOfInterest.id)
+        .order_by(SimulationRun.started_at.desc().nullslast())
+        .limit(limit)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": str(run.id),
+            "kind": "simulation",
+            "source": "ELMFIRE",
+            "aoi": aoi.name,
+            "status": run.status,
+            "horizon_hours": run.horizon_hours,
+            "ignition_datetime": (
+                run.ignition_datetime.isoformat() if run.ignition_datetime else None
+            ),
+            "started_at": run.started_at.isoformat() if run.started_at else None,
+            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            "output_dir": run.output_dir,
+            "error_message": run.error_message,
+        }
+        for run, aoi in rows
+    ]
+
+
+async def list_recent_raster_assets(
+    session: AsyncSession,
+    limit: int = 50,
+) -> list[dict]:
+    result = await session.execute(
+        select(RasterAsset, IngestionRun, DataSource, AreaOfInterest)
+        .outerjoin(IngestionRun, RasterAsset.ingestion_run_id == IngestionRun.id)
+        .outerjoin(DataSource, IngestionRun.data_source_id == DataSource.id)
+        .outerjoin(AreaOfInterest, IngestionRun.aoi_id == AreaOfInterest.id)
+        .order_by(RasterAsset.created_at.desc().nullslast())
+        .limit(limit)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": str(asset.id),
+            "asset_type": asset.asset_type,
+            "file_path": asset.file_path,
+            "crs": asset.crs,
+            "resolution_m": asset.resolution_m,
+            "band_count": asset.band_count,
+            "dtype": asset.dtype,
+            "file_size_bytes": asset.file_size_bytes,
+            "created_at": asset.created_at.isoformat() if asset.created_at else None,
+            "ingestion_run_id": str(asset.ingestion_run_id) if asset.ingestion_run_id else None,
+            "source": data_source.name if data_source else None,
+            "aoi": aoi.name if aoi else None,
+            "metadata": asset.metadata_,
+        }
+        for asset, _run, data_source, aoi in rows
+    ]
+
+
+async def list_recent_simulation_outputs(
+    session: AsyncSession,
+    limit: int = 50,
+) -> list[dict]:
+    result = await session.execute(
+        select(SimulationOutput, SimulationRun)
+        .join(SimulationRun, SimulationOutput.simulation_id == SimulationRun.id)
+        .order_by(SimulationOutput.created_at.desc().nullslast())
+        .limit(limit)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": str(output.id),
+            "simulation_id": str(output.simulation_id),
+            "output_type": output.output_type,
+            "file_path": output.file_path,
+            "valid_at": output.valid_at.isoformat() if output.valid_at else None,
+            "created_at": output.created_at.isoformat() if output.created_at else None,
+            "simulation_status": run.status,
+        }
+        for output, run in rows
+    ]

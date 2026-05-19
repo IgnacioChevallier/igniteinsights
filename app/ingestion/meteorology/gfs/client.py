@@ -50,7 +50,11 @@ class GFSClient:
                         fxx=0,
                     )
                 except Exception:
-                    logger.debug("GFS cycle %s %02dz not available, trying earlier", candidate.date(), cycle_hour)
+                    logger.debug(
+                        "GFS cycle %s %02dz not available, trying earlier",
+                        candidate.date(),
+                        cycle_hour,
+                    )
                     continue
 
         raise GFSCycleResolutionError(
@@ -99,7 +103,6 @@ class GFSClient:
 
         # GFS uses 0–360° longitudes; normalize to -180/180 so bbox clipping works
         if float(da[lon_dim].max()) > 180:
-            import numpy as np
             lon_norm = (da[lon_dim].values + 180) % 360 - 180
             da = da.assign_coords({lon_dim: lon_norm}).sortby(lon_dim)
 

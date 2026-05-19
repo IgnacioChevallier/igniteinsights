@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db import repository
 
-from .client import GFSClient, VARIABLES
+from .client import VARIABLES, GFSClient
 from .errors import GFSError
 
 logger = logging.getLogger(__name__)
