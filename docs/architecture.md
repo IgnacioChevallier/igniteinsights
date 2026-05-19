@@ -1,6 +1,6 @@
 # Architecture
 
-here
+![Ignite Insights architecture](../public/images/architecture.png)
 
 ## Objetivo del sistema
 
