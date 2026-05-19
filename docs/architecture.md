@@ -1,5 +1,7 @@
 # Architecture
 
+here
+
 ## Objetivo del sistema
 
 IgniteInsights es un pipeline de predicción de incendios forestales para el Parque Nacional Los Alerces (Patagonia). Integra datos satelitales de focos activos, modelos meteorológicos, topografía y cobertura de combustibles para alimentar simulaciones de propagación con el modelo ELMFIRE. Los resultados se exponen como isócronas GeoJSON a través de una API REST y un dashboard web.
