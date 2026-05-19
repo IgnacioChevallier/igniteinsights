@@ -33,12 +33,29 @@ docker compose up
 docker compose exec api uv run alembic upgrade head
 ```
 
+## Local dashboard
+
+The read-only ELMFIRE dashboard lives in `frontend/` and reads from the API
+summary endpoint at `/api/v1/dashboard/summary`.
+
+```bash
+cd frontend
+cp .env.local.example .env.local
+npm install
+npm run dev
+# Dashboard -> http://localhost:3000
+```
+
+Keep `API_BASE_URL=http://localhost:8000` when the FastAPI service is running
+locally on the default port.
+
 ## Endpoints
 - [Swagger API docs](https://igniteinsights.up.railway.app/docs)
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Healthcheck + DB status |
+| `GET` | `/api/v1/dashboard/summary` | Dashboard summary for runs, raster assets, and ELMFIRE files |
 | `GET` | `/api/v1/fires/active` | Active fire detections (GeoJSON) |
 | `POST` | `/api/v1/ingestion/firms/run` | Trigger FIRMS VIIRS ingestion |
 | `POST` | `/api/v1/ingestion/dem/run` | Trigger Copernicus DEM download |
