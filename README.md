@@ -53,7 +53,7 @@ npm run dev
 
 ## Endpoints
 
-- [Swagger UI](https://igniteinsights.up.railway.app/docs)
+- [Swagger UI](https://igniteinsights-api.up.railway.app/docs)
 
 
 | Method | Path                               | Descripción                                       |
