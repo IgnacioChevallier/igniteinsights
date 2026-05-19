@@ -4,6 +4,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y \
     gdal-bin \
     libgdal-dev \
+    libeccodes-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # GDAL already installed as system package; no need for wheel

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -62,9 +63,9 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
 
         if output_path.exists():
             logger.info("Registering existing DEM at %s", output_path)
-            metadata = client.extract_metadata(output_path, bbox)
+            metadata = await asyncio.to_thread(client.extract_metadata, output_path, bbox)
         else:
-            metadata = client.download_dem(bbox, output_path)
+            metadata = await asyncio.to_thread(client.download_dem, bbox, output_path)
 
         await repository.create_raster_asset(
             session,

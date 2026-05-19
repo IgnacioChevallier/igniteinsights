@@ -1,12 +1,19 @@
+import asyncio
 import logging
 import uuid
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import repository
+from app.db.session import async_session_factory
 from app.dependencies import get_db
+from app.ingestion.fuels.worldcover.errors import WorldCoverError
+from app.ingestion.fuels.worldcover.service import run_worldcover_ingestion
+from app.ingestion.meteorology.gfs.errors import GFSError
+from app.ingestion.meteorology.gfs.service import run_gfs_ingestion
 from app.ingestion.satellite.firms.errors import FIRMSClientError
 from app.ingestion.satellite.firms.service import run_firms_ingestion
 from app.ingestion.topography.opentopography.errors import OpenTopographyError
@@ -90,6 +97,101 @@ async def run_dem(session: AsyncSession = Depends(get_db)):
     except OpenTopographyError as exc:
         logger.error("DEM ingestion failed: %s", exc)
         raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.post(
+    "/gfs/run",
+    summary="Download the latest NOAA GFS forecast for the area of interest",
+    description=(
+        "Resolves the most-recent available GFS 0.25° cycle from NOMADS/S3 and downloads "
+        "four variables clipped to the configured AOI: U-wind at 10 m, V-wind at 10 m, "
+        "temperature at 2 m, and relative humidity at 2 m. Each variable is stored as a "
+        "separate GeoTIFF and registered as a RasterAsset. Returns an ingestion run_id "
+        "that can be polled via GET /runs/{run_id}."
+    ),
+)
+async def run_gfs(session: AsyncSession = Depends(get_db)):
+    try:
+        run_id = await run_gfs_ingestion(session)
+        return _envelope(status="success", data={"run_id": str(run_id)})
+    except GFSError as exc:
+        logger.error("GFS ingestion failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.post(
+    "/worldcover/run",
+    summary="Download ESA WorldCover 10 m land cover for the area of interest",
+    description=(
+        "Downloads the ESA WorldCover v2.0 (2021) 10 m land cover tiles that intersect "
+        "the configured AOI using COG windowed reads — only the bbox window is fetched. "
+        "If multiple tiles are needed they are merged before clipping. The result is a "
+        "single GeoTIFF registered as a 'worldcover_raw' RasterAsset. This endpoint is "
+        "idempotent: if the asset is already registered and the file exists, the run is "
+        "marked as skipped."
+    ),
+)
+async def run_worldcover(session: AsyncSession = Depends(get_db)):
+    try:
+        run_id = await run_worldcover_ingestion(session)
+        return _envelope(status="success", data={"run_id": str(run_id)})
+    except WorldCoverError as exc:
+        logger.error("WorldCover ingestion failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+class IngestionRunRequest(BaseModel):
+    include_firms: bool = False
+    include_dem: bool = False
+    include_gfs: bool = False
+    include_worldcover: bool = False
+
+
+@router.post(
+    "/run",
+    summary="Run one or more ingestion sources simultaneously",
+    description=(
+        "Triggers any combination of FIRMS, DEM, GFS, and WorldCover ingestions "
+        "concurrently. Set each `include_*` flag to `true` to include that source. "
+        "Each source gets its own database session and runs in a thread pool so "
+        "blocking I/O does not stall the others. Returns a map of source → run_id. "
+        "Individual failures are reported per-source without cancelling the rest."
+    ),
+)
+async def run_ingestion(body: IngestionRunRequest):
+    async def _run(service_fn, *args, **kwargs):
+        async with async_session_factory() as s:
+            return await service_fn(s, *args, **kwargs)
+
+    selected: dict[str, object] = {}
+    if body.include_firms:
+        selected["firms"] = run_firms_ingestion
+    if body.include_dem:
+        selected["dem"] = run_dem_ingestion
+    if body.include_gfs:
+        selected["gfs"] = run_gfs_ingestion
+    if body.include_worldcover:
+        selected["worldcover"] = run_worldcover_ingestion
+
+    if not selected:
+        return _envelope(status="success", data={}, error={"message": "No sources selected"})
+
+    results = await asyncio.gather(
+        *[_run(fn) for fn in selected.values()],
+        return_exceptions=True,
+    )
+
+    data: dict = {}
+    errors: dict = {}
+    for label, result in zip(selected.keys(), results):
+        if isinstance(result, Exception):
+            errors[label] = str(result)
+            logger.error("run: %s failed: %s", label, result)
+        else:
+            data[label] = str(result)
+
+    status = "partial_failure" if errors else "success"
+    return _envelope(status=status, data=data, error=errors or None)
 
 
 @router.get(

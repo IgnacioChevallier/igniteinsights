@@ -33,7 +33,7 @@ docker compose up
 docker compose exec api uv run alembic upgrade head
 ```
 
-## Endpoints (Sprint actual — Hito 3)
+## Endpoints
 - [Swagger API docs](https://igniteinsights.up.railway.app/docs)
 
 | Method | Path | Description |
@@ -42,6 +42,9 @@ docker compose exec api uv run alembic upgrade head
 | `GET` | `/api/v1/fires/active` | Active fire detections (GeoJSON) |
 | `POST` | `/api/v1/ingestion/firms/run` | Trigger FIRMS VIIRS ingestion |
 | `POST` | `/api/v1/ingestion/dem/run` | Trigger Copernicus DEM download |
+| `POST` | `/api/v1/ingestion/gfs/run` | Trigger NOAA GFS forecast ingestion |
+| `POST` | `/api/v1/ingestion/worldcover/run` | Trigger ESA WorldCover land cover ingestion |
+| `POST` | `/api/v1/ingestion/run` | Run any combination of sources simultaneously |
 | `GET` | `/api/v1/ingestion/runs/{id}` | Ingestion run status |
 
 ## Documentation

@@ -8,9 +8,9 @@
 | OpenTopography COP30    | dem_raw.tif (4326) | dem.tif (32719, 30m) | `DEM_FILENAME`                    | topography/opentopography  | Actual  |
 | Derivado DEM            | —                  | slp.tif             | `SLP_FILENAME`                     | elmfire/builder/raster_aligner | Siguiente |
 | Derivado DEM            | —                  | asp.tif             | `ASP_FILENAME`                     | elmfire/builder/raster_aligner | Siguiente |
-| NOAA GFS (Herbie)       | GRIB2/xarray       | ws.tif, wd.tif      | `WS_FILENAME`, `WD_FILENAME`       | meteorology/gfs            | Siguiente |
-| ERA5-Land / GFS         | T2m, RH2m          | m1.tif, m10.tif, m100.tif | `M1_FILENAME`, etc.         | meteorology/gfs            | Siguiente |
-| ESA WorldCover (GEE)    | GeoTIFF 11-class   | fbfm40.tif          | `FBFM_FILENAME`                    | fuels/worldcover           | Hito 4  |
+| NOAA GFS (Herbie)       | gfs_u10/v10/t2m/rh.tif | ws.tif, wd.tif | `WS_FILENAME`, `WD_FILENAME`    | meteorology/gfs            | ✅ Ingesta lista — derivación Sprint 4 |
+| NOAA GFS (Herbie)       | gfs_t2m/rh.tif     | m1.tif, m10.tif, m100.tif | `M1_FILENAME`, etc.         | meteorology/gfs            | ✅ Ingesta lista — derivación Sprint 4 |
+| ESA WorldCover          | worldcover_raw.tif | fbfm40.tif          | `FBFM_FILENAME`                    | fuels/worldcover           | ✅ Ingesta lista — crosswalk Sprint 4 |
 | GEDI L2B (GEE)          | NetCDF frac.cover  | cc.tif              | `CC_FILENAME`                      | canopy/gedi                | Hito 4  |
 | ETH Canopy Height (GEE) | GeoTIFF altura     | ch.tif              | `CH_FILENAME`                      | canopy/gedi                | Hito 4  |
 | Tabla empírica + fbfm40 | —                  | cbh.tif, cbd.tif    | `CBH_FILENAME`, `CBD_FILENAME`     | canopy/gedi                | Hito 4  |

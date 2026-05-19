@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from datetime import UTC, date, datetime
@@ -36,7 +37,8 @@ async def run_firms_ingestion(
     try:
         await session.refresh(run)
         client = FIRMSClient()
-        df = client.fetch_active_fires(
+        df = await asyncio.to_thread(
+            client.fetch_active_fires,
             west=settings.aoi_west,
             south=settings.aoi_south,
             east=settings.aoi_east,
@@ -50,7 +52,7 @@ async def run_firms_ingestion(
         raw_dir.mkdir(parents=True, exist_ok=True)
         raw_path = raw_dir / "viirs_noaa20_nrt_los_alerces.csv"
         if not df.empty:
-            df.to_csv(raw_path, index=False)
+            await asyncio.to_thread(df.to_csv, raw_path, index=False)
 
         detections = normalize_firms_response(df)
 

@@ -38,13 +38,58 @@ curl -o dem_raw.tif "https://portal.opentopography.org/API/globaldem?demtype=COP
 # Verify: gdalinfo dem_raw.tif
 ```
 
-## Future sources (sprints 2+)
+## NOAA GFS — Global Forecast System 0.25°
 
+| Field        | Value                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| Access       | NOMADS HTTPS + public S3 (`noaa-gfs-bdp-pds`), via `herbie-data` library                 |
+| Product      | `pgrb2.0p25` — 0.25° (~28 km) global grid, forecast hour `f000`                          |
+| Cycle        | 00z / 06z / 12z / 18z UTC — module resolves most-recent available cycle automatically    |
+| Variables    | U-wind 10 m (`UGRD`), V-wind 10 m (`VGRD`), Temperature 2 m (`TMP`), RH 2 m (`RH`)      |
+| Output files | `{raw_data_dir}/gfs/{YYYY-MM-DD}/{cycle}_{var}.tif` — one GeoTIFF per variable           |
+| Asset types  | `gfs_u10`, `gfs_v10`, `gfs_t2m`, `gfs_rh`                                                |
+| CRS          | EPSG:4326 (native GFS grid, clipped to AOI bbox)                                         |
+| Auth         | None — public NOMADS/S3                                                                   |
+| Downstream   | `ws.tif` / `wd.tif` derived from u10+v10; `m1/m10/m100.tif` derived from t2m+rh (Sprint 4) |
 
-| Source               | Data                  | Sprint           |
-| -------------------- | --------------------- | ---------------- |
-| NOAA GFS (Herbie)    | ws, wd, m1, m10, m100 | Hito 3 siguiente |
-| ESA WorldCover (GEE) | fbfm40                | Hito 4           |
-| GEDI L2B + ETH (GEE) | cc, ch, cbh, cbd      | Hito 4           |
+```bash
+# Trigger ingestion
+curl -X POST http://localhost:8000/api/v1/ingestion/gfs/run
+
+# Check result
+curl http://localhost:8000/api/v1/ingestion/runs/{run_id}
+```
+
+**Cycle resolution logic:** tries cycles 18z → 12z → 06z → 00z for today, then yesterday, until a published cycle is found on NOMADS. GFS data is typically available ~4 hours after cycle time.
+
+## ESA WorldCover — 10 m Land Cover v2.0
+
+| Field        | Value                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| URL          | `https://esa-worldcover.s3.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif` |
+| Access       | Public S3 — Cloud-Optimized GeoTIFF (COG); only the bbox window is fetched                        |
+| Version      | v2.0 (2021)                                                                                        |
+| Resolution   | 10 m                                                                                               |
+| Tile grid    | 3° × 3° tiles named `{N\|S}{lat:02d}{E\|W}{lon:03d}` (lower-left corner, floored to 3°)           |
+| AOI tiles    | S45W072 (single tile for Los Alerces bbox)                                                         |
+| Output file  | `{raw_data_dir}/worldcover/esa_worldcover_v200_10m.tif`                                            |
+| Asset type   | `worldcover_raw`                                                                                   |
+| CRS          | EPSG:4326 (native)                                                                                 |
+| Auth         | None — public S3                                                                                   |
+| Static data  | Land cover does not change between runs — download once, reuse indefinitely (idempotent endpoint)  |
+| Downstream   | Crosswalk to FBFM40 Scott & Burgan fuel models (Sprint 4)                                          |
+
+```bash
+# Trigger ingestion (idempotent)
+curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
+```
+
+**Tile selection:** the client computes which 3°×3° tiles intersect the configured AOI bbox, opens each as a COG via rasterio (reads only the relevant window — no full-tile download), merges if >1 tile, and writes a single clipped GeoTIFF with embedded provenance tags (`source`, `version`, `acquisition_year`, `source_tiles`).
+
+## Future sources (Sprint 4)
+
+| Source               | Data             | Sprint  |
+| -------------------- | ---------------- | ------- |
+| GEDI L2B + ETH (GEE) | cc, ch, cbh, cbd | Hito 4  |
 
 
