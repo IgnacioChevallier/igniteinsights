@@ -39,7 +39,7 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
             north=settings.aoi_north,
         )
         raw_dir = (
-            Path(settings.raw_data_dir)
+            Path(settings.static_data_dir)
             / "opentopography"
             / datetime.now(UTC).strftime("%Y-%m-%d")
         )

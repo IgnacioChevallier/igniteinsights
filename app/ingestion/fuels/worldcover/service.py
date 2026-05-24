@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +32,12 @@ async def run_worldcover_ingestion(session: AsyncSession) -> uuid.UUID:
     try:
         await session.refresh(run)
 
-        output_path = Path(settings.raw_data_dir) / "worldcover" / "esa_worldcover_v200_10m.tif"
+        output_path = (
+            Path(settings.static_data_dir)
+            / "worldcover"
+            / datetime.now(UTC).strftime("%Y-%m-%d")
+            / "esa_worldcover_v200_10m.tif"
+        )
 
         # Idempotency: static data — reuse if already registered and file exists
         existing = await repository.find_raster_asset(session, aoi.id, ASSET_TYPE)

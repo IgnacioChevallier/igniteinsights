@@ -56,17 +56,19 @@ npm run dev
 - [Swagger UI](https://igniteinsights-api.up.railway.app/docs)
 
 
-| Method | Path                               | Descripción                                       |
-| ------ | ---------------------------------- | ------------------------------------------------- |
-| `GET`  | `/health`                          | Healthcheck + estado de la DB                     |
-| `GET`  | `/api/v1/dashboard/summary`        | Resumen de runs, raster assets y archivos ELMFIRE |
-| `GET`  | `/api/v1/fires/active`             | Focos activos (GeoJSON)                           |
-| `POST` | `/api/v1/ingestion/firms/run`      | Ingesta NASA FIRMS VIIRS                          |
-| `POST` | `/api/v1/ingestion/dem/run`        | Descarga DEM Copernicus GLO-30                    |
-| `POST` | `/api/v1/ingestion/gfs/run`        | Ingesta pronóstico NOAA GFS                       |
-| `POST` | `/api/v1/ingestion/worldcover/run` | Ingesta ESA WorldCover 10 m                       |
-| `POST` | `/api/v1/ingestion/run`            | Ejecutar varias fuentes simultáneamente           |
-| `GET`  | `/api/v1/ingestion/runs/{id}`      | Estado de un run de ingesta                       |
+| Method | Path                               | Descripción                                                                    |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------ |
+| `GET`  | `/health`                          | Healthcheck + estado de la DB                                                  |
+| `GET`  | `/api/v1/dashboard/summary`        | Resumen de runs, raster assets y archivos ELMFIRE                              |
+| `GET`  | `/api/v1/fires/active`             | Focos activos (GeoJSON)                                                        |
+| `POST` | `/api/v1/ingestion/firms/run`      | Ingesta NASA FIRMS VIIRS                                                       |
+| `POST` | `/api/v1/ingestion/dem/run`        | Descarga DEM Copernicus GLO-30                                                 |
+| `POST` | `/api/v1/ingestion/gfs/run`        | Ingesta pronóstico NOAA GFS                                                    |
+| `POST` | `/api/v1/ingestion/worldcover/run` | Ingesta ESA WorldCover 10 m                                                    |
+| `POST` | `/api/v1/ingestion/run`            | Ejecutar varias fuentes + preparación ELMFIRE automática (endpoint principal)  |
+| `GET`  | `/api/v1/ingestion/runs/{id}`      | Estado de un run de ingesta                                                    |
+| `POST` | `/api/v1/simulations/run`          | Lanzar simulación ELMFIRE desde una carpeta de inputs preparada                |
+| `GET`  | `/api/v1/simulations/{id}`         | Estado de una simulación                                                       |
 
 
 ## Documentación

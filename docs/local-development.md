@@ -80,14 +80,33 @@ uv run alembic revision --autogenerate -m "description"
 # Apply migrations
 uv run alembic upgrade head
 
-# Test FIRMS endpoint
-curl -X POST http://localhost:8000/api/v1/ingestion/firms/run
+# Full ingestion run (FIRMS + GFS) + automatic preparation of ELMFIRE inputs
+curl -X POST http://localhost:8000/api/v1/ingestion/run \
+  -H "Content-Type: application/json" \
+  -d '{"include_firms": true, "include_gfs": true}'
+# Response includes preparation.inputs_dir — use it for /simulations/run
 
-# Test DEM endpoint
-curl -X POST http://localhost:8000/api/v1/ingestion/dem/run
+# First-time setup: download static data (DEM + WorldCover)
+curl -X POST http://localhost:8000/api/v1/ingestion/run \
+  -H "Content-Type: application/json" \
+  -d '{"include_dem": true, "include_worldcover": true, "include_firms": true, "include_gfs": true}'
+
+# Run a simulation (use inputs_dir from ingestion response)
+curl -X POST http://localhost:8000/api/v1/simulations/run \
+  -H "Content-Type: application/json" \
+  -d '{"inputs_dir": "/app/data/elmfire/inputs/{prep_id}", "horizon_hours": 12}'
+
+# Poll simulation status
+curl http://localhost:8000/api/v1/simulations/{simulation_id}
 
 # Get active fires
 curl http://localhost:8000/api/v1/fires/active
+
+# Individual source endpoints (for debugging)
+curl -X POST http://localhost:8000/api/v1/ingestion/firms/run
+curl -X POST http://localhost:8000/api/v1/ingestion/gfs/run
+curl -X POST http://localhost:8000/api/v1/ingestion/dem/run
+curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
 ```
 
 ## Troubleshooting

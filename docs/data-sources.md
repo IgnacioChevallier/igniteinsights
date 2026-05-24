@@ -28,9 +28,10 @@ curl "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{KEY}/VIIRS_NOAA20_NRT/-
 | Params      | `demtype=COP30`, `south`, `north`, `west`, `east`, `outputFormat=GTiff`, `API_Key` |
 | Auth        | API Key in query string. Register free at portal.opentopography.org                |
 | Response    | GeoTIFF binary (direct download)                                                   |
-| CRS         | EPSG:4326 — reproject to EPSG:32719 for ELMFIRE processing                         |
+| Output file | `data/static/opentopography/{YYYY-MM-DD}/dem_cop30_raw.tif`                        |
+| CRS         | EPSG:4326 — reprojected to EPSG:32719 by `raster_aligner.reproject_and_derive_topo()` |
 | Resolution  | ~30 m (1 arc-second)                                                               |
-| Static data | Terrain does not change — download once, reuse indefinitely                        |
+| Static data | Terrain does not change — excluded from `/ingestion/run` by default (`include_dem: false`). Pass `true` to refresh. |
 
 
 ```bash
@@ -46,11 +47,11 @@ curl -o dem_raw.tif "https://portal.opentopography.org/API/globaldem?demtype=COP
 | Product      | `pgrb2.0p25` — 0.25° (~28 km) global grid, forecast hour `f000`                          |
 | Cycle        | 00z / 06z / 12z / 18z UTC — module resolves most-recent available cycle automatically    |
 | Variables    | U-wind 10 m (`UGRD`), V-wind 10 m (`VGRD`), Temperature 2 m (`TMP`), RH 2 m (`RH`)      |
-| Output files | `{raw_data_dir}/gfs/{YYYY-MM-DD}/{cycle}_{var}.tif` — one GeoTIFF per variable           |
+| Output files | `data/raw/gfs/{YYYY-MM-DD}/{cycle}_{var}.tif` — one GeoTIFF per variable                 |
 | Asset types  | `gfs_u10`, `gfs_v10`, `gfs_t2m`, `gfs_rh`                                                |
 | CRS          | EPSG:4326 (native GFS grid, clipped to AOI bbox)                                         |
 | Auth         | None — public NOMADS/S3                                                                   |
-| Downstream   | `ws.tif` / `wd.tif` derived from u10+v10; `m1/m10/m100.tif` derived from t2m+rh (Sprint 4) |
+| Downstream   | `ws.tif`/`wd.tif` via `weather_builder.derive_wind()`; `m1/m10/m100.tif` via `weather_builder.derive_moisture()` (Nelson 1984 EMC) |
 
 ```bash
 # Trigger ingestion
@@ -72,12 +73,12 @@ curl http://localhost:8000/api/v1/ingestion/runs/{run_id}
 | Resolution   | 10 m                                                                                               |
 | Tile grid    | 3° × 3° tiles named `{N\|S}{lat:02d}{E\|W}{lon:03d}` (lower-left corner, floored to 3°)           |
 | AOI tiles    | S45W072 (single tile for Los Alerces bbox)                                                         |
-| Output file  | `{raw_data_dir}/worldcover/esa_worldcover_v200_10m.tif`                                            |
+| Output file  | `data/static/worldcover/{YYYY-MM-DD}/esa_worldcover_v200_10m.tif`                                  |
 | Asset type   | `worldcover_raw`                                                                                   |
 | CRS          | EPSG:4326 (native)                                                                                 |
 | Auth         | None — public S3                                                                                   |
-| Static data  | Land cover does not change between runs — download once, reuse indefinitely (idempotent endpoint)  |
-| Downstream   | Crosswalk to FBFM40 Scott & Burgan fuel models (Sprint 4)                                          |
+| Static data  | Land cover does not change between runs — excluded from `/ingestion/run` by default (`include_worldcover: false`). Pass `true` to refresh. |
+| Downstream   | Crosswalk to FBFM40 via `fuels_builder.worldcover_to_fbfm40()` — result cached in `data/static/fbfm40.tif` |
 
 ```bash
 # Trigger ingestion (idempotent)

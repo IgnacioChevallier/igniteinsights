@@ -209,6 +209,27 @@ async def get_simulation_run(
     return result.scalar_one_or_none()
 
 
+async def update_simulation_run(
+    session: AsyncSession,
+    run_id: uuid.UUID,
+    status: str,
+    output_dir: str | None = None,
+    error_message: str | None = None,
+) -> SimulationRun | None:
+    result = await session.execute(select(SimulationRun).where(SimulationRun.id == run_id))
+    run = result.scalar_one_or_none()
+    if run is None:
+        return None
+    run.status = status
+    run.finished_at = datetime.now(UTC)
+    if output_dir is not None:
+        run.output_dir = output_dir
+    if error_message is not None:
+        run.error_message = error_message
+    await session.flush()
+    return run
+
+
 async def list_recent_ingestion_runs(
     session: AsyncSession,
     limit: int = 25,

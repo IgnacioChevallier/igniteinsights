@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     data_dir: str = "/app/data"
     raw_data_dir: str = "/app/data/raw"
-    processed_data_dir: str = "/app/data/processed"
+    static_data_dir: str = "/app/data/static"
     elmfire_inputs_dir: str = "/app/data/elmfire/inputs"
     elmfire_outputs_dir: str = "/app/data/elmfire/outputs"
 

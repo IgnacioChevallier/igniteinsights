@@ -31,6 +31,7 @@ type Run = {
   started_at: string | null;
   finished_at: string | null;
   error_message: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 type RasterAsset = {
@@ -217,7 +218,7 @@ function RunsTable({ runs }: { runs: Run[] }) {
               <TableHead>Status</TableHead>
               <TableHead>Started</TableHead>
               <TableHead>Finished</TableHead>
-              <TableHead>Error</TableHead>
+              <TableHead>Descripción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -233,7 +234,9 @@ function RunsTable({ runs }: { runs: Run[] }) {
                 <TableCell>{formatDate(run.started_at)}</TableCell>
                 <TableCell>{formatDate(run.finished_at)}</TableCell>
                 <TableCell className="max-w-64 truncate text-muted-foreground">
-                  {run.error_message ?? "-"}
+                  {run.metadata?.skipped
+                    ? "Datos ya presentes"
+                    : run.error_message ?? "-"}
                 </TableCell>
               </TableRow>
             ))}

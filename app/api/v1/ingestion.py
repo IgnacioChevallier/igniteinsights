@@ -18,6 +18,7 @@ from app.ingestion.satellite.firms.errors import FIRMSClientError
 from app.ingestion.satellite.firms.service import run_firms_ingestion
 from app.ingestion.topography.opentopography.errors import OpenTopographyError
 from app.ingestion.topography.opentopography.service import run_dem_ingestion
+from app.preparation.service import run_preparation
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +142,9 @@ async def run_worldcover(session: AsyncSession = Depends(get_db)):
 
 
 class IngestionRunRequest(BaseModel):
-    include_firms: bool = False
+    include_firms: bool = True
     include_dem: bool = False
-    include_gfs: bool = False
+    include_gfs: bool = True
     include_worldcover: bool = False
 
 
@@ -152,10 +153,12 @@ class IngestionRunRequest(BaseModel):
     summary="Run one or more ingestion sources simultaneously",
     description=(
         "Triggers any combination of FIRMS, DEM, GFS, and WorldCover ingestions "
-        "concurrently. Set each `include_*` flag to `true` to include that source. "
-        "Each source gets its own database session and runs in a thread pool so "
-        "blocking I/O does not stall the others. Returns a map of source → run_id. "
-        "Individual failures are reported per-source without cancelling the rest."
+        "concurrently. DEM and WorldCover default to false (static, downloaded once). "
+        "After all downloads complete, automatically runs the preparation step: derives "
+        "ELMFIRE input rasters (dem, slp, asp, fbfm40, ws, wd, m1-100, phi) using the "
+        "most recent data available in the DB and writes them to elmfire/inputs/{prep_id}/. "
+        "Returns a map of source → run_id plus a 'preparation' summary with inputs_dir, "
+        "generated files, and any missing files."
     ),
 )
 async def run_ingestion(body: IngestionRunRequest):
@@ -189,6 +192,15 @@ async def run_ingestion(body: IngestionRunRequest):
             logger.error("run: %s failed: %s", label, result)
         else:
             data[label] = str(result)
+
+    # Prepare ELMFIRE inputs using the most recent data available in the DB
+    try:
+        async with async_session_factory() as s:
+            prep = await run_preparation(s)
+        data["preparation"] = prep
+    except Exception as exc:
+        logger.error("Preparation failed after ingestion: %s", exc)
+        errors["preparation"] = str(exc)
 
     status = "partial_failure" if errors else "success"
     return _envelope(status=status, data=data, error=errors or None)

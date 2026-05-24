@@ -9,28 +9,36 @@ IgniteInsights es un pipeline de predicción de incendios forestales para el Par
 ## Pipeline de datos
 
 ```
-1. Detección     satellite/firms        → FireDetection (PostGIS Point)
-2. Enriquecimiento
-                 topography/            → dem.tif, slp.tif, asp.tif
-                 meteorology/gfs/       → ws.tif, wd.tif, m1.tif, m10.tif, m100.tif
-                 fuels/worldcover/      → fbfm40.tif
-                 canopy/gedi/           → cc.tif, ch.tif, cbh.tif, cbd.tif
-3. Construcción  elmfire/builder/       → elmfire.data + rasters alineados
-4. Simulación    elmfire/runner/        → HTTP POST al microservicio elmfire-runner
-5. Visualización postprocessing/        → GeoJSON isócronas servidas por la API
+1. Ingesta       ingestion/             → descarga fuentes externas al filesystem + DB
+                 satellite/firms        → FireDetection (PostGIS Point)
+                 topography/opentopo    → dem_cop30_raw.tif → data/static/opentopography/{date}/
+                 meteorology/gfs        → gfs_{var}.tif     → data/raw/gfs/{date}/
+                 fuels/worldcover       → worldcover_raw.tif → data/static/worldcover/{date}/
+
+2. Preparación   preparation/           → deriva rasters ELMFIRE con la data más reciente en DB
+                                        → data/elmfire/inputs/{prep_id}/
+                 raster_aligner         → dem.tif, slp.tif, asp.tif (EPSG:32719, 30 m)
+                 fuels_builder          → fbfm40.tif (crosswalk WorldCover → Scott & Burgan)
+                 weather_builder        → ws.tif, wd.tif, m1.tif, m10.tif, m100.tif
+                 ignition_builder       → phi.tif (SDF desde FireDetections)
+                 namelist_writer        → elmfire.data
+
+3. Simulación    elmfire/runner/        → HTTP POST al microservicio elmfire-runner
+                                        → data/elmfire/outputs/{sim_id}/
+
+4. Visualización postprocessing/        → GeoJSON isócronas servidas por la API
 ```
 
-## Separación arquitectural central
+La **ingesta y la preparación ocurren en el mismo endpoint** (`POST /ingestion/run`): al terminar todas las descargas, el preparation service deriva automáticamente los inputs ELMFIRE usando la data más reciente disponible en la DB.
 
-El sistema tiene dos responsabilidades desacopladas que deben mantenerse separadas:
+## Separación arquitectural central
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  igniteinsights-api  (este repositorio)             │
 │                                                     │
 │  1. Pipeline de datos                               │
-│     satellite/ → topography/ → meteorology/         │
-│     fuels/ → canopy/ → elmfire/builder/             │
+│     ingestion/ → preparation/ → elmfire/builder/   │
 │                                                     │
 │  2. FastAPI backend                                 │
 │     Expone endpoints de focos, predicciones,        │
@@ -44,7 +52,7 @@ El sistema tiene dos responsabilidades desacopladas que deben mantenerse separad
 ┌─────────────────────────────────────────────────────┐
 │  elmfire-runner  (microservicio separado)           │
 │                                                     │
-│  Recibe: paths a GeoTIFFs + elmfire.data            │
+│  Recibe: elmfire_data_path + inputs_dir + outputs_dir│
 │  Ejecuta: elmfire_2025.0212 < elmfire.data          │
 │  Devuelve: paths a salidas (isocronas, TOA, etc.)   │
 └─────────────────────────────────────────────────────┘
@@ -65,7 +73,8 @@ igniteinsights/
 │   ├── api/v1/
 │   │   ├── router.py             # Agrega todos los sub-routers
 │   │   ├── fires.py              # GET /fires/active
-│   │   ├── ingestion.py          # POST /ingestion/{source}/run, GET /ingestion/runs/{id}
+│   │   ├── ingestion.py          # POST /ingestion/{source}/run, POST /ingestion/run
+│   │   ├── dashboard.py          # GET /dashboard/summary
 │   │   └── simulations.py        # POST /simulations/run, GET /simulations/{id}
 │   │
 │   ├── ingestion/
@@ -74,11 +83,19 @@ igniteinsights/
 │   │   │   └── opentopography/
 │   │   ├── meteorology/gfs/      # NOAA GFS 0.25° vía Herbie ✅
 │   │   ├── fuels/worldcover/     # ESA WorldCover 10 m ✅
-│   │   └── canopy/gedi/          # GEDI L2B + ETH Canopy Height (Sprint 4)
+│   │   └── canopy/gedi/          # GEDI L2B + ETH Canopy Height (Hito 4)
+│   │
+│   ├── preparation/
+│   │   └── service.py            # Orquesta builders → elmfire/inputs/{prep_id}/ ✅
 │   │
 │   ├── elmfire/
-│   │   ├── builder/              # raster_aligner, namelist_writer, ignition_builder
-│   │   └── runner/               # Cliente HTTP al microservicio elmfire-runner
+│   │   ├── builder/
+│   │   │   ├── raster_aligner.py  # Reproyecta DEM → dem/slp/asp (EPSG:32719, 30 m) ✅
+│   │   │   ├── weather_builder.py # GFS u10/v10/t2m/rh → ws/wd/m1/m10/m100 ✅
+│   │   │   ├── fuels_builder.py   # WorldCover → fbfm40 (crosswalk Scott & Burgan) ✅
+│   │   │   ├── ignition_builder.py# FIRMS points → phi.tif (SDF) ✅
+│   │   │   └── namelist_writer.py # Genera elmfire.data ✅
+│   │   └── runner/                # Cliente HTTP al microservicio elmfire-runner ✅
 │   │
 │   ├── postprocessing/           # Shapefile → GeoJSON
 │   ├── domain/                   # SQLAlchemy ORM + Pydantic schemas de respuesta
@@ -86,13 +103,42 @@ igniteinsights/
 │
 ├── frontend/                     # Dashboard Next.js (puerto 3000)
 ├── alembic/                      # Migraciones de base de datos
-├── data/                         # Datos en runtime (gitignoreado)
-│   ├── raw/{source}/{YYYY-MM-DD}/
-│   ├── processed/{aoi_id}/
-│   ├── elmfire/{inputs,outputs}/{run_id}/
-│   └── static/                   # DEM, fbfm40 (estáticos, una sola descarga)
+├── data/                         # Datos en runtime (gitignoreado salvo .gitkeep)
+│   ├── raw/                      # Datos dinámicos (se actualizan con cada run)
+│   │   ├── firms/{YYYY-MM-DD}/viirs_noaa20_nrt.csv
+│   │   └── gfs/{YYYY-MM-DD}/{cycle}_{var}.tif
+│   ├── static/                   # Datos estáticos (descargados una vez, actualizables)
+│   │   ├── opentopography/{YYYY-MM-DD}/dem_cop30_raw.tif
+│   │   ├── worldcover/{YYYY-MM-DD}/esa_worldcover_v200_10m.tif
+│   │   ├── dem.tif               # ← derivado del DEM raw (caché, EPSG:32719 30 m)
+│   │   ├── slp.tif               # ← slope derivado
+│   │   ├── asp.tif               # ← aspect derivado
+│   │   └── fbfm40.tif            # ← WorldCover → Scott & Burgan (caché)
+│   └── elmfire/
+│       ├── inputs/{prep_id}/     # Generado por preparation/service.py
+│       │   ├── dem.tif, slp.tif, asp.tif, fbfm40.tif
+│       │   ├── ws.tif, wd.tif, m1.tif, m10.tif, m100.tif
+│       │   ├── phi.tif           # ignición desde FIRMS
+│       │   └── elmfire.data      # namelist Fortran
+│       └── outputs/{sim_id}/
+│           ├── hourly_isochrones.shp
+│           ├── toa_*.tif
+│           └── flin_*.tif
 └── docs/
 ```
+
+## Estrategia de datos: raw vs static
+
+| Carpeta | Contenido | Frecuencia de actualización |
+|---|---|---|
+| `data/raw/` | FIRMS CSV, GFS GeoTIFFs | Cada ingestion run (dinámico) |
+| `data/static/opentopography/` | dem_cop30_raw.tif | Solo cuando `include_dem=true` |
+| `data/static/worldcover/` | esa_worldcover_v200_10m.tif | Solo cuando `include_worldcover=true` |
+| `data/static/` (raíz) | dem/slp/asp/fbfm40 derivados | Calculados una vez, cacheados |
+| `data/elmfire/inputs/` | Todos los inputs ELMFIRE | Un folder por preparation run |
+| `data/elmfire/outputs/` | Salidas del simulador | Un folder por simulation run |
+
+Los datos estáticos (DEM, WorldCover) se excluyen por defecto del `POST /ingestion/run` (`include_dem: false`, `include_worldcover: false`) porque no cambian entre ejecuciones. Para regenerarlos, pasarlos explícitamente como `true`.
 
 ## Patrón de modularización por fuente de datos
 
@@ -125,60 +171,19 @@ errors.py
 
 ## Estrategia de CRS
 
-
 | Capa                     | CRS                       | Motivo                                              |
 | ------------------------ | ------------------------- | --------------------------------------------------- |
 | Ingesta y almacenamiento | EPSG:4326 (WGS84)         | Geometrías PostGIS, respuestas API, fuentes nativas |
 | Procesamiento ELMFIRE    | EPSG:32719 (UTM Zone 19S) | ELMFIRE requiere proyección métrica                 |
 | Resolución               | 30 m                      | Resolución nativa del DEM Copernicus GLO-30         |
 
-
-Todos los rasters de entrada a ELMFIRE deben compartir CRS, resolución y extent exactos. `elmfire/builder/raster_aligner.py` enforces este alineamiento vía `gdalwarp`.
-
-## Estrategia de persistencia: Filesystem
-
-```
-data/
-├── raw/
-│   ├── firms/
-│   │   └── 2026-05-10/
-│   │       └── viirs_noaa20_nrt_los_alerces.csv    # CSV crudo de la API
-│   └── opentopography/
-│       └── 2026-05-10/
-│           └── dem_cop30_raw.tif                   # GeoTIFF sin procesar, EPSG:4326
-│
-├── static/                                          # Datos estáticos (1 sola descarga)
-│   ├── dem_cop30_los_alerces.tif                   # DEM base reproyectado
-│   ├── slp_los_alerces.tif
-│   ├── asp_los_alerces.tif
-│   └── fbfm40_los_alerces.tif
-│
-├── processed/
-│   └── {aoi_id}/
-│       └── {date}/
-│           ├── ws.tif                               # multi-banda
-│           ├── wd.tif
-│           └── m1.tif
-│
-└── elmfire/
-    ├── inputs/
-    │   └── {run_id}/
-    │       ├── elmfire.data                         # namelist generado
-    │       ├── dem.tif → symlink o copia
-    │       ├── ws.tif, wd.tif, m1.tif, ...
-    │       └── ignicion.shp
-    └── outputs/
-        └── {run_id}/
-            ├── hourly_isochrones.shp
-            ├── toa_0000001_*.tif
-            └── flin_0000001_*.tif
-```
+Todos los rasters de entrada a ELMFIRE comparten CRS, resolución y extent exactos. `elmfire/builder/raster_aligner.py` enforces este alineamiento usando rasterio warp (reproyección bilinear).
 
 ## Principios aplicados en todo el proyecto
 
 - **Type hints obligatorios:** todo `def` y `async def` tiene anotaciones de retorno e inputs.
 - **Pydantic v2 models:** schemas de validación en todas las capas que cruzan datos externos.
-- **Logging estructurado:** usar `structlog` o el `logging` estándar con formato JSON en producción. Nunca `print()`.
+- **Logging estructurado:** usar el `logging` estándar con formato JSON en producción. Nunca `print()`.
 - **Sin credenciales en código:** siempre desde `settings.variable`. Cualquier hardcode es un bug.
 - **Errores explícitos:** cada módulo tiene su propio `errors.py`. Los endpoints capturan excepciones específicas y devuelven HTTP apropiado (400, 404, 502, 503).
 - **Separación de capas:** FastAPI → `service.py` → `client.py` + `repository.py`. Nunca saltar capas.
@@ -187,4 +192,4 @@ data/
 - **GeoAlchemy2**: columnas de geometría PostGIS con ORM type-safe en Python.
 - **asyncio.to_thread** en servicios de ingesta: las operaciones de descarga (herbie, httpx, rasterio) son síncronas; se corren en un thread pool para no bloquear el event loop y permitir `asyncio.gather` en el endpoint `/ingestion/run`.
 - **Ingesta idempotente**: re-ejecutar la misma ingesta no crea duplicados. Para datos estáticos (DEM, WorldCover) se verifica el `RasterAsset` existente antes de descargar.
-
+- **Preparación automática**: cada `POST /ingestion/run` termina con una llamada al preparation service que deriva los inputs ELMFIRE con la data más reciente en la DB, independientemente de qué fuentes fueron actualizadas en ese run.
