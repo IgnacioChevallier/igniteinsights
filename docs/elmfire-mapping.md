@@ -11,9 +11,9 @@
 | NOAA GFS (Herbie)       | gfs_u10.tif + gfs_v10.tif   | sqrt(u²+v²) / atan2 (weather_builder) | `WS_FILENAME`, `WD_FILENAME`      | elmfire/builder/weather_builder     | ✅ |
 | NOAA GFS (Herbie)       | gfs_t2m.tif + gfs_rh.tif   | Nelson 1984 EMC (weather_builder) | `M1_FILENAME`, `M10_FILENAME`, `M100_FILENAME` | elmfire/builder/weather_builder | ✅ |
 | ESA WorldCover          | worldcover_raw.tif          | crosswalk Scott & Burgan (fuels_builder) | `FUEL_MODEL_FILENAME` → fbfm40.tif | elmfire/builder/fuels_builder    | ✅ |
-| GEDI L2B (GEE)          | NetCDF frac.cover           | (Hito 4)                          | `CC_FILENAME` → cc.tif                | canopy/gedi                         | Hito 4  |
-| ETH Canopy Height (GEE) | GeoTIFF altura              | (Hito 4)                          | `CH_FILENAME` → ch.tif                | canopy/gedi                         | Hito 4  |
-| Tabla empírica + fbfm40 | —                           | (Hito 4)                          | `CBH_FILENAME`, `CBD_FILENAME`        | canopy/gedi                         | Hito 4  |
+| Hansen GFC v1.11        | hansen_treecover2000.tif (4326) | scale ×0.01 + reproject (canopy_builder) | `CC_FILENAME` → cc.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
+| ETH Canopy Height 2020  | eth_canopy_height.tif (4326)    | reproject bilinear (canopy_builder)      | `CH_FILENAME` → ch.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
+| Scott & Reinhardt (2005) | fbfm40.tif                     | lookup table (canopy_builder)            | `CBH_FILENAME`, `CBD_FILENAME` | elmfire/builder/canopy_builder                   | ✅ |
 
 ## Derivaciones implementadas
 
@@ -46,6 +46,11 @@ Crosswalk WorldCover v2.0 → Scott & Burgan FBFM40 para Patagonia:
 | 60               | Bare/sparse veg    | 93 (NB3)  |
 | 80               | Permanent water    | 98 (NB8)  |
 | 90               | Herbaceous wetland | 103 (GR3) |
+
+### Cobertura de canopy (`canopy_builder.py`)
+- **cc.tif** (fracción 0–1): `reproject_canopy(hansen_treecover2000.tif, scale_factor=0.01)` — bilinear, EPSG:32719 30 m.
+- **ch.tif** (metros): `reproject_canopy(eth_canopy_height.tif)` — bilinear, EPSG:32719 30 m.
+- **cbh.tif** (metros) + **cbd.tif** (kg/m³): `derive_cbh_cbd(fbfm40.tif)` — lookup table Scott & Reinhardt (2005) por código FBFM40.
 
 ### Ignición (`ignition_builder.py`)
 1. Buffer shapely de 90 m sobre cada punto FIRMS (proyectados a EPSG:32719).

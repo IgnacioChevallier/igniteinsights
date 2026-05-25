@@ -38,7 +38,7 @@ La **ingesta y la preparación ocurren en el mismo endpoint** (`POST /ingestion/
 │  igniteinsights-api  (este repositorio)             │
 │                                                     │
 │  1. Pipeline de datos                               │
-│     ingestion/ → preparation/ → elmfire/builder/   │
+│     ingestion/ → preparation/ → elmfire/builder/    │
 │                                                     │
 │  2. FastAPI backend                                 │
 │     Expone endpoints de focos, predicciones,        │
@@ -49,13 +49,13 @@ La **ingesta y la preparación ocurren en el mismo endpoint** (`POST /ingestion/
 └─────────────────────┬───────────────────────────────┘
                       │ HTTP POST /simulate
                       ▼
-┌─────────────────────────────────────────────────────┐
-│  elmfire-runner  (microservicio separado)           │
-│                                                     │
-│  Recibe: elmfire_data_path + inputs_dir + outputs_dir│
-│  Ejecuta: elmfire_2025.0212 < elmfire.data          │
-│  Devuelve: paths a salidas (isocronas, TOA, etc.)   │
-└─────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│  elmfire-runner  (microservicio separado)             │
+│                                                       │
+│  Recibe: elmfire_data_path + inputs_dir + outputs_dir │
+│  Ejecuta: elmfire_2025.0212 < elmfire.data            │
+│  Devuelve: paths a salidas (isocronas, TOA, etc.)     │
+└───────────────────────────────────────────────────────┘
 ```
 
 Ambos servicios comparten un volumen Docker en `/app/data/elmfire/`. El microservicio ELMFIRE es un ejecutable Linux compilado desde `lautenberger/elmfire` (branch `2025.0212`) y no forma parte de este repositorio; el cliente HTTP que lo consume sí.
@@ -83,7 +83,11 @@ igniteinsights/
 │   │   │   └── opentopography/
 │   │   ├── meteorology/gfs/      # NOAA GFS 0.25° vía Herbie ✅
 │   │   ├── fuels/worldcover/     # ESA WorldCover 10 m ✅
-│   │   └── canopy/gedi/          # GEDI L2B + ETH Canopy Height (Hito 4)
+│   │   └── canopy/               # Hansen GFC (cc) + ETH Height (ch) ✅
+│   │       ├── client.py
+│   │       ├── service.py
+│   │       ├── schemas.py
+│   │       └── errors.py
 │   │
 │   ├── preparation/
 │   │   └── service.py            # Orquesta builders → elmfire/inputs/{prep_id}/ ✅
@@ -94,6 +98,7 @@ igniteinsights/
 │   │   │   ├── weather_builder.py # GFS u10/v10/t2m/rh → ws/wd/m1/m10/m100 ✅
 │   │   │   ├── fuels_builder.py   # WorldCover → fbfm40 (crosswalk Scott & Burgan) ✅
 │   │   │   ├── ignition_builder.py# FIRMS points → phi.tif (SDF) ✅
+│   │   │   ├── canopy_builder.py  # Hansen/ETH → cc/ch + fbfm40 → cbh/cbd ✅
 │   │   │   └── namelist_writer.py # Genera elmfire.data ✅
 │   │   └── runner/                # Cliente HTTP al microservicio elmfire-runner ✅
 │   │
@@ -134,6 +139,7 @@ igniteinsights/
 | `data/raw/` | FIRMS CSV, GFS GeoTIFFs | Cada ingestion run (dinámico) |
 | `data/static/opentopography/` | dem_cop30_raw.tif | Solo cuando `include_dem=true` |
 | `data/static/worldcover/` | esa_worldcover_v200_10m.tif | Solo cuando `include_worldcover=true` |
+| `data/static/canopy/` | hansen_treecover2000.tif, eth_canopy_height.tif | Solo cuando `include_canopy=true` |
 | `data/static/` (raíz) | dem/slp/asp/fbfm40 derivados | Calculados una vez, cacheados |
 | `data/elmfire/inputs/` | Todos los inputs ELMFIRE | Un folder por preparation run |
 | `data/elmfire/outputs/` | Salidas del simulador | Un folder por simulation run |

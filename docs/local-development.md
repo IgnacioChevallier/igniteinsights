@@ -107,6 +107,12 @@ curl -X POST http://localhost:8000/api/v1/ingestion/firms/run
 curl -X POST http://localhost:8000/api/v1/ingestion/gfs/run
 curl -X POST http://localhost:8000/api/v1/ingestion/dem/run
 curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
+curl -X POST http://localhost:8000/api/v1/ingestion/canopy/run
+
+# First-time setup: download all static data including canopy (downloads ~500 MB Hansen + ETH tiles)
+curl -X POST http://localhost:8000/api/v1/ingestion/run \
+  -H "Content-Type: application/json" \
+  -d '{"include_dem": true, "include_worldcover": true, "include_canopy": true, "include_firms": true, "include_gfs": true}'
 ```
 
 ## Troubleshooting

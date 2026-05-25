@@ -4,12 +4,14 @@ import uuid
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import repository
 from app.db.session import async_session_factory
 from app.dependencies import get_db
+from app.ingestion.canopy.errors import CanopyError
+from app.ingestion.canopy.service import run_canopy_ingestion
 from app.ingestion.fuels.worldcover.errors import WorldCoverError
 from app.ingestion.fuels.worldcover.service import run_worldcover_ingestion
 from app.ingestion.meteorology.gfs.errors import GFSError
@@ -141,19 +143,45 @@ async def run_worldcover(session: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=502, detail=str(exc))
 
 
+@router.post(
+    "/canopy/run",
+    summary="Download canopy cover (Hansen GFC) and height (ETH) for the area of interest",
+    description=(
+        "Downloads two public canopy datasets — Hansen Global Forest Change v1.11 "
+        "treecover2000 (30 m, canopy cover %) and ETH Global Canopy Height 2020 "
+        "(10 m, height in metres) — clipped to the configured AOI. Both are stored "
+        "as static RasterAssets ('canopy_cc' and 'canopy_ch'). Canopy base height "
+        "and bulk density (cbh.tif, cbd.tif) are derived from the fuel model during "
+        "preparation and do not require a separate download. This endpoint is "
+        "idempotent: if both assets are already registered and files exist, the run "
+        "is marked as skipped."
+    ),
+)
+async def run_canopy(session: AsyncSession = Depends(get_db)):
+    try:
+        run_id = await run_canopy_ingestion(session)
+        return _envelope(status="success", data={"run_id": str(run_id)})
+    except CanopyError as exc:
+        logger.error("Canopy ingestion failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 class IngestionRunRequest(BaseModel):
     include_firms: bool = True
     include_dem: bool = False
     include_gfs: bool = True
     include_worldcover: bool = False
+    include_canopy: bool = False
+    firms_day_range: int = Field(default=1, ge=1, le=5)
+    firms_start_date: date | None = None
 
 
 @router.post(
     "/run",
     summary="Run one or more ingestion sources simultaneously",
     description=(
-        "Triggers any combination of FIRMS, DEM, GFS, and WorldCover ingestions "
-        "concurrently. DEM and WorldCover default to false (static, downloaded once). "
+        "Triggers any combination of FIRMS, DEM, GFS, WorldCover, and Canopy ingestions "
+        "concurrently. DEM, WorldCover, and Canopy default to false (static, downloaded once). "
         "After all downloads complete, automatically runs the preparation step: derives "
         "ELMFIRE input rasters (dem, slp, asp, fbfm40, ws, wd, m1-100, phi) using the "
         "most recent data available in the DB and writes them to elmfire/inputs/{prep_id}/. "
@@ -162,31 +190,37 @@ class IngestionRunRequest(BaseModel):
     ),
 )
 async def run_ingestion(body: IngestionRunRequest):
-    async def _run(service_fn, *args, **kwargs):
+    async def _run(service_fn, **kwargs):
         async with async_session_factory() as s:
-            return await service_fn(s, *args, **kwargs)
+            return await service_fn(s, **kwargs)
 
-    selected: dict[str, object] = {}
+    tasks: dict[str, object] = {}
     if body.include_firms:
-        selected["firms"] = run_firms_ingestion
+        tasks["firms"] = _run(
+            run_firms_ingestion,
+            day_range=body.firms_day_range,
+            start_date=body.firms_start_date,
+        )
     if body.include_dem:
-        selected["dem"] = run_dem_ingestion
+        tasks["dem"] = _run(run_dem_ingestion)
     if body.include_gfs:
-        selected["gfs"] = run_gfs_ingestion
+        tasks["gfs"] = _run(run_gfs_ingestion)
     if body.include_worldcover:
-        selected["worldcover"] = run_worldcover_ingestion
+        tasks["worldcover"] = _run(run_worldcover_ingestion)
+    if body.include_canopy:
+        tasks["canopy"] = _run(run_canopy_ingestion)
 
-    if not selected:
+    if not tasks:
         return _envelope(status="success", data={}, error={"message": "No sources selected"})
 
     results = await asyncio.gather(
-        *[_run(fn) for fn in selected.values()],
+        *tasks.values(),
         return_exceptions=True,
     )
 
     data: dict = {}
     errors: dict = {}
-    for label, result in zip(selected.keys(), results):
+    for label, result in zip(tasks.keys(), results):
         if isinstance(result, Exception):
             errors[label] = str(result)
             logger.error("run: %s failed: %s", label, result)

@@ -87,10 +87,47 @@ curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
 
 **Tile selection:** the client computes which 3°×3° tiles intersect the configured AOI bbox, opens each as a COG via rasterio (reads only the relevant window — no full-tile download), merges if >1 tile, and writes a single clipped GeoTIFF with embedded provenance tags (`source`, `version`, `acquisition_year`, `source_tiles`).
 
-## Future sources (Sprint 4)
+## Hansen Global Forest Change v1.11 — treecover2000
 
-| Source               | Data             | Sprint  |
-| -------------------- | ---------------- | ------- |
-| GEDI L2B + ETH (GEE) | cc, ch, cbh, cbd | Hito 4  |
+| Field        | Value                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| URL          | `https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11/Hansen_GFC-2023-v1.11_treecover2000_{lat}_{lon}.tif` |
+| Access       | Public GCS — Cloud-Optimized GeoTIFF; downloaded with httpx, then windowed with rasterio         |
+| Tile grid    | 10°×10° tiles named by NW (upper-left) corner: `{N\|S}{lat:02d}_{E\|W}{lon:03d}`                |
+| AOI tile     | 40S\_080W (covers lat -40→-50, lon -70→-80)                                                      |
+| Output file  | `data/static/canopy/{YYYY-MM-DD}/hansen_treecover2000.tif`                                       |
+| Asset type   | `canopy_cc`                                                                                       |
+| Units        | Percent 0–100 → converted to fraction 0–1 by `canopy_builder.reproject_canopy(scale_factor=0.01)` |
+| Resolution   | 30 m                                                                                              |
+| CRS          | EPSG:4326 (native)                                                                                |
+| Auth         | None — public GCS                                                                                 |
+| Static data  | Excluded from `/ingestion/run` by default (`include_canopy: false`). Pass `true` to download.    |
+| Downstream   | `cc.tif` via `canopy_builder.reproject_canopy()`                                                 |
+
+## ETH Global Canopy Height 2020 — Lang et al.
+
+| Field        | Value                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| URL          | `https://libdrive.ethz.ch/index.php/s/cO8or7iOe5dT2Rt/download?path=%2F3deg_cogs%2FETH_GlobalCanopyHeight_10m_2020_{tile}_Map.tif` |
+| Access       | Public libdrive — COG; downloaded with httpx, windowed with rasterio                             |
+| Tile grid    | 3°×3° tiles named by SW (lower-left) corner: `{N\|S}{lat:02d}{E\|W}{lon:03d}` (same as WorldCover) |
+| AOI tile     | S45W072                                                                                           |
+| Output file  | `data/static/canopy/{YYYY-MM-DD}/eth_canopy_height.tif`                                          |
+| Asset type   | `canopy_ch`                                                                                       |
+| Units        | Metres (float32)                                                                                  |
+| Resolution   | 10 m → reprojected to 30 m by `canopy_builder.reproject_canopy()`                               |
+| CRS          | EPSG:4326 (native)                                                                                |
+| Auth         | None — public                                                                                     |
+| Static data  | Excluded from `/ingestion/run` by default (`include_canopy: false`). Pass `true` to download.    |
+| Downstream   | `ch.tif` via `canopy_builder.reproject_canopy()`                                                 |
+
+## Canopy Base Height + Bulk Density (derived, no download)
+
+| Layer   | Source                | Derivation                                                   |
+| ------- | --------------------- | ------------------------------------------------------------ |
+| `cbh.tif` | `fbfm40.tif`        | Lookup table `_FBFM40_CBH` — Scott & Reinhardt (2005)        |
+| `cbd.tif` | `fbfm40.tif`        | Lookup table `_FBFM40_CBD` — Scott & Reinhardt (2005)        |
+
+No additional download is required. Both are derived in the preparation step via `canopy_builder.derive_cbh_cbd()` from the `fbfm40.tif` already present in the ELMFIRE inputs folder.
 
 

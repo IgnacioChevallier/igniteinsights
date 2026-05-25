@@ -90,8 +90,8 @@ def _reproject_dem(src_path: Path, dst_path: Path, target_crs: str, res_m: float
             transform=transform,
             width=width,
             height=height,
-            dtype="float32",
-            nodata=-9999.0,
+            dtype="int16",
+            nodata=-9999,
         )
         with rasterio.open(dst_path, "w", **profile) as dst:
             reproject(
@@ -102,7 +102,7 @@ def _reproject_dem(src_path: Path, dst_path: Path, target_crs: str, res_m: float
                 dst_transform=transform,
                 dst_crs=target_crs,
                 resampling=Resampling.bilinear,
-                dst_nodata=-9999.0,
+                dst_nodata=-9999,
             )
 
 
@@ -113,7 +113,6 @@ def _derive_slope_aspect(
         elev = ds.read(1).astype(np.float32)
         nodata = ds.nodata or -9999.0
         profile = ds.meta.copy()
-        profile.update(dtype="float32", nodata=-9999.0)
 
     valid = elev != nodata
     elev_filled = np.where(valid, elev, np.nan)
@@ -131,11 +130,14 @@ def _derive_slope_aspect(
     aspect_compass = np.where(aspect_compass >= 360.0, aspect_compass - 360.0, aspect_compass)
 
     nodata_mask = ~valid
-    slope_deg[nodata_mask] = -9999.0
-    aspect_compass[nodata_mask] = -9999.0
+    slope_out = np.round(slope_deg).astype(np.int16)
+    aspect_out = np.round(aspect_compass).astype(np.int16)
+    slope_out[nodata_mask] = -9999
+    aspect_out[nodata_mask] = -9999
 
+    profile.update(dtype="int16", nodata=-9999)
     with rasterio.open(slp_path, "w", **profile) as dst:
-        dst.write(slope_deg.astype(np.float32), 1)
+        dst.write(slope_out, 1)
 
     with rasterio.open(asp_path, "w", **profile) as dst:
-        dst.write(aspect_compass.astype(np.float32), 1)
+        dst.write(aspect_out, 1)

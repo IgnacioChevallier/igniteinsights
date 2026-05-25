@@ -8,8 +8,8 @@ Inputs (EPSG:4326, 0.25°):
   gfs_rh   — relative humidity at 2 m (%)
 
 Outputs (matched to reference grid):
-  ws.tif   — wind speed (km/h)
-  wd.tif   — wind direction, meteorological from-direction (degrees, 0=N)
+  ws.tif   — wind speed (mph), Int16
+  wd.tif   — wind direction, meteorological from-direction (degrees, 0=N), Int16
   m1.tif   — 1-hour fuel moisture (%)
   m10.tif  — 10-hour fuel moisture (%)
   m100.tif — 100-hour fuel moisture (%)
@@ -31,7 +31,7 @@ def derive_wind(
     reference_path: Path,
     output_dir: Path,
 ) -> tuple[Path, Path]:
-    """Produce ws.tif (km/h) and wd.tif (degrees from N) on the reference grid."""
+    """Produce ws.tif (mph, Int16) and wd.tif (degrees from N, Int16) on the reference grid."""
     output_dir.mkdir(parents=True, exist_ok=True)
     ws_path = output_dir / "ws.tif"
     wd_path = output_dir / "wd.tif"
@@ -40,14 +40,14 @@ def derive_wind(
     v10 = _read_aligned(v10_path, reference_path)
 
     ws_ms = np.sqrt(u10**2 + v10**2)
-    ws_kmh = ws_ms * 3.6
+    ws_mph = ws_ms * 2.23694
 
     # Meteorological convention: direction FROM which wind blows, CW from north
     wd_deg = np.degrees(np.arctan2(-u10, -v10))
     wd_deg = (wd_deg + 360.0) % 360.0
 
-    _write_like_reference(reference_path, ws_path, ws_kmh.astype(np.float32))
-    _write_like_reference(reference_path, wd_path, wd_deg.astype(np.float32))
+    _write_like_reference(reference_path, ws_path, ws_mph.astype(np.float32), dtype="int16")
+    _write_like_reference(reference_path, wd_path, wd_deg.astype(np.float32), dtype="int16")
     logger.info("Wind rasters written to %s", output_dir)
     return ws_path, wd_path
 
@@ -117,9 +117,16 @@ def _read_aligned(src_path: Path, reference_path: Path) -> np.ndarray:
     return data
 
 
-def _write_like_reference(reference_path: Path, output_path: Path, data: np.ndarray) -> None:
+def _write_like_reference(
+    reference_path: Path,
+    output_path: Path,
+    data: np.ndarray,
+    dtype: str = "float32",
+) -> None:
     with rasterio.open(reference_path) as ref:
         profile = ref.meta.copy()
-    profile.update(dtype="float32", count=1, nodata=-9999.0)
+    nodata = -9999 if dtype == "int16" else -9999.0
+    profile.update(dtype=dtype, count=1, nodata=nodata)
+    out = np.round(data).astype(dtype) if dtype == "int16" else data
     with rasterio.open(output_path, "w", **profile) as dst:
-        dst.write(data, 1)
+        dst.write(out, 1)

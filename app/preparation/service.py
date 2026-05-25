@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db import repository
 from app.elmfire.builder import (
+    canopy_builder,
     fuels_builder,
     ignition_builder,
     namelist_writer,
@@ -130,8 +131,49 @@ async def run_preparation(session: AsyncSession) -> dict:
         if not fire_points:
             logger.warning("No FIRMS detections in last 48 h — phi.tif not generated")
 
-    # ── 5. Canopy (pending GEDI — Hito 4) ─────────────────────────────────────
-    missing.extend(["cc.tif", "ch.tif", "cbh.tif", "cbd.tif"])
+    # ── 5. Canopy ─────────────────────────────────────────────────────────────
+    cc_asset = await repository.find_raster_asset(session, aoi.id, "canopy_cc")
+    ch_asset = await repository.find_raster_asset(session, aoi.id, "canopy_ch")
+
+    if cc_asset and Path(cc_asset.file_path).exists() and reference:
+        await asyncio.to_thread(
+            canopy_builder.reproject_canopy,
+            _resolve(cc_asset.file_path),
+            reference,
+            inputs_dir / "cc.tif",
+        )
+        generated.append("cc.tif")
+    else:
+        missing.append("cc.tif")
+        if not cc_asset:
+            logger.warning("No canopy_cc asset — run ingestion with include_canopy=true")
+
+    if ch_asset and Path(ch_asset.file_path).exists() and reference:
+        await asyncio.to_thread(
+            canopy_builder.reproject_canopy,
+            _resolve(ch_asset.file_path),
+            reference,
+            inputs_dir / "ch.tif",
+            10.0,  # meters → 10×meters (ELMFIRE Int16 encoding)
+        )
+        generated.append("ch.tif")
+    else:
+        missing.append("ch.tif")
+        if not ch_asset:
+            logger.warning("No canopy_ch asset — run ingestion with include_canopy=true")
+
+    # cbh + cbd: derived from fbfm40 (no extra download needed)
+    if "fbfm40.tif" in generated and reference:
+        await asyncio.to_thread(
+            canopy_builder.derive_cbh_cbd,
+            inputs_dir / "fbfm40.tif",
+            reference,
+            inputs_dir / "cbh.tif",
+            inputs_dir / "cbd.tif",
+        )
+        generated.extend(["cbh.tif", "cbd.tif"])
+    else:
+        missing.extend(["cbh.tif", "cbd.tif"])
 
     # ── 6. Namelist (only when DEM is present for domain info) ────────────────
     if "dem.tif" in generated:

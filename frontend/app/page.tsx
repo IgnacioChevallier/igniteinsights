@@ -1,5 +1,6 @@
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -464,19 +465,10 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-6 py-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Ignite Insights</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Generated {formatDate(data.generated_at)} from {apiBaseUrl}
-            </p>
-          </div>
-          <form>
-            <Button type="submit" variant="outline" size="sm">
-              Refresh
-            </Button>
-          </form>
-        </header>
+        <DashboardHeader
+          generatedAt={formatDate(data.generated_at)}
+          apiBaseUrl={apiBaseUrl}
+        />
 
         <Separator className="my-6" />
 
