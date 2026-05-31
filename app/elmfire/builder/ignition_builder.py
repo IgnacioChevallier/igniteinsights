@@ -80,11 +80,20 @@ def build_ignition_layer(
         dtype=np.uint8,
     ).astype(bool)
 
+    if not fire_mask.any():
+        logger.warning(
+            "Ignition layer: %d detections projected but none fall within raster bounds — "
+            "writing nodata phi (no ignition)",
+            len(fire_points),
+        )
+        phi_out = np.full((height, width), -9999.0, dtype=np.float32)
+        with rasterio.open(phi_path, "w", **profile) as dst:
+            dst.write(phi_out, 1)
+        return phi_path, shp_path
+
     # Signed distance function via 4-pass L1 sweep
     phi_cells = _signed_distance(fire_mask)
     phi_m = phi_cells * cell_size
-
-    # Replace zero-fire-point distance with nodata where mask is empty after rasterize
     phi_out = phi_m.astype(np.float32)
 
     with rasterio.open(phi_path, "w", **profile) as dst:

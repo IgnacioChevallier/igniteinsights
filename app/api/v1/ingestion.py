@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
@@ -227,10 +227,23 @@ async def run_ingestion(body: IngestionRunRequest):
         else:
             data[label] = str(result)
 
+    # Compute the time window so preparation queries the same fires that were just ingested
+    fires_since: datetime | None = None
+    if body.include_firms:
+        if body.firms_start_date:
+            fires_since = datetime(
+                body.firms_start_date.year,
+                body.firms_start_date.month,
+                body.firms_start_date.day,
+                tzinfo=UTC,
+            )
+        else:
+            fires_since = datetime.now(UTC) - timedelta(days=body.firms_day_range)
+
     # Prepare ELMFIRE inputs using the most recent data available in the DB
     try:
         async with async_session_factory() as s:
-            prep = await run_preparation(s)
+            prep = await run_preparation(s, fires_since=fires_since)
         data["preparation"] = prep
     except Exception as exc:
         logger.error("Preparation failed after ingestion: %s", exc)

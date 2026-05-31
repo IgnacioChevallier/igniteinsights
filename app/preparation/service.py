@@ -8,6 +8,7 @@ import asyncio
 import logging
 import shutil
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,7 @@ from app.elmfire.builder import (
 logger = logging.getLogger(__name__)
 
 
-async def run_preparation(session: AsyncSession) -> dict:
+async def run_preparation(session: AsyncSession, fires_since: datetime | None = None) -> dict:
     """
     Derive all available ELMFIRE input rasters using the most recent DB assets.
 
@@ -64,6 +65,11 @@ async def run_preparation(session: AsyncSession) -> dict:
 
     # Reference grid for all subsequent rasters (dem.tif in inputs_dir if available)
     reference = inputs_dir / "dem.tif" if "dem.tif" in generated else None
+
+    # Wind adjustment factor — uniform 1.0 (no adjustment), required by ELMFIRE
+    if reference:
+        await asyncio.to_thread(_write_uniform_raster, reference, inputs_dir / "adj.tif", 1.0)
+        generated.append("adj.tif")
 
     # ── 2. Fuel model (static, cached) ────────────────────────────────────────
     wc_asset = await repository.find_raster_asset(session, aoi.id, "worldcover_raw")
@@ -115,8 +121,9 @@ async def run_preparation(session: AsyncSession) -> dict:
         if not (t2m and rh):
             logger.warning("No GFS moisture assets — run ingestion with include_gfs=true")
 
-    # ── 4. Ignition (from latest FIRMS detections in DB) ──────────────────────
-    fire_features = await repository.get_active_fires(session, hours=48)
+    # ── 4. Ignition (from FIRMS detections in DB) ─────────────────────────────
+    since = fires_since or datetime.now(UTC) - timedelta(hours=48)
+    fire_features = await repository.get_active_fires(session, since=since)
     fire_points = [
         (f["properties"]["longitude"], f["properties"]["latitude"])
         for f in fire_features
@@ -129,7 +136,7 @@ async def run_preparation(session: AsyncSession) -> dict:
     else:
         missing.append("phi.tif")
         if not fire_points:
-            logger.warning("No FIRMS detections in last 48 h — phi.tif not generated")
+            logger.warning("No FIRMS detections since %s — phi.tif not generated", since.isoformat())
 
     # ── 5. Canopy ─────────────────────────────────────────────────────────────
     cc_asset = await repository.find_raster_asset(session, aoi.id, "canopy_cc")
@@ -203,6 +210,18 @@ async def run_preparation(session: AsyncSession) -> dict:
         "generated": generated,
         "missing": missing,
     }
+
+
+def _write_uniform_raster(reference: Path, output: Path, value: float) -> None:
+    import numpy as np
+    import rasterio
+    with rasterio.open(reference) as src:
+        profile = src.meta.copy()
+    profile.update(dtype="float32", count=1, nodata=None)
+    with rasterio.open(output, "w", **profile) as dst:
+        dst.write(
+            np.full((1, profile["height"], profile["width"]), value, dtype="float32")
+        )
 
 
 def _resolve(path_str: str) -> Path:

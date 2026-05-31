@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,7 +48,7 @@ async def get_active_fires(
     if hours < 1 or hours > 168:
         raise HTTPException(status_code=400, detail="hours must be between 1 and 168")
 
-    features = await repository.get_active_fires(session, hours=hours)
+    features = await repository.get_active_fires(session, since=datetime.now(UTC) - timedelta(hours=hours))
     geojson = {
         "type": "FeatureCollection",
         "features": features,

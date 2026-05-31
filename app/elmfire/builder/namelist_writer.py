@@ -42,55 +42,54 @@ def write_namelist(
     outputs_str = str(outputs_dir).rstrip("/") + "/"
 
     dem_path = inputs_dir / "dem.tif"
-    utm_east, utm_west, utm_south, utm_north, cell_size = _read_domain(dem_path)
+    utm_west, utm_south, cell_size = _read_domain(dem_path)
 
     namelist = f"""\
 &INPUTS
   FUELS_AND_TOPOGRAPHY_DIRECTORY = '{inputs_str}'
   WEATHER_DIRECTORY               = '{inputs_str}'
-  DEM_FILENAME                    = 'dem.tif'
-  SLOPE_FILENAME                  = 'slp.tif'
-  ASPECT_FILENAME                 = 'asp.tif'
-  FUEL_MODEL_FILENAME             = 'fbfm40.tif'
-  CC_FILENAME                     = 'cc.tif'
-  CH_FILENAME                     = 'ch.tif'
-  CBH_FILENAME                    = 'cbh.tif'
-  CBD_FILENAME                    = 'cbd.tif'
-  WS_FILENAME                     = 'ws.tif'
-  WD_FILENAME                     = 'wd.tif'
-  M1_FILENAME                     = 'm1.tif'
-  M10_FILENAME                    = 'm10.tif'
-  M100_FILENAME                   = 'm100.tif'
-  PHI_FILENAME                    = 'phi.tif'
-  IGNITION_RADIUS                 = {cell_size * 1.5:.1f}
+  DEM_FILENAME                    = 'dem'
+  SLP_FILENAME                    = 'slp'
+  ASP_FILENAME                    = 'asp'
+  FBFM_FILENAME                   = 'fbfm40'
+  CC_FILENAME                     = 'cc'
+  CH_FILENAME                     = 'ch'
+  CBH_FILENAME                    = 'cbh'
+  CBD_FILENAME                    = 'cbd'
+  WS_FILENAME                     = 'ws'
+  WD_FILENAME                     = 'wd'
+  M1_FILENAME                     = 'm1'
+  M10_FILENAME                    = 'm10'
+  M100_FILENAME                   = 'm100'
+  ADJ_FILENAME                    = 'adj'
+  PHI_FILENAME                    = 'phi'
+  DT_METEOROLOGY                  = 3600.0
+/
+
+&COMPUTATIONAL_DOMAIN
   A_SRS                           = 'EPSG:32719'
-  XLLCORNER                       = {utm_west:.2f}
-  YLLCORNER                       = {utm_south:.2f}
-  XURCORNER                       = {utm_east:.2f}
-  YURCORNER                       = {utm_north:.2f}
-  CELLSIZE                        = {cell_size:.1f}
+  COMPUTATIONAL_DOMAIN_XLLCORNER  = {utm_west:.2f}
+  COMPUTATIONAL_DOMAIN_YLLCORNER  = {utm_south:.2f}
+  COMPUTATIONAL_DOMAIN_CELLSIZE   = {cell_size:.1f}
 /
 
 &OUTPUTS
   DTDUMP                          = {dtdump_s:.1f}
-  DUMP_NEWBURNS_ONLY              = F
   OUTPUTS_DIRECTORY               = '{outputs_str}'
-  CHECK_OUTPUTS_DIRECTORY_EXISTS  = F
   CONVERT_TO_GEOTIFF              = T
-  CONVERT_TIMINGS                 = T
-  SAVE_ISOCHRONES                 = T
+  DUMP_TIME_OF_ARRIVAL            = T
+  DUMP_FLIN                       = T
 /
 
 &TIME_CONTROL
   SIMULATION_DT                   = {dt_s:.1f}
   SIMULATION_DTMAX                = {dtmax_s:.1f}
-  PRINT_SIMULATION_CLOCK          = T
   SIMULATION_TSTOP                = {tstop_s:.1f}
 /
 
 &MISCELLANEOUS
   PATH_TO_GDAL                    = '/usr/bin/'
-  SCRATCH_PATH                    = '/tmp/'
+  SCRATCH                         = '/tmp/'
 /
 """
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,11 +100,11 @@ def write_namelist(
     return output_path
 
 
-def _read_domain(dem_path: Path) -> tuple[float, float, float, float, float]:
-    """Return (east, west, south, north, cell_size) from a UTM raster."""
+def _read_domain(dem_path: Path) -> tuple[float, float, float]:
+    """Return (west, south, cell_size) from a UTM raster."""
     if not dem_path.exists():
         raise FileNotFoundError(f"DEM not found at {dem_path} — run ingestion first")
     with rasterio.open(dem_path) as ds:
         b = ds.bounds
         cell_size = abs(ds.transform.a)
-    return b.right, b.left, b.bottom, b.top, cell_size
+    return b.left, b.bottom, cell_size

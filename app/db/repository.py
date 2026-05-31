@@ -110,14 +110,13 @@ async def bulk_insert_fire_detections(
 
 
 async def get_active_fires(
-    session: AsyncSession, hours: int = 24
+    session: AsyncSession, since: datetime
 ) -> list[dict]:
-    cutoff = datetime.now(UTC) - timedelta(hours=hours)
     result = await session.execute(
         select(
             FireDetection,
             ST_AsGeoJSON(FireDetection.geom).label("geojson"),
-        ).where(FireDetection.acq_datetime >= cutoff)
+        ).where(FireDetection.acq_datetime >= since)
     )
     rows = result.all()
     features = []
