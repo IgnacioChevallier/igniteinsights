@@ -5,6 +5,7 @@ from geoalchemy2.functions import ST_AsGeoJSON
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.domain.models import (
     AreaOfInterest,
     DataSource,
@@ -37,11 +38,14 @@ async def get_or_create_default_aoi(session: AsyncSession) -> AreaOfInterest:
         from geoalchemy2.shape import from_shape
         from shapely.geometry import box
 
-        geom = from_shape(box(-72.0, -42.9, -71.5, -42.5), srid=4326)
+        geom = from_shape(
+            box(settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north),
+            srid=4326,
+        )
         aoi = AreaOfInterest(
             name="Los Alerces",
             geom=geom,
-            crs_processing="EPSG:32719",
+            crs_processing=settings.aoi_crs_processing,
         )
         session.add(aoi)
         await session.flush()

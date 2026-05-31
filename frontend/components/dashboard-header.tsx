@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -52,6 +52,17 @@ export function DashboardHeader({
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [firmsLabel, setFirmsLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const s = loadSettings();
+    if (!s.include_firms) {
+      setFirmsLabel(null);
+      return;
+    }
+    const range = `${s.firms_day_range} day${s.firms_day_range !== 1 ? "s" : ""}`;
+    setFirmsLabel(s.firms_start_date ? `FIRMS: from ${s.firms_start_date} · ${range}` : `FIRMS: last ${range}`);
+  }, []);
 
   async function handleRun() {
     setStatus("running");
@@ -91,6 +102,9 @@ export function DashboardHeader({
         <p className="mt-1 text-sm text-muted-foreground">
           Generated {generatedAt} · {apiBaseUrl}
         </p>
+        {firmsLabel && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{firmsLabel}</p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
