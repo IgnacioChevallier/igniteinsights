@@ -41,6 +41,21 @@ export function saveSettings(s: IngestionSettings) {
 }
 
 type Status = "idle" | "running" | "success" | "error";
+type Phase = "ingesting" | "simulating" | null;
+
+// Errors come back in two shapes: FastAPI's raw HTTPException body ({ detail })
+// for validation/failure responses, or this API's own success/partial-failure
+// envelope ({ status, error }) where `error` may be a string or a per-source
+// error map. Normalize both into a single readable string.
+function extractErrorMessage(envelope: Record<string, unknown>, statusCode: number): string {
+  if (typeof envelope.detail === "string") return envelope.detail;
+  if (typeof envelope.error === "string") return envelope.error;
+  if (envelope.error && typeof envelope.error === "object") {
+    const values = Object.values(envelope.error as Record<string, unknown>).filter(Boolean);
+    if (values.length) return values.join("; ");
+  }
+  return `HTTP ${statusCode}`;
+}
 
 export function DashboardHeader({
   generatedAt,
@@ -51,6 +66,8 @@ export function DashboardHeader({
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
+  const [phase, setPhase] = useState<Phase>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [firmsLabel, setFirmsLabel] = useState<string | null>(null);
 
@@ -66,6 +83,7 @@ export function DashboardHeader({
 
   async function handleRun() {
     setStatus("running");
+    setErrorDetail(null);
     if (resetTimer.current) clearTimeout(resetTimer.current);
 
     const s = loadSettings();
@@ -80,19 +98,48 @@ export function DashboardHeader({
     if (s.firms_start_date) body.firms_start_date = s.firms_start_date;
 
     try {
+      setPhase("ingesting");
       const res = await fetch("/api/ingestion/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
+      const envelope = await res.json();
+      if (!res.ok || (envelope.status && envelope.status !== "success")) {
+        throw new Error(
+          `Ingestion failed: ${extractErrorMessage(envelope, res.status)}`
+        );
+      }
+
+      const inputsDir = envelope.data?.preparation?.inputs_dir;
+      if (inputsDir) {
+        setPhase("simulating");
+        const simRes = await fetch("/api/simulations/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs_dir: inputsDir }),
+        });
+        const simEnvelope = await simRes.json();
+        if (!simRes.ok || (simEnvelope.status && simEnvelope.status !== "success")) {
+          throw new Error(
+            `Simulation failed: ${extractErrorMessage(simEnvelope, simRes.status)}`
+          );
+        }
+      }
+
       setStatus("success");
       router.refresh();
-    } catch {
+    } catch (err) {
       setStatus("error");
+      setErrorDetail(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setPhase(null);
     }
 
-    resetTimer.current = setTimeout(() => setStatus("idle"), 3000);
+    resetTimer.current = setTimeout(() => {
+      setStatus("idle");
+      setErrorDetail(null);
+    }, 5000);
   }
 
   return (
@@ -109,14 +156,20 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-2">
         {status === "success" && (
-          <span className="text-xs text-green-600">Run started ✓</span>
+          <span className="text-xs text-green-600">Ingestion + simulation started ✓</span>
         )}
         {status === "error" && (
-          <span className="text-xs text-destructive">Run failed ✗</span>
+          <span className="text-xs text-destructive">
+            {errorDetail ?? "Run failed"} ✗
+          </span>
         )}
 
         <Button size="sm" onClick={handleRun} disabled={status === "running"}>
-          {status === "running" ? "Running…" : "Run"}
+          {status === "running"
+            ? phase === "simulating"
+              ? "Simulating…"
+              : "Ingesting…"
+            : "Run"}
         </Button>
 
         <form>

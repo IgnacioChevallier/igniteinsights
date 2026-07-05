@@ -104,18 +104,31 @@ async def run_dem(session: AsyncSession = Depends(get_db)):
 
 @router.post(
     "/gfs/run",
-    summary="Download the latest NOAA GFS forecast for the area of interest",
+    summary="Download a NOAA GFS forecast cycle for the area of interest",
     description=(
-        "Resolves the most-recent available GFS 0.25° cycle from NOMADS/S3 and downloads "
-        "four variables clipped to the configured AOI: U-wind at 10 m, V-wind at 10 m, "
-        "temperature at 2 m, and relative humidity at 2 m. Each variable is stored as a "
-        "separate GeoTIFF and registered as a RasterAsset. Returns an ingestion run_id "
-        "that can be polled via GET /runs/{run_id}."
+        "Resolves the most-recent available GFS 0.25° cycle from NOMADS/AWS/GCS and "
+        "downloads four variables clipped to the configured AOI: U-wind at 10 m, V-wind "
+        "at 10 m, temperature at 2 m, and relative humidity at 2 m. By default resolves "
+        "the cycle closest to now (live weather). Provide `gfs_date` to fetch a historical "
+        "cycle instead — AWS (noaa-gfs-bdp-pds) and Google Cloud (global-forecast-system) "
+        "both retain full GFS archives back to 2021-01-01, so any date from then onward is "
+        "fetchable with no extra credentials. Each variable is stored as a separate GeoTIFF "
+        "and registered as a RasterAsset. Returns an ingestion run_id that can be polled "
+        "via GET /runs/{run_id}."
     ),
 )
-async def run_gfs(session: AsyncSession = Depends(get_db)):
+async def run_gfs(
+    gfs_date: date | None = Query(
+        None,
+        description=(
+            "Optional historical date (YYYY-MM-DD). When omitted, resolves the most "
+            "recent live cycle."
+        ),
+    ),
+    session: AsyncSession = Depends(get_db),
+):
     try:
-        run_id = await run_gfs_ingestion(session)
+        run_id = await run_gfs_ingestion(session, target_date=gfs_date)
         return _envelope(status="success", data={"run_id": str(run_id)})
     except GFSError as exc:
         logger.error("GFS ingestion failed: %s", exc)
@@ -174,6 +187,7 @@ class IngestionRunRequest(BaseModel):
     include_canopy: bool = False
     firms_day_range: int = Field(default=1, ge=1, le=5)
     firms_start_date: date | None = None
+    gfs_date: date | None = None
 
 
 @router.post(
@@ -204,7 +218,7 @@ async def run_ingestion(body: IngestionRunRequest):
     if body.include_dem:
         tasks["dem"] = _run(run_dem_ingestion)
     if body.include_gfs:
-        tasks["gfs"] = _run(run_gfs_ingestion)
+        tasks["gfs"] = _run(run_gfs_ingestion, target_date=body.gfs_date)
     if body.include_worldcover:
         tasks["worldcover"] = _run(run_worldcover_ingestion)
     if body.include_canopy:
@@ -240,10 +254,20 @@ async def run_ingestion(body: IngestionRunRequest):
         else:
             fires_since = datetime.now(UTC) - timedelta(days=body.firms_day_range)
 
+    # Scope weather lookups to the requested historical GFS date, if any, so a live
+    # ingestion elsewhere in the DB can't silently override it (see valid_time on
+    # RasterAsset / find_raster_asset(at=...)).
+    gfs_at: datetime | None = None
+    if body.include_gfs and body.gfs_date:
+        gfs_at = datetime(
+            body.gfs_date.year, body.gfs_date.month, body.gfs_date.day,
+            23, 59, 59, tzinfo=UTC,
+        )
+
     # Prepare ELMFIRE inputs using the most recent data available in the DB
     try:
         async with async_session_factory() as s:
-            prep = await run_preparation(s, fires_since=fires_since)
+            prep = await run_preparation(s, fires_since=fires_since, gfs_at=gfs_at)
         data["preparation"] = prep
     except Exception as exc:
         logger.error("Preparation failed after ingestion: %s", exc)

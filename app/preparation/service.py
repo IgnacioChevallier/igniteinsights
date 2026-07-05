@@ -27,7 +27,11 @@ from app.elmfire.builder import (
 logger = logging.getLogger(__name__)
 
 
-async def run_preparation(session: AsyncSession, fires_since: datetime | None = None) -> dict:
+async def run_preparation(
+    session: AsyncSession,
+    fires_since: datetime | None = None,
+    gfs_at: datetime | None = None,
+) -> dict:
     """
     Derive all available ELMFIRE input rasters using the most recent DB assets.
 
@@ -88,10 +92,10 @@ async def run_preparation(session: AsyncSession, fires_since: datetime | None = 
             logger.warning("No WorldCover asset — run ingestion with include_worldcover=true")
 
     # ── 3. Weather (dynamic, derived per run) ─────────────────────────────────
-    u10 = await repository.find_raster_asset(session, aoi.id, "gfs_u10")
-    v10 = await repository.find_raster_asset(session, aoi.id, "gfs_v10")
-    t2m = await repository.find_raster_asset(session, aoi.id, "gfs_t2m")
-    rh = await repository.find_raster_asset(session, aoi.id, "gfs_rh")
+    u10 = await repository.find_raster_asset(session, aoi.id, "gfs_u10", at=gfs_at)
+    v10 = await repository.find_raster_asset(session, aoi.id, "gfs_v10", at=gfs_at)
+    t2m = await repository.find_raster_asset(session, aoi.id, "gfs_t2m", at=gfs_at)
+    rh = await repository.find_raster_asset(session, aoi.id, "gfs_rh", at=gfs_at)
 
     if all(a and Path(a.file_path).exists() for a in [u10, v10]) and reference:
         ws, wd = await asyncio.to_thread(

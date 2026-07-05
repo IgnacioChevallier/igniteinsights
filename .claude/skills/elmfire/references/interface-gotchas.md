@@ -100,6 +100,29 @@ from `write_namelist()` and forwards it to the runner request (`dtdump_s` field 
 `SimulationRequest`) — don't hardcode `dtdump_s` in the runner call path, always use
 the value `write_namelist()` actually resolved to, or the two will disagree again.
 
+## `PHI_FILENAME` values more negative than -1.1 get silently reset to "unburned"
+
+ELMFIRE's raster loader (`elmfire_io.f90`, reading `PHI0` from `PHI_FILENAME`) does
+`WHERE(PHI0 < -1.1) PHI0 = 1.0` right after reading the raster — any value more
+negative than -1.1 is treated as garbage/nodata and reset to +1.0 (unburned), no
+warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` as a
+signed-distance-in-meters field (buffer radius × cell size, e.g. -90 for a 90 m
+buffer) — every interior "on fire" cell was silently erased by this clamp before
+the simulation ever started, so **every run through this pipeline reported
+`Fire area: 0.0 acres` regardless of weather/fuel conditions**, independent of any
+namelist output-flag bug. Confirmed by testing an extreme dry/windy synthetic
+scenario (3% moisture, 20 mph wind) that still produced zero spread with the
+unclamped phi field, then produced 858.9 acres of real spread once fixed.
+
+Fix: clamp the *negative* (interior/ignited) side of the signed-distance field to a
+floor just above -1.1 (`_PHI_IGNITION_FLOOR = -1.0` in `ignition_builder.py`) before
+writing — `np.where(phi_m < 0, np.maximum(phi_m, -1.0), phi_m)`. Leave positive
+(unburned/outside) values as true physical distances; only the interior needs
+clamping. The vendor tutorials sidestep this entirely by initializing `phi.tif`
+uniformly to `+1.0` and igniting via `&SIMULATOR` point ignitions
+(`NUM_IGNITIONS`/`X_IGN`/`Y_IGN`/`T_IGN`) instead of a spatial phi raster — this repo
+uses the raster approach instead, so the clamp is required.
+
 ## Crown fire is on by default upstream
 
 If a namelist omits `CROWN_FIRE_MODEL` entirely, ELMFIRE defaults to crown fire

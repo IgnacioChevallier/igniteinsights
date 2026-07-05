@@ -16,7 +16,7 @@ from .normalizer import normalize_firms_response
 
 logger = logging.getLogger(__name__)
 
-FIRMS_SOURCE_NAME = "firms_viirs_noaa20"
+FIRMS_SOURCE_NAME = "firms_viirs"
 
 
 async def run_firms_ingestion(
@@ -50,7 +50,7 @@ async def run_firms_ingestion(
         # Persist raw CSV for auditing
         raw_dir = Path(settings.raw_data_dir) / "firms" / datetime.now(UTC).strftime("%Y-%m-%d")
         raw_dir.mkdir(parents=True, exist_ok=True)
-        raw_path = raw_dir / "viirs_noaa20_nrt_los_alerces.csv"
+        raw_path = raw_dir / "viirs_nrt_los_alerces.csv"
         if not df.empty:
             await asyncio.to_thread(df.to_csv, raw_path, index=False)
 

@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
 from .errors import GFSCycleResolutionError, GFSDownloadError
@@ -23,21 +23,34 @@ MAX_LOOKBACK_DAYS = 2
 
 
 class GFSClient:
-    def resolve_latest_cycle(self) -> GFSCycleInfo:
+    def resolve_cycle(self, target_date: date | None = None) -> GFSCycleInfo:
+        """
+        Resolve the most-recent available GFS cycle on or before `target_date`
+        (or on/before "now" if target_date is None — the live/current-weather path).
+
+        AWS (noaa-gfs-bdp-pds) and Google Cloud (global-forecast-system) both mirror
+        the full GFS archive back to 2021-01-01 — Herbie's default source priority
+        already tries them before nomads/azure, so any date from then onward works
+        with no extra configuration.
+        """
         try:
             from herbie import Herbie
         except ImportError as exc:
             raise GFSCycleResolutionError("herbie-data is not installed") from exc
 
         now_utc = datetime.now(UTC)
+        base_date = target_date or now_utc.date()
+
         for days_back in range(MAX_LOOKBACK_DAYS + 1):
-            candidate_date = now_utc - timedelta(days=days_back)
+            candidate_date = base_date - timedelta(days=days_back)
             for cycle_hour in CYCLE_HOURS:
-                candidate = candidate_date.replace(
-                    hour=cycle_hour, minute=0, second=0, microsecond=0
+                candidate = datetime.combine(
+                    candidate_date, time(hour=cycle_hour), tzinfo=UTC
                 )
                 if candidate > now_utc - timedelta(hours=4):
-                    # GFS data typically available ~4 h after cycle time
+                    # GFS data typically available ~4 h after cycle time. This guard
+                    # is always against the *real* now, not target_date — for any
+                    # historical target_date it's always False and never skips.
                     continue
                 date_str = candidate.strftime("%Y-%m-%d %H:%M")
                 try:
@@ -58,8 +71,12 @@ class GFSClient:
                     continue
 
         raise GFSCycleResolutionError(
-            f"No GFS cycle available in the last {MAX_LOOKBACK_DAYS} days"
+            f"No GFS cycle available within {MAX_LOOKBACK_DAYS} days of {base_date.isoformat()}"
         )
+
+    def resolve_latest_cycle(self) -> GFSCycleInfo:
+        """Thin wrapper preserved for call-site clarity / backward compatibility."""
+        return self.resolve_cycle(target_date=None)
 
     def download_variable(
         self,

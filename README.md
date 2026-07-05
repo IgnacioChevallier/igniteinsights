@@ -78,9 +78,14 @@ Flujo reproducible completo, desde datos reales hasta salidas de ELMFIRE
 
 ```bash
 # 1. Ingesta + preparación automática de inputs ELMFIRE (FIRMS, DEM, GFS, WorldCover)
+#    El incendio real de Los Alerces está documentado en FIRMS bajo VIIRS_NOAA21_NRT,
+#    NO VIIRS_NOAA20_NRT (que no tiene ninguna detección para este evento) — el cliente
+#    FIRMS consulta ambos satélites (+ SNPP) desde el fix de multi-fuente.
+#    Actividad real observada en el AOI: fuerte desde 2026-01-02, pico ~2026-01-22,
+#    decayendo a partir de mediados de 2026-02 — usar firms_start_date en ese rango.
 curl -s -X POST http://localhost:8000/api/v1/ingestion/run \
   -H 'Content-Type: application/json' \
-  -d '{"include_firms": true, "include_dem": true, "include_gfs": true, "include_worldcover": true}' \
+  -d '{"include_firms": true, "include_dem": true, "include_gfs": true, "include_worldcover": true, "firms_start_date": "2026-01-02", "firms_day_range": 5, "gfs_date": "2026-01-15"}' \
   | jq .
 # → capturar .data.preparation.inputs_dir de la respuesta
 
@@ -109,6 +114,23 @@ llegue a escribir al menos un raster/isócrona — `namelist_writer.resolve_dtdu
 ajusta esto automáticamente, pero un `horizon_hours=1` (igual al DTDUMP por defecto) es
 un caso límite pensado solo para smoke tests, no para una corrida real. Para el incendio
 histórico de Los Alerces usar un horizonte que cubra la duración real del evento.
+
+**Ignición:** `phi.tif` es un campo de distancia con signo (negativo = quemando); ELMFIRE
+descarta como nodata cualquier valor menor a -1.1, por lo que `ignition_builder.py`
+recorta el lado negativo a -1.0 antes de escribir el raster (ver
+`.claude/skills/elmfire/references/interface-gotchas.md`). Sin este recorte ELMFIRE
+reporta `Fire area: 0.0 acres` en todas las corridas, sin importar clima/combustible.
+
+**Nota sobre datos meteorológicos históricos:** `POST /ingestion/gfs/run` (o el campo
+`gfs_date` en `POST /ingestion/run`) acepta una fecha histórica en lugar de resolver
+siempre el ciclo GFS más reciente — AWS (`noaa-gfs-bdp-pds`) y Google Cloud
+(`global-forecast-system`) conservan el archivo completo de GFS desde 2021-01-01
+(verificado en vivo, sin credenciales adicionales), así que el clima real de
+enero/febrero 2026 es descargable directamente. Cada `RasterAsset` de GFS guarda
+`valid_time` (la fecha real del ciclo), y `run_preparation` acepta un `gfs_at` para
+que una ingesta histórica y una en vivo puedan coexistir en la base sin mezclarse.
+Sigue siendo un producto de pronóstico GFS (ciclo + `f000`), no un reanálisis puro
+como ERA5 — un replay histórico razonable, no idéntico a un reanálisis.
 
 **Isócronas:** no son un flag nativo de ELMFIRE — se generan como post-procesamiento
 (`gdal_contour` sobre `time_of_arrival_*.tif`) en `elmfire-runner/app/runner.py` después

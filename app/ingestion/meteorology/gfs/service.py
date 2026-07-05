@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 GFS_SOURCE_NAME = "noaa_gfs_0p25"
 
 
-async def run_gfs_ingestion(session: AsyncSession) -> uuid.UUID:
+async def run_gfs_ingestion(
+    session: AsyncSession, target_date: date | None = None
+) -> uuid.UUID:
     ds = await repository.get_or_create_data_source(
         session,
         name=GFS_SOURCE_NAME,
@@ -32,14 +34,15 @@ async def run_gfs_ingestion(session: AsyncSession) -> uuid.UUID:
         await session.refresh(run)
 
         client = GFSClient()
-        cycle = await asyncio.to_thread(client.resolve_latest_cycle)
+        cycle = await asyncio.to_thread(client.resolve_cycle, target_date)
         cycle_str = f"{cycle.date.replace('-', '')}{cycle.cycle_hour:02d}"
-
-        raw_dir = (
-            Path(settings.raw_data_dir)
-            / "gfs"
-            / datetime.now(UTC).strftime("%Y-%m-%d")
+        valid_time = datetime.combine(
+            datetime.strptime(cycle.date, "%Y-%m-%d").date(),
+            time(hour=cycle.cycle_hour),
+            tzinfo=UTC,
         )
+
+        raw_dir = Path(settings.raw_data_dir) / "gfs" / cycle.date
 
         downloaded: list[dict] = []
         for var_key in VARIABLES:
@@ -64,6 +67,7 @@ async def run_gfs_ingestion(session: AsyncSession) -> uuid.UUID:
                 band_count=meta.band_count,
                 dtype=meta.dtype,
                 file_size_bytes=meta.file_size_bytes,
+                valid_time=valid_time,
                 metadata={
                     "source": GFS_SOURCE_NAME,
                     "cycle": meta.cycle,
@@ -80,6 +84,7 @@ async def run_gfs_ingestion(session: AsyncSession) -> uuid.UUID:
             metadata={
                 "cycle": cycle_str,
                 "fxx": cycle.fxx,
+                "requested_date": target_date.isoformat() if target_date else None,
                 "variables": list(VARIABLES.keys()),
                 "files": downloaded,
             },

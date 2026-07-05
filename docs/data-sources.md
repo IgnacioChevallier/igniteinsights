@@ -43,25 +43,32 @@ curl -o dem_raw.tif "https://portal.opentopography.org/API/globaldem?demtype=COP
 
 | Field        | Value                                                                                     |
 | ------------ | ----------------------------------------------------------------------------------------- |
-| Access       | NOMADS HTTPS + public S3 (`noaa-gfs-bdp-pds`), via `herbie-data` library                 |
+| Access       | NOMADS HTTPS + public cloud mirrors (AWS `noaa-gfs-bdp-pds`, Google Cloud `global-forecast-system`), via `herbie-data` library |
 | Product      | `pgrb2.0p25` — 0.25° (~28 km) global grid, forecast hour `f000`                          |
-| Cycle        | 00z / 06z / 12z / 18z UTC — module resolves most-recent available cycle automatically    |
+| Cycle        | 00z / 06z / 12z / 18z UTC — resolves the most-recent available cycle on/before a target date |
 | Variables    | U-wind 10 m (`UGRD`), V-wind 10 m (`VGRD`), Temperature 2 m (`TMP`), RH 2 m (`RH`)      |
-| Output files | `data/raw/gfs/{YYYY-MM-DD}/{cycle}_{var}.tif` — one GeoTIFF per variable                 |
-| Asset types  | `gfs_u10`, `gfs_v10`, `gfs_t2m`, `gfs_rh`                                                |
+| Output files | `data/raw/gfs/{YYYY-MM-DD}/{cycle}_{var}.tif` — one GeoTIFF per variable, dated by the resolved cycle (not the ingestion date) |
+| Asset types  | `gfs_u10`, `gfs_v10`, `gfs_t2m`, `gfs_rh` — each `RasterAsset` row records `valid_time` (the cycle's actual datetime), distinct from `created_at` (when it was ingested) |
 | CRS          | EPSG:4326 (native GFS grid, clipped to AOI bbox)                                         |
-| Auth         | None — public NOMADS/S3                                                                   |
+| Auth         | None — public NOMADS/AWS/GCS, no credentials needed for any date since 2021-01-01        |
 | Downstream   | `ws.tif`/`wd.tif` via `weather_builder.derive_wind()`; `m1/m10/m100.tif` via `weather_builder.derive_moisture()` (Nelson 1984 EMC) |
 
 ```bash
-# Trigger ingestion
+# Trigger ingestion — live/most-recent cycle
 curl -X POST http://localhost:8000/api/v1/ingestion/gfs/run
+
+# Trigger ingestion — historical cycle (any date from 2021-01-01 onward)
+curl -X POST "http://localhost:8000/api/v1/ingestion/gfs/run?gfs_date=2026-01-15"
 
 # Check result
 curl http://localhost:8000/api/v1/ingestion/runs/{run_id}
 ```
 
-**Cycle resolution logic:** tries cycles 18z → 12z → 06z → 00z for today, then yesterday, until a published cycle is found on NOMADS. GFS data is typically available ~4 hours after cycle time.
+**Cycle resolution logic:** `GFSClient.resolve_cycle(target_date)` tries cycles 18z → 12z → 06z → 00z on the target date (or today, if `target_date` is omitted), then walks back up to `MAX_LOOKBACK_DAYS` further days until a published cycle is found. GFS data is typically available ~4 hours after cycle time.
+
+**Historical archive coverage (verified live, no auth needed):** AWS (`noaa-gfs-bdp-pds`) and Google Cloud (`global-forecast-system`) both mirror the *full* GFS archive back to 2021-01-01 — confirmed via HTTP HEAD on both buckets for a January 2026 cycle, both returning `200 OK`. Herbie's default source-priority order already tries AWS first, so historical requests need no extra `priority`/credential configuration. Only Azure's mirror is a 30-day rolling window (not relied on). Note this is still GFS *forecast* output (a real cycle + `f000`), not a reanalysis product like ERA5 — a reasonable historical replay, not bit-identical to reanalysis.
+
+**Weather date-scoping:** because historical and live GFS data can coexist in the DB, `app/preparation/service.py`'s weather lookups accept an optional `gfs_at` cutoff (threaded from `POST /ingestion/run`'s `gfs_date` field), which filters `RasterAsset` by `valid_time` instead of "most recently inserted" — so ingesting today's live weather afterward can't silently override a historical replay's inputs.
 
 ## ESA WorldCover — 10 m Land Cover v2.0
 

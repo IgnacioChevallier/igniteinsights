@@ -21,6 +21,13 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_BUFFER_M = 90.0   # 3 × 30 m cells
 
+# ELMFIRE's own raster loader resets any PHI0 value < -1.1 back to +1.0 (unburned) —
+# a sanity clamp against nodata/garbage (elmfire_io.f90: WHERE(PHI0 < -1.1) PHI0 = 1.0).
+# A signed-distance-in-meters field goes far more negative than that for any interior
+# cell, so without this floor every ignition we write gets silently erased before the
+# simulation starts. Must stay strictly above -1.1.
+_PHI_IGNITION_FLOOR = -1.0
+
 
 def build_ignition_layer(
     fire_points: list[tuple[float, float]],
@@ -94,6 +101,7 @@ def build_ignition_layer(
     # Signed distance function via 4-pass L1 sweep
     phi_cells = _signed_distance(fire_mask)
     phi_m = phi_cells * cell_size
+    phi_m = np.where(phi_m < 0, np.maximum(phi_m, _PHI_IGNITION_FLOOR), phi_m)
     phi_out = phi_m.astype(np.float32)
 
     with rasterio.open(phi_path, "w", **profile) as dst:

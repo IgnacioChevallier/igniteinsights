@@ -148,14 +148,20 @@ async def find_raster_asset(
     session: AsyncSession,
     aoi_id: uuid.UUID,
     asset_type: str,
+    at: datetime | None = None,
 ) -> RasterAsset | None:
-    result = await session.execute(
+    stmt = (
         select(RasterAsset)
         .join(IngestionRun, RasterAsset.ingestion_run_id == IngestionRun.id)
         .where(IngestionRun.aoi_id == aoi_id, RasterAsset.asset_type == asset_type)
-        .order_by(RasterAsset.created_at.desc())
-        .limit(1)
     )
+    if at is not None:
+        stmt = stmt.where(
+            RasterAsset.valid_time.is_not(None), RasterAsset.valid_time <= at
+        ).order_by(RasterAsset.valid_time.desc())
+    else:
+        stmt = stmt.order_by(RasterAsset.created_at.desc())
+    result = await session.execute(stmt.limit(1))
     return result.scalar_one_or_none()
 
 
@@ -169,6 +175,7 @@ async def create_raster_asset(
     band_count: int | None = None,
     dtype: str | None = None,
     file_size_bytes: int | None = None,
+    valid_time: datetime | None = None,
     metadata: dict | None = None,
 ) -> RasterAsset:
     asset = RasterAsset(
@@ -180,6 +187,7 @@ async def create_raster_asset(
         band_count=band_count,
         dtype=dtype,
         file_size_bytes=file_size_bytes,
+        valid_time=valid_time,
         metadata_=metadata,
     )
     session.add(asset)

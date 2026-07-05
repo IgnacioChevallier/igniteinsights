@@ -112,6 +112,7 @@ class RasterAsset(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )
+    valid_time: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB)
 
     ingestion_run: Mapped["IngestionRun | None"] = relationship(back_populates="raster_assets")
