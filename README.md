@@ -71,6 +71,49 @@ npm run dev
 | `GET`  | `/api/v1/simulations/{id}`         | Estado de una simulación                                                       |
 
 
+## Ejecución end-to-end: ingesta → construcción → simulación ELMFIRE
+
+Flujo reproducible completo, desde datos reales hasta salidas de ELMFIRE
+(`time_of_arrival_*.tif`, `flin_*.tif`, `vs_*.tif`, `hourly_isochrones.shp`).
+
+```bash
+# 1. Ingesta + preparación automática de inputs ELMFIRE (FIRMS, DEM, GFS, WorldCover)
+curl -s -X POST http://localhost:8000/api/v1/ingestion/run \
+  -H 'Content-Type: application/json' \
+  -d '{"include_firms": true, "include_dem": true, "include_gfs": true, "include_worldcover": true}' \
+  | jq .
+# → capturar .data.preparation.inputs_dir de la respuesta
+
+# 2. Simulación ELMFIRE (usar un horizonte realista — ver nota abajo sobre DTDUMP)
+curl -s -X POST http://localhost:8000/api/v1/simulations/run \
+  -H 'Content-Type: application/json' \
+  -d '{"inputs_dir": "<inputs_dir del paso 1>", "horizon_hours": 12}' \
+  | jq .
+# → capturar .data.simulation_id
+
+# 3. Poll de estado
+curl -s http://localhost:8000/api/v1/simulations/<simulation_id> | jq .
+
+# 4. Verificar salidas en disco
+ls -la data/elmfire/outputs/<simulation_id>/
+# esperado: time_of_arrival_*.tif, flin_*.tif, vs_*.tif, hourly_isochrones.shp(+.dbf/.shx/.prj), fire_size_stats.csv
+
+# 5. Verificar registro en base de datos
+docker compose exec db psql -U igniteinsights -d igniteinsights \
+  -c "SELECT id, status, output_dir, error_message, horizon_hours, finished_at FROM simulation_runs WHERE id = '<simulation_id>';"
+```
+
+**Nota sobre `horizon_hours`:** el intervalo de dump (`DTDUMP`, 3600s por defecto) debe
+ser estrictamente menor que `SIMULATION_TSTOP` (`horizon_hours × 3600`) para que ELMFIRE
+llegue a escribir al menos un raster/isócrona — `namelist_writer.resolve_dtdump_s()`
+ajusta esto automáticamente, pero un `horizon_hours=1` (igual al DTDUMP por defecto) es
+un caso límite pensado solo para smoke tests, no para una corrida real. Para el incendio
+histórico de Los Alerces usar un horizonte que cubra la duración real del evento.
+
+**Isócronas:** no son un flag nativo de ELMFIRE — se generan como post-procesamiento
+(`gdal_contour` sobre `time_of_arrival_*.tif`) en `elmfire-runner/app/runner.py` después
+de que ELMFIRE termina exitosamente. Ver [Mapeo a ELMFIRE](docs/elmfire-mapping.md).
+
 ## Documentación
 
 - [Arquitectura](docs/architecture.md)
