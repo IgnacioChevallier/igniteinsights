@@ -6,12 +6,14 @@ class SimulationRequest(BaseModel):
     inputs_dir: str
     outputs_dir: str
     simulation_hours: int = 3
+    dtdump_s: float = 3600.0
 
 
 class SimulationOutputPaths(BaseModel):
     isochrones_shp: str | None = None
     time_of_arrival_tif: str | None = None
     flame_length_tifs: list[str] = []
+    spread_rate_tifs: list[str] = []
 
 
 class SimulationResult(BaseModel):

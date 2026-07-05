@@ -94,7 +94,7 @@ async def run_simulation(
         # (Re)write namelist with the requested horizon
         elmfire_data = inputs_dir / "elmfire.data"
         import asyncio
-        await asyncio.to_thread(
+        _, resolved_dtdump_s = await asyncio.to_thread(
             write_namelist,
             inputs_dir,
             outputs_dir,
@@ -109,6 +109,7 @@ async def run_simulation(
                 inputs_dir=str(inputs_dir),
                 outputs_dir=str(outputs_dir),
                 simulation_hours=body.horizon_hours,
+                dtdump_s=resolved_dtdump_s,
             )
         )
 

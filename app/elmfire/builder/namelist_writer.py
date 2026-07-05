@@ -12,6 +12,27 @@ import rasterio
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DTDUMP_S = 3600.0
+
+
+def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:
+    """Clamp dtdump_s so at least one output checkpoint occurs strictly before TSTOP.
+
+    If dtdump_s >= tstop_s, ELMFIRE's only possible dump checkpoint coincides with
+    the simulation's final instant, which can result in raster/isochrone outputs
+    never being written even though the run completes successfully.
+    """
+    if dtdump_s >= tstop_s:
+        clamped = tstop_s / 2.0
+        logger.warning(
+            "dtdump_s=%.1f >= tstop_s=%.1f; clamping to %.1f so ELMFIRE dumps at least once before TSTOP",
+            dtdump_s,
+            tstop_s,
+            clamped,
+        )
+        return clamped
+    return dtdump_s
+
 
 def write_namelist(
     inputs_dir: Path,
@@ -20,8 +41,8 @@ def write_namelist(
     output_path: Path,
     dt_s: float = 30.0,
     dtmax_s: float = 300.0,
-    dtdump_s: float = 3600.0,
-) -> Path:
+    dtdump_s: float = DEFAULT_DTDUMP_S,
+) -> tuple[Path, float]:
     """
     Write elmfire.data to output_path.
 
@@ -35,9 +56,10 @@ def write_namelist(
         dtdump_s: output dump interval in seconds
 
     Returns:
-        Path to the written namelist.
+        Tuple of (path to the written namelist, resolved dump interval in seconds).
     """
     tstop_s = simulation_hours * 3600.0
+    dtdump_s = resolve_dtdump_s(tstop_s, dtdump_s)
     inputs_str = str(inputs_dir).rstrip("/") + "/"
     outputs_str = str(outputs_dir).rstrip("/") + "/"
 
@@ -79,6 +101,7 @@ def write_namelist(
   CONVERT_TO_GEOTIFF              = T
   DUMP_TIME_OF_ARRIVAL            = T
   DUMP_FLIN                       = T
+  DUMP_SPREAD_RATE                = T
 /
 
 &TIME_CONTROL
@@ -97,7 +120,7 @@ def write_namelist(
     logger.info(
         "Namelist written to %s (%.0f h, %.0f s timestep)", output_path, simulation_hours, dt_s
     )
-    return output_path
+    return output_path, dtdump_s
 
 
 def _read_domain(dem_path: Path) -> tuple[float, float, float]:

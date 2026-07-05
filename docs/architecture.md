@@ -126,9 +126,12 @@ igniteinsights/
 │       │   ├── phi.tif           # ignición desde FIRMS
 │       │   └── elmfire.data      # namelist Fortran
 │       └── outputs/{sim_id}/
-│           ├── hourly_isochrones.shp
-│           ├── toa_*.tif
-│           └── flin_*.tif
+│           ├── fire_size_stats.csv    # siempre generado por ELMFIRE
+│           ├── time_of_arrival_*.tif  # NO "toa_*.tif" — nombre real de ELMFIRE
+│           ├── flin_*.tif
+│           ├── vs_*.tif               # spread rate (DUMP_SPREAD_RATE)
+│           └── hourly_isochrones.shp  # post-procesado con gdal_contour, no es
+│                                      # un flag nativo de ELMFIRE (ver elmfire-runner/app/runner.py)
 └── docs/
 ```
 
