@@ -77,8 +77,12 @@ export function DashboardHeader({
       setFirmsLabel(null);
       return;
     }
-    const range = `${s.firms_day_range} day${s.firms_day_range !== 1 ? "s" : ""}`;
-    setFirmsLabel(s.firms_start_date ? `FIRMS: from ${s.firms_start_date} · ${range}` : `FIRMS: last ${range}`);
+    const range = `${s.firms_day_range} ${s.firms_day_range === 1 ? "día" : "días"}`;
+    setFirmsLabel(
+      s.firms_start_date
+        ? `FIRMS: desde ${s.firms_start_date} · ${range}`
+        : `FIRMS: últimos ${range}`,
+    );
   }, []);
 
   async function handleRun() {
@@ -107,22 +111,26 @@ export function DashboardHeader({
       const envelope = await res.json();
       if (!res.ok || (envelope.status && envelope.status !== "success")) {
         throw new Error(
-          `Ingestion failed: ${extractErrorMessage(envelope, res.status)}`
+          `Falló la ingesta: ${extractErrorMessage(envelope, res.status)}`
         );
       }
 
       const inputsDir = envelope.data?.preparation?.inputs_dir;
+      const ignitionDatetime = envelope.data?.preparation?.ignition_datetime;
       if (inputsDir) {
         setPhase("simulating");
         const simRes = await fetch("/api/simulations/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ inputs_dir: inputsDir }),
+          body: JSON.stringify({
+            inputs_dir: inputsDir,
+            ...(ignitionDatetime ? { ignition_datetime: ignitionDatetime } : {}),
+          }),
         });
         const simEnvelope = await simRes.json();
         if (!simRes.ok || (simEnvelope.status && simEnvelope.status !== "success")) {
           throw new Error(
-            `Simulation failed: ${extractErrorMessage(simEnvelope, simRes.status)}`
+            `Falló la simulación: ${extractErrorMessage(simEnvelope, simRes.status)}`
           );
         }
       }
@@ -131,7 +139,7 @@ export function DashboardHeader({
       router.refresh();
     } catch (err) {
       setStatus("error");
-      setErrorDetail(err instanceof Error ? err.message : "Unknown error");
+      setErrorDetail(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setPhase(null);
     }
@@ -147,7 +155,7 @@ export function DashboardHeader({
       <div>
         <h1 className="text-2xl font-semibold">Ignite Insights</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Generated {generatedAt} · {apiBaseUrl}
+          Generado {generatedAt} · {apiBaseUrl}
         </p>
         {firmsLabel && (
           <p className="mt-0.5 text-xs text-muted-foreground">{firmsLabel}</p>
@@ -156,25 +164,25 @@ export function DashboardHeader({
 
       <div className="flex items-center gap-2">
         {status === "success" && (
-          <span className="text-xs text-green-600">Ingestion + simulation started ✓</span>
+          <span className="text-xs text-green-600">Ingesta + simulación iniciadas ✓</span>
         )}
         {status === "error" && (
           <span className="text-xs text-destructive">
-            {errorDetail ?? "Run failed"} ✗
+            {errorDetail ?? "Falló la ejecución"} ✗
           </span>
         )}
 
         <Button size="sm" onClick={handleRun} disabled={status === "running"}>
           {status === "running"
             ? phase === "simulating"
-              ? "Simulating…"
-              : "Ingesting…"
-            : "Run"}
+              ? "Simulando..."
+              : "Ingestando..."
+            : "Ejecutar"}
         </Button>
 
         <form>
           <Button type="submit" variant="outline" size="sm">
-            Refresh
+            Actualizar
           </Button>
         </form>
 
@@ -182,7 +190,7 @@ export function DashboardHeader({
           variant="ghost"
           size="sm"
           onClick={() => router.push("/settings")}
-          aria-label="Settings"
+          aria-label="Configuración"
         >
           <SettingsIcon />
         </Button>

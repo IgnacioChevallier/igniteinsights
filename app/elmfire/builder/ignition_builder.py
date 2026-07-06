@@ -19,7 +19,18 @@ from shapely.geometry import Point, mapping
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_BUFFER_M = 90.0   # 3 × 30 m cells
+# Tunable app-side preprocessing heuristic (not an ELMFIRE-mandated value), set to
+# VIIRS's own nominal pixel width so adjacent detections of one contiguous fire
+# front overlap after buffering and merge into one ignition polygon, instead of
+# fragmenting into many disjoint blobs that each spread/grow independently.
+# Empirically (real DB data, 633 detections over a real 48h single-fire window):
+# 90m -> 162 fragments, 200m -> 47, 300m -> 32, 400m -> 27, with diminishing
+# returns beyond that. This buffer meaningfully reduces fragmentation but does not
+# eliminate it — real, spread-out multi-day fire complexes and the twice-daily
+# VIIRS revisit gap leave genuine spatial gaps no buffer size alone can close;
+# that would need proper fire-front reconstruction (e.g. clustering + alpha
+# shapes), which is out of scope here.
+_DEFAULT_BUFFER_M = 375.0
 
 # ELMFIRE's own raster loader resets any PHI0 value < -1.1 back to +1.0 (unburned) —
 # a sanity clamp against nodata/garbage (elmfire_io.f90: WHERE(PHI0 < -1.1) PHI0 = 1.0).

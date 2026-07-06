@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IgniteInsights",
-  description: "Read-only IgniteInsights ELMFIRE run and input dashboard",
+  title: "Ignite Insights",
+  description: "Panel de lectura para ejecuciones y entradas ELMFIRE de Ignite Insights",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body>{children}</body>
     </html>
   );

@@ -48,7 +48,10 @@ async def get_active_fires(
     if hours < 1 or hours > 168:
         raise HTTPException(status_code=400, detail="hours must be between 1 and 168")
 
-    features = await repository.get_active_fires(session, since=datetime.now(UTC) - timedelta(hours=hours))
+    aoi = await repository.get_or_create_default_aoi(session)
+    features = await repository.get_active_fires(
+        session, since=datetime.now(UTC) - timedelta(hours=hours), aoi_id=aoi.id
+    )
     geojson = {
         "type": "FeatureCollection",
         "features": features,

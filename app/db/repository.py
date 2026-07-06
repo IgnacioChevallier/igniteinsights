@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from geoalchemy2.functions import ST_AsGeoJSON
+from geoalchemy2.functions import ST_AsGeoJSON, ST_Intersects
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,14 +110,19 @@ async def bulk_insert_fire_detections(
 
 
 async def get_active_fires(
-    session: AsyncSession, since: datetime
+    session: AsyncSession, since: datetime, aoi_id: uuid.UUID | None = None
 ) -> list[dict]:
-    result = await session.execute(
-        select(
-            FireDetection,
-            ST_AsGeoJSON(FireDetection.geom).label("geojson"),
-        ).where(FireDetection.acq_datetime >= since)
-    )
+    query = select(
+        FireDetection,
+        ST_AsGeoJSON(FireDetection.geom).label("geojson"),
+    ).where(FireDetection.acq_datetime >= since)
+
+    if aoi_id is not None:
+        query = query.join(
+            AreaOfInterest, ST_Intersects(FireDetection.geom, AreaOfInterest.geom)
+        ).where(AreaOfInterest.id == aoi_id)
+
+    result = await session.execute(query)
     rows = result.all()
     features = []
     import json
@@ -239,6 +244,28 @@ async def update_simulation_run(
         run.error_message = error_message
     await session.flush()
     return run
+
+
+async def create_simulation_output(
+    session: AsyncSession,
+    simulation_id: uuid.UUID,
+    output_type: str,
+    file_path: str | None = None,
+    valid_at: datetime | None = None,
+) -> SimulationOutput:
+    """Insert a bookkeeping row for a simulation output file. `geom` is left NULL:
+    simulation_outputs.geom is typed MULTIPOLYGON, but ELMFIRE's isochrone contours
+    are LineStrings (see isochrone_converter.py), so it can't hold them. Isochrone
+    geometry is served read-through from the shapefile instead of stored here."""
+    output = SimulationOutput(
+        simulation_id=simulation_id,
+        output_type=output_type,
+        file_path=file_path,
+        valid_at=valid_at,
+    )
+    session.add(output)
+    await session.flush()
+    return output
 
 
 async def list_recent_ingestion_runs(

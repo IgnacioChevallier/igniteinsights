@@ -127,11 +127,17 @@ async def run_preparation(
 
     # ── 4. Ignition (from FIRMS detections in DB) ─────────────────────────────
     since = fires_since or datetime.now(UTC) - timedelta(hours=48)
-    fire_features = await repository.get_active_fires(session, since=since)
+    fire_features = await repository.get_active_fires(session, since=since, aoi_id=aoi.id)
     fire_points = [
         (f["properties"]["longitude"], f["properties"]["latitude"])
         for f in fire_features
     ]
+    # Most recent detection actually used to build phi.tif — the closest thing we
+    # have to a real-world "ignition time" for this simulation (see preparation
+    # plan notes: SimulationRun.ignition_datetime has no other honest source today).
+    ignition_datetime = (
+        max(f["properties"]["acq_datetime"] for f in fire_features) if fire_features else None
+    )
     if fire_points and reference:
         phi, _ = await asyncio.to_thread(
             ignition_builder.build_ignition_layer, fire_points, reference, inputs_dir
@@ -213,6 +219,7 @@ async def run_preparation(
         "inputs_dir": str(inputs_dir),
         "generated": generated,
         "missing": missing,
+        "ignition_datetime": ignition_datetime,
     }
 
 

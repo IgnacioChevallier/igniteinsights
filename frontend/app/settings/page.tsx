@@ -26,31 +26,31 @@ type SourceConfig = {
 const SOURCES: SourceConfig[] = [
   {
     key: "include_firms",
-    label: "FIRMS — Fire detections",
-    description: "NASA VIIRS NOAA-20 NRT active fire detections. Updated ~every 12 hours.",
+    label: "FIRMS — Detecciones de incendios",
+    description: "Detecciones de fuego activo NASA VIIRS NOAA-20 NRT. Se actualiza cada ~12 horas.",
   },
   {
     key: "include_gfs",
-    label: "GFS — Weather forecast",
-    description: "NOAA GFS 0.25° wind, temperature, and humidity. Updated every 6 hours.",
+    label: "GFS — Pronóstico meteorológico",
+    description: "NOAA GFS 0.25° de viento, temperatura y humedad. Se actualiza cada 6 horas.",
   },
   {
     key: "include_dem",
-    label: "DEM — Terrain elevation",
-    description: "Copernicus GLO-30 digital elevation model (30 m).",
-    note: "Static — download once.",
+    label: "DEM — Elevación del terreno",
+    description: "Modelo digital de elevación Copernicus GLO-30 (30 m).",
+    note: "Estático: descargar una vez.",
   },
   {
     key: "include_worldcover",
-    label: "WorldCover — Land cover",
-    description: "ESA WorldCover 10 m land cover classification.",
-    note: "Static — download once.",
+    label: "WorldCover — Cobertura del suelo",
+    description: "Clasificación de cobertura del suelo ESA WorldCover 10 m.",
+    note: "Estático: descargar una vez.",
   },
   {
     key: "include_canopy",
-    label: "Canopy — Forest cover & height",
+    label: "Canopy — Cobertura y altura del bosque",
     description: "Hansen GFC treecover2000 (cc) + ETH Global Canopy Height 2020 (ch).",
-    note: "Static — download once. ~500 MB.",
+    note: "Estático: descargar una vez. ~500 MB.",
   },
 ];
 
@@ -84,27 +84,27 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-2xl px-6 py-8">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.back()}>
-            ← Back
+            ← Volver
           </Button>
           <div className="flex-1" />
-          {saved && <span className="text-xs text-muted-foreground">Saved</span>}
+          {saved && <span className="text-xs text-muted-foreground">Guardado</span>}
         </div>
 
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">Configuración</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure which sources are included when you click{" "}
-          <span className="font-medium text-foreground">Run</span> on the dashboard. Settings are
-          saved automatically to your browser.
+          Configura qué fuentes se incluyen cuando haces clic en{" "}
+          <span className="font-medium text-foreground">Ejecutar</span> en el panel. La configuración
+          se guarda automáticamente en tu navegador.
         </p>
 
         <Separator className="my-6" />
 
-        {/* ── Ingestion sources ─────────────────────────────────────────── */}
+        {/* ── Fuentes de ingesta ─────────────────────────────────────────── */}
         <Card>
           <CardHeader>
-            <CardTitle>Ingestion sources</CardTitle>
+            <CardTitle>Fuentes de ingesta</CardTitle>
             <CardDescription>
-              Toggle which data sources are downloaded on each run.
+              Activa qué fuentes de datos se descargan en cada ejecución.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-0 divide-y">
@@ -133,18 +133,18 @@ export default function SettingsPage() {
 
         <Separator className="my-6" />
 
-        {/* ── FIRMS settings ────────────────────────────────────────────── */}
+        {/* ── Configuración de FIRMS ─────────────────────────────────────── */}
         <Card>
           <CardHeader>
-            <CardTitle>FIRMS settings</CardTitle>
+            <CardTitle>Configuración de FIRMS</CardTitle>
             <CardDescription>
-              Applied when FIRMS is enabled. Leave start date empty to use the most recent data.
+              Se aplica cuando FIRMS está activado. Deja la fecha de inicio vacía para usar los datos más recientes.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-1.5">
               <label htmlFor="firms_start_date" className="text-sm font-medium">
-                Start date
+                Fecha de inicio
               </label>
               <input
                 id="firms_start_date"
@@ -154,13 +154,13 @@ export default function SettingsPage() {
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty to request the most recent available data from FIRMS.
+                Déjala vacía para solicitar los datos disponibles más recientes de FIRMS.
               </p>
             </div>
 
             <div className="grid gap-1.5">
               <label htmlFor="firms_day_range" className="text-sm font-medium">
-                Day range
+                Rango de días
                 <span className="ml-1 font-normal text-muted-foreground">(1 – 5)</span>
               </label>
               <input
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                 className="h-9 w-28 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <p className="text-xs text-muted-foreground">
-                Number of days to request from FIRMS (max 5).
+                Cantidad de días a solicitar a FIRMS (máximo 5).
               </p>
             </div>
           </CardContent>
@@ -185,7 +185,7 @@ export default function SettingsPage() {
 
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
-            ← Back to dashboard
+            ← Volver al panel
           </Button>
         </div>
       </div>
