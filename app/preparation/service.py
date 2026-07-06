@@ -97,7 +97,13 @@ async def run_preparation(
     t2m = await repository.find_raster_asset(session, aoi.id, "gfs_t2m", at=gfs_at)
     rh = await repository.find_raster_asset(session, aoi.id, "gfs_rh", at=gfs_at)
 
-    if all(a and Path(a.file_path).exists() for a in [u10, v10]) and reference:
+    if (
+        u10 is not None
+        and v10 is not None
+        and Path(u10.file_path).exists()
+        and Path(v10.file_path).exists()
+        and reference is not None
+    ):
         ws, wd = await asyncio.to_thread(
             weather_builder.derive_wind,
             _resolve(u10.file_path),
@@ -111,7 +117,13 @@ async def run_preparation(
         if not (u10 and v10):
             logger.warning("No GFS wind assets — run ingestion with include_gfs=true")
 
-    if all(a and Path(a.file_path).exists() for a in [t2m, rh]) and reference:
+    if (
+        t2m is not None
+        and rh is not None
+        and Path(t2m.file_path).exists()
+        and Path(rh.file_path).exists()
+        and reference is not None
+    ):
         m1, m10, m100 = await asyncio.to_thread(
             weather_builder.derive_moisture,
             _resolve(t2m.file_path),

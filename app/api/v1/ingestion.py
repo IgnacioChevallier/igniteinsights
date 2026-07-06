@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from collections.abc import Awaitable
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -208,7 +209,7 @@ async def run_ingestion(body: IngestionRunRequest):
         async with async_session_factory() as s:
             return await service_fn(s, **kwargs)
 
-    tasks: dict[str, object] = {}
+    tasks: dict[str, Awaitable[object]] = {}
     if body.include_firms:
         tasks["firms"] = _run(
             run_firms_ingestion,
@@ -228,7 +229,7 @@ async def run_ingestion(body: IngestionRunRequest):
         return _envelope(status="success", data={}, error={"message": "No sources selected"})
 
     results = await asyncio.gather(
-        *tasks.values(),
+        *list(tasks.values()),
         return_exceptions=True,
     )
 

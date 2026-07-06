@@ -52,10 +52,14 @@ Crosswalk WorldCover v2.0 → Scott & Burgan FBFM40 para Patagonia:
 - **ch.tif** (metros): `reproject_canopy(eth_canopy_height.tif)` — bilinear, EPSG:32719 30 m.
 - **cbh.tif** (metros) + **cbd.tif** (kg/m³): `derive_cbh_cbd(fbfm40.tif)` — lookup table Scott & Reinhardt (2005) por código FBFM40.
 
-### Ignición (`ignition_builder.py`)
-1. Buffer shapely de 90 m sobre cada punto FIRMS (proyectados a EPSG:32719).
-2. Rasterizar polígono de ignición al grid de referencia.
-3. Función de distancia con signo L1 (4-pass sweep, numpy): `phi < 0` dentro del perímetro, `phi > 0` fuera.
+### Ignición (`ignition_builder.py` + `perimeter_reconstruction.py`)
+1. Reconstrucción de perímetro por evento (`perimeter_reconstruction.reconstruct_burn_polygon`,
+   puntos FIRMS proyectados a EPSG:32719): dedup (~10 m) → clustering single-linkage
+   (eps 1500 m) → concave hull por cluster (ratio 0.4) con padding de 187.5 m
+   (media huella VIIRS); clusters de <4 puntos quedan como buffers de 375 m por punto
+   (spot fires).
+2. Rasterizar el (Multi)Polygon de ignición al grid de referencia.
+3. Función de distancia con signo L1 (4-pass sweep, numpy): `phi < 0` dentro del perímetro, `phi > 0` fuera (clamp interior a -1.0 por el reset `PHI0 < -1.1` de ELMFIRE).
 
 ## Raster alignment constraint
 
