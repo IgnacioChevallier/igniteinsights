@@ -81,7 +81,9 @@ def _eth_tiles(west: float, south: float, east: float, north: float) -> list[Can
         lon = lon_start
         while lon <= lon_end:
             tile_id = _eth_tile_id(lat, lon)
-            url = f"{_ETH_BASE}?path=%2F3deg_cogs%2FETH_GlobalCanopyHeight_10m_2020_{tile_id}_Map.tif"
+            url = (
+                f"{_ETH_BASE}?path=%2F3deg_cogs%2FETH_GlobalCanopyHeight_10m_2020_{tile_id}_Map.tif"
+            )
             tiles.append(CanopyTile(tile_id=tile_id, url=url))
             lon += _ETH_TILE_DEG
         lat += _ETH_TILE_DEG

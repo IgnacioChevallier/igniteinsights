@@ -25,7 +25,8 @@ def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> floa
     if dtdump_s >= tstop_s:
         clamped = tstop_s / 2.0
         logger.warning(
-            "dtdump_s=%.1f >= tstop_s=%.1f; clamping to %.1f so ELMFIRE dumps at least once before TSTOP",
+            "dtdump_s=%.1f >= tstop_s=%.1f; clamping to %.1f so ELMFIRE dumps at least once "
+            "before TSTOP",
             dtdump_s,
             tstop_s,
             clamped,

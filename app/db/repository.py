@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from geoalchemy2.functions import ST_AsGeoJSON, ST_Intersects
 from sqlalchemy import select

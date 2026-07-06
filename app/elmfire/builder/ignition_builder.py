@@ -163,7 +163,6 @@ def _signed_distance(fire_mask: np.ndarray) -> np.ndarray:
 def _write_shapefile(polygon, crs_wkt: str, path: Path) -> None:
     try:
         import geopandas as gpd
-        from shapely.geometry import shape
 
         gdf = gpd.GeoDataFrame({"geometry": [polygon], "id": [1]}, crs=crs_wkt)
         gdf.to_file(str(path))

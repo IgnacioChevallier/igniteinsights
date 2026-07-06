@@ -10,15 +10,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Path as FPath
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Path as FPath
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import repository
-from app.db.session import async_session_factory
 from app.dependencies import get_db
-from app.elmfire.builder.ignition_builder import build_ignition_layer
 from app.elmfire.builder.namelist_writer import write_namelist
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.errors import ELMFIRERunnerError

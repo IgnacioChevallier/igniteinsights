@@ -12,8 +12,8 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
-from rasterio.warp import Resampling, calculate_default_transform, reproject
 from PIL import Image
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 
 # ColorBrewer YlOrRd (5-class) — a standard sequential "heat" ramp for hazard data.
 _RAMP_STOPS = np.array([0.0, 0.25, 0.5, 0.75, 1.0])

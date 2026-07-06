@@ -146,7 +146,9 @@ async def run_preparation(
     else:
         missing.append("phi.tif")
         if not fire_points:
-            logger.warning("No FIRMS detections since %s — phi.tif not generated", since.isoformat())
+            logger.warning(
+                "No FIRMS detections since %s — phi.tif not generated", since.isoformat()
+            )
 
     # ── 5. Canopy ─────────────────────────────────────────────────────────────
     cc_asset = await repository.find_raster_asset(session, aoi.id, "canopy_cc")
