@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Ignite Insights",
   description: "Panel de lectura para ejecuciones y entradas ELMFIRE de Ignite Insights",
+  icons: {
+    icon: "/images/wildfire-logo-tree-colored.svg",
+    shortcut: "/images/wildfire-logo-tree-colored.svg",
+  },
 };
 
 export default function RootLayout({

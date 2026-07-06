@@ -19,8 +19,14 @@ export function SidebarNav({
 }) {
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-1 border-r bg-background p-3">
-      <div className="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Ignite Insights
+      <div className="mb-2 flex items-center gap-2 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <img
+          src="/images/wildfire-logo-tree-colored.svg"
+          alt=""
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0"
+        />
+        <span>Ignite Insights</span>
       </div>
       {SECTIONS.map((section) => (
         <button

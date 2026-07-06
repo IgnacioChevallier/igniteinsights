@@ -201,13 +201,25 @@ class IngestionRunRequest(BaseModel):
         "ELMFIRE input rasters (dem, slp, asp, fbfm40, ws, wd, m1-100, phi) using the "
         "most recent data available in the DB and writes them to elmfire/inputs/{prep_id}/. "
         "Returns a map of source → run_id plus a 'preparation' summary with inputs_dir, "
-        "generated files, and any missing files."
+        "generated files, and any missing files. When `firms_start_date` is provided "
+        "without `gfs_date`, the GFS date defaults to the last day of the FIRMS window "
+        "(`firms_start_date + firms_day_range - 1`) so historical fires are simulated "
+        "with weather from the same period instead of the live cycle."
     ),
 )
 async def run_ingestion(body: IngestionRunRequest):
     async def _run(service_fn, **kwargs):
         async with async_session_factory() as s:
             return await service_fn(s, **kwargs)
+
+    # Historical fires need weather from the same period: when a FIRMS start date is
+    # given without an explicit GFS date, fetch the cycle for the *last* day of the
+    # FIRMS window (the ignition day — preparation uses the newest detection as
+    # ignition time). Otherwise a February fire gets paired with today's (e.g.
+    # winter) weather and ELMFIRE produces zero spread.
+    gfs_date = body.gfs_date
+    if gfs_date is None and body.firms_start_date is not None:
+        gfs_date = body.firms_start_date + timedelta(days=body.firms_day_range - 1)
 
     tasks: dict[str, Awaitable[object]] = {}
     if body.include_firms:
@@ -219,7 +231,7 @@ async def run_ingestion(body: IngestionRunRequest):
     if body.include_dem:
         tasks["dem"] = _run(run_dem_ingestion)
     if body.include_gfs:
-        tasks["gfs"] = _run(run_gfs_ingestion, target_date=body.gfs_date)
+        tasks["gfs"] = _run(run_gfs_ingestion, target_date=gfs_date)
     if body.include_worldcover:
         tasks["worldcover"] = _run(run_worldcover_ingestion)
     if body.include_canopy:
@@ -255,13 +267,13 @@ async def run_ingestion(body: IngestionRunRequest):
         else:
             fires_since = datetime.now(UTC) - timedelta(days=body.firms_day_range)
 
-    # Scope weather lookups to the requested historical GFS date, if any, so a live
-    # ingestion elsewhere in the DB can't silently override it (see valid_time on
-    # RasterAsset / find_raster_asset(at=...)).
+    # Scope weather lookups to the historical GFS date (explicit or derived from the
+    # FIRMS window), so a live ingestion elsewhere in the DB can't silently override
+    # it (see valid_time on RasterAsset / find_raster_asset(at=...)).
     gfs_at: datetime | None = None
-    if body.include_gfs and body.gfs_date:
+    if body.include_gfs and gfs_date:
         gfs_at = datetime(
-            body.gfs_date.year, body.gfs_date.month, body.gfs_date.day,
+            gfs_date.year, gfs_date.month, gfs_date.day,
             23, 59, 59, tzinfo=UTC,
         )
 

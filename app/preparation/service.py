@@ -26,6 +26,11 @@ from app.elmfire.builder import (
 
 logger = logging.getLogger(__name__)
 
+# Max tolerated gap between the fire's ignition time and the GFS cycle's valid_time
+# before the preparation flags the pairing as incoherent. Live runs use a cycle at
+# most a few hours old; anything beyond this means wrong-period weather.
+_WEATHER_MISMATCH_MAX_S = 48 * 3600.0
+
 
 async def run_preparation(
     session: AsyncSession,
@@ -40,6 +45,7 @@ async def run_preparation(
       - inputs_dir: absolute path to the written inputs folder
       - generated: list of filenames successfully written
       - missing: list of filenames that could not be generated (missing source data)
+      - warnings: list of coherence problems (e.g. fire/weather period mismatch)
     """
     prep_id = uuid.uuid4()
     aoi = await repository.get_or_create_default_aoi(session)
@@ -51,6 +57,7 @@ async def run_preparation(
 
     generated: list[str] = []
     missing: list[str] = []
+    warnings: list[str] = []
 
     # ── 1. Topography (static, cached) ────────────────────────────────────────
     dem_asset = await repository.find_raster_asset(session, aoi.id, "dem_raw")
@@ -150,6 +157,32 @@ async def run_preparation(
     ignition_datetime = (
         max(f["properties"]["acq_datetime"] for f in fire_features) if fire_features else None
     )
+
+    # Coherence guard: simulating a fire with weather from a different period silently
+    # produces zero spread (e.g. a February fire paired with a winter cycle whose fuel
+    # moisture exceeds the extinction moisture of every fuel model). Surface it.
+    if ignition_datetime is not None:
+        ignition_dt = datetime.fromisoformat(ignition_datetime)
+        weather_valid_times = [
+            a.valid_time
+            for a in (u10, v10, t2m, rh)
+            if a is not None and a.valid_time is not None
+        ]
+        if weather_valid_times:
+            mismatch = max(
+                abs((ignition_dt - vt).total_seconds()) for vt in weather_valid_times
+            )
+            if mismatch > _WEATHER_MISMATCH_MAX_S:
+                msg = (
+                    f"Weather/fire mismatch: ignition {ignition_datetime} vs "
+                    f"GFS valid_time {max(weather_valid_times).isoformat()} "
+                    f"({mismatch / 86400:.1f} days apart) — the simulation will use "
+                    "weather from a different period; pass gfs_date matching the fire "
+                    "window (or re-run ingestion with include_gfs=true)"
+                )
+                logger.warning("Preparation %s: %s", prep_id, msg)
+                warnings.append(msg)
+
     if fire_points and reference:
         phi, _ = await asyncio.to_thread(
             ignition_builder.build_ignition_layer, fire_points, reference, inputs_dir
@@ -233,6 +266,7 @@ async def run_preparation(
         "inputs_dir": str(inputs_dir),
         "generated": generated,
         "missing": missing,
+        "warnings": warnings,
         "ignition_datetime": ignition_datetime,
     }
 

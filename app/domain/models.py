@@ -75,6 +75,17 @@ class IngestionRun(Base):
 
 class FireDetection(Base):
     __tablename__ = "fire_detections"
+    __table_args__ = (
+        # Natural key of one VIIRS detection — re-ingesting an overlapping FIRMS
+        # window must not duplicate rows (inserts use ON CONFLICT DO NOTHING).
+        UniqueConstraint(
+            "geom",
+            "acq_datetime",
+            "satellite",
+            name="uq_fire_detection_natural_key",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     ingestion_run_id: Mapped[uuid.UUID] = mapped_column(

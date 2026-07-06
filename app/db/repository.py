@@ -1,8 +1,11 @@
+import logging
 import uuid
 from datetime import UTC, datetime
+from typing import cast
 
 from geoalchemy2.functions import ST_AsGeoJSON, ST_Intersects
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -15,6 +18,8 @@ from app.domain.models import (
     SimulationOutput,
     SimulationRun,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def get_or_create_data_source(
@@ -101,12 +106,27 @@ async def bulk_insert_fire_detections(
     run_id: uuid.UUID,
     detections: list[dict],
 ) -> int:
+    """Insert detections, skipping rows already stored (same geom/acq_datetime/
+    satellite) by a previous overlapping ingestion. Returns rows actually inserted."""
     if not detections:
         return 0
-    objects = [FireDetection(ingestion_run_id=run_id, **d) for d in detections]
-    session.add_all(objects)
-    await session.flush()
-    return len(objects)
+    rows = [
+        {"id": uuid.uuid4(), "ingestion_run_id": run_id, **d} for d in detections
+    ]
+    stmt = (
+        pg_insert(FireDetection)
+        .values(rows)
+        .on_conflict_do_nothing(constraint="uq_fire_detection_natural_key")
+    )
+    result = cast(CursorResult, await session.execute(stmt))
+    inserted = result.rowcount or 0
+    if inserted < len(rows):
+        logger.info(
+            "bulk_insert_fire_detections: %d of %d detections already stored — skipped",
+            len(rows) - inserted,
+            len(rows),
+        )
+    return inserted
 
 
 async def get_active_fires(
