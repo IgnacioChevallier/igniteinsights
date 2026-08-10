@@ -6,6 +6,8 @@ outputs. All paths must be accessible to the elmfire-runner container via the
 shared data volume.
 """
 import logging
+import math
+import re
 from pathlib import Path
 
 import rasterio
@@ -13,6 +15,13 @@ import rasterio
 logger = logging.getLogger(__name__)
 
 DEFAULT_DTDUMP_S = 3600.0
+REQUIRED_NAMELISTS = (
+    "INPUTS",
+    "COMPUTATIONAL_DOMAIN",
+    "TIME_CONTROL",
+    "SIMULATOR",
+    "OUTPUTS",
+)
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:
@@ -43,6 +52,9 @@ def write_namelist(
     dt_s: float = 30.0,
     dtmax_s: float = 300.0,
     dtdump_s: float = DEFAULT_DTDUMP_S,
+    dt_meteorology_s: float = 3600.0,
+    simulation_tstart_s: float = 0.0,
+    simulator_mode: int = 1,
 ) -> tuple[Path, float]:
     """
     Write elmfire.data to output_path.
@@ -55,17 +67,31 @@ def write_namelist(
         dt_s: minimum timestep in seconds
         dtmax_s: maximum timestep in seconds
         dtdump_s: output dump interval in seconds
+        dt_meteorology_s: interval between weather-raster bands in seconds
+        simulation_tstart_s: absolute simulation start time in seconds
+        simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
 
     Returns:
         Tuple of (path to the written namelist, resolved dump interval in seconds).
     """
-    tstop_s = simulation_hours * 3600.0
-    dtdump_s = resolve_dtdump_s(tstop_s, dtdump_s)
-    inputs_str = str(inputs_dir).rstrip("/") + "/"
-    outputs_str = str(outputs_dir).rstrip("/") + "/"
+    _validate_parameters(
+        simulation_hours,
+        dt_s,
+        dtmax_s,
+        dtdump_s,
+        dt_meteorology_s,
+        simulation_tstart_s,
+        simulator_mode,
+    )
+    duration_s = simulation_hours * 3600.0
+    tstop_s = simulation_tstart_s + duration_s
+    dtdump_s = resolve_dtdump_s(duration_s, dtdump_s)
+    inputs_str = _fortran_path(inputs_dir)
+    outputs_str = _fortran_path(outputs_dir)
 
     dem_path = inputs_dir / "dem.tif"
     utm_west, utm_south, cell_size = _read_domain(dem_path)
+    a_srs = _read_srs(dem_path)
 
     namelist = f"""\
 &INPUTS
@@ -86,11 +112,11 @@ def write_namelist(
   M100_FILENAME                   = 'm100'
   ADJ_FILENAME                    = 'adj'
   PHI_FILENAME                    = 'phi'
-  DT_METEOROLOGY                  = 3600.0
+  DT_METEOROLOGY                  = {dt_meteorology_s:.1f}
 /
 
 &COMPUTATIONAL_DOMAIN
-  A_SRS                           = 'EPSG:32719'
+  A_SRS                           = '{a_srs}'
   COMPUTATIONAL_DOMAIN_XLLCORNER  = {utm_west:.2f}
   COMPUTATIONAL_DOMAIN_YLLCORNER  = {utm_south:.2f}
   COMPUTATIONAL_DOMAIN_CELLSIZE   = {cell_size:.1f}
@@ -106,9 +132,14 @@ def write_namelist(
 /
 
 &TIME_CONTROL
+  SIMULATION_TSTART               = {simulation_tstart_s:.1f}
   SIMULATION_DT                   = {dt_s:.1f}
   SIMULATION_DTMAX                = {dtmax_s:.1f}
   SIMULATION_TSTOP                = {tstop_s:.1f}
+/
+
+&SIMULATOR
+  MODE                            = {simulator_mode}
 /
 
 &MISCELLANEOUS
@@ -117,7 +148,8 @@ def write_namelist(
 /
 """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(namelist)
+    validate_namelist(namelist)
+    output_path.write_text(namelist, encoding="utf-8", newline="\n")
     logger.info(
         "Namelist written to %s (%.0f h, %.0f s timestep)", output_path, simulation_hours, dt_s
     )
@@ -132,3 +164,62 @@ def _read_domain(dem_path: Path) -> tuple[float, float, float]:
         b = ds.bounds
         cell_size = abs(ds.transform.a)
     return b.left, b.bottom, cell_size
+
+
+def _read_srs(dem_path: Path) -> str:
+    """Return the DEM CRS in the format ELMFIRE expects for A_SRS."""
+    with rasterio.open(dem_path) as ds:
+        if ds.crs is None:
+            raise ValueError(f"DEM at {dem_path} has no CRS")
+        return ds.crs.to_string()
+
+
+def validate_namelist(namelist: str) -> None:
+    """Perform structural validation before handing a namelist to ELMFIRE.
+
+    This is deliberately a small syntax check rather than a replacement for the
+    ELMFIRE parser: it catches malformed group delimiters and empty assignments
+    while keeping the generated file entirely standard Fortran namelist text.
+    """
+    groups = re.findall(r"(?ms)^&([A-Z_]+)\s*\n(.*?)(?=^/\s*$)^/\s*$", namelist)
+    found = tuple(name for name, _ in groups)
+    missing = set(REQUIRED_NAMELISTS) - set(found)
+    if missing:
+        raise ValueError(f"Missing required namelist group(s): {', '.join(sorted(missing))}")
+    if len(found) != len(set(found)):
+        raise ValueError("A namelist group was declared more than once")
+    if re.search(r"(?m)^\s*[A-Z][A-Z0-9_]*(?:\([0-9]+\))?\s*=\s*(?:!.*)?$", namelist):
+        raise ValueError("Namelist contains an empty assignment")
+
+
+def _validate_parameters(
+    simulation_hours: int,
+    dt_s: float,
+    dtmax_s: float,
+    dtdump_s: float,
+    dt_meteorology_s: float,
+    simulation_tstart_s: float,
+    simulator_mode: int,
+) -> None:
+    values = {
+        "simulation_hours": simulation_hours,
+        "dt_s": dt_s,
+        "dtmax_s": dtmax_s,
+        "dtdump_s": dtdump_s,
+        "dt_meteorology_s": dt_meteorology_s,
+        "simulation_tstart_s": simulation_tstart_s,
+    }
+    invalid = [name for name, value in values.items() if not math.isfinite(value) or value < 0]
+    if invalid:
+        raise ValueError(f"Parameters must be finite and non-negative: {', '.join(invalid)}")
+    if simulation_hours <= 0 or dt_s <= 0 or dtmax_s <= 0 or dtdump_s <= 0 or dt_meteorology_s <= 0:
+        raise ValueError("Simulation duration and timestep intervals must be greater than zero")
+    if dt_s > dtmax_s:
+        raise ValueError("dt_s must not exceed dtmax_s")
+    if simulator_mode != 1:
+        raise ValueError("Only transient ELMFIRE simulator MODE=1 is supported")
+
+
+def _fortran_path(path: Path) -> str:
+    """Make a directory path safe for a single-quoted Fortran namelist value."""
+    return str(path).replace("\\", "/").rstrip("/").replace("'", "''") + "/"

@@ -116,9 +116,14 @@ Todos los rasters de entrada a ELMFIRE deben compartir:
 /
 
 &TIME_CONTROL
+  SIMULATION_TSTART               = 0.0
   SIMULATION_DT                   = 30.0
   SIMULATION_DTMAX                = 300.0
   SIMULATION_TSTOP                = 43200.0    ! horizon_hours × 3600
+/
+
+&SIMULATOR
+  MODE                            = 1
 /
 
 &MISCELLANEOUS
@@ -130,8 +135,9 @@ Todos los rasters de entrada a ELMFIRE deben compartir:
 Los nombres de raster son **basenames sin extensión** (`'dem'`, no `'dem.tif'`) —
 ELMFIRE agrega `.tif` internamente; los archivos en disco sí son `.tif`. El dominio
 (XLLCORNER, YLLCORNER, CELLSIZE — sin esquina superior derecha, ELMFIRE la deriva del
-raster) se lee automáticamente de `dem.tif` al escribir el namelist. `SIMULATION_TSTOP`
-se calcula como `horizon_hours × 3600` desde el parámetro de `POST /simulations/run`.
+raster) y el CRS (`A_SRS`) se leen automáticamente de `dem.tif` al escribir el namelist.
+`SIMULATION_TSTOP` se calcula como `SIMULATION_TSTART + horizon_hours × 3600` desde el
+parámetro de `POST /simulations/run`; el modo 1 configura una simulación transitoria.
 
 **Isócronas:** no existe ningún flag `SAVE_ISOCHRONES`/`DUMP_ISOCHRONE_SHAPEFILES` en
 ELMFIRE (no aparece en ninguna parte de su código fuente,
