@@ -13,6 +13,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import resolve_data_path as _resolve
 from app.config import settings
 from app.db import repository
 from app.elmfire.builder import (
@@ -21,6 +22,7 @@ from app.elmfire.builder import (
     ignition_builder,
     namelist_writer,
     raster_aligner,
+    rasters,
     weather_builder,
 )
 
@@ -79,7 +81,9 @@ async def run_preparation(
 
     # Wind adjustment factor — uniform 1.0 (no adjustment), required by ELMFIRE
     if reference:
-        await asyncio.to_thread(_write_uniform_raster, reference, inputs_dir / "adj.tif", 1.0)
+        await asyncio.to_thread(
+            rasters.write_uniform_from_reference, reference, inputs_dir / "adj.tif", 1.0
+        )
         generated.append("adj.tif")
 
     # ── 2. Fuel model (static, cached) ────────────────────────────────────────
@@ -87,10 +91,11 @@ async def run_preparation(
     fbfm_cached = static_dir / "fbfm40.tif"
     if wc_asset and Path(wc_asset.file_path).exists() and reference:
         wc_path = _resolve(wc_asset.file_path)
-        if not fbfm_cached.exists():
-            await asyncio.to_thread(
-                fuels_builder.worldcover_to_fbfm40, wc_path, reference, fbfm_cached
-            )
+        # Caching (and its invalidation) lives in fuels_builder, not here — a bare
+        # `.exists()` check made every crosswalk change a silent no-op.
+        await asyncio.to_thread(
+            fuels_builder.worldcover_to_fbfm40, wc_path, reference, fbfm_cached
+        )
         shutil.copy2(fbfm_cached, inputs_dir / "fbfm40.tif")
         generated.append("fbfm40.tif")
     else:
@@ -226,12 +231,12 @@ async def run_preparation(
         if not ch_asset:
             logger.warning("No canopy_ch asset — run ingestion with include_canopy=true")
 
-    # cbh + cbd: derived from fbfm40 (no extra download needed)
-    if "fbfm40.tif" in generated and reference:
+    # cbh + cbd: derived from the measured canopy rasters, not from the fuel model code
+    if "cc.tif" in generated and "ch.tif" in generated:
         await asyncio.to_thread(
             canopy_builder.derive_cbh_cbd,
-            inputs_dir / "fbfm40.tif",
-            reference,
+            inputs_dir / "cc.tif",
+            inputs_dir / "ch.tif",
             inputs_dir / "cbh.tif",
             inputs_dir / "cbd.tif",
         )
@@ -243,6 +248,12 @@ async def run_preparation(
     if "dem.tif" in generated:
         outputs_dir = _resolve(settings.elmfire_outputs_dir) / str(prep_id)
         outputs_dir.mkdir(parents=True, exist_ok=True)
+        # ELMFIRE reads the fuel model table from MISCELLANEOUS_INPUTS_DIRECTORY, which
+        # the namelist points at inputs_dir. Inputs reach the runner over a shared Docker
+        # volume, so copying it here is all the transport there is.
+        shutil.copy2(fuels_builder.FUEL_MODEL_TABLE, inputs_dir / namelist_writer.FUEL_MODEL_FILE)
+        generated.append(namelist_writer.FUEL_MODEL_FILE)
+
         elmfire_data = inputs_dir / "elmfire.data"
         await asyncio.to_thread(
             namelist_writer.write_namelist,
@@ -271,26 +282,5 @@ async def run_preparation(
     }
 
 
-def _write_uniform_raster(reference: Path, output: Path, value: float) -> None:
-    import numpy as np
-    import rasterio
-    with rasterio.open(reference) as src:
-        profile = src.meta.copy()
-    profile.update(dtype="float32", count=1, nodata=None)
-    with rasterio.open(output, "w", **profile) as dst:
-        dst.write(
-            np.full((1, profile["height"], profile["width"]), value, dtype="float32")
-        )
 
 
-def _resolve(path_str: str) -> Path:
-    """Resolve configured path, falling back to local ./data/ when running outside Docker."""
-    p = Path(path_str)
-    if p.exists():
-        return p
-    parts = p.parts
-    if len(parts) >= 3 and parts[0] == "/" and parts[1] == "app" and parts[2] == "data":
-        local = Path.cwd() / "data" / Path(*parts[3:])
-        if local.exists() or not p.exists():
-            return local
-    return p

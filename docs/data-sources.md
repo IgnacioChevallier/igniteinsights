@@ -132,9 +132,9 @@ curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
 
 | Layer   | Source                | Derivation                                                   |
 | ------- | --------------------- | ------------------------------------------------------------ |
-| `cbh.tif` | `fbfm40.tif`        | Lookup table `_FBFM40_CBH` — Scott & Reinhardt (2005)        |
-| `cbd.tif` | `fbfm40.tif`        | Lookup table `_FBFM40_CBD` — Scott & Reinhardt (2005)        |
+| `cbh.tif` | `cc.tif` + `ch.tif` | `cbh = ch · f(cc)`, fracción de autopoda creciente con la cobertura |
+| `cbd.tif` | `cc.tif` + `ch.tif` | `cbd = carga de copa / (ch − cbh)`, carga proporcional a la cobertura |
 
-No additional download is required. Both are derived in the preparation step via `canopy_builder.derive_cbh_cbd()` from the `fbfm40.tif` already present in the ELMFIRE inputs folder.
+No additional download is required. Both are derived in the preparation step via `canopy_builder.derive_cbh_cbd()` from the `cc.tif` and `ch.tif` already present in the ELMFIRE inputs folder. Antes se derivaban del `fbfm40.tif`, lo cual era circular (un modelo de combustible *de superficie* no determina la estructura del dosel) y frágil (la tabla tenía 9 claves, cualquier código nuevo daba nodata). Ver `ETAPA-A-BASELINE.md` §A4.
 
 

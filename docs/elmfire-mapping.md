@@ -11,9 +11,9 @@
 | NOAA GFS (Herbie)       | gfs_u10.tif + gfs_v10.tif   | sqrt(u²+v²) / atan2 (weather_builder) | `WS_FILENAME`, `WD_FILENAME`      | elmfire/builder/weather_builder     | ✅ |
 | NOAA GFS (Herbie)       | gfs_t2m.tif + gfs_rh.tif   | Nelson 1984 EMC (weather_builder) | `M1_FILENAME`, `M10_FILENAME`, `M100_FILENAME` | elmfire/builder/weather_builder | ✅ |
 | ESA WorldCover          | worldcover_raw.tif          | crosswalk Scott & Burgan (fuels_builder) | `FBFM_FILENAME` → fbfm40.tif       | elmfire/builder/fuels_builder    | ✅ |
-| Hansen GFC v1.11        | hansen_treecover2000.tif (4326) | scale ×0.01 + reproject (canopy_builder) | `CC_FILENAME` → cc.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
-| ETH Canopy Height 2020  | eth_canopy_height.tif (4326)    | reproject bilinear (canopy_builder)      | `CH_FILENAME` → ch.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
-| Scott & Reinhardt (2005) | fbfm40.tif                     | lookup table (canopy_builder)            | `CBH_FILENAME`, `CBD_FILENAME` | elmfire/builder/canopy_builder                   | ✅ |
+| Hansen GFC v1.11        | hansen_treecover2000.tif (4326) | reproject bilinear, % 0–100 sin escalar (canopy_builder) | `CC_FILENAME` → cc.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
+| ETH Canopy Height 2020  | eth_canopy_height.tif (4326)    | reproject bilinear + ×10 (Int16) (canopy_builder) | `CH_FILENAME` → ch.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
+| Hansen GFC + ETH Canopy Height | cc.tif + ch.tif         | derivación estructural (canopy_builder)  | `CBH_FILENAME`, `CBD_FILENAME` | elmfire/builder/canopy_builder                   | ✅ |
 
 ## Derivaciones implementadas
 
@@ -24,14 +24,28 @@
 - Los derivados se cachean en `data/static/` y se reutilizan mientras el DEM no cambie.
 
 ### Viento (`weather_builder.py`)
-- **ws.tif** (km/h): `sqrt(u10² + v10²) × 3.6`
-- **wd.tif** (grados desde N, convención meteorológica de procedencia): `atan2(-u10, -v10)`
+- **ws.tif** (mph, Float32, **multibanda — una banda por hora de pronóstico**):
+  `sqrt(u10² + v10²) × f_20ft × 2.23694`, donde `f_20ft ≈ 0.870` convierte el viento
+  GFS de 10 m al viento a **20 pies (6.096 m)** que ELMFIRE espera, vía perfil
+  logarítmico `ln(z/z0)/ln(z_ref/z0)` con `z0 = 0.22 m` (`wind_height_factor()`).
+- **wd.tif** (grados desde N, convención meteorológica de procedencia, Float32
+  multibanda): `atan2(-u10, -v10)` — la conversión de altura sólo escala la magnitud.
 
 ### Humedad de combustible (`weather_builder.py`)
-Modelo Nelson (1984) para equilibrium moisture content (EMC) a partir de temperatura (Kelvin → Fahrenheit) y humedad relativa (%):
+Modelo Nelson (1984) para equilibrium moisture content (EMC) a partir de temperatura
+(Kelvin → Fahrenheit) y humedad relativa (%). Float32, **multibanda**:
 - `m1.tif` ≈ EMC
 - `m10.tif` ≈ EMC + 2%
 - `m100.tif` ≈ EMC + 5%
+
+⚠️ Los offsets +2/+5 no tienen base física — las clases de time-lag se amortiguan hacia
+una media móvil, no son un offset fijo del equilibrio instantáneo. Corregirlo requiere
+historial de secado (varios días de GFS previos) que la ingesta no conserva hoy.
+
+**Bandas = serie temporal.** ELMFIRE lee la banda *n* como el clima en
+`TSTART + n × DT_METEOROLOGY` e interpola entre bandas. Un raster de una sola banda
+congela el clima durante toda la simulación (sin ciclo diurno).
+`namelist_writer.validate_weather_coverage()` falla si las bandas no cubren el horizonte.
 
 ### Combustibles (`fuels_builder.py`)
 Crosswalk WorldCover v2.0 → Scott & Burgan FBFM40 para Patagonia:
@@ -44,13 +58,20 @@ Crosswalk WorldCover v2.0 → Scott & Burgan FBFM40 para Patagonia:
 | 40               | Cropland           | 101 (GR1) |
 | 50               | Built-up           | 91 (NB1)  |
 | 60               | Bare/sparse veg    | 93 (NB3)  |
+| 70               | Nieve y hielo      | 93 (NB3)  |
 | 80               | Permanent water    | 98 (NB8)  |
 | 90               | Herbaceous wetland | 103 (GR3) |
+| 95               | Manglar            | 183 (TL3) |
+| 100              | Musgo y liquen     | 101 (GR1) |
 
 ### Cobertura de canopy (`canopy_builder.py`)
-- **cc.tif** (fracción 0–1): `reproject_canopy(hansen_treecover2000.tif, scale_factor=0.01)` — bilinear, EPSG:32719 30 m.
-- **ch.tif** (metros): `reproject_canopy(eth_canopy_height.tif)` — bilinear, EPSG:32719 30 m.
-- **cbh.tif** (metros) + **cbd.tif** (kg/m³): `derive_cbh_cbd(fbfm40.tif)` — lookup table Scott & Reinhardt (2005) por código FBFM40.
+Codificación Int16 estilo LANDFIRE — ver `.claude/skills/elmfire/references/interface-gotchas.md`:
+- **cc.tif** (porcentaje **0–100**, sin escalado): `reproject_canopy(hansen_treecover2000.tif)`
+  con `scale_factor=1.0` — bilinear, EPSG:32719 30 m.
+- **ch.tif** (**10×metros**): `reproject_canopy(eth_canopy_height.tif, scale_factor=10.0)`.
+- **cbh.tif** (**10×metros**) + **cbd.tif** (**100×kg/m³**): `derive_cbh_cbd(cc.tif, ch.tif)` —
+  derivación estructural desde cobertura y altura de dosel medidas, con los valores
+  pre-escalados a la codificación Int16 de ELMFIRE. Ver `ETAPA-A-BASELINE.md` §A4.
 
 ### Ignición (`ignition_builder.py` + `perimeter_reconstruction.py`)
 1. Reconstrucción de perímetro por evento (`perimeter_reconstruction.reconstruct_burn_polygon`,

@@ -1,6 +1,6 @@
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 
 import numpy as np
 import rasterio
@@ -32,7 +32,7 @@ class NamelistWriterTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_write_namelist_contains_required_groups_and_state_parameters(self) -> None:
-        output_path, dtdump_s = write_namelist(
+        output_path, dtdump_s, _ = write_namelist(
             self.inputs_dir,
             self.root / "outputs",
             simulation_hours=2,
@@ -57,7 +57,7 @@ class NamelistWriterTests(unittest.TestCase):
         validate_namelist(content)
 
     def test_write_namelist_uses_raster_basenames_and_normalized_paths(self) -> None:
-        output_path, _ = write_namelist(
+        output_path, _, _ = write_namelist(
             self.inputs_dir, self.root / "output's", 2, self.root / "elmfire.data"
         )
         content = output_path.read_text(encoding="utf-8")

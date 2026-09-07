@@ -21,6 +21,13 @@ VARIABLES: dict[str, tuple[str, str, str]] = {
 CYCLE_HOURS = [18, 12, 6, 0]
 MAX_LOOKBACK_DAYS = 2
 
+# Forecast hours fetched per cycle. Each becomes one band of the output GeoTIFF, and
+# ELMFIRE reads band n as the weather at TSTART + n × DT_METEOROLOGY (3600 s). Fetching
+# only fxx=0 produces a single-band raster that silently freezes weather for the whole
+# simulation — no diurnal wind peak, no afternoon RH minimum. 24 h of hourly bands
+# covers the default 12 h horizon with headroom; GFS publishes hourly out to f120.
+DEFAULT_FORECAST_HOURS = list(range(25))
+
 
 class GFSClient:
     def resolve_cycle(self, target_date: date | None = None) -> GFSCycleInfo:
@@ -87,29 +94,102 @@ class GFSClient:
         bbox_east: float,
         bbox_north: float,
         output_path: Path,
+        forecast_hours: list[int] | None = None,
     ) -> GFSVariableMetadata:
+        """Download one GFS variable as a multiband GeoTIFF — one band per forecast hour.
+
+        Band order follows `forecast_hours` ascending, which is what ELMFIRE's
+        DT_METEOROLOGY band indexing expects.
+        """
         try:
+            import numpy as np
+            import rasterio
             import rioxarray  # noqa: F401 — registers .rio accessor on xarray
-            from herbie import Herbie
         except ImportError as exc:
             raise GFSDownloadError(f"Required library not installed: {exc}") from exc
 
+        requested = forecast_hours if forecast_hours is not None else DEFAULT_FORECAST_HOURS
+        hours = sorted(set(requested))
+        if not hours:
+            raise GFSDownloadError("forecast_hours must contain at least one hour")
+
         search_string, asset_type, field_name = VARIABLES[var_key]
         cycle_str = f"{cycle.date.replace('-', '')}{cycle.cycle_hour:02d}"
-        date_str = f"{cycle.date} {cycle.cycle_hour:02d}:00"
 
-        logger.info("Downloading GFS variable=%s cycle=%s", var_key, cycle_str)
+        logger.info(
+            "Downloading GFS variable=%s cycle=%s fxx=%d..%d (%d bands)",
+            var_key, cycle_str, hours[0], hours[-1], len(hours),
+        )
+
+        # ponytail: serial per-hour fetch. herbie's FastHerbie parallelises this if
+        # ingestion wall-clock ever matters; plain Herbie is the API already proven here.
+        bands, transform = [], None
+        for fxx in hours:
+            clipped = self._fetch_clipped(
+                cycle, fxx, var_key, search_string, field_name,
+                bbox_west, bbox_south, bbox_east, bbox_north,
+            )
+            if transform is None:
+                transform = clipped.rio.transform()
+            elif clipped.shape != bands[0].shape:
+                raise GFSDownloadError(
+                    f"GFS {var_key} fxx={fxx} clipped to {clipped.shape}, expected "
+                    f"{bands[0].shape} — forecast hours must share a grid"
+                )
+            bands.append(clipped.values.astype("float32"))
+
+        stack = np.stack(bands)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with rasterio.open(
+            output_path, "w", driver="GTiff",
+            height=stack.shape[1], width=stack.shape[2], count=stack.shape[0],
+            dtype="float32", crs="EPSG:4326", transform=transform,
+        ) as dst:
+            dst.write(stack)
+        logger.info("Saved GFS %s → %s (%d bands)", var_key, output_path, stack.shape[0])
+
+        return GFSVariableMetadata(
+            variable=var_key,
+            asset_type=asset_type,
+            file_path=str(output_path),
+            crs="EPSG:4326",
+            resolution_deg=0.25,
+            band_count=stack.shape[0],
+            dtype="float32",
+            file_size_bytes=output_path.stat().st_size,
+            cycle=cycle_str,
+            search_string=search_string,
+        )
+
+    def _fetch_clipped(
+        self,
+        cycle: GFSCycleInfo,
+        fxx: int,
+        var_key: str,
+        search_string: str,
+        field_name: str,
+        bbox_west: float,
+        bbox_south: float,
+        bbox_east: float,
+        bbox_north: float,
+    ):
+        """Fetch one forecast hour of one variable, clipped to the AOI bbox."""
+        from herbie import Herbie
+
+        date_str = f"{cycle.date} {cycle.cycle_hour:02d}:00"
         try:
-            H = Herbie(date_str, model="gfs", product="pgrb2.0p25", fxx=cycle.fxx, verbose=False)
+            H = Herbie(date_str, model="gfs", product="pgrb2.0p25", fxx=fxx, verbose=False)
             ds = H.xarray(search_string)
         except Exception as exc:
-            raise GFSDownloadError(f"Failed to fetch GFS variable {var_key}: {exc}") from exc
+            raise GFSDownloadError(
+                f"Failed to fetch GFS variable {var_key} at fxx={fxx}: {exc}"
+            ) from exc
 
         # Extract the DataArray — field name varies, fall back to first data variable
         if field_name in ds:
             da = ds[field_name]
         else:
-            data_vars = [v for v in ds.data_vars]
+            data_vars = list(ds.data_vars)
             if not data_vars:
                 raise GFSDownloadError(f"No data variables found in GFS dataset for {var_key}")
             da = ds[data_vars[0]]
@@ -127,25 +207,10 @@ class GFSClient:
         da = da.rio.write_crs("EPSG:4326")
 
         try:
-            clipped = da.rio.clip_box(
+            return da.rio.clip_box(
                 minx=bbox_west, miny=bbox_south, maxx=bbox_east, maxy=bbox_north
             )
         except Exception as exc:
-            raise GFSDownloadError(f"Failed to clip GFS variable {var_key} to bbox: {exc}") from exc
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        clipped.rio.to_raster(str(output_path))
-        logger.info("Saved GFS %s → %s", var_key, output_path)
-
-        return GFSVariableMetadata(
-            variable=var_key,
-            asset_type=asset_type,
-            file_path=str(output_path),
-            crs="EPSG:4326",
-            resolution_deg=0.25,
-            band_count=1,
-            dtype=str(clipped.dtype),
-            file_size_bytes=output_path.stat().st_size,
-            cycle=cycle_str,
-            search_string=search_string,
-        )
+            raise GFSDownloadError(
+                f"Failed to clip GFS variable {var_key} at fxx={fxx} to bbox: {exc}"
+            ) from exc

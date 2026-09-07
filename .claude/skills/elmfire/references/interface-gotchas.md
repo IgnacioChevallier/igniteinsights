@@ -29,7 +29,8 @@ convention:
 - `cc` (canopy cover) is a plain percent 0–100, no scaling.
 
 **This repo already implements this correctly** — `app/elmfire/builder/canopy_builder.py`
-pre-scales the `_FBFM40_CBH`/`_FBFM40_CBD` lookup tables and applies `scale_factor=10.0`
+pre-scales `cbh`/`cbd` inside `derive_cbh_cbd` (derived from `cc`/`ch`, no longer from the
+FBFM code) and applies `scale_factor=10.0`
 for `ch` reprojection. If you're touching canopy code, verify any new derivation still
 respects this scaling — feeding raw meters/kg-m³ into an Int16 raster ELMFIRE expects
 to be pre-scaled will silently corrupt fire behavior calculations (values will look
