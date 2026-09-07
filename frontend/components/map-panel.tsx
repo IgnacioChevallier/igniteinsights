@@ -66,6 +66,27 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+// Caveats that change how the result should be read but leave it looking normal on the
+// map — today: weather rasters with a single band, i.e. no diurnal cycle for the run.
+function RunWarnings({ warnings }: { warnings?: string[] | null }) {
+  if (!warnings?.length) return null;
+  return (
+    <div
+      role="status"
+      className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs"
+    >
+      <p className="mb-1 font-medium text-amber-700 dark:text-amber-400">
+        ⚠ Advertencias de esta corrida
+      </p>
+      <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+        {warnings.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function MapPanel({ runs }: { runs: Run[] }) {
   const simulationRuns = useMemo(() => runs.filter((r) => r.kind === "simulation"), [runs]);
 
@@ -76,6 +97,9 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(defaultRunId);
   const [activeFires, setActiveFires] = useState<GeoJSON.FeatureCollection | null>(null);
   const [isochrones, setIsochrones] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [ignitionPerimeter, setIgnitionPerimeter] = useState<GeoJSON.FeatureCollection | null>(
+    null,
+  );
   const [statsRow, setStatsRow] = useState<FireSizeStatsRow | null>(null);
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
@@ -96,11 +120,15 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     setFirelineIntensityOverlay(null);
     if (!selectedRunId) {
       setIsochrones(null);
+      setIgnitionPerimeter(null);
       setStatsRow(null);
       return;
     }
     fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/isochrones`).then(
       setIsochrones,
+    );
+    fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/ignition`).then(
+      setIgnitionPerimeter,
     );
     fetchJson<{ rows: FireSizeStatsRow[] }>(`/api/simulations/${selectedRunId}/stats`).then(
       (data) => setStatsRow(data?.rows?.[0] ?? null),
@@ -135,6 +163,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         <FireMap
           activeFires={activeFires}
           isochrones={isochrones}
+          ignitionPerimeter={ignitionPerimeter}
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
         />
@@ -159,6 +188,8 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           </select>
           <p className="mt-2 text-xs text-muted-foreground">{formatPredictedPeriod(selectedRun)}</p>
         </div>
+
+        <RunWarnings warnings={selectedRun?.warnings} />
 
         <Separator />
 

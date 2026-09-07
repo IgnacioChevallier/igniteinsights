@@ -10,8 +10,10 @@ const INITIAL_ZOOM = 10;
 
 const FIRES_SOURCE_ID = "active-fires";
 const ISOCHRONES_SOURCE_ID = "isochrones";
+const IGNITION_SOURCE_ID = "ignition-perimeter";
 const TOA_SOURCE_ID = "time-of-arrival-overlay";
 const FLIN_SOURCE_ID = "fireline-intensity-overlay";
+const FUELS_SOURCE_ID = "fuels-overlay";
 
 // Two tokenless basemaps, both loaded up front and toggled via layout.visibility
 // (not map.setStyle(), which would wipe every custom source/layer below).
@@ -38,23 +40,34 @@ const STYLE: maplibregl.StyleSpecification = {
 
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
-export type RasterOverlayData = {
+export type ImageOverlay = {
   image_base64: string;
   coordinates: [[number, number], [number, number], [number, number], [number, number]];
+};
+
+export type RasterOverlayData = ImageOverlay & {
   value_range: [number, number];
   unit: string;
 };
 
 export function FireMap({
-  activeFires,
-  isochrones,
-  timeOfArrivalOverlay,
-  firelineIntensityOverlay,
+  activeFires = null,
+  isochrones = null,
+  ignitionPerimeter = null,
+  timeOfArrivalOverlay = null,
+  firelineIntensityOverlay = null,
+  fuelsOverlay = null,
+  fitTo = null,
 }: {
-  activeFires: GeoJSON.FeatureCollection | null;
-  isochrones: GeoJSON.FeatureCollection | null;
-  timeOfArrivalOverlay: RasterOverlayData | null;
-  firelineIntensityOverlay: RasterOverlayData | null;
+  activeFires?: GeoJSON.FeatureCollection | null;
+  isochrones?: GeoJSON.FeatureCollection | null;
+  ignitionPerimeter?: GeoJSON.FeatureCollection | null;
+  timeOfArrivalOverlay?: RasterOverlayData | null;
+  firelineIntensityOverlay?: RasterOverlayData | null;
+  fuelsOverlay?: ImageOverlay | null;
+  /** Zoom to this collection when it changes. The initial view frames the whole AOI,
+   *  which leaves a 12 km synthetic playground domain as a speck. */
+  fitTo?: GeoJSON.FeatureCollection | null;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -73,6 +86,24 @@ export function FireMap({
     map.addControl(new maplibregl.NavigationControl(), "top-right");
 
     map.on("load", () => {
+      // Observed FIRMS perimeter the run started from. Added first so it sits UNDER
+      // the isochrones: it is input, not prediction, and is typically the large
+      // majority of the burned area a run reports. Muted grey-blue hatch-free fill
+      // deliberately shares no colour with the YlOrRd prediction ramp.
+      map.addSource(IGNITION_SOURCE_ID, { type: "geojson", data: EMPTY_FC });
+      map.addLayer({
+        id: `${IGNITION_SOURCE_ID}-fill`,
+        type: "fill",
+        source: IGNITION_SOURCE_ID,
+        paint: { "fill-color": "#5b6b7a", "fill-opacity": 0.35 },
+      });
+      map.addLayer({
+        id: `${IGNITION_SOURCE_ID}-outline`,
+        type: "line",
+        source: IGNITION_SOURCE_ID,
+        paint: { "line-color": "#334155", "line-width": 1.5, "line-dasharray": [3, 2] },
+      });
+
       map.addSource(ISOCHRONES_SOURCE_ID, { type: "geojson", data: EMPTY_FC });
       map.addLayer({
         id: `${ISOCHRONES_SOURCE_ID}-line`,
@@ -135,6 +166,8 @@ export function FireMap({
       loadedRef.current = true;
       if (activeFires) (map.getSource(FIRES_SOURCE_ID) as maplibregl.GeoJSONSource).setData(activeFires);
       if (isochrones) (map.getSource(ISOCHRONES_SOURCE_ID) as maplibregl.GeoJSONSource).setData(isochrones);
+      if (ignitionPerimeter)
+        (map.getSource(IGNITION_SOURCE_ID) as maplibregl.GeoJSONSource).setData(ignitionPerimeter);
     });
 
     mapRef.current = map;
@@ -161,6 +194,35 @@ export function FireMap({
   }, [isochrones]);
 
   useEffect(() => {
+    if (!loadedRef.current || !mapRef.current) return;
+    const source = mapRef.current.getSource(IGNITION_SOURCE_ID) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    source?.setData(ignitionPerimeter ?? EMPTY_FC);
+  }, [ignitionPerimeter]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!loadedRef.current || !map || !fitTo?.features?.length) return;
+    const bounds = new maplibregl.LngLatBounds();
+    let any = false;
+    const walk = (coords: unknown): void => {
+      if (Array.isArray(coords) && typeof coords[0] === "number") {
+        bounds.extend(coords as [number, number]);
+        any = true;
+        return;
+      }
+      if (Array.isArray(coords)) coords.forEach(walk);
+    };
+    for (const feature of fitTo.features) {
+      if (feature.geometry && "coordinates" in feature.geometry) {
+        walk((feature.geometry as { coordinates: unknown }).coordinates);
+      }
+    }
+    if (any) map.fitBounds(bounds, { padding: 40, duration: 600, maxZoom: 14 });
+  }, [fitTo]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!loadedRef.current || !map) return;
     map.setLayoutProperty("street", "visibility", basemap === "street" ? "visible" : "none");
@@ -169,6 +231,7 @@ export function FireMap({
 
   useImageOverlay(mapRef, loadedRef, TOA_SOURCE_ID, timeOfArrivalOverlay);
   useImageOverlay(mapRef, loadedRef, FLIN_SOURCE_ID, firelineIntensityOverlay);
+  useImageOverlay(mapRef, loadedRef, FUELS_SOURCE_ID, fuelsOverlay);
 
   return (
     <div className="relative h-full w-full">
@@ -187,6 +250,25 @@ export function FireMap({
           Satélite
         </button>
       </div>
+
+      {(isochrones || ignitionPerimeter) && (
+      <div className="absolute bottom-6 left-2 z-10 rounded-md border bg-card/95 p-2 text-[11px] shadow-md">
+        <div className="mb-1 flex items-center gap-2">
+          <span
+            className="inline-block h-3 w-5 shrink-0 rounded-sm border border-dashed"
+            style={{ backgroundColor: "rgba(91,107,122,0.35)", borderColor: "#334155" }}
+          />
+          <span>Perímetro FIRMS observado (entrada)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block h-1 w-5 shrink-0 rounded-full"
+            style={{ background: "linear-gradient(90deg,#fee08b,#fc8d59,#b30000)" }}
+          />
+          <span>Isócronas previstas 0 → 12 h</span>
+        </div>
+      </div>
+      )}
     </div>
   );
 }
@@ -196,7 +278,7 @@ function useImageOverlay(
   mapRef: RefObject<MapLibreMap | null>,
   loadedRef: RefObject<boolean>,
   sourceId: string,
-  overlay: RasterOverlayData | null,
+  overlay: ImageOverlay | null,
 ) {
   useEffect(() => {
     const map = mapRef.current;

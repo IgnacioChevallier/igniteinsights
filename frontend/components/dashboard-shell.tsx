@@ -15,7 +15,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FuelsPanel } from "@/components/fuels-panel";
 import { MapPanel } from "@/components/map-panel";
+import { PlaygroundPanel } from "@/components/playground-panel";
 import { SidebarNav, type DashboardSection } from "@/components/sidebar-nav";
 import type {
   DashboardData,
@@ -451,6 +453,18 @@ export function DashboardShell({
         {activeSection === "map" && (
           <div className="min-h-0 flex-1">
             <MapPanel runs={data.runs} />
+          </div>
+        )}
+
+        {activeSection === "fuels" && (
+          <div className="min-h-0 flex-1">
+            <FuelsPanel />
+          </div>
+        )}
+
+        {activeSection === "playground" && (
+          <div className="min-h-0 flex-1">
+            <PlaygroundPanel />
           </div>
         )}
       </div>

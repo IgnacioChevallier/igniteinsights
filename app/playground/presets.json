@@ -1,0 +1,187 @@
+[
+  {
+    "id": "01-gr2-calma",
+    "order": 1,
+    "group": "Viento",
+    "changes_from": null,
+    "expectation": "Propagación isótropa: sin viento ni pendiente el frente crece como un círculo. Es el control del que dependen todos los demás.",
+    "scenario": {
+      "name": "GR2 · calma total",
+      "description": "Pastizal seco de carga baja, terreno plano, sin viento.",
+      "fbfm40_code": 102, "wind_speed_mph": 0.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "02-gr2-viento-n15",
+    "order": 2,
+    "group": "Viento",
+    "changes_from": "01-gr2-calma",
+    "expectation": "El frente se elonga hacia el SUR: wd=0 es viento del norte y ELMFIRE propaga hacia donde sopla. Aparece la relación largo/ancho.",
+    "scenario": {
+      "name": "GR2 · viento del norte 15 mph",
+      "description": "Único cambio respecto del control: viento constante de 15 mph desde el norte.",
+      "fbfm40_code": 102, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "03-gr2-viento-ne15",
+    "order": 3,
+    "group": "Viento",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "Misma forma que el anterior, rotada 45°: el eje mayor apunta al SUDOESTE. Verifica que la dirección se propaga correctamente por el pipeline.",
+    "scenario": {
+      "name": "GR2 · viento del noreste 15 mph",
+      "description": "Sólo rota la dirección del viento; velocidad y combustible sin cambios.",
+      "fbfm40_code": 102, "wind_speed_mph": 15.0, "wind_direction_deg": 45.0
+    }
+  },
+  {
+    "id": "04-gr2-viento-n30",
+    "order": 4,
+    "group": "Viento",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "Duplicar la velocidad NO duplica el área: la respuesta de Rothermel al viento es no lineal.",
+    "scenario": {
+      "name": "GR2 · viento del norte 30 mph",
+      "description": "Duplica la velocidad del viento respecto del caso de referencia.",
+      "fbfm40_code": 102, "wind_speed_mph": 30.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "05-tl3-viento-n15",
+    "order": 5,
+    "group": "Combustible",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "El baseline de WorldCover. TL3 es hojarasca de conífera sin sotobosque: carga fina 0,50 t/ac y lecho de 0,3 pies. Debe propagar muy poco — es el 59,7 % del AOI en el crosswalk vigente.",
+    "scenario": {
+      "name": "TL3 · el baseline",
+      "description": "Mismo viento que el caso de referencia, cambiando sólo el modelo de combustible.",
+      "fbfm40_code": 183, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "06-tu5-viento-n15",
+    "order": 6,
+    "group": "Combustible",
+    "changes_from": "05-tl3-viento-n15",
+    "expectation": "La propuesta de IGN-20 para bosque cerrado: hojarasca CON sotobosque arbustivo, 14 t/ac totales. La diferencia contra TL3 en condiciones idénticas es el argumento del crosswalk.",
+    "scenario": {
+      "name": "TU5 · la propuesta de IGN-20",
+      "description": "Timber-Shrub de carga muy alta, mismo viento que TL3.",
+      "fbfm40_code": 165, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "07a-sh4",
+    "order": 7,
+    "group": "Sensibilidad S1",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "S1 · la asignación propuesta para arbustal abierto (22,5 % del AOI). Comparar contra 07b y 07c.",
+    "scenario": {
+      "name": "SH4 · arbustal, propuesta",
+      "description": "Timber-Shrub carga baja, clima húmedo, mex 30 %.",
+      "fbfm40_code": 144, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "07b-gs3",
+    "order": 8,
+    "group": "Sensibilidad S1",
+    "changes_from": "07a-sh4",
+    "expectation": "S1 · alternativa Grass-Shrub. Es dinámico, así que depende de la humedad herbácea viva.",
+    "scenario": {
+      "name": "GS3 · arbustal, alternativa",
+      "description": "Grass-Shrub carga moderada, clima húmedo, mex 40 %.",
+      "fbfm40_code": 123, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "07c-sh3",
+    "order": 9,
+    "group": "Sensibilidad S1",
+    "changes_from": "07a-sh4",
+    "expectation": "S1 · alternativa rechazada por el paso 4 de Scott & Burgan: encaja en clima y estructura pero su comportamiento publicado es propagación baja, incompatible con Mermoz et al. (2005). Este caso lo hace visible.",
+    "scenario": {
+      "name": "SH3 · arbustal, rechazada",
+      "description": "Shrub carga moderada, clima húmedo, mex 40 %.",
+      "fbfm40_code": 143, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0
+    }
+  },
+  {
+    "id": "08-gr2-pendiente",
+    "order": 10,
+    "group": "Topografía",
+    "changes_from": "01-gr2-calma",
+    "expectation": "Sin viento, pendiente de 30° con caída hacia el norte: el terreno sube hacia el sur y el fuego corre CUESTA ARRIBA, hacia el sur. Aísla el efecto de pendiente.",
+    "scenario": {
+      "name": "GR2 · pendiente 30°, sin viento",
+      "description": "Aspecto 0 = caída hacia el norte, o sea ascenso hacia el sur.",
+      "fbfm40_code": 102, "wind_speed_mph": 0.0, "slope_deg": 30, "aspect_deg": 0
+    }
+  },
+  {
+    "id": "09-gr2-pendiente-vs-viento",
+    "order": 11,
+    "group": "Topografía",
+    "changes_from": "08-gr2-pendiente",
+    "expectation": "Pendiente empujando al sur y viento del sur empujando al norte. Muestra cuál domina y si el frente se parte en dos lóbulos.",
+    "scenario": {
+      "name": "GR2 · pendiente contra viento",
+      "description": "Misma pendiente que el anterior, más viento de 15 mph desde el sur.",
+      "fbfm40_code": 102, "wind_speed_mph": 15.0, "wind_direction_deg": 180.0,
+      "slope_deg": 30, "aspect_deg": 0
+    }
+  },
+  {
+    "id": "10-gr2-humedad-alta",
+    "order": 12,
+    "group": "Humedad",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "m1 pasa de 3 % a 12 %. GR2 tiene humedad de extinción de 15 %, así que a 12 % queda al borde de apagarse: la propagación debe caer fuerte. Es el mecanismo detrás del argumento de mex en IGN-20 §4.",
+    "scenario": {
+      "name": "GR2 · combustible muerto húmedo",
+      "description": "Mismo viento y combustible; sólo sube la humedad del combustible muerto.",
+      "fbfm40_code": 102, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0,
+      "m1_pct": 12.0, "m10_pct": 13.0, "m100_pct": 14.0
+    }
+  },
+  {
+    "id": "11a-gr3-curado",
+    "order": 13,
+    "group": "Modelos dinámicos",
+    "changes_from": "02-gr2-viento-n15",
+    "expectation": "GR3 es dinámico. Con humedad herbácea viva de 30 % toda la carga viva se transfiere a muerta: pastizal totalmente curado, propagación máxima.",
+    "scenario": {
+      "name": "GR3 · pastizal curado (LH 30 %)",
+      "description": "Pastizal grueso de clima húmedo, completamente curado.",
+      "fbfm40_code": 103, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0,
+      "lh_moisture_pct": 30.0
+    }
+  },
+  {
+    "id": "11b-gr3-verde",
+    "order": 14,
+    "group": "Modelos dinámicos",
+    "changes_from": "11a-gr3-curado",
+    "expectation": "VERIFICACIÓN CRÍTICA. Con humedad herbácea viva de 120 % la carga permanece viva y la propagación debe caer casi a cero. Si NO cae, ELMFIRE no está aplicando la transferencia dinámica y todos los modelos GR/GS del crosswalk son inválidos (Scott & Burgan 2005, p. 4).",
+    "scenario": {
+      "name": "GR3 · pastizal verde (LH 120 %)",
+      "description": "Idéntico al anterior salvo la humedad del combustible herbáceo vivo.",
+      "fbfm40_code": 103, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0,
+      "lh_moisture_pct": 120.0
+    }
+  },
+  {
+    "id": "12-tu5-dosel-cerrado",
+    "order": 15,
+    "group": "Dosel",
+    "changes_from": "06-tu5-viento-n15",
+    "expectation": "Mismo TU5 pero bajo dosel cerrado (89 % de cobertura, 20 m de altura). La reducción del viento a media llama debería frenar la propagación respecto del caso sin dosel. Es la mediana real del AOI.",
+    "scenario": {
+      "name": "TU5 · bajo dosel cerrado",
+      "description": "Cobertura de copa 89 %, altura 20 m, base de copa 9,3 m, densidad 0,08 kg/m³.",
+      "fbfm40_code": 165, "wind_speed_mph": 15.0, "wind_direction_deg": 0.0,
+      "cc_pct": 89, "ch_m": 20.0, "cbh_m": 9.3, "cbd_kg_m3": 0.08
+    }
+  }
+]
