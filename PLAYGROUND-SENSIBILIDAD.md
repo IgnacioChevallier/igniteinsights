@@ -258,6 +258,13 @@ decenas de celdas contra miles y es idéntico entre escenarios.
 sintético de 12 km como un punto. Se agregó un prop opcional que hace `fitBounds` sobre las
 isócronas.
 
+**Techo al crecimiento en disco.** Cada corrida escribe ~5 MB de rásteres uniformes y el
+panel A/B invita a hacer clic. Se conservan los 50 directorios más recientes. No se reusa
+un directorio por hash del escenario, que parecería más prolijo: `run_simulation` escribe
+`elmfire.data` adentro con **su** `outputs_dir`, así que dos corridas concurrentes del mismo
+escenario —a un clic de distancia en el panel A/B— podrían mandar sus salidas al directorio
+de la otra.
+
 ---
 
 ## Costo y riesgos

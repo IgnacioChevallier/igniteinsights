@@ -10,6 +10,7 @@ the runner and registers the run. See PLAYGROUND-SENSIBILIDAD.md.
 """
 import json
 import logging
+import shutil
 import uuid
 from functools import lru_cache
 from pathlib import Path
@@ -34,6 +35,13 @@ _PRESETS_FILE = Path(__file__).resolve().parent.parent.parent / "playground" / "
 # Synthetic runs live under their own prefix so they are trivially separable from real
 # simulations on disk, and can be swept without touching production outputs.
 _PLAYGROUND_SUBDIR = "playground"
+
+# Each run gets its own inputs directory — reusing one keyed by scenario hash would look
+# tidier but races: run_simulation writes elmfire.data into it with that run's
+# outputs_dir, so two concurrent runs of the same scenario (the A/B panel makes this one
+# click away) could send their outputs to each other's folder. Unique directories instead,
+# with a cap so an afternoon of clicking cannot fill the disk. ~8 MB per run at 12 km/30 m.
+_MAX_KEPT_INPUT_DIRS = 50
 
 
 @lru_cache(maxsize=1)
@@ -94,7 +102,9 @@ async def run_playground_scenario(
     session: AsyncSession = Depends(get_db),
 ):
     run_id = uuid.uuid4()
-    inputs_dir = resolve_data_path(settings.elmfire_inputs_dir) / _PLAYGROUND_SUBDIR / str(run_id)
+    playground_root = resolve_data_path(settings.elmfire_inputs_dir) / _PLAYGROUND_SUBDIR
+    _prune_old_inputs(playground_root)
+    inputs_dir = playground_root / str(run_id)
 
     try:
         await _build(scenario, inputs_dir)
@@ -166,6 +176,26 @@ async def get_scenario_metrics(
     )
     metrics["scenario"] = (run.elmfire_config or {}).get("scenario")
     return {"status": "success", "data": metrics, "error": None}
+
+
+def _prune_old_inputs(root: Path) -> None:
+    """Keep the most recent _MAX_KEPT_INPUT_DIRS scenario directories.
+
+    Pruning by modification time and only beyond the cap means an in-flight run — always
+    among the newest — is never touched.
+    """
+    if not root.exists():
+        return
+    dirs = sorted(
+        (d for d in root.iterdir() if d.is_dir()),
+        key=lambda d: d.stat().st_mtime,
+        reverse=True,
+    )
+    for stale in dirs[_MAX_KEPT_INPUT_DIRS:]:
+        try:
+            shutil.rmtree(stale)
+        except OSError as exc:  # a run may still hold it; try again next time
+            logger.warning("Could not prune %s: %s", stale, exc)
 
 
 async def _build(scenario: Scenario, inputs_dir: Path) -> None:

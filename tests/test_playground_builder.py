@@ -129,3 +129,37 @@ def _presets_text() -> str:
     from app.api.v1.playground import _PRESETS_FILE
 
     return _PRESETS_FILE.read_text(encoding="utf-8")
+
+
+def test_old_scenario_directories_are_pruned(tmp_path, monkeypatch):
+    """An afternoon of clicking through the A/B panel must not fill the disk: each run
+    writes ~5 MB of uniform rasters and every click is a new directory."""
+    from app.api.v1 import playground as pg
+
+    monkeypatch.setattr(pg, "_MAX_KEPT_INPUT_DIRS", 3)
+    root = tmp_path / "playground"
+    root.mkdir()
+    made = []
+    for i in range(6):
+        d = root / f"run-{i}"
+        d.mkdir()
+        (d / "dem.tif").write_bytes(b"x")
+        # Oldest first, so run-0 is the stalest.
+        import os
+        os.utime(d, (1000 + i, 1000 + i))
+        made.append(d)
+
+    pg._prune_old_inputs(root)
+
+    survivors = sorted(p.name for p in root.iterdir())
+    assert survivors == ["run-3", "run-4", "run-5"], survivors
+
+
+def test_pruning_an_empty_or_missing_root_is_a_no_op(tmp_path):
+    from app.api.v1 import playground as pg
+
+    pg._prune_old_inputs(tmp_path / "does-not-exist")  # must not raise
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    pg._prune_old_inputs(empty)
+    assert list(empty.iterdir()) == []
