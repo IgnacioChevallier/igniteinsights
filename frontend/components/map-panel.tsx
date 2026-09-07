@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FireMap, type RasterOverlayData } from "@/components/fire-map";
+import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
 import { Separator } from "@/components/ui/separator";
+import { useFireClock } from "@/hooks/use-fire-clock";
+import { summarizeIsochrones } from "@/lib/isochrone-clock";
 import type { Run } from "@/lib/dashboard-types";
 
 function formatOptionLabel(run: Run) {
@@ -111,6 +114,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
 
   const selectedRun = simulationRuns.find((r) => r.id === selectedRunId);
 
+  // The horizon and the isochrone step both come out of the GeoJSON itself; the run's
+  // declared horizon_hours is only a fallback for a collection with a single level.
+  const summary = useMemo(() => summarizeIsochrones(isochrones), [isochrones]);
+  const horizonHours = summary.horizonHours || selectedRun?.horizon_hours || 0;
+  const clock = useFireClock({ horizonHours });
+  const clockView = useMemo(
+    () => ({ t: clock.t, stepHours: summary.stepHours, horizonHours }),
+    [clock.t, summary.stepHours, horizonHours],
+  );
+  const animatable = summary.timedCount > 0 && horizonHours > 0;
+
   useEffect(() => {
     fetchJson<GeoJSON.FeatureCollection>("/api/fires/active?hours=24").then(setActiveFires);
   }, []);
@@ -166,6 +180,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           ignitionPerimeter={ignitionPerimeter}
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
+          fitTo={isochrones}
+          clock={animatable ? clockView : null}
+          overlay={
+            animatable ? (
+              <FireAnimationControls
+                clock={clock}
+                ignitionDatetime={selectedRun?.ignition_datetime ?? null}
+                untimedCount={summary.untimedCount}
+              />
+            ) : null
+          }
         />
       </div>
 
