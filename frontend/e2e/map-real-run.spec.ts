@@ -31,7 +31,50 @@ test.describe("lanzar una corrida real desde el mapa", () => {
     await expect(aside.getByText(/Meteorología GFS · ciclo actual/)).toBeVisible();
     await expect(aside.getByText(/Sin volver a pedir: relieve, combustibles, dosel/)).toBeVisible();
 
+    // The gear the header already had, now beside the button it configures.
+    await expect(aside.getByRole("link", { name: "Configuración" })).toBeVisible();
+
     await page.screenshot({ path: "../playwright-screenshots/map-real-run.png" });
+  });
+
+  test("el engranaje del mapa configura las mismas fuentes que usa el boton", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Mapa" }).click();
+
+    const aside = page.locator("aside").first();
+    await expect(aside.getByText(/Incendios FIRMS · últimos 1 día/)).toBeVisible();
+    await aside.getByRole("link", { name: "Configuración" }).click();
+
+    // One settings page, reached from either entry point — not a second copy of the form.
+    // Generous: a dev server compiles /settings on its first visit.
+    await expect(
+      page.getByRole("heading", { name: "Configuración", exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+    // Retried until it sticks: the heading is server-rendered, so it goes visible before
+    // React hydrates, and a fill landing in that gap sets the DOM value while onChange
+    // never fires. Polling on the stored value is what makes this deterministic.
+    await expect
+      .poll(
+        async () => {
+          await page.locator("#firms_day_range").fill("4");
+          return page.evaluate(
+            () =>
+              JSON.parse(localStorage.getItem("igniteinsights.settings") ?? "{}")
+                .firms_day_range,
+          );
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(4);
+
+    // Back lands on the map: it is the default section. Clicking "Mapa" here raced the
+    // navigation and asserted against the page being torn down.
+    await page.getByRole("button", { name: "← Volver al panel" }).click();
+
+    // What the map says it will pull has to be what the settings page just wrote.
+    await expect(aside.getByText(/Incendios FIRMS · últimos 4 días/)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("las fuentes salen de Ajustes, no de un segundo lugar", async ({ page }) => {

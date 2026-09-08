@@ -6,6 +6,7 @@ import { FireMap, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
+import { SettingsButton } from "@/components/settings-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
@@ -114,7 +115,19 @@ function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | n
   // mount rather than rendering a guess the first paint would then contradict.
   const [settings, setSettings] = useState<IngestionSettings | null>(null);
 
-  useEffect(() => setSettings(loadSettings()), []);
+  useEffect(() => {
+    const read = () => setSettings(loadSettings());
+    read();
+    // The sources are edited on another page, and coming back from it can restore this
+    // one from the bfcache, where mount effects do not run again — the summary would then
+    // keep advertising sources the settings page has already changed.
+    window.addEventListener("pageshow", read);
+    window.addEventListener("focus", read);
+    return () => {
+      window.removeEventListener("pageshow", read);
+      window.removeEventListener("focus", read);
+    };
+  }, []);
 
   const run = async () => {
     if (!settings) return;
@@ -130,13 +143,23 @@ function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | n
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="sm" onClick={run} disabled={phase !== null || !settings}>
-        {phase === "ingesting"
-          ? "Ingestando datos…"
-          : phase === "simulating"
-            ? "Simulando…"
-            : "Ejecutar simulación real"}
-      </Button>
+      <div className="flex items-center gap-1.5">
+        <Button
+          size="sm"
+          className="flex-1"
+          onClick={run}
+          disabled={phase !== null || !settings}
+        >
+          {phase === "ingesting"
+            ? "Ingestando datos…"
+            : phase === "simulating"
+              ? "Simulando…"
+              : "Ejecutar simulación real"}
+        </Button>
+        {/* Right next to the button it configures, and the same page the header opens —
+            the sources have one home, not one per entry point. */}
+        <SettingsButton variant="outline" />
+      </div>
 
       {settings && (
         <ul className="space-y-0.5 text-[11px] leading-snug text-muted-foreground">
@@ -146,8 +169,8 @@ function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | n
         </ul>
       )}
       <p className="text-[11px] leading-snug text-muted-foreground">
-        Las fuentes se configuran en Ajustes. Tarda minutos: descarga, deriva los rásteres y
-        corre ELMFIRE.
+        Las fuentes se configuran con el engranaje. Tarda minutos: descarga, deriva los
+        rásteres y corre ELMFIRE.
       </p>
 
       {error && <p className="text-[11px] leading-snug text-destructive">{error}</p>}
@@ -191,12 +214,16 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   // declared horizon_hours is only a fallback for a collection with a single level.
   const summary = useMemo(() => summarizeIsochrones(isochrones), [isochrones]);
   const horizonHours = summary.horizonHours || selectedRun?.horizon_hours || 0;
-  const clock = useFireClock({ horizonHours });
+  const animatable = summary.timedCount > 0 && horizonHours > 0;
+  // Gated on `animatable`, not just on the horizon: a run whose isochrones carry no times
+  // hides the controls and ignores the clock, but the clock still autoplayed and wrote
+  // state every animation frame. That re-rendered this panel ~24x a second forever, for
+  // nothing anyone could see.
+  const clock = useFireClock({ horizonHours: animatable ? horizonHours : 0 });
   const clockView = useMemo(
     () => ({ t: clock.t, stepHours: summary.stepHours, horizonHours }),
     [clock.t, summary.stepHours, horizonHours],
   );
-  const animatable = summary.timedCount > 0 && horizonHours > 0;
 
   useEffect(() => {
     fetchJson<GeoJSON.FeatureCollection>("/api/fires/active?hours=24").then(setActiveFires);
@@ -274,7 +301,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         />
       </div>
 
-      <aside className="flex w-56 shrink-0 flex-col gap-4 overflow-auto border-l bg-background p-3">
+      <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-auto border-l bg-background p-3">
         <RealRunLauncher onFinished={handleRunFinished} />
 
         <Separator />
