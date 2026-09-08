@@ -2,6 +2,7 @@
 Playground endpoints — synthetic sensitivity scenarios.
 
 POST /playground/run     — build a synthetic inputs dir and run ELMFIRE on it
+POST /playground/preview — what a scenario looks like, without running it
 GET  /playground/presets — the curated scenario sequence
 
 The playground owns no simulation machinery. It writes a directory of uniform rasters and
@@ -65,23 +66,10 @@ def _load_presets() -> list[dict]:
     ),
 )
 async def get_presets():
-    presets = _load_presets()
-    # map_layers travel with the preset so the panel can draw the scenario the moment it
-    # is clicked. The slab, the ignition disc and the forcing vectors are known before
-    # ELMFIRE is asked anything; waiting for the response left the map blank for the whole
-    # run, which is exactly when the operator wants to see what they just launched.
-    enriched = []
-    for preset in presets:
-        scenario = Scenario(**preset["scenario"])
-        enriched.append({
-            **preset,
-            "fuel_model": fuel_model_info(scenario.fbfm40_code),
-            "map_layers": scenario_map_layers(scenario),
-        })
     return {
         "status": "success",
         "data": {
-            "presets": enriched,
+            "presets": _load_presets(),
             "notes": {
                 "wind_direction": (
                     "wind_direction_deg is the direction the wind blows FROM "
@@ -90,12 +78,39 @@ async def get_presets():
                     "elongates SOUTH."
                 ),
                 "aspect": "aspect_deg is the downslope azimuth; fire runs upslope.",
+                "terrain": (
+                    "A preset carries no terrain, so it loads as a uniform slab. Vary "
+                    "terrain between A and B like any other single factor; POST /preview "
+                    "to see the result before running it."
+                ),
                 "synthetic": (
                     "These domains are synthetic. They are centred on the AOI only so the "
                     "map shows them somewhere plausible — they are not a prediction for "
                     "that location."
                 ),
             },
+        },
+        "error": None,
+    }
+
+
+@router.post(
+    "/preview",
+    summary="Draw a scenario without running it",
+    description=(
+        "The scenario's own geometry — the fuel slab, its lake if it has one, the "
+        "ignition disc and the forcing vectors — plus the identity of its fuel model. "
+        "Pure and cheap: no ELMFIRE call, nothing written to disk. The panel calls this "
+        "the moment a scenario is picked so the map shows what is about to run instead "
+        "of staying blank for the length of the run."
+    ),
+)
+async def preview_scenario(scenario: Scenario):
+    return {
+        "status": "success",
+        "data": {
+            "map_layers": scenario_map_layers(scenario),
+            "fuel_model": fuel_model_info(scenario.fbfm40_code),
         },
         "error": None,
     }

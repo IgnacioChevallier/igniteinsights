@@ -1,6 +1,8 @@
 """Builds a synthetic ELMFIRE inputs directory from a Scenario.
 
-Every input is a uniform raster over a square domain, following the shape of ELMFIRE's own
+Every input is a uniform raster over a square domain — bar the one deliberate exception,
+the `lake` terrain, which cuts a non-burnable patch out of the fuel slab. Follows the
+shape of ELMFIRE's own
 `tutorials/01-constant-wind/01-run.sh`. Nothing here writes the namelist or talks to the
 runner: `POST /api/v1/simulations/run` already does both, and it only needs a directory
 that exists and contains dem.tif. See PLAYGROUND-SENSIBILIDAD.md §P2.
@@ -26,6 +28,17 @@ logger = logging.getLogger(__name__)
 _FLOAT_RASTERS = ("ws", "wd", "m1", "m10", "m100", "adj")
 _INT_RASTERS = ("dem", "slp", "asp", "fbfm40", "cc", "ch", "cbh", "cbd")
 
+# FBFM 98 (NB8, open water) — a real Scott & Burgan non-burnable code, so ELMFIRE treats
+# the patch as a barrier without any special-casing on our side.
+_WATER_FBFM = 98
+
+# Lake geometry as fractions of the domain span. Fixed rather than exposed as knobs: the
+# lake answers a qualitative question ("what does a barrier do to the front?"), and a
+# sweepable radius would invite reading a synthetic circle as a real lake. Together they
+# keep the patch inside the domain (0.30 + 0.16 < 0.5) and clear of the ignition disc.
+_LAKE_RADIUS_FRAC = 0.16
+_LAKE_OFFSET_FRAC = 0.30
+
 
 def build_scenario_inputs(scenario: Scenario, inputs_dir: Path) -> Path:
     """Write a complete synthetic inputs directory. Returns the directory."""
@@ -47,7 +60,6 @@ def build_scenario_inputs(scenario: Scenario, inputs_dir: Path) -> Path:
         ("dem", scenario.elevation_m),
         ("slp", scenario.slope_deg),
         ("asp", scenario.aspect_deg),
-        ("fbfm40", scenario.fbfm40_code),
         ("cc", scenario.cc_pct),
         ("ch", round(scenario.ch_m * 10)),
         ("cbh", round(scenario.cbh_m * 10)),
@@ -55,11 +67,12 @@ def build_scenario_inputs(scenario: Scenario, inputs_dir: Path) -> Path:
     ]:
         rasters.write_uniform_int16(profile, inputs_dir / f"{name}.tif", int(value))
 
+    fbfm = _fbfm_array(scenario, profile)
     # A code absent from the table silently becomes model 256 (NB, unburnable) and the
     # whole synthetic domain stops burning without an error. Same guard as the real path.
-    fuels_builder.assert_codes_are_defined(
-        np.full((1, 1), scenario.fbfm40_code, dtype=np.int16)
-    )
+    # Checked on the array that is actually written, so the water patch is covered too.
+    fuels_builder.assert_codes_are_defined(fbfm)
+    rasters.write_int16_array(profile, inputs_dir / "fbfm40.tif", fbfm)
 
     _write_phi(scenario, profile, inputs_dir / "phi.tif")
 
@@ -96,6 +109,53 @@ def _grid_profile(scenario: Scenario) -> dict:
         "transform": from_origin(xs[0] - half, ys[0] + half, scenario.cellsize_m,
                                  scenario.cellsize_m),
     }
+
+
+def _lake_disc(scenario: Scenario, profile: dict) -> tuple[float, float, float] | None:
+    """Centre and radius of the lake in projected metres, or None for a uniform slab.
+
+    The lake is placed in the fire's path, otherwise the barrier is never reached and the
+    terrain looks like it does nothing: fire runs downwind, and upslope when there is no
+    wind (`aspect_deg` is the DOWNslope azimuth, hence the +180).
+    """
+    if scenario.terrain != "lake":
+        return None
+
+    transform = profile["transform"]
+    span = profile["height"] * scenario.cellsize_m
+    cx, cy = transform.c + span / 2.0, transform.f - span / 2.0
+
+    if scenario.wind_speed_mph > 0:
+        bearing = (scenario.wind_direction_deg + 180.0) % 360.0
+    elif scenario.slope_deg > 0:
+        bearing = (scenario.aspect_deg + 180.0) % 360.0
+    else:
+        # ponytail: with no forcing the spread is isotropic, so no direction is better
+        # than another. East, arbitrarily and stably.
+        bearing = 90.0
+
+    offset = span * _LAKE_OFFSET_FRAC
+    rad = math.radians(bearing)
+    return cx + math.sin(rad) * offset, cy + math.cos(rad) * offset, span * _LAKE_RADIUS_FRAC
+
+
+def _fbfm_array(scenario: Scenario, profile: dict) -> np.ndarray:
+    """The fuel model grid: one code everywhere, minus the lake if the scenario has one."""
+    n = profile["height"]
+    fbfm = np.full((n, n), scenario.fbfm40_code, dtype=np.int16)
+
+    disc = _lake_disc(scenario, profile)
+    if disc is not None:
+        lx, ly, radius = disc
+        transform = profile["transform"]
+        cell = scenario.cellsize_m
+        # Cell centres, so a cell counts as water when its centre is in the disc.
+        rows, cols = np.mgrid[0:n, 0:n]
+        xs = transform.c + (cols + 0.5) * cell
+        ys = transform.f - (rows + 0.5) * cell
+        fbfm[np.hypot(xs - lx, ys - ly) <= radius] = _WATER_FBFM
+
+    return fbfm
 
 
 def _write_phi(scenario: Scenario, profile: dict, output: Path) -> Path:
@@ -135,8 +195,8 @@ def scenario_map_layers(scenario: Scenario) -> dict:
 
     A satellite basemap under a synthetic run is actively misleading: it shows terrain and
     vegetation that the scenario assumes away. These layers draw the scenario's own
-    assumptions instead — a uniform slab of one fuel model, the ignition disc, and the two
-    forcing vectors.
+    assumptions instead — the fuel slab (with its lake, if it has one), the ignition disc,
+    and the two forcing vectors.
 
     Built here, next to the grid, so the UTM→4326 conversion has exactly one home.
     """
@@ -164,16 +224,23 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         "geometry": {"type": "Polygon", "coordinates": [domain_ring]},
     }]
 
+    # Drawn from the same geometry the raster is rasterised from, so the map can never
+    # show a lake somewhere the fuel grid does not have one.
+    lake = _lake_disc(scenario, profile)
+    if lake is not None:
+        lx, ly, radius = lake
+        features.append({
+            "type": "Feature",
+            "properties": {"kind": "water", "label": "lago (FBFM 98 · no combustible)"},
+            "geometry": {"type": "Polygon", "coordinates": [_disc_ring(to_wgs, lx, ly, radius)]},
+        })
+
     # Ignition disc, as a polygon so it keeps its real size when zooming.
-    steps = 48
-    angles = [2 * math.pi * i / steps for i in range(steps + 1)]
     features.append({
         "type": "Feature",
         "properties": {"kind": "ignition"},
-        "geometry": {"type": "Polygon", "coordinates": [to_wgs(
-            [cx + scenario.ignition_radius_m * math.sin(a) for a in angles],
-            [cy + scenario.ignition_radius_m * math.cos(a) for a in angles],
-        )]},
+        "geometry": {"type": "Polygon",
+                     "coordinates": [_disc_ring(to_wgs, cx, cy, scenario.ignition_radius_m)]},
     })
 
     # Wind: drawn pointing where it blows TO. The raster holds the direction it comes
@@ -200,6 +267,16 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         ))
 
     return {"type": "FeatureCollection", "features": features}
+
+
+def _disc_ring(to_wgs, cx: float, cy: float, radius: float, steps: int = 48) -> list:
+    """A circle as a closed WGS84 ring. Polygons, not point markers, so a disc keeps its
+    real size when the map is zoomed."""
+    angles = [2 * math.pi * i / steps for i in range(steps + 1)]
+    return to_wgs(
+        [cx + radius * math.sin(a) for a in angles],
+        [cy + radius * math.cos(a) for a in angles],
+    )
 
 
 def _arrow(to_wgs, x: float, y: float, azimuth_deg: float, length_m: float,

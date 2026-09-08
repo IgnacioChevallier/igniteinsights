@@ -4,9 +4,16 @@ A scenario is a set of scalars and nothing else. Every ELMFIRE input becomes a u
 raster over a square domain, so the only thing that varies between two runs is the
 parameter under study — that is what makes the comparison attributable.
 
-Deliberately no spatially-varying fields: a scenario with gradients stops being a
-controlled base case and becomes the real AOI. See PLAYGROUND-SENSIBILIDAD.md §P1.
+Almost no spatially-varying fields: a scenario with gradients stops being a controlled
+base case and becomes the real AOI. See PLAYGROUND-SENSIBILIDAD.md §P1.
+
+The single exception is `terrain`, which is itself one of the factors under study — "what
+does an unburnable barrier do to the front?" is only answerable with a domain that has
+one. It is therefore held to the same rule as every other factor: vary it between A and B
+with everything else fixed, never alongside a second change.
 """
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -25,6 +32,14 @@ class Scenario(BaseModel):
 
     # ── Fuel ──────────────────────────────────────────────────────────────────
     fbfm40_code: int = Field(default=102, description="Must exist in fuel_models.csv")
+    terrain: Literal["uniform", "lake"] = Field(
+        default="uniform",
+        description=(
+            "Layout of the fuel slab. 'uniform' is one fuel model everywhere. 'lake' cuts "
+            "a circular patch of FBFM 98 (NB8, water) out of it, placed in the fire's "
+            "path, so the run shows what an unburnable barrier does to the front."
+        ),
+    )
 
     # ── Canopy (ELMFIRE on-disk encoding is applied by the builder) ───────────
     cc_pct: int = Field(default=0, ge=0, le=100)

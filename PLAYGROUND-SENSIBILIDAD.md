@@ -78,7 +78,7 @@ Un escenario es un conjunto de escalares. Nada más.
 |---|---|
 | Dominio | `cellsize_m`, `domain_size_m`, `crs` |
 | Topografía | `slope_deg`, `aspect_deg`, `elevation_m` |
-| Combustible | `fbfm40_code` |
+| Combustible | `fbfm40_code`, `terrain` |
 | Dosel | `cc_pct`, `ch_m`, `cbh_m`, `cbd_kg_m3` |
 | Meteorología | `wind_speed_mph`, `wind_direction_deg`, `m1_pct`, `m10_pct`, `m100_pct` |
 | Combustible vivo | `lh_moisture_pct`, `lw_moisture_pct` |
@@ -91,6 +91,20 @@ Restricción de diseño: **escalares, no rásteres**. Un escenario con gradiente
 caso base controlado y pasa a ser el AOI real. Si más adelante hace falta pendiente variable,
 se agrega un campo específico, no un mecanismo genérico.
 
+**Excepción única: `terrain`.** Es un enum corto, no un mecanismo genérico, y es en sí mismo
+uno de los factores bajo estudio: "¿qué le hace una barrera no combustible al frente?" no se
+puede responder sobre un dominio homogéneo. Vale `"uniform"` (la losa de siempre) o `"lake"`,
+que recorta un disco de FBFM 98 (NB8, agua) de radio 0,16·lado, ubicado a 0,30·lado del centro
+**en la dirección en que corre el fuego** — a favor del viento, o cuesta arriba si no hay
+viento. Fuera del camino del frente la barrera nunca se alcanza y el terreno parece no hacer
+nada. Se sostiene la misma regla que el resto: se varía entre A y B con todo lo demás fijo.
+
+En el frontend `terrain` se elige como **miniatura del propio mapa esquemático** (misma
+paleta, mismo azul de agua), no como desplegable: se reconoce el suelo, no se lee su nombre.
+Cambiar de terreno descarta las isócronas y las métricas en pantalla — se produjeron sobre
+otro suelo — y redibuja vía `POST /playground/preview`, que es geometría pura y no llama a
+ELMFIRE.
+
 ### P2 · Constructor del directorio sintético
 
 Módulo nuevo: `app/playground/builder.py`.
@@ -102,12 +116,13 @@ Módulo nuevo: `app/playground/builder.py`.
 2. Escribir los rásteres float uniformes (`ws`, `wd`, `m1`, `m10`, `m100`, `adj`) reusando
    `_write_uniform_raster`. **Moverlo de `preparation/service.py` a un módulo compartido** —
    lo van a usar los dos.
-3. Escribir los rásteres Int16 uniformes (`dem`, `slp`, `asp`, `fbfm40`, `cc`, `ch`, `cbh`,
-   `cbd`), respetando el escalado de ELMFIRE: `ch`/`cbh` ×10 m, `cbd` ×100 kg/m³
+3. Escribir los rásteres Int16 (`dem`, `slp`, `asp`, `fbfm40`, `cc`, `ch`, `cbh`, `cbd`),
+   uniformes salvo `fbfm40` cuando el escenario trae lago, respetando el escalado de ELMFIRE: `ch`/`cbh` ×10 m, `cbd` ×100 kg/m³
    (`.claude/skills/elmfire/references/interface-gotchas.md`).
 4. **Validar el código de combustible contra la tabla** con
-   `fuels_builder.assert_codes_are_defined()`. Un escenario con un código inexistente daría
-   un dominio entero no combustible, en silencio.
+   `fuels_builder.assert_codes_are_defined()`, sobre el array que efectivamente se escribe
+   para que el parche de agua también quede cubierto. Un escenario con un código inexistente
+   daría un dominio entero no combustible, en silencio.
 5. Escribir `phi`: negativo dentro del disco de ignición, positivo afuera. Reusar la lógica
    de `ignition_builder`; el audit (IGN-13) ya decidió campo de distancia con signo y no ±1.
 6. Copiar `fuel_models.csv`, igual que hace `preparation/service.py`.

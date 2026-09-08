@@ -1,5 +1,6 @@
 """The synthetic scenario builder must produce a directory ELMFIRE can actually run."""
 import json
+import math
 
 import numpy as np
 import pytest
@@ -189,3 +190,66 @@ def test_pruning_an_empty_or_missing_root_is_a_no_op(tmp_path):
     empty.mkdir()
     pg._prune_old_inputs(empty)
     assert list(empty.iterdir()) == []
+
+
+# ── Terrain: the one deliberate departure from a uniform domain ────────────────────────
+
+
+def _fbfm(inputs_dir):
+    with rasterio.open(inputs_dir / "fbfm40.tif") as ds:
+        return ds.read(1)
+
+
+def test_uniform_terrain_is_still_one_code_everywhere(tmp_path):
+    """The lake must be opt-in: the default scenario is the controlled base case."""
+    fbfm = _fbfm(_build(tmp_path, domain_size_m=1200, cellsize_m=30, fbfm40_code=165))
+    assert np.unique(fbfm).tolist() == [165]
+
+
+def test_lake_cuts_a_non_burnable_patch_out_of_the_slab(tmp_path):
+    fbfm = _fbfm(_build(tmp_path, domain_size_m=1200, cellsize_m=30,
+                        fbfm40_code=165, terrain="lake"))
+    assert set(np.unique(fbfm).tolist()) == {165, 98}
+    # A disc of r = 0.16·span inside a span² domain.
+    expected = math.pi * builder._LAKE_RADIUS_FRAC**2
+    assert abs((fbfm == 98).mean() - expected) < 0.01
+
+
+def test_lake_never_swallows_the_ignition(tmp_path):
+    """A lake over the ignition disc produces a run that does nothing, silently."""
+    for wind, slope in [(15.0, 0), (0.0, 30), (0.0, 0)]:
+        fbfm = _fbfm(_build(tmp_path / f"w{wind}s{slope}", domain_size_m=1200, cellsize_m=30,
+                            terrain="lake", wind_speed_mph=wind, slope_deg=slope))
+        n = fbfm.shape[0]
+        assert fbfm[n // 2, n // 2] != 98, f"lake covers the ignition at wind={wind} slope={slope}"
+
+
+def test_lake_sits_in_the_path_of_the_fire(tmp_path):
+    """Placed downwind, otherwise the front never reaches the barrier and the terrain
+    looks like it does nothing. wd=0 is wind FROM the north, so the fire runs south —
+    which is the larger row index."""
+    fbfm = _fbfm(_build(tmp_path, domain_size_m=1200, cellsize_m=30,
+                        terrain="lake", wind_speed_mph=15.0, wind_direction_deg=0.0))
+    rows = np.nonzero(fbfm == 98)[0]
+    assert rows.mean() > fbfm.shape[0] / 2
+
+
+def test_lake_runs_upslope_when_there_is_no_wind(tmp_path):
+    """aspect_deg is the DOWNslope azimuth and fire runs upslope, so aspect 0 — terrain
+    falling to the north — means the fire climbs SOUTH, the larger row index. Getting this
+    backwards would park the lake behind the ignition, where nothing ever reaches it."""
+    fbfm = _fbfm(_build(tmp_path, domain_size_m=1200, cellsize_m=30,
+                        terrain="lake", wind_speed_mph=0.0, slope_deg=30, aspect_deg=0))
+    rows = np.nonzero(fbfm == 98)[0]
+    assert rows.mean() > fbfm.shape[0] / 2
+
+
+def test_map_layers_draw_the_lake_only_when_the_raster_has_one(tmp_path):
+    """The picture and the fuel grid come from the same geometry; a map showing a lake the
+    simulation never had would be worse than no map at all."""
+    def kinds(**kwargs):
+        layers = builder.scenario_map_layers(Scenario(domain_size_m=1200, **kwargs))
+        return [f["properties"]["kind"] for f in layers["features"]]
+
+    assert "water" not in kinds(wind_speed_mph=15.0)
+    assert "water" in kinds(wind_speed_mph=15.0, terrain="lake")

@@ -64,5 +64,17 @@ test.describe("mapa esquemático del playground", () => {
       path: "../playwright-screenshots/playground-satellite.png",
       fullPage: false,
     });
+
+    // Last, because switching terrain deliberately discards the result the screenshots
+    // above are meant to show. The lake is picked as a picture and redraws without a
+    // second ELMFIRE call: it comes from POST /preview, which is pure geometry.
+    await page.getByRole("button", { name: "Con lago" }).click();
+    await expect(page.getByText("lago (no combustible)").first()).toBeVisible();
+    // The result on screen was produced on the old ground; leaving it up would invite
+    // reading a lake-less run as if the barrier had been there.
+    await expect(page.getByText("ROS de cabeza")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Uniforme" }).click();
+    await expect(page.getByText("lago (no combustible)")).toHaveCount(0);
   });
 });

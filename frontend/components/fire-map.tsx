@@ -49,6 +49,10 @@ const STYLE: maplibregl.StyleSpecification = {
 
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
+// Shared with the terrain thumbnails in the playground sidebar, so the picture you click
+// and the map you get are the same blue.
+export const WATER_COLOR = "#4b83c4";
+
 export type Basemap = "street" | "satellite" | "synthetic";
 
 // ── Fire progression animation (VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
@@ -170,6 +174,17 @@ export function FireMap({
         source: SYNTHETIC_SOURCE_ID,
         filter: ["==", ["get", "kind"], "domain"],
         paint: { "line-color": "#57534e", "line-width": 1 },
+      });
+      // Over the slab, under the vectors and the ignition: the lake is part of the
+      // ground, not an annotation on top of it.
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-water`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["==", ["get", "kind"], "water"],
+        // Opaque, unlike the 0.45 slab: an unburnable patch has to read as a hole in the
+        // fuel, not as more fuel in a different shade.
+        paint: { "fill-color": WATER_COLOR, "fill-opacity": 1 },
       });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-vectors`,
