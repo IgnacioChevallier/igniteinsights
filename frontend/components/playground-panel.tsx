@@ -233,16 +233,22 @@ export function PlaygroundPanel() {
                       </span>
                     )}
                     {(["wind", "slope"] as const)
-                      .filter((kind) =>
-                        slot.mapLayers?.features?.some((f) => f.properties?.kind === kind),
-                      )
-                      .map((kind) => (
+                      .map((kind) => [
+                        kind,
+                        slot.mapLayers?.features?.find((f) => f.properties?.kind === kind),
+                      ] as const)
+                      .filter(([, feature]) => feature)
+                      .map(([kind, feature]) => (
                         <span key={kind} className="flex items-center gap-1">
                           <span
                             className="inline-block h-0.5 w-4"
                             style={{ backgroundColor: kind === "wind" ? "#1d4ed8" : "#57534e" }}
                           />
-                          {kind === "wind" ? "viento (hacia)" : "pendiente (cuesta abajo)"}
+                          {/* The server's own label. For wind it names the compass point
+                              ("hacia el SO"): a 45° rotation of a burn scar elongated 1.1×
+                              is invisible in a still, and the animation says nothing in a
+                              screenshot. The words are what make the two runs tell apart. */}
+                          {String(feature!.properties?.label ?? kind)}
                         </span>
                       ))}
                   </div>

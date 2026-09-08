@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { FUEL_PATTERN_IDS, fuelPatternImage } from "@/lib/fuel-pattern";
+import { startWindParticles, type WindField } from "@/lib/wind-particles";
 
 // Los Alerces National Park, Patagonia — matches the AOI these simulations run over.
 const INITIAL_CENTER: [number, number] = [-71.8, -42.7];
@@ -144,6 +146,7 @@ export function FireMap({
   // handler could only see the props captured when the map was created (all null).
   const [loaded, setLoaded] = useState(false);
   const [basemap, setBasemap] = useState<Basemap>(initialBasemap);
+  const windCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -158,6 +161,15 @@ export function FireMap({
 
     map.on("load", () => {
       // The synthetic scenario, added before everything else so it sits at the bottom.
+      // Vegetation textures, registered before the layer that names them: a fill-pattern
+      // pointing at a missing image draws nothing at all, silently.
+      for (const id of FUEL_PATTERN_IDS) {
+        const image = fuelPatternImage(id, Math.min(window.devicePixelRatio || 1, 2));
+        if (image && !map.hasImage(id)) {
+          map.addImage(id, image, { pixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+        }
+      }
+
       map.addSource(SYNTHETIC_SOURCE_ID, { type: "geojson", data: EMPTY_FC });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-domain`,
@@ -186,17 +198,25 @@ export function FireMap({
         // fuel, not as more fuel in a different shade.
         paint: { "fill-color": WATER_COLOR, "fill-opacity": 1 },
       });
+      // Added after the lake, not before: the lake's fill is opaque and was painting
+      // over the wave texture. Ink over colour, in two layers on purpose: fill-pattern cannot be tinted, so
+      // baking the colour into the tile would fork the fuel palette between this file and
+      // fuels_builder. This way the server still owns every colour.
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-domain-texture`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["in", ["get", "kind"], ["literal", ["domain", "water"]]],
+        paint: { "fill-pattern": ["get", "pattern"], "fill-opacity": 0.85 },
+      });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-vectors`,
         type: "line",
         source: SYNTHETIC_SOURCE_ID,
-        filter: ["in", ["get", "kind"], ["literal", ["wind", "slope"]]],
-        paint: {
-          "line-color": [
-            "match", ["get", "kind"], "wind", "#1d4ed8", "slope", "#57534e", "#000000",
-          ],
-          "line-width": 2.5,
-        },
+        // Slope only. Wind stopped being an arrow: it is animated as drifting particles
+        // on the canvas above, the way Windy draws a flow field.
+        filter: ["==", ["get", "kind"], "slope"],
+        paint: { "line-color": "#57534e", "line-width": 2.5 },
       });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-ignition`,
@@ -426,6 +446,26 @@ export function FireMap({
     source?.setData(syntheticLayers ?? EMPTY_FC);
   }, [syntheticLayers, loaded]);
 
+  // Wind as a flow field rather than a symbol. Restarted whenever the scenario changes,
+  // so a new direction never keeps animating the old one.
+  useEffect(() => {
+    const map = mapRef.current;
+    const canvas = windCanvasRef.current;
+    if (!loaded || !map || !canvas) return;
+
+    const wind = syntheticLayers?.features?.find((f) => f.properties?.kind === "wind");
+    const domain = syntheticLayers?.features?.find((f) => f.properties?.kind === "domain");
+    if (!wind || domain?.geometry?.type !== "Polygon") return;
+
+    const field: WindField = {
+      azimuthDeg: Number(wind.properties?.azimuth_deg ?? 0),
+      speedMph: Number(wind.properties?.speed_mph ?? 0),
+      ring: domain.geometry.coordinates[0] as [number, number][],
+    };
+    if (!(field.speedMph > 0)) return;
+    return startWindParticles(map, canvas, field);
+  }, [syntheticLayers, loaded]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!loaded || !map) return;
@@ -441,6 +481,8 @@ export function FireMap({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {/* Above the map, below every control. Nothing here is interactive. */}
+      <canvas ref={windCanvasRef} className="pointer-events-none absolute inset-0 z-[1]" />
       <div className="absolute left-2 top-2 z-10 overflow-hidden rounded-md border bg-card text-xs shadow-md">
         <button
           className={`px-2 py-1 ${basemap === "street" ? "bg-primary text-primary-foreground" : ""}`}

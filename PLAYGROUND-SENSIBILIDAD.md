@@ -99,6 +99,51 @@ que recorta un disco de FBFM 98 (NB8, agua) de radio 0,16·lado, ubicado a 0,30�
 viento. Fuera del camino del frente la barrera nunca se alcanza y el terreno parece no hacer
 nada. Se sostiene la misma regla que el resto: se varía entre A y B con todo lo demás fijo.
 
+### Dos vientos distintos que se veían iguales
+
+Reporte: los presets 02 (viento del norte) y 03 (viento del noreste) daban manchas
+indistinguibles. **No era un bug del pipeline.** Medido sobre los rásteres de
+`time_of_arrival`, con los parámetros exactos de los presets (12 km, 5,5 h, GR2, 15 mph):
+
+| `wind_direction_deg` | dirección de cabeza | elongación | área |
+|---|---|---|---|
+| 0 (del norte) | 180,0° | 1,22 | 1591,7 ha |
+| 45 (del noreste) | 225,1° | 1,09 | 1472,8 ha |
+| 90 (del este) | 269,8° | 1,23 | — |
+
+La dirección se propaga exactamente. Lo que falla es la **lectura**: una cicatriz elongada
+1,1× es un círculo a ojo, y rotar un círculo 45° no se ve. El mapa tenía que decirlo, no
+insinuarlo, así que ahora lo dice de dos formas — un campo de partículas animado para el
+sentido del movimiento, y el rumbo en palabras ("viento 15 mph **hacia el SO**") para lo
+que sobrevive a una captura de pantalla.
+
+### Partículas de viento, al estilo Windy
+
+Windy no dibuja flechas: advecta partículas por el campo vectorial. La técnica viene de
+`earth` (Beccario) y antes de hint.fm/wind, y son seis pasos —resolver el campo a espacio
+de pantalla, sembrar N partículas con edad aleatoria, moverlas y registrar el segmento
+recorrido, **desvanecer** el canvas con `globalCompositeOperation = "destination-in"` y un
+alpha < 1 (esto multiplica el alpha existente, y es lo único que convierte los puntos en
+estelas de cometa), pintar los segmentos nuevos encima, y jubilar cada partícula a las
+`MAX_AGE` cuadros para que la población no se drene—. El paso 1 es casi todo el código de
+Windy y nada del nuestro: un escenario del playground tiene viento **uniforme**, así que el
+campo es un único vector de pantalla que sólo se recalcula cuando el mapa se mueve. Ver
+`frontend/lib/wind-particles.ts`. La escala velocidad→píxeles es visual, no física: la
+advección real a 15 mph sobre 12 km es una fracción de píxel por cuadro — correcta e
+invisible. Windy exagera por lo mismo.
+
+### Textura de combustible
+
+La losa dejó de ser un bloque de color plano. `frontend/lib/fuel-pattern.ts` genera una
+tesela por familia de combustible con glifos de vegetación —matas de pasto, arbustos,
+coníferas, troncos caídos, olas para el agua—, como la trama de vegetación de una carta
+topográfica. Las teselas son **sólo tinta, sin fondo**: el color sigue viniendo del
+servidor con la geometría, así que la paleta de combustibles conserva un único hogar
+(`fuels_builder`). El id de la tesela viaja en la feature (`pattern: "fuel-TU"`), de modo
+que la textura no puede contradecir al modelo que la simulación corrió. Familias sin
+textura definida y `NB` se dibujan desnudas a propósito: inventarle vegetación a un
+combustible desconocido sería una mentira con aplomo.
+
 En el frontend `terrain` se elige como **miniatura del propio mapa esquemático** (misma
 paleta, mismo azul de agua), no como desplegable: se reconoce el suelo, no se lee su nombre.
 Cambiar de terreno descarta las isócronas y las métricas en pantalla — se produjeron sobre

@@ -220,7 +220,15 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         "type": "Feature",
         # The colour travels with the geometry so the map can paint it straight from the
         # feature, and so it can never disagree with the model the run actually used.
-        "properties": {"kind": "domain", "color": fuel["color"], "label": fuel["label"]},
+        "properties": {
+            "kind": "domain",
+            "color": fuel["color"],
+            "label": fuel["label"],
+            # Which vegetation texture the map paints the slab with. The server names the
+            # fuel family, the client knows how to draw it — the same split as `color`,
+            # so a slab can never be drawn as a fuel the run did not use.
+            "pattern": f"fuel-{fuel['fuel_type']}",
+        },
         "geometry": {"type": "Polygon", "coordinates": [domain_ring]},
     }]
 
@@ -231,7 +239,11 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         lx, ly, radius = lake
         features.append({
             "type": "Feature",
-            "properties": {"kind": "water", "label": "lago (FBFM 98 · no combustible)"},
+            "properties": {
+                "kind": "water",
+                "label": "lago (FBFM 98 · no combustible)",
+                "pattern": "fuel-water",
+            },
             "geometry": {"type": "Polygon", "coordinates": [_disc_ring(to_wgs, lx, ly, radius)]},
         })
 
@@ -243,17 +255,23 @@ def scenario_map_layers(scenario: Scenario) -> dict:
                      "coordinates": [_disc_ring(to_wgs, cx, cy, scenario.ignition_radius_m)]},
     })
 
-    # Wind: drawn pointing where it blows TO. The raster holds the direction it comes
-    # FROM (ELMFIRE adds 180 internally, elmfire_subs.f90:473), so an arrow drawn along
-    # the raster value would point backwards — the classic error.
+    # Wind is a field, not a symbol: the map animates it as drifting particles the way
+    # Windy does, so this feature carries the parameters rather than a drawn arrow.
+    # `azimuth_deg` is where the wind blows TO. The raster holds the direction it comes
+    # FROM (ELMFIRE adds 180 internally, elmfire_subs.f90:473), so a client drawing along
+    # the raster value would send the flow backwards — the classic error.
     if scenario.wind_speed_mph > 0:
-        features.append(_arrow(
-            to_wgs, cx - span * 0.34, cy + span * 0.30,
-            azimuth_deg=(scenario.wind_direction_deg + 180.0) % 360.0,
-            length_m=span * (0.06 + 0.10 * min(scenario.wind_speed_mph / 40.0, 1.0)),
-            kind="wind",
-            label=f"viento {scenario.wind_speed_mph:g} mph",
-        ))
+        blows_to = (scenario.wind_direction_deg + 180.0) % 360.0
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "kind": "wind",
+                "speed_mph": scenario.wind_speed_mph,
+                "azimuth_deg": round(blows_to, 1),
+                "label": f"viento {scenario.wind_speed_mph:g} mph hacia el {_compass(blows_to)}",
+            },
+            "geometry": {"type": "Point", "coordinates": to_wgs([cx], [cy])[0]},
+        })
 
     # Slope: drawn pointing downslope, which is what aspect_deg means. Fire runs the
     # other way, upslope.
@@ -267,6 +285,15 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         ))
 
     return {"type": "FeatureCollection", "features": features}
+
+
+# Spanish 8-point compass. A still screenshot has to be readable on its own: "hacia el SO"
+# says in three characters what a 45°-rotated near-circular burn scar does not.
+_COMPASS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+
+
+def _compass(azimuth_deg: float) -> str:
+    return _COMPASS[int((azimuth_deg % 360.0) / 45.0 + 0.5) % 8]
 
 
 def _disc_ring(to_wgs, cx: float, cy: float, radius: float, steps: int = 48) -> list:

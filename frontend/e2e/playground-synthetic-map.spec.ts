@@ -40,9 +40,11 @@ test.describe("mapa esquemático del playground", () => {
     // the slab as real ground.
     await expect(page.getByText("Perímetro FIRMS observado", { exact: false })).toHaveCount(0);
 
+    // The wind key names its compass point, which is the only part of a 15 mph difference
+    // in direction that survives into a still screenshot.
+    await expect(page.getByText("viento 15 mph hacia el S", { exact: true })).toBeVisible();
     // This scenario has no slope, so no slope arrow and no slope key.
-    await expect(page.getByText("viento (hacia)")).toBeVisible();
-    await expect(page.getByText("pendiente (cuesta abajo)")).toHaveCount(0);
+    await expect(page.getByText(/pendiente .* cuesta abajo/)).toHaveCount(0);
 
     // Both legends live at bottom-left; at the same offset the scenario box covered the
     // isochrone key completely.
