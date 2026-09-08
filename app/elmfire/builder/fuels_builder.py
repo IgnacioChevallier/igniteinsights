@@ -85,6 +85,54 @@ FBFM40_DISPLAY: dict[int, tuple[str, str]] = {
 }
 
 
+# Scott & Burgan (2005) p. 5, Table 1: each fuel type owns a block of model numbers, and
+# the authors state the reason plainly — "so that fuel model maps colored by fuel type are
+# simple to create". One colour per block covers all 256 codes without inventing anything,
+# which is what the synthetic playground map needs for an arbitrary fuel model.
+_FUEL_TYPE_BLOCKS: list[tuple[int, int, str, str, str]] = [
+    (1, 13, "FBFM13", "#8a6d3b", "13 modelos originales"),
+    (90, 99, "NB", "#b8bcc0", "No combustible"),
+    (100, 119, "GR", "#d9c27a", "Pastizal"),
+    (120, 139, "GS", "#bcae6a", "Pastizal-arbustal"),
+    (140, 159, "SH", "#7a8b3a", "Arbustal"),
+    (160, 179, "TU", "#4a7a3a", "Bosque con sotobosque"),
+    (180, 199, "TL", "#1b5e20", "Hojarasca de bosque"),
+    (200, 219, "SB", "#6b4f2a", "Restos de corta / caída"),
+]
+
+
+def fuel_model_info(code: int) -> dict:
+    """Identity of a fuel model: short name, fuel type, colour and label.
+
+    The short name comes from the table ELMFIRE will load, so it can never disagree with
+    what the simulation actually ran. The colour comes from the fuel type block, which is
+    defined for every code — FBFM40_DISPLAY only covers the handful the WorldCover
+    crosswalk emits, and the playground can be handed any model in the table.
+    """
+    fuel_type, color, type_label = "?", "#9e9e9e", "Desconocido"
+    for low, high, name, hex_color, label in _FUEL_TYPE_BLOCKS:
+        if low <= code <= high:
+            fuel_type, color, type_label = name, hex_color, label
+            break
+
+    short_name, display_label = str(code), None
+    for line in FUEL_MODEL_TABLE.read_text(encoding="utf-8").splitlines():
+        if line.strip() and int(line.split(",")[0]) == code:
+            short_name = line.split(",")[1]
+            break
+    if code in FBFM40_DISPLAY:
+        display_label = FBFM40_DISPLAY[code][0]
+
+    return {
+        "code": code,
+        "name": short_name,
+        "fuel_type": fuel_type,
+        "fuel_type_label": type_label,
+        "color": color,
+        "label": display_label or f"{short_name} · {type_label}",
+    }
+
+
 def worldcover_to_fbfm40(
     worldcover_path: Path,
     reference_path: Path,

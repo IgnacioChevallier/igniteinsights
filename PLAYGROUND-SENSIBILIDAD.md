@@ -267,6 +267,47 @@ de la otra.
 
 ---
 
+## Mapa esquemático
+
+Un basemap satelital debajo de una corrida sintética es **activamente engañoso**: muestra
+relieve y vegetación que el escenario asume que no existen. El playground arranca en un
+mapa que dibuja lo que el escenario *es*, con el basemap real a un clic.
+
+| Elemento | Representación | Fuente del criterio |
+|---|---|---|
+| Fondo | Liso, sin imagen satelital ni calles | El escenario no tiene terreno real |
+| Combustible | El dominio como una losa del color de su **familia** FBFM | Scott & Burgan p. 5: los bloques de numeración existen *"so that fuel model maps colored by fuel type are simple to create"* |
+| Ignición | Disco rojo del radio real, como polígono | Conserva su tamaño al hacer zoom |
+| Viento | Flecha azul apuntando **hacia donde sopla** | El ráster guarda de dónde viene; ELMFIRE suma 180 (`elmfire_subs.f90:473`) |
+| Pendiente | Flecha gris apuntando **cuesta abajo** | Es lo que significa `aspect_deg`; el fuego corre al revés |
+
+La paleta por familia cubre los 256 códigos, así que funciona para cualquier modelo de la
+tabla — `FBFM40_DISPLAY` sólo tiene los que emite el crosswalk de WorldCover.
+
+**El encuadre se ajusta al dominio, no al fuego.** Es deliberado: A y B quedan a la misma
+escala, que es lo que hace comparables las dos imágenes. Un fuego que ocupa poco es
+información, no un problema de la vista.
+
+El escenario se dibuja **al hacer clic**, antes de que ELMFIRE conteste: la losa, el disco
+y los vectores se conocen de antemano, y esperar la respuesta dejaba el mapa en blanco
+justo durante la corrida.
+
+### Correcciones de honestidad visual
+
+- La leyenda declaraba **"Perímetro FIRMS observado"** en corridas sintéticas, que no
+  tienen entrada FIRMS. Ahora aparece sólo si hay perímetro.
+- La leyenda declaraba una flecha de pendiente en escenarios sin pendiente.
+- Sin reloj de animación, el horizonte caía a **12 h fijas**: la rampa de color se estiraba
+  al doble en una corrida de 6 h —el frente nunca llegaba al extremo rojo— y la leyenda
+  decía "0 → 12 h" para una corrida que paraba en 6. Ahora se deriva del último
+  `arrival_hours` de las propias isócronas.
+- Mi caja de leyenda del escenario se superponía exactamente con la del mapa, tapando la
+  clave de isócronas.
+
+Verificado con Playwright: `frontend/e2e/playground-synthetic-map.spec.ts`.
+
+---
+
 ## Costo y riesgos
 
 Un dominio de 12 km a 30 m son 400×400 = 160.000 celdas, contra los 7,8 M del AOI real:

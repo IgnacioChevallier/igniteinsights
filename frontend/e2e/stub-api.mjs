@@ -2,6 +2,8 @@
 // Python or ELMFIRE. Serves only what the map path touches.
 import http from "node:http";
 
+const PORT = Number(process.env.PORT ?? 8000);
+
 const SIM_ID = "11111111-2222-3333-4444-555555555555";
 const CENTRE = [-71.8, -42.7];
 const HORIZON = 12;
@@ -103,4 +105,5 @@ http
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(body));
   })
-  .listen(8000, () => console.log("stub api on :8000"));
+  // Configurable so the stub can run alongside a real backend already on :8000.
+  .listen(PORT, () => console.log(`stub api on :${PORT}`));

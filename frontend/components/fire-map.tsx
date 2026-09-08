@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -14,6 +14,7 @@ const IGNITION_SOURCE_ID = "ignition-perimeter";
 const TOA_SOURCE_ID = "time-of-arrival-overlay";
 const FLIN_SOURCE_ID = "fireline-intensity-overlay";
 const FUELS_SOURCE_ID = "fuels-overlay";
+const SYNTHETIC_SOURCE_ID = "synthetic-scenario";
 
 // Two tokenless basemaps, both loaded up front and toggled via layout.visibility
 // (not map.setStyle(), which would wipe every custom source/layer below).
@@ -33,12 +34,22 @@ const STYLE: maplibregl.StyleSpecification = {
     },
   },
   layers: [
+    // First, so everything else draws on top. A synthetic scenario assumes flat ground and
+    // one fuel class; a satellite image under it shows terrain the scenario denies.
+    {
+      id: "synthetic",
+      type: "background",
+      paint: { "background-color": "#eceae4" },
+      layout: { visibility: "none" },
+    },
     { id: "street", type: "raster", source: "street", layout: { visibility: "none" } },
     { id: "satellite", type: "raster", source: "satellite" },
   ],
 };
 
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+
+export type Basemap = "street" | "satellite" | "synthetic";
 
 // ── Fire progression animation (VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
 //
@@ -98,6 +109,8 @@ export function FireMap({
   fitTo = null,
   clock = null,
   overlay = null,
+  syntheticLayers = null,
+  initialBasemap = "satellite",
 }: {
   activeFires?: GeoJSON.FeatureCollection | null;
   isochrones?: GeoJSON.FeatureCollection | null;
@@ -113,6 +126,11 @@ export function FireMap({
   clock?: FireClockView | null;
   /** Rendered inside the map container, above the legend — the animation controls. */
   overlay?: React.ReactNode;
+  /** What a synthetic scenario *is*: a uniform slab of one fuel model, the ignition disc
+   *  and the forcing vectors. Built server-side by playground.builder so the geometry and
+   *  the colour can never disagree with the run that produced them. */
+  syntheticLayers?: GeoJSON.FeatureCollection | null;
+  initialBasemap?: Basemap;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -121,7 +139,7 @@ export function FireMap({
   // the `load` event left its source empty for the lifetime of the map, because the load
   // handler could only see the props captured when the map was created (all null).
   const [loaded, setLoaded] = useState(false);
-  const [basemap, setBasemap] = useState<"street" | "satellite">("satellite");
+  const [basemap, setBasemap] = useState<Basemap>(initialBasemap);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -135,6 +153,44 @@ export function FireMap({
     map.addControl(new maplibregl.NavigationControl(), "top-right");
 
     map.on("load", () => {
+      // The synthetic scenario, added before everything else so it sits at the bottom.
+      map.addSource(SYNTHETIC_SOURCE_ID, { type: "geojson", data: EMPTY_FC });
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-domain`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["==", ["get", "kind"], "domain"],
+        // Muted on purpose: the slab is context, the isochrones are the result. At 0.75
+        // the pale early contours were unreadable against it.
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.45 },
+      });
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-domain-outline`,
+        type: "line",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["==", ["get", "kind"], "domain"],
+        paint: { "line-color": "#57534e", "line-width": 1 },
+      });
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-vectors`,
+        type: "line",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["in", ["get", "kind"], ["literal", ["wind", "slope"]]],
+        paint: {
+          "line-color": [
+            "match", ["get", "kind"], "wind", "#1d4ed8", "slope", "#57534e", "#000000",
+          ],
+          "line-width": 2.5,
+        },
+      });
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-ignition`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["==", ["get", "kind"], "ignition"],
+        paint: { "fill-color": "#b30000", "fill-opacity": 0.9 },
+      });
+
       // Observed FIRMS perimeter the run started from. Added first so it sits UNDER
       // the isochrones: it is input, not prediction, and is typically the large
       // majority of the burned area a run reports. Muted grey-blue hatch-free fill
@@ -304,7 +360,20 @@ export function FireMap({
 
   // The ramp spans the run's horizon, so it is rebuilt when the run changes — not on
   // every clock tick, which would repaint 60 times a second for nothing.
-  const horizonHours = clock?.horizonHours ?? 0;
+  //
+  // Without a clock this used to fall back to 12 h, which stretched the colour ramp over
+  // twice the length of a 6 h run — the front never reached the red end — and printed
+  // "0 → 12 h" in the legend for a run that stopped at 6. The isochrones carry the answer:
+  // the last arrival time IS the horizon.
+  const isochroneHorizon = useMemo(() => {
+    let max = 0;
+    for (const feature of isochrones?.features ?? []) {
+      const hours = Number(feature.properties?.arrival_hours);
+      if (Number.isFinite(hours)) max = Math.max(max, hours);
+    }
+    return max;
+  }, [isochrones]);
+  const horizonHours = clock?.horizonHours ?? isochroneHorizon;
   useEffect(() => {
     const map = mapRef.current;
     if (!loaded || !map) return;
@@ -335,10 +404,19 @@ export function FireMap({
   }, [fitTo, loaded]);
 
   useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const source = mapRef.current.getSource(SYNTHETIC_SOURCE_ID) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    source?.setData(syntheticLayers ?? EMPTY_FC);
+  }, [syntheticLayers, loaded]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!loaded || !map) return;
-    map.setLayoutProperty("street", "visibility", basemap === "street" ? "visible" : "none");
-    map.setLayoutProperty("satellite", "visibility", basemap === "satellite" ? "visible" : "none");
+    for (const id of ["street", "satellite", "synthetic"] as const) {
+      map.setLayoutProperty(id, "visibility", basemap === id ? "visible" : "none");
+    }
   }, [basemap, loaded]);
 
   useImageOverlay(mapRef, loaded, TOA_SOURCE_ID, timeOfArrivalOverlay);
@@ -361,6 +439,15 @@ export function FireMap({
         >
           Satélite
         </button>
+        {syntheticLayers && (
+          <button
+            className={`px-2 py-1 ${basemap === "synthetic" ? "bg-primary text-primary-foreground" : ""}`}
+            onClick={() => setBasemap("synthetic")}
+            title="Representa lo que el escenario asume: suelo uniforme, una sola clase de combustible"
+          >
+            Esquemático
+          </button>
+        )}
       </div>
 
       {/* A5 · a run whose isochrones are empty must not look like a broken map. */}
@@ -378,14 +465,18 @@ export function FireMap({
           }`}
         >
           {/* A4 · the observed seed must stay visually separable from the prediction:
-              most of the area a run reports as burned is this polygon, not spread. */}
-          <div className="mb-1 flex items-center gap-2">
-            <span
-              className="inline-block h-3 w-5 shrink-0 rounded-sm border border-dashed"
-              style={{ backgroundColor: "rgba(91,107,122,0.35)", borderColor: "#e2e8f0" }}
-            />
-            <span>Perímetro FIRMS observado (entrada, t=0)</span>
-          </div>
+              most of the area a run reports as burned is this polygon, not spread.
+              Only shown when there is one — a synthetic playground scenario has no FIRMS
+              input, and a legend entry for it invites reading the slab as real ground. */}
+          {ignitionPerimeter?.features?.length ? (
+            <div className="mb-1 flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-5 shrink-0 rounded-sm border border-dashed"
+                style={{ backgroundColor: "rgba(91,107,122,0.35)", borderColor: "#e2e8f0" }}
+              />
+              <span>Perímetro FIRMS observado (entrada, t=0)</span>
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-1 w-5 shrink-0 rounded-full"

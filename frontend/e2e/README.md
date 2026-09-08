@@ -7,6 +7,7 @@ server being reachable.
 
 ```bash
 node e2e/stub-api.mjs &          # stands in for the backend on :8000
+                                 # PORT=8010 to run it alongside a real backend
 npm run dev &                    # Next.js reads API_BASE_URL, default http://localhost:8000
 npx playwright test
 ```
