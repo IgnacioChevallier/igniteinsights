@@ -11,7 +11,7 @@ import {
   loadSettings,
   saveSettings,
   type IngestionSettings,
-} from "@/components/dashboard-header";
+} from "@/lib/real-run";
 
 type SourceConfig = {
   key: keyof Pick<

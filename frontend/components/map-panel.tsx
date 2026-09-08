@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FireMap, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { summarizeIsochrones } from "@/lib/isochrone-clock";
+import {
+  describeSettings,
+  loadSettings,
+  runRealSimulation,
+  type IngestionSettings,
+  type RunPhase,
+} from "@/lib/real-run";
 import type { Run } from "@/lib/dashboard-types";
 
 function formatOptionLabel(run: Run) {
@@ -90,7 +99,64 @@ function RunWarnings({ warnings }: { warnings?: string[] | null }) {
   );
 }
 
+/**
+ * Launch a real run from where its result will appear.
+ *
+ * The same ingest → prepare → simulate the "Datos" header runs, and deliberately the same
+ * implementation: the sources it pulls are whatever `/settings` holds, so this button
+ * cannot quietly download the ~500 MB canopy layer that page says to leave alone. What it
+ * will pull is spelled out above the button rather than left to be discovered.
+ */
+function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | null) => void }) {
+  const [phase, setPhase] = useState<RunPhase>(null);
+  const [error, setError] = useState<string | null>(null);
+  // localStorage is unreadable while rendering on the server, so the summary waits for
+  // mount rather than rendering a guess the first paint would then contradict.
+  const [settings, setSettings] = useState<IngestionSettings | null>(null);
+
+  useEffect(() => setSettings(loadSettings()), []);
+
+  const run = async () => {
+    if (!settings) return;
+    setError(null);
+    try {
+      onFinished(await runRealSimulation(settings, setPhase));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error desconocido");
+    } finally {
+      setPhase(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button size="sm" onClick={run} disabled={phase !== null || !settings}>
+        {phase === "ingesting"
+          ? "Ingestando datos…"
+          : phase === "simulating"
+            ? "Simulando…"
+            : "Ejecutar simulación real"}
+      </Button>
+
+      {settings && (
+        <ul className="space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+          {describeSettings(settings).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        Las fuentes se configuran en Ajustes. Tarda minutos: descarga, deriva los rásteres y
+        corre ELMFIRE.
+      </p>
+
+      {error && <p className="text-[11px] leading-snug text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function MapPanel({ runs }: { runs: Run[] }) {
+  const router = useRouter();
   const simulationRuns = useMemo(() => runs.filter((r) => r.kind === "simulation"), [runs]);
 
   const defaultRunId = useMemo(() => {
@@ -113,6 +179,13 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   );
 
   const selectedRun = simulationRuns.find((r) => r.id === selectedRunId);
+
+  // Show what was just produced. `router.refresh()` re-fetches the server data that feeds
+  // the run list; selecting the id straight away means the map does not wait for it.
+  const handleRunFinished = (simulationId: string | null) => {
+    if (simulationId) setSelectedRunId(simulationId);
+    router.refresh();
+  };
 
   // The horizon and the isochrone step both come out of the GeoJSON itself; the run's
   // declared horizon_hours is only a fallback for a collection with a single level.
@@ -163,10 +236,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     ).then(setFirelineIntensityOverlay);
   }, [showFirelineIntensity, selectedRunId, firelineIntensityOverlay]);
 
+  // The cold start told the operator to run a simulation without offering any way to do
+  // it; the only button was on another section.
   if (!simulationRuns.length) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Aún no hay ejecuciones de simulación. Ejecuta una simulación para verla en el mapa.
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="w-80 max-w-full">
+          <p className="mb-3 text-sm text-muted-foreground">
+            Aún no hay ejecuciones de simulación.
+          </p>
+          <RealRunLauncher onFinished={handleRunFinished} />
+        </div>
       </div>
     );
   }
@@ -195,6 +275,10 @@ export function MapPanel({ runs }: { runs: Run[] }) {
       </div>
 
       <aside className="flex w-56 shrink-0 flex-col gap-4 overflow-auto border-l bg-background p-3">
+        <RealRunLauncher onFinished={handleRunFinished} />
+
+        <Separator />
+
         <div>
           <label htmlFor="simulation-select" className="text-xs text-muted-foreground">
             Ejecución de simulación
