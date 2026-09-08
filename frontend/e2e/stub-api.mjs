@@ -8,8 +8,10 @@ const SIM_ID = "11111111-2222-3333-4444-555555555555";
 const CENTRE = [-71.8, -42.7];
 const HORIZON = 12;
 
-// Ellipses elongated south (wind from the north), growing with time. gdal_contour runs
-// without -p, so the real isochrones are LineStrings — the fixture matches that.
+// Ellipses elongated south (wind from the north), growing with time. The API sends
+// cumulative burned area as Polygons, polygonised from the time-of-arrival raster — the
+// fixture matches that. It used to send raw contour LineStrings, which the map had to
+// close itself, and that is what painted lakes as burned.
 function ring(hours) {
   const grow = 0.004 + hours * 0.0035;
   const coords = [];
@@ -22,6 +24,7 @@ function ring(hours) {
       CENTRE[1] + south + Math.sin(a) * grow * 1.35,
     ]);
   }
+  coords.push(coords[0]); // a Polygon ring has to close
   return coords;
 }
 
@@ -31,15 +34,15 @@ function isochrones() {
     features.push({
       type: "Feature",
       properties: { arrival_s: h * 3600, arrival_hours: h },
-      geometry: { type: "LineString", coordinates: ring(h) },
+      geometry: { type: "Polygon", coordinates: [ring(h)] },
     });
   }
-  // Two untimed contours: the converter leaves these null on purpose (A5).
+  // Two untimed features: the converter leaves these null on purpose (A5).
   for (let i = 0; i < 2; i += 1) {
     features.push({
       type: "Feature",
       properties: { arrival_s: null, arrival_hours: null },
-      geometry: { type: "LineString", coordinates: ring(HORIZON + 1 + i) },
+      geometry: { type: "Polygon", coordinates: [ring(HORIZON + 1 + i)] },
     });
   }
   return { type: "FeatureCollection", features };

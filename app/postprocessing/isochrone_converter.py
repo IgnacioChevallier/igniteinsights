@@ -11,11 +11,22 @@ which is what `arrival_hours` is derived from here.
 Runs produced before that flag was added carry only a sequential `ID`; their features
 get `arrival_s = None` and render as "unknown" rather than being assigned a guessed
 time. Re-run the simulation to get timed isochrones.
+
+Those contours are lines, and a burned *area* cannot be recovered from them: a contour that
+runs into a lake or off the domain edge is an OPEN line, and anything that fills it has to
+invent a closing chord straight across the unburnable ground. Measured on a 6 km lake
+scenario, closing them painted 1022 water cells (~92 ha) as burned. So the burned area is
+built here from the time-of-arrival raster instead — see `isochrones_to_geojson`.
 """
 import json
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
+import rasterio
+from rasterio.features import shapes as raster_shapes
+from shapely.geometry import shape as to_shape
+from shapely.ops import unary_union
 
 _EMPTY: dict = {"type": "FeatureCollection", "features": []}
 
@@ -34,11 +45,78 @@ def shapefile_to_geojson(shp_path: Path) -> dict:
     return json.loads(gdf.to_crs(epsg=4326).to_json())
 
 
-def isochrones_to_geojson(shp_path: Path) -> dict:
-    """`shapefile_to_geojson` plus `arrival_s`/`arrival_hours` on every feature."""
-    geojson = shapefile_to_geojson(shp_path)
-    _normalize_arrival(geojson)
-    return geojson
+def isochrones_to_geojson(shp_path: Path, toa_path: Path | None = None) -> dict:
+    """Cumulative burned area per contour level, as Polygons, with `arrival_s`/`arrival_hours`.
+
+    The contour shapefile supplies the levels — they are whatever DTDUMP the runner used, so
+    taking them from the file rather than recomputing keeps this in step with it by
+    construction. The geometry comes from `toa_path`, because only the raster knows which
+    cells actually burned. Every unburned cell inside the front — a lake, a road, a rock
+    outcrop — comes out as a hole in the polygon rather than as ground painted over.
+
+    Falls back to the raw contour lines when the raster is missing or the shapefile carries
+    no levels (a pre-`-a` run), so old simulations keep rendering as they did.
+    """
+    lines = shapefile_to_geojson(shp_path)
+    _normalize_arrival(lines)
+    levels = sorted(
+        {
+            f["properties"]["arrival_s"]
+            for f in lines["features"]
+            if f["properties"]["arrival_s"] is not None
+        }
+    )
+    if not levels or toa_path is None or not toa_path.exists():
+        return lines
+    return _burned_area_polygons(toa_path, levels)
+
+
+def _burned_area_polygons(toa_path: Path, levels: list[float]) -> dict:
+    """One cumulative polygon per level, polygonised off the time-of-arrival raster.
+
+    ELMFIRE writes nodata = 0 on this raster, so `> 0` is exactly the set of cells the fire
+    reached. No minimum-area filter: a one-cell island is a cell the model actually burned,
+    and dropping it would hide real behaviour rather than an artefact. The specks that
+    prompted this were contour fragments, and polygonising produces none.
+    """
+    with rasterio.open(toa_path) as src:
+        toa = src.read(1).astype("float64")
+        transform = src.transform
+        crs = src.crs
+    if crs is None:
+        raise ValueError(f"{toa_path} has no CRS")
+
+    burned = toa > 0
+    if not burned.any():
+        return dict(_EMPTY)
+
+    geoms: list = []
+    arrival_s: list[float] = []
+    for level in levels:
+        mask = burned & (toa <= level)
+        if not mask.any():
+            continue
+        polygons = [
+            to_shape(geom)
+            for geom, value in raster_shapes(
+                mask.astype(np.uint8), mask=mask, transform=transform
+            )
+            if value == 1
+        ]
+        if not polygons:
+            continue
+        geoms.append(unary_union(polygons))
+        arrival_s.append(float(level))
+
+    if not geoms:
+        return dict(_EMPTY)
+
+    gdf = gpd.GeoDataFrame(
+        {"arrival_s": arrival_s, "arrival_hours": [round(t / 3600, 2) for t in arrival_s]},
+        geometry=geoms,
+        crs=crs,
+    )
+    return json.loads(gdf.to_crs(epsg=4326).to_json())
 
 
 def _normalize_arrival(geojson: dict) -> None:

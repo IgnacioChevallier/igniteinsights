@@ -117,6 +117,29 @@ insinuarlo, así que ahora lo dice de dos formas — un campo de partículas ani
 sentido del movimiento, y el rumbo en palabras ("viento 15 mph **hacia el SO**") para lo
 que sobrevive a una captura de pantalla.
 
+### El área quemada pintaba sobre el agua, y aparecían puntitos
+
+Dos síntomas, una sola causa: **el relleno del área quemada se obtenía cerrando las
+isócronas**, que son líneas de contorno de `gdal_contour`. Medido sobre una corrida real
+con lago (6 km, 4 h): de 13 features, **12 eran LineStrings abiertas** y **9 tenían ≤6
+vértices**. MapLibre cierra cada línea abierta con una cuerda recta, y esa cuerda cruza lo
+que la línea rodeaba — el lago. Cuantificado: **1022 celdas de agua (~92 ha) pintadas como
+quemadas**. Los puntitos eran los fragmentos de contorno de ≤6 vértices, que `gdal_contour`
+genera en el borde entre la zona quemada y el `nodata = 0` de lo no quemado.
+
+Rellenar contornos abiertos es geométricamente inválido, así que el área quemada ya no sale
+de las líneas. `isochrones_to_geojson` toma **los niveles** del shapefile (son el DTDUMP que
+usó el runner, así que quedan sincronizados por construcción) y **la geometría** del ráster
+`time_of_arrival`, poligonizando la máscara `arrival > 0 ∧ arrival ≤ t` con
+`rasterio.features.shapes`. Resultado sobre el mismo caso: 4 polígonos, cada uno con el lago
+como agujero, área **exactamente igual** a las celdas quemadas × celda², **0 celdas de agua
+pintadas**, 0 puntitos.
+
+Sin filtro de área mínima a propósito: una isla de una celda es una celda que el modelo
+quemó de verdad, y descartarla ocultaría comportamiento real en vez de un artefacto. Los
+puntitos no eran islas, eran fragmentos de contorno, y poligonizar no produce ninguno. Las
+corridas viejas sin ráster o sin el atributo `-a` siguen devolviendo las líneas crudas.
+
 ### Partículas de viento, al estilo Windy
 
 Windy no dibuja flechas: advecta partículas por el campo vectorial. La técnica viene de

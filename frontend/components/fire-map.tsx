@@ -249,9 +249,11 @@ export function FireMap({
         paint: { "line-color": "#cbd5e1", "line-width": 0.8, "line-opacity": 0.25 },
       });
 
-      // Burned — accumulated area. `gdal_contour` runs without `-p`, so the isochrones
-      // are LineStrings; MapLibre still fills a closed ring, which is what gives the
-      // burned interior its body. Kept low so the stacked contours read as depth.
+      // Burned — accumulated area. The server sends real Polygons, polygonised off the
+      // time-of-arrival raster: unburned ground inside the front (a lake) arrives as a
+      // hole and is never filled. Filling the raw contour LineStrings, as this did
+      // before, made MapLibre close every open contour with a chord straight across the
+      // water. Kept low so the stacked bands read as depth.
       map.addLayer({
         id: BURNED_FILL_LAYER,
         type: "fill",
