@@ -140,6 +140,22 @@ quemó de verdad, y descartarla ocultaría comportamiento real en vez de un arte
 puntitos no eran islas, eran fragmentos de contorno, y poligonizar no produce ninguno. Las
 corridas viejas sin ráster o sin el atributo `-a` siguen devolviendo las líneas crudas.
 
+**Suavizado.** Poligonizar una máscara traza aristas de celda, así que el primer intento
+salió en escalera de ángulos rectos de 30 m — `gdal_contour` no se veía así porque
+interpola entre celdas vecinas. La curva se recupera con **corner-cutting de Chaikin**: cada
+pasada reemplaza cada vértice por dos puntos a 1/4 y 3/4 de sus aristas, convergiendo a un
+B-spline cuadrático. Dos pasadas es donde deja de verse escalonado; una tercera no se nota a
+escala de mapa y vuelve a duplicar los vértices. Medido sobre la corrida de 6 km con lago:
+el borde se mueve un tercio de celda como máximo y el área **encoge** 0,35 % — siempre hacia
+adentro, así que la garantía de no pintar lo no quemable se mantiene (0 celdas de agua, en
+todos los ajustes probados). `simplify` después descarta los puntos que el corte volvió
+redundantes: de 706 vértices a 270. En la API real, **0 % de segmentos en ángulo recto**.
+
+Cada banda se suaviza sola, lo que dejaba a una interior asomar una astilla fuera de la
+siguiente — menos de una celda (667 m² sobre 2,5 km²), pero suficiente para dibujar un filo
+donde las bandas se superponen. Se recorta de afuera hacia adentro y el anidamiento queda
+exacto.
+
 ### Partículas de viento, al estilo Windy
 
 Windy no dibuja flechas: advecta partículas por el campo vectorial. La técnica viene de

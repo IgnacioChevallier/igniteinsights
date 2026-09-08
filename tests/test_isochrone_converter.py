@@ -170,3 +170,40 @@ def test_falls_back_to_contour_lines_without_a_raster(tmp_path):
     geojson = isochrones_to_geojson(shp, None)
     assert geojson["features"][0]["geometry"]["type"] == "LineString"
     assert geojson["features"][0]["properties"]["arrival_hours"] == 1.0
+
+
+def _axis_aligned_fraction(ring) -> float:
+    """Share of boundary segments that are exactly horizontal or vertical.
+
+    Polygonising a raster mask traces cell edges, so this is ~1.0 for a staircase and
+    near 0 once the ring has been smoothed.
+    """
+    pts = np.asarray(ring)
+    d = np.diff(pts, axis=0)
+    axis_aligned = np.isclose(d[:, 0], 0) | np.isclose(d[:, 1], 0)
+    return float(axis_aligned.mean())
+
+
+def test_boundaries_are_smooth_not_a_staircase_of_cell_edges(tmp_path):
+    """The regression this guards: switching from contour lines to a polygonised mask
+    made every boundary a run of right angles at the 30 m cell size, which read as
+    rectangular corners on the map."""
+    toa_path, _, _ = _toa_with_a_hole(tmp_path)
+    shp = _contours_with_levels(tmp_path, [3600.0, 7200.0])
+
+    for feature in isochrones_to_geojson(shp, toa_path)["features"]:
+        for ring in feature["geometry"]["coordinates"]:
+            assert _axis_aligned_fraction(ring) < 0.15, "boundary is still a cell staircase"
+
+
+def test_bands_stay_nested_after_smoothing(tmp_path):
+    """Smoothing each band on its own let an inner one poke outside the next one out,
+    drawing a hairline where the stacked bands overlap."""
+    toa_path, _, _ = _toa_with_a_hole(tmp_path)
+    shp = _contours_with_levels(tmp_path, [3600.0, 7200.0, 10800.0])
+
+    bands = [
+        shapely_shape(f["geometry"]) for f in isochrones_to_geojson(shp, toa_path)["features"]
+    ]
+    for inner, outer in zip(bands, bands[1:]):
+        assert inner.difference(outer).area == pytest.approx(0.0, abs=1e-12)
