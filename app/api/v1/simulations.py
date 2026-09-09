@@ -29,6 +29,7 @@ from app.postprocessing.isochrone_converter import (
 )
 from app.postprocessing.raster_overlay import render_raster_overlay
 from app.postprocessing.stats_reader import read_fire_size_stats
+from app.postprocessing.wind_field import wind_bands
 
 _RASTER_GLOBS: dict[str, str] = {
     "time_of_arrival": "time_of_arrival_*.tif",
@@ -276,6 +277,41 @@ async def get_simulation_isochrones(
         isochrones_to_geojson, shp_path, toa[0] if toa else None
     )
     return _envelope("success", geojson)
+
+
+@router.get(
+    "/{simulation_id}/wind",
+    summary="The real wind the run was driven by, per hourly band",
+    description=(
+        "Domain-mean wind speed and blowing-to azimuth for each band of the run's own "
+        "ws.tif/wd.tif, plus the domain outline in EPSG:4326. Read from the ELMFIRE "
+        "inputs rather than the raw GFS assets, so it cannot disagree with the wind the "
+        "simulation actually used. `blows_to_deg` is where the wind goes — the rasters "
+        "store the direction it comes FROM. Each band carries a `direction_consistency` "
+        "(1.0 = uniform across the domain); it collapses in calm hours, where the "
+        "direction of a sub-1 mph wind carries no information. Returns an empty payload "
+        "for runs with no tracked inputs directory or no weather rasters."
+    ),
+)
+async def get_simulation_wind(
+    simulation_id: uuid.UUID = FPath(
+        ..., description="The simulation run ID returned by POST /api/v1/simulations/run."
+    ),
+    session: AsyncSession = Depends(get_db),
+):
+    run = await repository.get_simulation_run(session, simulation_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    inputs_dir = (run.elmfire_config or {}).get("inputs_dir")
+    if not inputs_dir:
+        return _envelope("success", None)
+    inputs = _resolve(inputs_dir)
+    ws, wd = inputs / "ws.tif", inputs / "wd.tif"
+    if not (ws.exists() and wd.exists()):
+        return _envelope("success", None)
+
+    return _envelope("success", await asyncio.to_thread(wind_bands, ws, wd))
 
 
 @router.get(

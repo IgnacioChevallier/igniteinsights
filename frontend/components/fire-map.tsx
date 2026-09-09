@@ -55,6 +55,9 @@ const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", feature
 // and the map you get are the same blue.
 export const WATER_COLOR = "#4b83c4";
 
+/** The wind field's own grey, shared with the legends that explain it. */
+export const WIND_COLOR = "#475569";
+
 export type Basemap = "street" | "satellite" | "synthetic";
 
 // ── Fire progression animation (VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
@@ -116,6 +119,7 @@ export function FireMap({
   clock = null,
   overlay = null,
   syntheticLayers = null,
+  windField = null,
   initialBasemap = "satellite",
 }: {
   activeFires?: GeoJSON.FeatureCollection | null;
@@ -136,6 +140,10 @@ export function FireMap({
    *  and the forcing vectors. Built server-side by playground.builder so the geometry and
    *  the colour can never disagree with the run that produced them. */
   syntheticLayers?: GeoJSON.FeatureCollection | null;
+  /** Uniform wind to animate over `ring`. The playground derives it from its scenario; the
+   *  map reads the run's own ws/wd rasters. Memoise it — a fresh object each render
+   *  restarts the animation. */
+  windField?: WindField | null;
   initialBasemap?: Basemap;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -448,25 +456,15 @@ export function FireMap({
     source?.setData(syntheticLayers ?? EMPTY_FC);
   }, [syntheticLayers, loaded]);
 
-  // Wind as a flow field rather than a symbol. Restarted whenever the scenario changes,
-  // so a new direction never keeps animating the old one.
+  // Wind as a flow field rather than a symbol. Restarted whenever the field changes, so a
+  // new direction never keeps animating the old one — callers must memoise it or the
+  // trails reset on every render.
   useEffect(() => {
     const map = mapRef.current;
     const canvas = windCanvasRef.current;
-    if (!loaded || !map || !canvas) return;
-
-    const wind = syntheticLayers?.features?.find((f) => f.properties?.kind === "wind");
-    const domain = syntheticLayers?.features?.find((f) => f.properties?.kind === "domain");
-    if (!wind || domain?.geometry?.type !== "Polygon") return;
-
-    const field: WindField = {
-      azimuthDeg: Number(wind.properties?.azimuth_deg ?? 0),
-      speedMph: Number(wind.properties?.speed_mph ?? 0),
-      ring: domain.geometry.coordinates[0] as [number, number][],
-    };
-    if (!(field.speedMph > 0)) return;
-    return startWindParticles(map, canvas, field);
-  }, [syntheticLayers, loaded]);
+    if (!loaded || !map || !canvas || !windField || !(windField.speedMph > 0)) return;
+    return startWindParticles(map, canvas, windField);
+  }, [windField, loaded]);
 
   useEffect(() => {
     const map = mapRef.current;

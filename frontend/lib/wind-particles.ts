@@ -41,8 +41,15 @@ const MAX_AGE_FRAMES = 90;
 /** One particle per this many square CSS pixels *of domain*, not of canvas. Seeding the
  *  whole canvas wastes most of the population outside the clip, where it is invisible. */
 const PARTICLE_DENSITY = 900;
+
+/** The density above was tuned against a playground domain occupying a corner of the map.
+ *  A real run's domain fills the viewport, where the same density puts ~1400 streaks on
+ *  screen and the field stops reading as wind and starts reading as rain. */
+const MAX_PARTICLES = 380;
 const TRAIL_DECAY = "rgba(0,0,0,0.94)";
-const PARTICLE_COLOR = "rgba(29,78,216,0.85)";
+// Slate, not blue: blue streaks over a map read as rain, which is the one thing this
+// is not. Grey keeps it as motion.
+const PARTICLE_COLOR = "rgba(71,85,105,0.85)";
 const LINE_WIDTH = 1.2;
 
 type Particle = { x: number; y: number; age: number };
@@ -119,7 +126,10 @@ export function startWindParticles(
     y0 = Math.max(y0, 0);
     box = { x: x0, y: y0, w: Math.max(0, Math.min(x1, width) - x0), h: Math.max(0, Math.min(y1, height) - y0) };
 
-    const wanted = Math.round((box.w * box.h) / PARTICLE_DENSITY);
+    const wanted = Math.min(
+      Math.round((box.w * box.h) / PARTICLE_DENSITY),
+      MAX_PARTICLES,
+    );
     particles = Array.from({ length: wanted }, () => spawn(true));
     ctx.clearRect(0, 0, width, height);
   };

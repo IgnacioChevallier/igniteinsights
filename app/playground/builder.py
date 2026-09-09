@@ -21,6 +21,7 @@ from app.config import settings
 from app.elmfire.builder import fuels_builder, rasters
 from app.elmfire.builder.ignition_builder import PHI_IGNITION_FLOOR
 from app.playground.schemas import Scenario
+from app.postprocessing.wind_field import compass_point
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +269,10 @@ def scenario_map_layers(scenario: Scenario) -> dict:
                 "kind": "wind",
                 "speed_mph": scenario.wind_speed_mph,
                 "azimuth_deg": round(blows_to, 1),
-                "label": f"viento {scenario.wind_speed_mph:g} mph hacia el {_compass(blows_to)}",
+                "label": (
+                    f"viento {scenario.wind_speed_mph:g} mph "
+                    f"hacia el {compass_point(blows_to)}"
+                ),
             },
             "geometry": {"type": "Point", "coordinates": to_wgs([cx], [cy])[0]},
         })
@@ -285,15 +289,6 @@ def scenario_map_layers(scenario: Scenario) -> dict:
         ))
 
     return {"type": "FeatureCollection", "features": features}
-
-
-# Spanish 8-point compass. A still screenshot has to be readable on its own: "hacia el SO"
-# says in three characters what a 45°-rotated near-circular burn scar does not.
-_COMPASS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
-
-
-def _compass(azimuth_deg: float) -> str:
-    return _COMPASS[int((azimuth_deg % 360.0) / 45.0 + 0.5) % 8]
 
 
 def _disc_ring(to_wgs, cx: float, cy: float, radius: float, steps: int = 48) -> list:

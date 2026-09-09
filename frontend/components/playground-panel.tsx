@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FireMap, WATER_COLOR } from "@/components/fire-map";
+import { useEffect, useMemo, useState } from "react";
+import { FireMap, WATER_COLOR, WIND_COLOR } from "@/components/fire-map";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import type { WindField } from "@/lib/wind-particles";
 
 // GET /api/v1/playground/presets
 type Scenario = Record<string, unknown> & { name: string; description: string };
@@ -192,6 +193,13 @@ export function PlaygroundPanel() {
 
   const groups = Array.from(new Set(presets.map((p) => p.group)));
 
+  // Memoised: a fresh object every render would restart the particle animation and wipe
+  // its trails each time anything in the panel changes.
+  const windFields = useMemo(
+    () => slots.map((slot) => toWindField(slot.mapLayers)) as [WindField | null, WindField | null],
+    [slots],
+  );
+
   return (
     <div className="flex h-full">
       <div className="flex min-h-0 flex-1 flex-col">
@@ -207,6 +215,7 @@ export function PlaygroundPanel() {
                 isochrones={slot.isochrones}
                 fitTo={slot.mapLayers ?? slot.isochrones}
                 syntheticLayers={slot.mapLayers}
+                windField={windFields[i]}
                 initialBasemap="synthetic"
               />
               {slot.fuelModel && (
@@ -242,7 +251,7 @@ export function PlaygroundPanel() {
                         <span key={kind} className="flex items-center gap-1">
                           <span
                             className="inline-block h-0.5 w-4"
-                            style={{ backgroundColor: kind === "wind" ? "#1d4ed8" : "#57534e" }}
+                            style={{ backgroundColor: kind === "wind" ? WIND_COLOR : "#57534e" }}
                           />
                           {/* The server's own label. For wind it names the compass point
                               ("hacia el SO"): a 45° rotation of a burn scar elongated 1.1×
@@ -254,7 +263,10 @@ export function PlaygroundPanel() {
                   </div>
                 </div>
               )}
-              <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[80%] rounded-md bg-background/90 px-2 py-1 text-xs shadow">
+              {/* Below the basemap switcher, which also lives at top-left: at the same
+                  offset a long scenario name covered "Calles / Satélite / Esquemático"
+                  entirely. */}
+              <div className="pointer-events-none absolute left-2 top-11 z-10 max-w-[calc(100%-1rem)] rounded-md bg-background/90 px-2 py-1 text-xs shadow">
                 <span className="font-semibold">{i === 0 ? "A" : "B"}</span>
                 {" · "}
                 {slot.status === "running"
@@ -373,6 +385,19 @@ function TerrainThumb({ id }: { id: TerrainId }) {
       <circle cx="17" cy="17" r="2.6" fill="#b30000" />
     </svg>
   );
+}
+
+/** The scenario's wind, as the animation wants it: where it blows TO, and the slab it
+ *  blows over. Both already travel with the map layers the server built. */
+function toWindField(layers: GeoJSON.FeatureCollection | null): WindField | null {
+  const wind = layers?.features?.find((f) => f.properties?.kind === "wind");
+  const domain = layers?.features?.find((f) => f.properties?.kind === "domain");
+  if (!wind || domain?.geometry?.type !== "Polygon") return null;
+  return {
+    azimuthDeg: Number(wind.properties?.azimuth_deg ?? 0),
+    speedMph: Number(wind.properties?.speed_mph ?? 0),
+    ring: domain.geometry.coordinates[0] as [number, number][],
+  };
 }
 
 function Comparison({ a, b }: { a: Slot; b: Slot }) {

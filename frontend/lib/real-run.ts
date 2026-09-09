@@ -47,37 +47,15 @@ export function saveSettings(s: IngestionSettings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
 
-/** What the next run will actually pull, in words. The map offers no toggles of its own,
- *  so this is the only way to see what the button is about to do before pressing it. */
-export function describeSettings(s: IngestionSettings): string[] {
-  const lines: string[] = [];
-  if (s.include_firms) {
-    const range = `${s.firms_day_range} ${s.firms_day_range === 1 ? "día" : "días"}`;
-    lines.push(
-      s.firms_start_date
-        ? `Incendios FIRMS desde ${s.firms_start_date} · ${range}`
-        : `Incendios FIRMS · últimos ${range}`,
-    );
-  }
-  if (s.include_gfs) {
-    // The ingestion endpoint derives the GFS date from the FIRMS window when one is set,
-    // so a historical fire is never paired with today's weather. Say which it will be.
-    lines.push(
-      s.firms_start_date ? "Meteorología GFS del mismo período" : "Meteorología GFS · ciclo actual",
-    );
-  }
-  const statics = [
-    [s.include_dem, "relieve"],
-    [s.include_worldcover, "combustibles"],
-    [s.include_canopy, "dosel"],
-  ] as const;
-  const on = statics.filter(([v]) => v).map(([, name]) => name);
-  const off = statics.filter(([v]) => !v).map(([, name]) => name);
-  // Static layers are idempotent: already on disk means the run skips them. Saying so
-  // stops "omitido" from reading as "this run has no terrain".
-  if (on.length) lines.push(`${on.join(", ")} (se omiten si ya están descargados)`);
-  if (off.length) lines.push(`Sin volver a pedir: ${off.join(", ")}`);
-  return lines;
+/** The one line worth showing: which fires the next run will pull, and from when.
+ *  The rest of the settings are visible on the settings page itself; repeating them here
+ *  buried the only parameter anyone changes between runs. */
+export function describeSettings(s: IngestionSettings): string | null {
+  if (!s.include_firms) return null;
+  const range = `${s.firms_day_range} ${s.firms_day_range === 1 ? "día" : "días"}`;
+  return s.firms_start_date
+    ? `Incendios FIRMS desde ${s.firms_start_date} · ${range}`
+    : `Incendios FIRMS · últimos ${range}`;
 }
 
 // Errors come back in two shapes: FastAPI's raw HTTPException body ({ detail })

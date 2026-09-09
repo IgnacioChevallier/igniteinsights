@@ -25,17 +25,21 @@ export function SettingsButton({
   label,
   variant = "ghost",
   className,
+  title,
 }: {
   /** Icon-only when omitted — the header, where the gear sits among other controls. */
   label?: string;
   variant?: "ghost" | "outline";
   className?: string;
+  /** Hover hint for the icon-only form, which otherwise says nothing on its own. */
+  title?: string;
 }) {
   return (
     <a
       href="/settings"
       className={cn(buttonVariants({ variant, size: "sm" }), className)}
       aria-label={label ? undefined : "Configuración"}
+      title={title}
     >
       <SettingsIcon />
       {label && <span className="ml-1.5">{label}</span>}

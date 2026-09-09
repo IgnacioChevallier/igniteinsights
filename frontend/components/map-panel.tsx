@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FireMap, type RasterOverlayData } from "@/components/fire-map";
+import { FireMap, WIND_COLOR, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
@@ -18,7 +18,25 @@ import {
   type IngestionSettings,
   type RunPhase,
 } from "@/lib/real-run";
+import type { WindField } from "@/lib/wind-particles";
 import type { Run } from "@/lib/dashboard-types";
+
+/** GET /api/simulations/{id}/wind — the run's own ws/wd rasters, per hourly band. */
+type WindBands = {
+  ring: [number, number][];
+  bands: {
+    hour: number;
+    speed_mph: number;
+    blows_to_deg: number;
+    label: string;
+    /** 1.0 = the whole domain points the same way. Calm hours collapse; see below. */
+    direction_consistency: number;
+  }[];
+};
+
+// Below this the band's mean direction is an average of cells pointing every which way —
+// which on a real run only happens under ~1 mph, where a confident arrow would be a lie.
+const MIN_DIRECTION_CONSISTENCY = 0.5;
 
 function formatOptionLabel(run: Run) {
   const shortId = run.id.length > 8 ? `${run.id.slice(0, 8)}...` : run.id;
@@ -108,12 +126,28 @@ function RunWarnings({ warnings }: { warnings?: string[] | null }) {
  * cannot quietly download the ~500 MB canopy layer that page says to leave alone. What it
  * will pull is spelled out above the button rather than left to be discovered.
  */
+const mmss = (s: number) =>
+  `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | null) => void }) {
   const [phase, setPhase] = useState<RunPhase>(null);
   const [error, setError] = useState<string | null>(null);
+  // A real ingestion measured 452 s. Without a running count it is indistinguishable from
+  // a hang, which is exactly how it was reported.
+  const [elapsed, setElapsed] = useState(0);
   // localStorage is unreadable while rendering on the server, so the summary waits for
   // mount rather than rendering a guess the first paint would then contradict.
   const [settings, setSettings] = useState<IngestionSettings | null>(null);
+
+  const summary = settings && describeSettings(settings);
+
+  useEffect(() => {
+    if (!phase) return;
+    setElapsed(0);
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   useEffect(() => {
     const read = () => setSettings(loadSettings());
@@ -151,27 +185,26 @@ function RealRunLauncher({ onFinished }: { onFinished: (simulationId: string | n
           disabled={phase !== null || !settings}
         >
           {phase === "ingesting"
-            ? "Ingestando datos…"
+            ? `Ingestando datos… ${mmss(elapsed)}`
             : phase === "simulating"
-              ? "Simulando…"
+              ? `Simulando… ${mmss(elapsed)}`
               : "Ejecutar simulación real"}
         </Button>
         {/* Right next to the button it configures, and the same page the header opens —
             the sources have one home, not one per entry point. */}
-        <SettingsButton variant="outline" />
+        <SettingsButton variant="outline" title="Configurar fuentes de ingesta" />
       </div>
 
-      {settings && (
-        <ul className="space-y-0.5 text-[11px] leading-snug text-muted-foreground">
-          {describeSettings(settings).map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+      {/* The window is the one thing that changes between runs, so it is also the way in
+          to change it: as plain text it read as a fixed property of the button. */}
+      {summary && (
+        <a
+          href="/settings"
+          className="text-[11px] leading-snug text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
+          {summary}
+        </a>
       )}
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        Las fuentes se configuran con el engranaje. Tarda minutos: descarga, deriva los
-        rásteres y corre ELMFIRE.
-      </p>
 
       {error && <p className="text-[11px] leading-snug text-destructive">{error}</p>}
     </div>
@@ -193,6 +226,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     null,
   );
   const [statsRow, setStatsRow] = useState<FireSizeStatsRow | null>(null);
+  const [wind, setWind] = useState<WindBands | null>(null);
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
   const [showFirelineIntensity, setShowFirelineIntensity] = useState(false);
@@ -247,7 +281,24 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     fetchJson<{ rows: FireSizeStatsRow[] }>(`/api/simulations/${selectedRunId}/stats`).then(
       (data) => setStatsRow(data?.rows?.[0] ?? null),
     );
+    fetchJson<WindBands>(`/api/simulations/${selectedRunId}/wind`).then(setWind);
   }, [selectedRunId]);
+
+  // The wind the run was actually driven by, following the clock: GFS gives one band per
+  // hour, so the field changes as the animation crosses each hour rather than standing
+  // still on the ignition-hour value. Keyed on the whole hour so the 60 fps clock does not
+  // rebuild the field — and therefore restart the animation — on every frame.
+  const windHour = Math.min(Math.floor(clock.t), Math.max((wind?.bands.length ?? 1) - 1, 0));
+  const windBand = wind?.bands[windHour] ?? null;
+  const windField = useMemo<WindField | null>(() => {
+    if (!wind || !windBand) return null;
+    if (windBand.direction_consistency < MIN_DIRECTION_CONSISTENCY) return null;
+    return {
+      azimuthDeg: windBand.blows_to_deg,
+      speedMph: windBand.speed_mph,
+      ring: wind.ring,
+    };
+  }, [wind, windBand]);
 
   useEffect(() => {
     if (!showTimeOfArrival || !selectedRunId || timeOfArrivalOverlay) return;
@@ -288,6 +339,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
           fitTo={isochrones}
+          windField={windField}
           clock={animatable ? clockView : null}
           overlay={
             animatable ? (
@@ -312,7 +364,10 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           </label>
           <select
             id="simulation-select"
-            className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs"
+            // Same border, height, radius and shadow as the buttons around it: at a
+            // different height and a bare border it read as a form field dropped into a
+            // toolbar.
+            className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={selectedRunId ?? ""}
             onChange={(e) => setSelectedRunId(e.target.value)}
           >
@@ -324,6 +379,23 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           </select>
           <p className="mt-2 text-xs text-muted-foreground">{formatPredictedPeriod(selectedRun)}</p>
         </div>
+
+        {/* The animation says the direction while it moves; the words say it in a still,
+            which is how anyone reads a screenshot of this. */}
+        {windBand && (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span
+              className="inline-block h-0.5 w-4 shrink-0"
+              style={{ backgroundColor: WIND_COLOR }}
+            />
+            {windBand.label}
+            {windBand.direction_consistency < MIN_DIRECTION_CONSISTENCY && (
+              <span title="La dirección varía demasiado dentro del dominio como para dibujar una sola: pasa con viento casi en calma.">
+                {" "}(sin dirección definida)
+              </span>
+            )}
+          </p>
+        )}
 
         <RunWarnings warnings={selectedRun?.warnings} />
 

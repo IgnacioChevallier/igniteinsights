@@ -29,7 +29,7 @@ export function DashboardHeader({
   const [firmsLabel, setFirmsLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    setFirmsLabel(describeSettings(loadSettings())[0] ?? null);
+    setFirmsLabel(describeSettings(loadSettings()));
   }, []);
 
   async function handleRun() {

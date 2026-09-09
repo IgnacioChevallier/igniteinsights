@@ -25,11 +25,16 @@ test.describe("lanzar una corrida real desde el mapa", () => {
     await expect(run).toBeVisible();
     await expect(run).toBeEnabled();
 
-    // The defaults: live FIRMS and GFS, static layers left alone. Saying so is the point —
-    // the button must not be able to pull the ~500 MB canopy layer by surprise.
-    await expect(aside.getByText(/Incendios FIRMS · últimos 1 día/)).toBeVisible();
-    await expect(aside.getByText(/Meteorología GFS · ciclo actual/)).toBeVisible();
-    await expect(aside.getByText(/Sin volver a pedir: relieve, combustibles, dosel/)).toBeVisible();
+    // One line, and it is a link: as plain text the window read as a fixed property of
+    // the button rather than the one thing you change between runs.
+    const window_ = aside.getByRole("link", { name: /Incendios FIRMS/ });
+    await expect(window_).toBeVisible();
+    await expect(window_).toHaveAttribute("href", "/settings");
+
+    // The paragraphs that used to explain all this are gone on purpose.
+    await expect(aside.getByText(/Meteorología GFS/)).toHaveCount(0);
+    await expect(aside.getByText(/Sin volver a pedir/)).toHaveCount(0);
+    await expect(aside.getByText(/Las fuentes se configuran/)).toHaveCount(0);
 
     // The gear the header already had, now beside the button it configures.
     await expect(aside.getByRole("link", { name: "Configuración" })).toBeVisible();
@@ -95,9 +100,5 @@ test.describe("lanzar una corrida real desde el mapa", () => {
 
     const aside = page.locator("aside").first();
     await expect(aside.getByText(/Incendios FIRMS desde 2024-02-01 · 3 días/)).toBeVisible();
-    // A historical fire must not be paired with today's weather, and the summary has to
-    // say which cycle it will use or that guarantee is invisible.
-    await expect(aside.getByText(/Meteorología GFS del mismo período/)).toBeVisible();
-    await expect(aside.getByText(/relieve, combustibles \(se omiten/)).toBeVisible();
   });
 });
