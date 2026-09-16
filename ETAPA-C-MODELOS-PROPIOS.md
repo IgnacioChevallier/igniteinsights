@@ -2,7 +2,8 @@
 
 > Estado: **condicionada**, fuera del camino crítico de la tesis
 > Depende de: Etapa B completa **y** de conseguir parámetros medidos
-> Bloqueada por: disponibilidad de CIEFAP Publicación Técnica N.º 37 (no está en nuestro poder)
+> Puerta C0: **evaluada el 2026-09-13** con la PT-37 en mano → rama *parcial* (ver C0). No
+> alcanza para modelos propios completos; habilita un ajuste acotado de SB40 en arbustales.
 
 ## Objetivo
 
@@ -57,10 +58,95 @@ Técnica N.º 37, Esquel, 45 pp.** Citada como Bianchi et al. (2012) por Godoy e
 que además señalan que hacen falta más modelos porque los existentes cubren *"unos pocos tipos
 de vegetación del ecotono bosque-estepa en Chubut"*.
 
-Estado: **no está en nuestro poder.** Obtenerla es el primer paso.
+Estado: **obtenida** (2026-09-13). Conversión a texto en
+`docs/referencias/Publ_tec_37_Modelos_combustibles.pdf.md`. Publicada en 2012, ISSN 1514-2264, PICTO Forestal 36890.
 
-Vías: biblioteca de CIEFAP (info@ciefap.org.ar), el portal de publicaciones técnicas de
-CIEFAP, o el director por vía institucional.
+### Evaluación de la PT-37 contra la puerta
+
+**Qué es.** Seis modelos de combustible de **arbustal** (A1–A6) del ecotono bosque-estepa de
+Río Negro, Chubut y Santa Cruz, definidos con criterio del **sistema canadiense (CFFDRS)**, no
+de Rothermel. Los propios autores aclaran que los modelos de comportamiento quedan fuera del
+alcance (§2, §4) y que la validación con quemas está pendiente salvo en A4.
+
+| Modelo | Asociación (§3.1) | Clase de destino probable |
+|---|---|---|
+| A1 | Ñire maduro arbustivo, dosel continuo, laura, radal, caña colihue | CCS-BAP *Ñire bajo* · MapBiomas 77/66 |
+| A2 | Regeneración de ñire post-fuego, entreparches amplios con gramíneas | CCS-BAP *Ñire bajo* · MapBiomas 63 |
+| A3 | Maqui, radal, ciprés, laura; a veces bajo ciprés aislado | CCS-BAP matorral mixto · MapBiomas 77 |
+| A4 | Arbustal bajo (<1 m): espino negro, palo piche, calafate, coirón | CCS-BAP estepa arbustiva · MapBiomas 63 |
+| A5 | Subarbustivo (neneo, leña de piedra) con coirón; se comporta como pastizal | CCS-BAP estepa · MapBiomas 12 |
+| A6 | Duraznillo (Santa Cruz) | **No aplica** al AOI |
+
+**Qué mide (Tabla 2).** Altura, cobertura, distancia entre parches, % de muerto aéreo, mantillo
+y **carga muerta en contacto con el suelo** en tres clases: fino < 0,6 cm, medio 0,6–5 cm,
+grueso > 5 cm (parcelas de 1 m², secado en estufa, n = 10 parcelas por asociación).
+
+**Contra la fila que exige ELMFIRE:**
+
+| Parámetro | PT-37 | Veredicto |
+|---|---|---|
+| `w0_1h` | Fino < 0,6 cm | ✅ Límite casi idéntico al de 1 h (0,635 cm) |
+| `w0_10h`, `w0_100h` | Medio 0,6–5 cm, **sumado** | ⚠️ No separable en la Tabla 2 |
+| `w0_liveherb`, `w0_livewoody` | — | ❌ No se midió carga viva ni biomasa aérea |
+| `sav_*` (×3) | — | ❌ |
+| `depth_ft` | Sólo altura del arbusto | ⚠️ No es profundidad de lecho: A1 mide 4,8 m, fuera del rango de cualquier modelo SH |
+| `mex_dead_pct` | — | ❌ (hay dato local en Bianchi & Defossé, fuente distinta) |
+| `hoc_btu_lb` | — | ❌ (8000 estándar) |
+
+En arbustales el portador principal es la **carga viva leñosa**, justamente lo que falta. Una
+fila A1–A5 tendría medido `w0_1h`, la suma 10 h + 100 h y, por otra fuente, `mex`: **8 de 11
+parámetros quedarían asumidos por analogía.**
+
+**Cobertura del AOI.** Ningún modelo de bosque (lenga, coihue, ciprés, alerce), que es la
+clase dominante (31 % del AOI en MapBiomas). Las áreas de estudio de Chubut (Esquel–Trevelin)
+y Río Negro (El Bolsón–El Foyel) quedan inmediatamente al sur y al norte del AOI, sin
+superponerse; el traslado es por estructura de vegetación vía la clase de cobertura, no por
+ubicación, y se declara.
+
+**Veredicto: rama *parcial*.** No se construyen modelos propios completos. Lo defendible es:
+
+1. **SB40 ajustado** en las clases de arbustal: mantener el modelo elegido en IGN-20 y
+   sustituir **sólo** `w0_1h` por la carga fina medida, declarando el resto como heredado.
+   Se evalúa como sensibilidad frente al SB40 sin ajustar, no como reemplazo.
+2. El uso principal de la PT-37 pasa a la **Etapa B** (IGN-20 §6.2–6.4 y §B5), como
+   respaldo bibliográfico y como contraste de comportamiento.
+
+**Datos crudos a pedir a CIEFAP** (junto con CCS-BAP): la planilla de campo (Anexo 2)
+separa la carga media en **0,6–2,5 cm y 2,5–5 cm**, que coincide casi exacto con 10 h
+(0,635–2,54 cm) y 100 h (2,54–7,62 cm). La separación existe en los datos por parcela aunque
+la Tabla 2 la publique sumada.
+
+### Dato de comportamiento: quema experimental en A4 (§3.3–3.4)
+
+Único registro cuantitativo de comportamiento del fuego en arbustal patagónico que tenemos.
+Sirve para el paso 4 de Scott & Burgan en IGN-20 (filtro de rechazo) corriendo Rothermel
+sobre los candidatos con **estas condiciones**, no con el escenario D2L2.
+
+| | |
+|---|---|
+| Fecha y lugar | 14-09-2011, 16:00 · Cerro Jones, Trevelin (43°00'S, 71°25'W) · terreno plano |
+| Parcela | 50 × 50 m · fino 2,8 t/ha · medio 0,4 t/ha · altura 1,6 m · cobertura 67 % · muerto aéreo 50 % |
+| Meteorología en parcela | 20,0 °C · HR 16 % · viento 24 km/h (ráfagas 51) · FFMC 92,7 · ISI 20,9 |
+| Humedad foliar | Espino negro 82 % · maitén 155 % |
+| Velocidad de propagación | ~80 m/min en régimen (40 m en 30 s) ≈ 240 ch/h, clase *extrema* |
+| Largo de llama | 3–4 m |
+
+Limitaciones a declarar: una sola quema, parcela chica (el régimen se alcanzó a los 10 m),
+altura de medición del viento no informada, y quema de fin de invierno (el pasto estaba 100 %
+curado, pero no son condiciones de verano tardío).
+
+### Trampas de lectura del `.md`
+
+- **Unidades:** la PT-37 usa toneladas **métricas por hectárea**. Ver factor en la tabla de
+  parámetros más abajo; no confundir con el de t/ac.
+- **Tabla 2 con columnas corridas:** en las filas de carga fina y gruesa la conversión perdió
+  una celda y los valores quedan desplazados. Lectura tentativa de carga fina: A1 5,91 · A2 0,82 ·
+  A3 1,68 · A4 5,66 · A5 2,9 · A6 1,73 t/ha; media: A1 0,86 · A2 1,03 · A3 1,03 · A4 1,12 ·
+  A5 0,37 · A6 0,62 t/ha. **Verificar contra el PDF antes de usar un solo número.**
+- **Anexo 5 ilegible:** el texto de las leyendas de los mapas salió corrupto del OCR (p. ej.
+  A3 "0,5 m" contra 3,42 m de la Tabla 2). Citar §3.1 y la Tabla 2, nunca el Anexo 5.
+- **Mantillo** no se suma a ninguna carga de Rothermel: es combustión latente, fuera de alcance.
+- **Varianza alta:** A1 fino 5,91 ± 5,62 t/ha. Reportar el desvío junto a cualquier valor usado.
 
 ### Parámetros que ELMFIRE exige por modelo
 
@@ -73,7 +159,7 @@ num, shortname, dynamic, w0_1h, w0_10h, w0_100h, w0_liveherb, w0_livewoody,
 
 | Parámetro | Unidad | Cómo se obtiene |
 |---|---|---|
-| Carga 1 h / 10 h / 100 h | lb/ft² (`t/ac × 0,0459137`) | Inventario de combustible muerto caído, método de intercepción planar (Brown 1974) |
+| Carga 1 h / 10 h / 100 h | lb/ft² (`t/ac × 0,0459137`; **`t/ha métrica × 0,0204816`**) | Inventario de combustible muerto caído, método de intercepción planar (Brown 1974) |
 | Carga herbácea viva / leñosa viva | lb/ft² | Parcelas de corte y pesado en seco |
 | SAV 1 h / herbácea viva / leñosa viva | 1/ft | Medición de partículas, o asignación por analogía con especies de morfología similar |
 | Profundidad del lecho | ft | Medición directa en campo |
@@ -138,7 +224,9 @@ Burgan (2005, p. 2) para todo el conjunto.
 
 1. Volcar los valores medidos a las unidades de ELMFIRE. **Verificar la conversión con un
    caso conocido**: TL3 son 0,50 t/ac de carga 1 h y en la tabla de ELMFIRE figura como
-   `0.02296`; el factor es `0,0459137`.
+   `0.02296`; el factor es `0,0459137` para toneladas cortas por acre. **La PT-37 publica en
+   t/ha métricas: el factor es `0,0204816`** (1 t/ha = 0,4461 t/ac). Aplicar el de t/ac a un
+   dato en t/ha infla la carga ×2,24.
 2. Humedad de extinción: usar los umbrales de ignición medidos por Bianchi & Defossé —
    **21,5 % para ciprés y 25,0 % para ñire** — en lugar de heredar el valor de un modelo
    estadounidense. Es el parámetro con respaldo local más directo y el que Scott & Burgan
@@ -183,7 +271,9 @@ en la parametrización, lo que orienta el esfuerzo futuro y es publicable.
 Esta etapa se abandona sin culpa, y se reporta como trabajo futuro con el diseño ya
 especificado, si se cumple cualquiera de estas condiciones:
 
-1. PT-37 no se consigue, o no contiene cargas por clase de tamaño.
+1. PT-37 no contiene cargas por clase de tamaño. *(Evaluado 2026-09-13: contiene carga muerta
+   fina y media, no viva. Se cumple a medias → se abandona la versión completa y queda sólo el
+   ajuste acotado de C0.)*
 2. Las asociaciones cubiertas por la bibliografía no coinciden con las clases dominantes del
    AOI de Los Alerces (PT-37 es del **ecotono bosque-estepa**, y Los Alerces es
    mayoritariamente bosque húmedo — es un riesgo real de solape insuficiente).
@@ -198,7 +288,8 @@ demostración cuantitativa. Esta etapa es techo, no piso.
 
 | Riesgo | Mitigación |
 |---|---|
-| PT-37 caracteriza el **ecotono bosque-estepa**, no bosque húmedo | Evaluar el solape en C0 antes de comprometerse; puede cubrir sólo el borde este del AOI |
+| PT-37 caracteriza el **ecotono bosque-estepa**, no bosque húmedo | **Materializado:** sólo arbustales, ningún modelo de bosque. Se limita el ajuste a las clases de arbustal |
+| La PT-37 no mide carga viva | Heredar la carga viva de SB40 y declararlo; pedir los datos por parcela a CIEFAP |
 | Faltan SAV, que rara vez se miden | Asignar por analogía con modelos SB40 de morfología comparable y **declararlo** |
 | Parámetros estimados presentados como medidos | Columna de procedencia obligatoria por parámetro |
 | Los modelos propios no mejoran el resultado | Es un resultado válido y publicable, no un fracaso |
@@ -208,7 +299,8 @@ demostración cuantitativa. Esta etapa es techo, no piso.
 
 | Decisión | Elegida | Motivo |
 |---|---|---|
-| Prioridad | Extensión condicionada, no camino crítico | PT-37 no está disponible hoy |
+| Prioridad | Extensión condicionada, no camino crítico | PT-37 no alcanza para modelos completos |
+| Puerta C0 (2026-09-13) | Rama parcial: SB40 con `w0_1h` medido, sólo arbustales, como sensibilidad | 8 de 11 parámetros por fila serían asumidos |
 | Numeración | Bloques custom de Scott & Burgan dentro de 1-256 | Preserva semántica de tipo y compatibilidad de 8 bits |
 | Sin datos medidos | No ejecutar | Estimar y presentarlo como aporte no resiste una defensa |
 | Cableado en ELMFIRE | Ya resuelto en Etapa A | Emitir tabla propia desde el arranque lo deja listo |
@@ -218,8 +310,9 @@ demostración cuantitativa. Esta etapa es techo, no piso.
 - ELMFIRE 2025.0212, `build/source/elmfire_init.f90` y `build/source/elmfire_namelists.f90` —
   <https://github.com/lautenberger/elmfire>
 - Bianchi, L.O.; Dentoni, M.C.; Muñoz, M.M.; Defossé, G.E. *Modelos de combustibles en el
-  ecotono bosque-estepa de la Patagonia andina.* CIEFAP, Publicación Técnica N.º 37, Esquel.
-  **(pendiente de obtener)**
+  ecotono bosque-estepa de la Patagonia andina: caracterización de las asociaciones arbustivas
+  de acuerdo a su respuesta al fuego.* CIEFAP, Publicación Técnica N.º 37, Esquel, 2012.
+  ISSN 1514-2264. **(obtenida; `docs/referencias/Publ_tec_37_Modelos_combustibles.pdf.md`)**
 - Bianchi, L.O.; Defossé, G.E. *Ignition probability of fine dead surface fuels of native
   Patagonian forests of Argentina.* Forest Systems. —
   <https://fs.revistas.csic.es/index.php/fs/article/view/4632>

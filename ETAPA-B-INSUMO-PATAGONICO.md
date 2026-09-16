@@ -1,6 +1,10 @@
 # Etapa B — Insumo patagónico y crosswalk fundamentado
 
-> Estado: **B0 ejecutado** (2026-09-06, MapBiomas promovido) · resto planificado
+> Estado: **B0 ejecutado** (2026-09-06, MapBiomas promovido) · **B1 cerrado** (2026-09-13,
+> CIEFAP dio acceso) · **B2 propuesto** en `IGN-20B-CROSSWALK-CCSBAP.md` · **B3/B4
+> implementados** y cableados al pipeline (`settings.fuels_source`, por defecto `ccsbap`) ·
+> **B5 parcial**: falta el valor medido, hecho el barrido de sensibilidad ·
+> pendiente B6 (validación contra el perímetro observado)
 > Issues: **IGN-20** (tabla) → **IGN-21** (raster) → IGN-22 / IGN-26
 > Depende de: Etapa A completa · Es **el núcleo del aporte de tesis**
 
@@ -14,7 +18,7 @@ Luego demostrar cuantitativamente, con el harness B de validación, que el mapa 
 
 ESA WorldCover tiene **una sola clase arbórea** para todo el bosque andino-patagónico. Lenga caducifolia, ciprés conífero, coihue perennifolio y alerce caen todos en `10 → Tree cover`. Ninguna asignación FBFM40, por buena que sea, recupera información que el raster nunca tuvo.
 
-Evidencia medida sobre el AOI (`SIMULATION_AUDIT.md` §1, §2.1):
+Evidencia medida sobre el AOI (`docs/historico/SIMULATION_AUDIT.md` §1, §2.1):
 
 
 | Observado                            | Interpretación                                                                             |
@@ -140,8 +144,14 @@ Los tres niveles de leyenda vienen como campos separados (`ley_n1/2/3`), lo que 
 elegir el nivel de detalle del crosswalk sin reprocesar. El campo `apn` marca los
 polígonos bajo jurisdicción de Parques Nacionales.
 
-Estado de acceso, verificado: la descarga directa (`/download/247`) responde **403** y el
-WFS anónimo no expone la capa. Requiere cuenta en el GeoNode.
+**Resuelto el 2026-09-13: CIEFAP entregó los datos.** Cinco provincias (Chubut, Río Negro,
+Neuquén, Santa Cruz, Tierra del Fuego) en dos épocas, **2013 y 2017**, como shapefile de
+nivel 3 en POSGAR94 Faja 1. Se usa `CH_2017`; la época 2013 sirve de control temporal y
+reveló el incendio de Cholila de 2015 (+37.581 ha de "remanente de disturbio reciente" dentro
+del AOI). Caracterización completa en `IGN-20B-CROSSWALK-CCSBAP.md` §1.
+
+Estado de acceso previo, que quedó registrado: la descarga directa (`/download/247`) responde
+**403** y el WFS anónimo no expone la capa.
 
 Contactos:
 
@@ -305,6 +315,11 @@ Pasos:
    verificarlo y decidir qué pasa en los píxeles sin polígono.
 6. Aplicar el crosswalk de B2 y escribir Int16 con la validación de códigos de A3.
 
+**Implementado** en `fuels_builder.ccsbap_to_fbfm40()`: rasteriza a 10 m (3×3 subceldas por
+píxel de 30 m) y toma la clase mayoritaria, misma regla que A5. Cobertura medida del AOI:
+95,45 %; el hueco se rellena con WorldCover (IGN-20 §7.5, opción 1), idéntico para todas las
+fuentes para que la comparación no mida la regla de relleno.
+
 ---
 
 
@@ -325,6 +340,13 @@ Pasos:
 4. Ejecutar un análisis de sensibilidad sobre el rango medido. Si el resultado es muy sensible
   a este escalar, es un hallazgo que va en la tesis: significa que un valor global es una
    simplificación insuficiente y que corresponde un raster.
+
+**Ejecutado el 2026-09-15** (`scripts/sweep_live_moisture.py`, resultado en
+`IGN-20B-CROSSWALK-CCSBAP.md` §6.3): entre 30 % y 120 % el anillo de crecimiento va de
+11.293 a 4.513 ha, **un factor 2,5**, con respuesta asimétrica —saturada por debajo de 60 %,
+desplomada por encima—. El hallazgo es que **sí corresponde evaluar un ráster**, y que las
+magnitudes absolutas de cualquier corrida no son citables hasta fijar el escalar con la
+medición. Falta el paso 1: conseguir Bianchi & Defossé (2015).
 
 ---
 
@@ -399,5 +421,5 @@ species in Andean Patagonia, Argentina.* IJWF 24(3):340. —
 [https://connectsci.au/wf/article-abstract/24/3/340/21003/Live-fuel-moisture-content-and-leaf-ignition-of](https://connectsci.au/wf/article-abstract/24/3/340/21003/Live-fuel-moisture-content-and-leaf-ignition-of)
 - Loguercio, G. et al. (2006), citado por CCS-BAP para la separación matorral / arbustal.
 - MapBiomas Argentina, Colección 2 — [https://argentina.mapbiomas.org/](https://argentina.mapbiomas.org/)
-- `SIMULATION_AUDIT.md` §1, §2.1, §12.3, §12.4
+- `docs/historico/SIMULATION_AUDIT.md` §1, §2.1 · `IGN-26-VALIDACION.md` §12.3, §12.4
 
