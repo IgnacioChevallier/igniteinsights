@@ -270,8 +270,15 @@ observados. Ningún modelo de arbustal de SB40 reproduce las dos variables a la 
 asignación se mantiene, porque es la que ajusta la llama y la carga fina medida, **y se
 declara que subestima la velocidad de propagación**.
 
-**Procedencia.** Carga: medida (PT-37, Tabla 2). `mex`: bibliográfico. Elección final del
-modelo: juicio del autor sobre carga, sujeto al paso 4.
+**Segunda fuente, independiente.** Cóbar-Carranza et al. (2014) miden en rodales de
+*N. antarctica* de la Reserva Malalcahuello (Chile, ~38°S, 2.580 árboles/ha, 3,6 m de altura
+media —o sea ñire bajo—) **1.930 ± 307 kg/ha de leña fina caída de menos de 0,6 cm**. No es
+directamente comparable con la PT-37, porque ese trabajo separa la hojarasca de la leña fina
+y la PT-37 las agrupa, pero cae en el mismo orden y refuerza que la clase no es de carga alta.
+Traslado a declarar: es otra latitud y un bosque subalpino con araucaria, ausente del AOI.
+
+**Procedencia.** Carga: medida (PT-37, Tabla 2), corroborada por una segunda fuente. `mex`:
+bibliográfico. Elección final del modelo: juicio del autor sobre carga, sujeto al paso 4.
 
 ### 5.5 · OFL Le — Lenga achaparrada → **148 (SH8)** · 8,71 % del AOI
 
@@ -526,6 +533,11 @@ p. 3 · modelos dinámicos p. 4 · parámetros Tabla 7)
 - Bianchi, L.O.; Defossé, G.E. *Ignition probability of fine dead surface fuels of native
 Patagonian forests of Argentina.* Forest Systems.
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). Ecology 86(10).
+- Cóbar-Carranza, A.J.; García, R.A.; Pauchard, A.; Peña, E. (2014). *Effect of Pinus contorta
+  invasion on forest fuel properties and its potential implications on the fire regime of
+  Araucaria araucana and Nothofagus antarctica forests.* Biological Invasions. (Carga de leña
+  fina en rodales de ñire; inflamabilidad comparada de nativas y pino exótico, relevante para
+  la clase de forestación exótica.)
 - Interno: `IGN-20-CROSSWALK.md` · `ETAPA-B-INSUMO-PATAGONICO.md` ·
 `ETAPA-C-MODELOS-PROPIOS.md` §C0 · `app/elmfire/builder/fuels_builder.py` ·
 `scripts/build_fuel_maps.py`
