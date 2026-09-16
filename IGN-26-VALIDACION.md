@@ -8,6 +8,53 @@
 > con esos números. Bloquea: `ETAPA-A §A7` (congelar el baseline) y `ETAPA-B §B6`
 > (comparación de mapas de combustible contra el perímetro observado).
 
+## Estado de implementación (2026-09-16)
+
+**Harness B implementado** en `scripts/score_against_observed.py`. Arma el mosaico de las 196
+máscaras de Sentinel-2 sobre la grilla de la corrida —las máscaras se llevan a nuestros 30 m
+y no al revés, porque puntuar a 20 m inventaría una resolución que el modelo no tiene—,
+descuenta la semilla y estratifica por `pct_quemado`.
+
+**Primera ejecución**, sobre `cmp_b5_ccsbap` (12 h, mapa de CCS-BAP, humedad viva medida):
+
+| | |
+|---|---|
+| Cobertura de tiles sobre el dominio | 66,2 % |
+| Observado dentro de cobertura | 30.009 ha |
+| Semilla FIRMS | 8.095 ha |
+| **Anillo: IoU** | **0,128** |
+| Recall | 0,146 |
+| Precisión | 0,503 |
+| Acierto / falso positivo / no predicho | 3.813 / 3.763 / 22.277 ha |
+
+| Banda de `pct_quemado` | Tiles | IoU | Recall | Precisión |
+|---|---|---|---|---|
+| 0-10 % | 96 | 0,109 | 0,298 | 0,147 |
+| 10-40 % | 62 | 0,100 | 0,118 | 0,398 |
+| 40-70 % | 27 | 0,157 | 0,173 | **0,627** |
+| 70-100 % | 11 | 0,127 | 0,134 | **0,704** |
+
+**Cómo se lee esto, y cómo no.** El recall bajo **no mide la calidad del modelo**: es §12.2 en
+acción. La referencia es la cicatriz final, de semanas, y la corrida es de 12 h, así que el
+modelo no puede cubrirla ni siendo perfecto. Las 22.277 ha "no predichas" son sobre todo
+tiempo de simulación que no existió.
+
+**La precisión sí informa**: de lo que el modelo agregó, la mitad cayó dentro de la cicatriz
+real. Y sube de 0,147 a 0,704 con el porcentaje quemado del tile, que es el gradiente
+esperado si el harness mide algo real: en los tiles que efectivamente ardieron, lo que el
+modelo predice cae adentro.
+
+**Lo que falta para que el número sea el de la tesis:**
+
+1. Una corrida que **abarque la duración del incendio**, no 12 h. Requiere meteorología
+   multibanda que cubra ese horizonte.
+2. La grilla del AOI definitivo, con preparación completa (hoy la corrida usa la reducida y
+   sólo el 66,2 % del dominio tiene tiles).
+3. Correr los tres mapas y comparar `IoU(baseline)` contra `IoU(patagónico)`, que es el
+   número que responde la pregunta de la tesis.
+
+---
+
 ## 12. Validation design
 
 Working through the approach proposed on 2026-08-31: *"validation will work with just

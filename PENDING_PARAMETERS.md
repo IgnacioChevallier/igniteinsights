@@ -120,6 +120,15 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 
 ---
 
+### 1.6 ✅ Humedad del combustible vivo — **resuelto (Etapa B, B5)**
+
+> Al 2026-09-16: `LH = 30 %` y `LW = 110 %`, de Bianchi & Defossé (2015) para la temporada de
+> fuego en la Patagonia andina. Antes eran 60 % sin criterio, por debajo de todo lo medido en
+> la región. La sensibilidad está cuantificada en `IGN-20B-CROSSWALK-CCSBAP.md` §6.3 y la
+> fundamentación en `ETAPA-B-INSUMO-PATAGONICO.md` §B5.
+
+---
+
 ## 3. Simulation and namelist
 
 `app/elmfire/builder/namelist_writer.py`

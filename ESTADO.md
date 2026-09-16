@@ -49,17 +49,15 @@ en la tesis.
 
 | # | Pendiente | Depende de | Tamaño |
 |---|---|---|---|
-| 1 | **Re-ingestar Copernicus DEM para el AOI ampliado**. El DEM crudo local sólo cubre el AOI viejo, así que ninguna corrida abarca el footprint completo del incendio | red (la clave está configurada) | mediano |
-| 2 | **Harness B** (`IGN-26-VALIDACION.md`): puntuar contra el perímetro observado. El dataset de máscaras está local, 196 tiles | 1, o el número queda sesgado por qué tiles entraron | grande |
-| 3 | **Regenerar la comparación de los tres mapas** con `SIMULATION_TSTART` anclado: los números de `IGN-20B` §6.1 se corrieron con `TSTART = 0` | una preparación nueva (base de datos y API arriba) | mediano |
-| 4 | **Fijar LH/LW con el valor medido**. El barrido ya dice que importa; falta el número | conseguir Bianchi & Defossé (2015), IJWF 24(3):340 | chico |
-| 5 | **Aprobación del director** de IGN-20B, con las tres decisiones de su §9 | el director | — |
-| 6 | **A7 — congelar el baseline** y **B6 — comparación final contra lo observado** | 2 | mediano |
-| 7 | **ADJ / IGN-25**: calibrar el factor de ajuste | 6, y **nunca antes** | mediano |
-| 8 | Parámetros sin criterio que quedan: humedad de muertos sin historial de secado (§1.2), `m1` sin corrección diurna, timesteps sin prueba de convergencia, `horizon_hours` por defecto sin base | — | varios |
-| 9 | Datos por parcela de la PT-37, para separar 10 h de 100 h | CIEFAP | — |
+| 1 | **Preparación completa sobre el AOI definitivo**: el DEM ya se re-ingestó y los mapas se reconstruyeron sobre la grilla de 8,3 M celdas, pero falta regenerar meteorología, `phi` y dosel ahí. Sin eso ELMFIRE sigue corriendo en la grilla reducida, y el anclaje de `SIMULATION_TSTART` queda sin aplicarse, porque los directorios de preparación son anteriores al arreglo | levantar base de datos y API para una ingesta | mediano |
+| 2 | **Correr el harness B sobre una corrida de duración completa**. El harness ya está escrito y ejecutado; lo que falta es una corrida que abarque el incendio, no 12 h | 1, y meteorología que cubra el horizonte | mediano |
+| 3 | **Aprobación del director** de IGN-20B, con las tres decisiones de su §9 | el director | — |
+| 4 | **A7 — congelar el baseline** y **B6 — comparación final contra lo observado** | 2 | mediano |
+| 5 | **ADJ / IGN-25**: calibrar el factor de ajuste | 4, y **nunca antes** | mediano |
+| 6 | Parámetros sin criterio que quedan: humedad de muertos sin historial de secado (§1.2), `m1` sin corrección diurna, timesteps sin prueba de convergencia, `horizon_hours` por defecto sin base | — | varios |
+| 7 | Datos por parcela de la PT-37, para separar 10 h de 100 h | CIEFAP | — |
 
-Los puntos 1, 2 y 8 se pueden cerrar sin depender de nadie más.
+El punto 1 desbloquea al 2, y el 2 al 4. Nada de eso depende de terceros.
 
 ## Qué NO está pendiente, aunque el nombre sugiera lo contrario
 
@@ -71,3 +69,6 @@ Los puntos 1, 2 y 8 se pueden cerrar sin depender de nadie más.
 - **Cablear la fuente de combustible**: hecho. La app sirve el mapa de CCS-BAP.
 - **El paso 4 del crosswalk**: ejecutado. Su resultado no invalida las asignaciones; muestra
   que el techo pasó a ser el sistema de modelos, no el insumo.
+- **La humedad del combustible vivo**: fijada con medición (`LH` 30 %, `LW` 110 %).
+- **El DEM del AOI ampliado**: descargado, y los tres mapas reconstruidos sobre esa grilla.
+- **El harness de validación**: escrito y ejecutado; falta la corrida de duración completa.

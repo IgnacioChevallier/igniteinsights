@@ -348,17 +348,19 @@ número sin sustento físico. **Subestima el fuego en turberas y se declara.**
 ## 6. Resultado de la construcción
 
 Los tres mapas generados sobre la misma grilla (`scripts/build_fuel_maps.py`), con la misma
-regla de agregación y el mismo relleno de huecos:
+regla de agregación y el mismo relleno de huecos, sobre el **AOI definitivo**
+(2.563 × 3.222 = 8,3 M celdas, tras re-ingestar el DEM el 2026-09-16). El relleno del hueco
+fronterizo toma el 6,90 % de la grilla en MapBiomas y el 5,38 % en CCS-BAP:
 
 
-| Tipo de combustible        | WorldCover 2021 | MapBiomas 2024 | **CCS-BAP 2017** |
-| -------------------------- | --------------- | -------------- | ---------------- |
-| NB · no combustible        | 23,02 %         | 29,83 %        | 25,65 %          |
-| GR · pastizal              | 17,01 %         | 7,72 %         | 5,53 %           |
-| GS · pastizal-arbustal     | 0,00 %          | 0,07 %         | **2,64 %**       |
-| SH · arbustal              | **0,04 %**      | 8,62 %         | **20,13 %**      |
-| TU · bosque con sotobosque | 0,00 %          | 53,40 %        | 26,29 %          |
-| TL · hojarasca de bosque   | 59,93 %         | 0,36 %         | 19,77 %          |
+| Tipo de combustible | WorldCover 2021 | MapBiomas 2024 | **CCS-BAP 2017** |
+| --- | --- | --- | --- |
+| NB · no combustible | 19,21 % | 26,39 % | 20,99 % |
+| GR · pastizal | 34,70 % | 12,49 % | 18,22 % |
+| GS · pastizal-arbustal | 0,00 % | 3,34 % | **5,11 %** |
+| SH · arbustal | **3,75 %** | 22,11 % | **23,25 %** |
+| TU · bosque con sotobosque | 0,00 % | 31,00 % | 16,41 % |
+| TL · hojarasca de bosque | 42,34 % | 4,68 % | 16,02 % |
 
 
 Lecturas:
@@ -374,59 +376,68 @@ Lecturas:
 
 
 
-### 6.1 · Primera comparación con ELMFIRE (2026-09-15)
+### 6.1 · Comparación con ELMFIRE (2026-09-16, con humedad viva medida)
 
 Tres corridas de 12 h sobre el **mismo incendio**: misma ignición, misma meteorología, misma
 topografía, mismo `ADJ`. Lo único que cambia es `fbfm40.tif`. Se puntúa **sólo el anillo de
 crecimiento**, nunca la unión con la semilla (`IGN-26-VALIDACION.md` §12.1).
 
-Semilla FIRMS: 8.095 ha, verificada idéntica en las tres corridas.
+Semilla FIRMS: 8.095 ha, verificada idéntica en las tres corridas. Humedad del combustible
+vivo en los valores medidos de `ETAPA-B` §B5: `LH` 30 %, `LW` 110 %.
 
 
-| Mapa             | Anillo a 12 h | vs baseline | FLI mediana    | FLI p90 | Tiempo de cómputo |
-| ---------------- | ------------- | ----------- | -------------- | ------- | ----------------- |
-| WorldCover 2021  | 1.989 ha      | —           | 66,8 kW/m      | 257     | 68 s              |
-| MapBiomas 2024   | 9.328 ha      | +369 %      | 473,0 kW/m     | 1.619   | 114 s             |
-| **CCS-BAP 2017** | **10.537 ha** | **+430 %**  | **484,9 kW/m** | 2.025   | 98 s              |
+| Mapa | Anillo a 12 h | vs baseline | FLI mediana | FLI p90 |
+| --- | --- | --- | --- | --- |
+| WorldCover 2021 | 2.342 ha | — | 96,1 kW/m | 333 |
+| MapBiomas 2024 | 5.849 ha | +150 % | 311,1 kW/m | 1.267 |
+| **CCS-BAP 2017** | **7.576 ha** | **+223 %** | **317,0 kW/m** | 1.309 |
 
 
 Acuerdo entre mapas sobre el anillo:
 
 
-| Par                     | IoU       | Sólo el primero | Sólo el segundo |
-| ----------------------- | --------- | --------------- | --------------- |
-| WorldCover vs MapBiomas | 0,179     | 274 ha          | 7.614 ha        |
-| WorldCover vs CCS-BAP   | 0,179     | 83 ha           | 8.631 ha        |
-| MapBiomas vs CCS-BAP    | **0,629** | 1.660 ha        | 2.869 ha        |
+| Par | IoU | Sólo el primero | Sólo el segundo |
+| --- | --- | --- | --- |
+| WorldCover vs MapBiomas | 0,245 | 728 ha | 4.235 ha |
+| WorldCover vs CCS-BAP | 0,269 | 243 ha | 5.476 ha |
+| MapBiomas vs CCS-BAP | **0,599** | 822 ha | 2.550 ha |
+
+> **Corrida anterior, con `LH`/`LW` en 60 %:** 1.989 / 9.328 / 10.537 ha, con IoU de 0,179 /
+> 0,179 / 0,629. Al pasar a la humedad medida, el fuego de los dos mapas patagónicos se reduce
+> cerca de un tercio y el del baseline **sube** —el pasto curado hace arder más el GR2—, así
+> que la diferencia entre mapas se achica de un factor 5,3 a uno de 3,2. **La conclusión no
+> cambia; la magnitud sí.** Es exactamente el motivo por el que el escalar tenía que fijarse
+> con una medición antes de citar cualquier número.
 
 
 Qué combustible quemó cada corrida, dentro del anillo:
 
-- **WorldCover:** GR2 58 %, TL3 42 %. El fuego avanza por el pastizal porque TL3 casi no
+- **WorldCover:** GR2 62 %, TL3 38 %. El fuego avanza por el pastizal porque TL3 casi no
 propaga: es la consecuencia directa del hallazgo del audit.
-- **MapBiomas:** TU5 67 %, SH4 24 %, GR5 7 %.
-- **CCS-BAP:** SH8 31 %, TU5 19 %, SH4 14 %, TL6 14 %, TU3 10 %, GR3 9 %. **El arbustal lleva
+- **MapBiomas:** TU5 70 %, SH4 19 %, GR5 9 %.
+- **CCS-BAP:** SH8 29 %, TU5 17 %, TL6 17 %, SH4 12 %, GR3 11 %, TU3 10 %. **El arbustal lleva
 el fuego**, que es lo que Mermoz et al. (2005) documentan para la Patagonia.
 
 **Qué demuestra y qué no.** Demuestra que el resultado de ELMFIRE es **fuertemente sensible al
 mapa de combustible**: un factor 5 en superficie y un factor 7 en intensidad mediana, con el
 resto de los insumos congelados. Un empate habría sido un hallazgo en contra de toda la Etapa B.
 **No demuestra que CCS-BAP prediga mejor**: eso requiere puntuar contra el perímetro observado
-(§B6, harness B). Que los dos insumos patagónicos coincidan entre sí (IoU 0,629) y difieran
-igual del baseline (0,179 los dos) es consistente con que el baseline sea el atípico, pero no
+(§B6, harness B). Que los dos insumos patagónicos coincidan entre sí (IoU 0,599) y difieran
+igual del baseline (0,245 y 0,269) es consistente con que el baseline sea el atípico, pero no
 lo prueba.
 
-**Salvedades de esta corrida, a levantar antes de que el número entre en la tesis:**
+**Salvedades de esta corrida:**
 
-1. **Grilla del AOI viejo** (1414 × 1526, −72,0 / −71,5 / −42,9 / −42,5), porque el DEM crudo
-  local no cubre el AOI ampliado de `ETAPA-A §A0`. No abarca el footprint completo del
-   incendio. Requiere re-ingestar Copernicus DEM.
-2. `LH_MOISTURE_CONTENT` **y** `LW_MOISTURE_CONTENT` **siguen en 60 % global.** Con el baseline eso
-  era inocuo porque TL3 no tiene carga viva; con estos dos mapas, SH8, SH4, GS3 y TU5 son
-   mayoría y el escalar pasa a ser driver de primer orden (§B5, IGN-20 §7.3). **Es la salvedad
-   más seria de las tres.**
-3. **Sin validación contra lo observado.** Las tres corridas se comparan entre sí, no contra el
-  perímetro real.
+1. **Corre sobre la grilla reducida** (1414 × 1526), aunque el DEM ya se re-ingestó y los mapas
+   de §6 están sobre el AOI definitivo. Llevar ELMFIRE al AOI completo exige regenerar también
+   meteorología, `phi` y dosel, o sea una preparación entera. **Pendiente.**
+2. ~~Humedad del combustible vivo sin criterio~~ → **resuelto**: valores medidos de Bianchi &
+   Defossé (2015), fundamentados en `ETAPA-B` §B5 y cuantificados en §6.3.
+3. **Sin validación contra lo observado.** Las tres corridas se comparan entre sí. El harness
+   ya existe y se ejecutó (`IGN-26-VALIDACION.md`), pero puntuar de verdad exige una corrida
+   que abarque el incendio completo y no 12 h.
+4. **`SIMULATION_TSTART` quedó en 0 en estas corridas**, porque el directorio de preparación es
+   anterior al arreglo del anclaje. Una preparación nueva las mueve.
 
 ---
 

@@ -51,8 +51,23 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # explícito con el valor que ya se venía usando: activado.
 DEFAULT_CROWN_FIRE_MODEL = 1
 
-DEFAULT_LH_MOISTURE_PCT = 60.0
-DEFAULT_LW_MOISTURE_PCT = 60.0
+# Humedad del combustible vivo, de Bianchi & Defossé (2015), IJWF 24(3):340, que mide LFMC
+# en las especies de la Patagonia andina cada 10-15 días durante la temporada de fuego
+# (mediados de noviembre a principios de abril), en hojas de la cara norte —la más expuesta
+# y por lo tanto la más seca— a 2 m de altura.
+#
+# LW: ñire, ciprés, laura y radal se mueven entre 110 y 220 % durante la temporada; la caña
+# colihue nunca supera 110 %. Se toma **110 %, el extremo seco de la banda medida**, que es
+# la condición más propensa al fuego y donde además cae la caña. Lenga, coihue y alerce no
+# fueron medidos: heredan el valor por analogía con el ñire, y eso se declara.
+# LH: no hay medición de herbáceas. 30 % representa el pasto **completamente curado** del
+# verano tardío, que es el umbral de transferencia dinámica de Scott & Burgan. Es una
+# convención de modelado declarada, no un dato.
+#
+# El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
+# Su efecto está cuantificado en IGN-20B-CROSSWALK-CCSBAP.md §6.3.
+DEFAULT_LH_MOISTURE_PCT = 30.0
+DEFAULT_LW_MOISTURE_PCT = 110.0
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:

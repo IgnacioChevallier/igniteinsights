@@ -326,31 +326,47 @@ fuentes para que la comparación no mida la regla de relleno.
 
 ## B5 — Fijar la humedad de combustible vivo
 
+> **Cerrado el 2026-09-16.** `LH = 30 %`, `LW = 110 %`, contra el 60 % sin criterio anterior.
+
 Al aparecer modelos con carga viva (SH, GS, TU), `LH_MOISTURE_CONTENT` y
-`LW_MOISTURE_CONTENT` dejan de ser inocuos.
+`LW_MOISTURE_CONTENT` dejan de ser inocuos. Cuantificado en `IGN-20B` §6.3: el escalar mueve
+el área quemada en un factor 2,5 sobre un rango plausible.
 
-Pasos:
+### Lo que mide la fuente
 
-1. Tomar valores de LFMC por especie de Bianchi & Defossé (2015), que mide contenido de
-  humedad de combustible vivo e ignición foliar en especies de la Patagonia andina.
-2. Como ELMFIRE acepta **un escalar global por cada uno**, ponderar por área de clase sobre
-  el AOI y **documentar la ponderación** como decisión de tesis.
-3. Registrar la estacionalidad: el LFMC del período de quema (verano tardío) es el relevante,
-  no la media anual.
-4. Ejecutar un análisis de sensibilidad sobre el rango medido. Si el resultado es muy sensible
-  a este escalar, es un hallazgo que va en la tesis: significa que un valor global es una
-   simplificación insuficiente y que corresponde un raster.
+Bianchi & Defossé (2015), *Live fuel moisture content and leaf ignition of forest species in
+Andean Patagonia*, IJWF 24(3):340. Muestreo cada 10 a 15 días **durante la temporada de
+fuego** (mediados de noviembre a principios de abril), cinco temporadas para ñire y ciprés.
+Hojas tomadas a 2 m de altura —la porción del dosel donde un fuego de superficie puede pasar
+a copas— y **de la cara norte**, la más expuesta al sol y por lo tanto la de menor humedad.
 
-**Ejecutado el 2026-09-15** (`scripts/sweep_live_moisture.py`, resultado en
-`IGN-20B-CROSSWALK-CCSBAP.md` §6.3): entre 30 % y 120 % el anillo de crecimiento va de
-11.293 a 4.513 ha, **un factor 2,5**, con respuesta asimétrica —saturada por debajo de 60 %,
-desplomada por encima—. El hallazgo es que **sí corresponde evaluar un ráster**, y que las
-magnitudes absolutas de cualquier corrida no son citables hasta fijar el escalar con la
-medición. Falta el paso 1: conseguir Bianchi & Defossé (2015).
+| Nivel | Especies | LFMC en temporada de fuego |
+|---|---|---|
+| Bajo | Caña colihue (*Chusquea culeou*) | nunca supera **110 %** |
+| Medio | Ñire, ciprés, laura, radal | **110 – 220 %** |
+| Alto | Álamo (exótico) | 220 – 300 % |
 
----
+### Los valores adoptados
 
+**`LW_MOISTURE_CONTENT = 110 %`** — el extremo seco de la banda medida. Es la condición más
+propensa al fuego dentro de lo observado, y es además donde cae la caña colihue, que es el
+sotobosque de los bosques de coihue. La alternativa —el punto medio, 165 %— daría un fuego
+sistemáticamente menor; se elige el extremo seco y **se declara la banda completa** como
+incertidumbre, ya cuantificada por el barrido.
 
+**`LH_MOISTURE_CONTENT = 30 %`** — el paper no mide herbáceas. 30 % representa el pasto
+completamente curado del verano tardío, que es el umbral de transferencia dinámica de
+Scott & Burgan. **Es una convención de modelado declarada, no un dato.**
+
+### Limitaciones declaradas
+
+1. **Lenga, coihue y alerce no fueron medidos.** Heredan el valor del ñire por analogía. Son
+   el 26 % del AOI, así que no es menor.
+2. **Es un escalar global.** ELMFIRE no acepta un ráster de humedad viva, así que un único
+   número representa desde el mallín hasta la estepa. El barrido de §6.3 muestra que esta
+   simplificación es cara y que **corresponde evaluar un ráster** como trabajo futuro.
+3. **El valor anterior, 60 %, quedaba por debajo de todo lo medido** en la región. Toda
+   corrida previa a esta fecha sobreestimaba el fuego por ese motivo.
 
 ## B6 — Comparación y cierre
 
