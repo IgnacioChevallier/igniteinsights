@@ -9,7 +9,7 @@ type FuelClass = {
   fbfm40: number;
   label: string;
   color: string;
-  worldcover_classes: string[];
+  source_classes: string[];
   pixel_count: number;
   area_ha: number;
   share: number;
@@ -88,7 +88,7 @@ export function FuelsPanel() {
                     />
                   </div>
                   <div className="mt-1 pl-5 text-[11px] text-muted-foreground">
-                    {cls.worldcover_classes.join(" + ") || "sin clase WorldCover"} ·{" "}
+                    {cls.source_classes.join(" + ") || "sin clase de cobertura"} ·{" "}
                     {hectares(cls.area_ha)}
                   </div>
                 </li>

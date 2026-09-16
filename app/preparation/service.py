@@ -28,6 +28,11 @@ from app.elmfire.builder import (
 
 logger = logging.getLogger(__name__)
 
+
+def _as_utc(dt: datetime) -> datetime:
+    """Naive datetimes coming from storage are UTC; comparing them to aware ones raises."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
+
 # Max tolerated gap between the fire's ignition time and the GFS cycle's valid_time
 # before the preparation flags the pairing as incoherent. Live runs use a cycle at
 # most a few hours old; anything beyond this means wrong-period weather.
@@ -87,21 +92,62 @@ async def run_preparation(
         generated.append("adj.tif")
 
     # ── 2. Fuel model (static, cached) ────────────────────────────────────────
+    # Which cover product feeds fbfm40.tif is configuration, not code (ETAPA-B §B3): the
+    # thesis has to be able to regenerate any of the three maps to compare them. The
+    # source id is part of the cache key, so switching sources rebuilds the raster.
+    source = settings.fuels_source
+    fbfm_cached = static_dir / f"fbfm40_{source}.tif"
     wc_asset = await repository.find_raster_asset(session, aoi.id, "worldcover_raw")
-    fbfm_cached = static_dir / "fbfm40.tif"
-    if wc_asset and Path(wc_asset.file_path).exists() and reference:
-        wc_path = _resolve(wc_asset.file_path)
+    wc_path = _resolve(wc_asset.file_path) if wc_asset else None
+    if wc_path is not None and not wc_path.exists():
+        wc_path = None
+
+    configured: str | None = None
+    fill_path = None
+    if source == "worldcover":
+        source_path = wc_path
+    else:
+        configured = (
+            settings.ccsbap_vector_path if source == "ccsbap" else settings.mapbiomas_raster_path
+        )
+        resolved = _resolve(configured)
+        source_path = resolved if resolved.exists() else None
+        # Both Argentine products stop at the international border, and that gap sits on
+        # the west edge of the domain: an artificially unburnable border stops the front
+        # by construction (IGN-20 §7.5). Fill it from the global product.
+        if wc_path is not None and reference is not None:
+            fill_path = await asyncio.to_thread(
+                fuels_builder.build_fbfm40, "worldcover", wc_path, reference,
+                static_dir / "fbfm40_worldcover.tif",
+            )
+        elif reference is not None:
+            msg = (
+                f"Fuente de combustible '{source}' sin relleno: no hay asset de WorldCover, "
+                "así que el hueco fronterizo queda como NB9 y frena el frente por construcción"
+            )
+            logger.warning("Preparation %s: %s", prep_id, msg)
+            warnings.append(msg)
+
+    if source_path is not None and reference:
         # Caching (and its invalidation) lives in fuels_builder, not here — a bare
         # `.exists()` check made every crosswalk change a silent no-op.
         await asyncio.to_thread(
-            fuels_builder.worldcover_to_fbfm40, wc_path, reference, fbfm_cached
+            fuels_builder.build_fbfm40, source, source_path, reference, fbfm_cached, fill_path
         )
         shutil.copy2(fbfm_cached, inputs_dir / "fbfm40.tif")
+        # El caché es por fuente (fbfm40_<fuente>.tif) para que alternar entre mapas no
+        # obligue a reconstruir; este segundo destino es "el mapa vigente", que es lo que
+        # sirve el dashboard.
+        shutil.copy2(fbfm_cached, static_dir / "fbfm40.tif")
         generated.append("fbfm40.tif")
     else:
         missing.append("fbfm40.tif")
-        if not wc_asset:
-            logger.warning("No WorldCover asset — run ingestion with include_worldcover=true")
+        logger.warning(
+            "Sin insumo de cobertura para la fuente %r — se esperaba %s",
+            source,
+            "un asset worldcover_raw (ingesta con include_worldcover=true)"
+            if source == "worldcover" else configured,
+        )
 
     # ── 3. Weather (dynamic, derived per run) ─────────────────────────────────
     u10 = await repository.find_raster_asset(session, aoi.id, "gfs_u10", at=gfs_at)
@@ -166,6 +212,7 @@ async def run_preparation(
     # Coherence guard: simulating a fire with weather from a different period silently
     # produces zero spread (e.g. a February fire paired with a winter cycle whose fuel
     # moisture exceeds the extinction moisture of every fuel model). Surface it.
+    simulation_tstart_s = 0.0
     if ignition_datetime is not None:
         ignition_dt = datetime.fromisoformat(ignition_datetime)
         weather_valid_times = [
@@ -187,6 +234,28 @@ async def run_preparation(
                 )
                 logger.warning("Preparation %s: %s", prep_id, msg)
                 warnings.append(msg)
+
+            # Anchor the run to the wall clock. ELMFIRE reads weather band n at
+            # TSTART + n × DT_METEOROLOGY, so with TSTART = 0 a fire igniting at 16:00
+            # was simulated with the first forecast hour's weather — the wrong point of
+            # the diurnal cycle, and with hourly bands that is a real error, not a
+            # cosmetic one (PENDING_PARAMETERS §3).
+            weather_start = min(_as_utc(vt) for vt in weather_valid_times)
+            offset_s = (_as_utc(ignition_dt) - weather_start).total_seconds()
+            if offset_s < 0:
+                msg = (
+                    f"Ignición {ignition_datetime} anterior al primer paso de "
+                    f"meteorología {weather_start.isoformat()}: la corrida arranca en la "
+                    "banda 0 en vez de la hora real"
+                )
+                logger.warning("Preparation %s: %s", prep_id, msg)
+                warnings.append(msg)
+            else:
+                simulation_tstart_s = offset_s
+                logger.info(
+                    "Preparation %s: corrida anclada a t=%.0f s (%.1f h tras la banda 0)",
+                    prep_id, offset_s, offset_s / 3600.0,
+                )
 
     if fire_points and reference:
         phi, _ = await asyncio.to_thread(
@@ -261,6 +330,7 @@ async def run_preparation(
             outputs_dir,
             simulation_hours=12,
             output_path=elmfire_data,
+            simulation_tstart_s=simulation_tstart_s,
         )
         generated.append("elmfire.data")
     else:

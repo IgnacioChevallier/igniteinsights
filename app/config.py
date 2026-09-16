@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     aoi_south: float = -42.90
     aoi_east: float = -71.15
     aoi_north: float = -42.05
+    # Fuente de cobertura con la que se construye fbfm40.tif. Entra en la clave de
+    # caché del ráster, así que cambiarla lo regenera en vez de servir el anterior.
+    # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3 (IGN-20B-CROSSWALK-CCSBAP.md)
+    # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (IGN-20-CROSSWALK.md)
+    # "worldcover" → ESA WorldCover 2021, el baseline de comparación (ETAPA-A §A7)
+    fuels_source: str = "ccsbap"
+    # Recorte al AOI de la capa vectorial de CCS-BAP, derivado con
+    # scripts/prepare_ccsbap_aoi.py. Vive bajo data/ porque es lo único que el
+    # contenedor del runner y de la API tienen montado.
+    ccsbap_vector_path: str = "/app/data/raw/ccsbap/ccsbap_2017_aoi.gpkg"
+    mapbiomas_raster_path: str = "/app/data/raw/mapbiomas/mapbiomas_2024_aoi.tif"
     aoi_crs_processing: str = "EPSG:32719"
     aoi_crs_output: str = "EPSG:4326"
 
