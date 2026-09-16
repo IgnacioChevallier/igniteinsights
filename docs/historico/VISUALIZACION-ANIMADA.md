@@ -1,6 +1,10 @@
 # Visualización animada — progresión del fuego y campo de viento
 
-> Estado: planificado · Depende de: nada (la parte 1 no necesita backend)
+> **ARCHIVADO el 2026-09-15: implementado.** El encabezado decía "planificado" cuando la
+> animación ya existía (`frontend/components/fire-animation-controls.tsx`, la progresión en
+> `fire-map.tsx`) y el viento también (`frontend/lib/wind-particles`, el campo en
+> `map-panel.tsx` y el endpoint de viento por banda horaria). Se conserva como registro de
+> las decisiones de diseño.
 > Referencia visual: partículas de viento de Windy.com
 
 ## Objetivo
@@ -226,6 +230,6 @@ Los pasos 1 y 2 se pueden hacer hoy. El 3 en adelante necesita el endpoint.
 
 - `app/postprocessing/isochrone_converter.py` — `arrival_s` / `arrival_hours` por feature
 - `frontend/components/fire-map.tsx` — MapLibre GL 4.7, fuentes GeoJSON existentes
-- `SIMULATION_AUDIT.md` §1 (84 % del área dibujada es la semilla FIRMS), §11b (ws/wd multibanda)
+- `docs/historico/SIMULATION_AUDIT.md` §1 (84 % del área dibujada es la semilla FIRMS), §11b
 - ELMFIRE 2025.0212, `tutorials/01-constant-wind/01-run.sh` — unidades de `ws` en mph
 - MapLibre GL JS: expresiones de filtro, `addImage`, `CustomLayerInterface`

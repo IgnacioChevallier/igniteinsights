@@ -60,7 +60,7 @@ export const WIND_COLOR = "#475569";
 
 export type Basemap = "street" | "satellite" | "synthetic";
 
-// ── Fire progression animation (VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
+// ── Fire progression animation (docs/historico/VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
 //
 // Three layers over the same isochrone source, filtered on `arrival_hours` against the
 // clock. A feature the converter could not time carries `arrival_hours = null`; every

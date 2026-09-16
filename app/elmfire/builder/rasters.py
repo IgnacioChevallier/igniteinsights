@@ -3,7 +3,7 @@
 ELMFIRE takes every input as a raster on the computational grid, so a "constant" input
 (a spread-rate adjustment of 1.0, a synthetic flat slope) is written as a raster whose
 cells all carry the same value. Both the real pipeline and the synthetic scenarios of
-PLAYGROUND-SENSIBILIDAD.md need that, so it lives here rather than in either of them.
+docs/historico/PLAYGROUND-SENSIBILIDAD.md need that, so it lives here rather than in either of them.
 """
 from pathlib import Path
 

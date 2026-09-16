@@ -1,6 +1,7 @@
 # Playground de sensibilidad — casos base sintéticos
 
-> Estado: **implementado y verificado end-to-end** (2026-09-07)
+> **ARCHIVADO el 2026-09-15.** Estado: implementado y verificado end-to-end (2026-09-07).
+> Sigue siendo la referencia del módulo `app/playground/`; se archiva porque ya no es un plan.
 > Depende de: Etapa A (A2 tabla de combustibles propia)
 > Sirve a: IGN-20 §8 (sensibilidades S1-S4), y como material didáctico de la tesis
 

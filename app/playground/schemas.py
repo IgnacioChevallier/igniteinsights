@@ -5,7 +5,7 @@ raster over a square domain, so the only thing that varies between two runs is t
 parameter under study — that is what makes the comparison attributable.
 
 Almost no spatially-varying fields: a scenario with gradients stops being a controlled
-base case and becomes the real AOI. See PLAYGROUND-SENSIBILIDAD.md §P1.
+base case and becomes the real AOI. See docs/historico/PLAYGROUND-SENSIBILIDAD.md §P1.
 
 The single exception is `terrain`, which is itself one of the factors under study — "what
 does an unburnable barrier do to the front?" is only answerable with a domain that has

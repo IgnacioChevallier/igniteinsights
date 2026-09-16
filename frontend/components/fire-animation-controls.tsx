@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Play/pause, scrubber and speed for the fire progression animation
- * (VISUALIZACION-ANIMADA.md A3).
+ * (docs/historico/VISUALIZACION-ANIMADA.md A3).
  *
  * The scrubber is not optional garnish: the loop cannot be the only mode, because
  * reading a specific hour is the whole point of having the times per feature.

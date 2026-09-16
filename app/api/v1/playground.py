@@ -7,7 +7,7 @@ GET  /playground/presets — the curated scenario sequence
 
 The playground owns no simulation machinery. It writes a directory of uniform rasters and
 hands it to the existing POST /simulations/run, which already writes the namelist, calls
-the runner and registers the run. See PLAYGROUND-SENSIBILIDAD.md.
+the runner and registers the run. See docs/historico/PLAYGROUND-SENSIBILIDAD.md.
 """
 import json
 import logging

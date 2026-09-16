@@ -5,7 +5,7 @@ the `lake` terrain, which cuts a non-burnable patch out of the fuel slab. Follow
 shape of ELMFIRE's own
 `tutorials/01-constant-wind/01-run.sh`. Nothing here writes the namelist or talks to the
 runner: `POST /api/v1/simulations/run` already does both, and it only needs a directory
-that exists and contains dem.tif. See PLAYGROUND-SENSIBILIDAD.md §P2.
+that exists and contains dem.tif. See docs/historico/PLAYGROUND-SENSIBILIDAD.md §P2.
 """
 import logging
 import math
