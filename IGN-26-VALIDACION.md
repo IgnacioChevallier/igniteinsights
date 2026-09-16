@@ -1,57 +1,76 @@
 # IGN-26 · Diseño de validación
 
-> Estado: **especificado, no implementado.** Es la única parte viva de la auditoría del
-> 2026-08-31, extraída de `docs/historico/SIMULATION_AUDIT.md` §12 el 2026-09-15 para que
-> no siguiera enterrada en un documento histórico.
+> Estado: **harness B implementado y ejecutado** (2026-09-16); harness A pendiente.
+> El diseño es la única parte viva de la auditoría del 2026-08-31, extraída de
+> `docs/historico/SIMULATION_AUDIT.md` §12 el 2026-09-15.
+>
+> Implementación: `scripts/score_against_observed.py`. Lleva las 196 máscaras de Sentinel-2
+> a la grilla de la corrida —y no al revés, porque puntuar a 20 m inventaría una resolución
+> que el modelo no tiene—, descuenta la semilla y estratifica por `pct_quemado`.
 >
 > Se conserva la numeración original (§12.1 … §12.5) porque el resto de los planes la citan
 > con esos números. Bloquea: `ETAPA-A §A7` (congelar el baseline) y `ETAPA-B §B6`
 > (comparación de mapas de combustible contra el perímetro observado).
 
-## Estado de implementación (2026-09-16)
+## Resultado (2026-09-16)
 
-**Harness B implementado** en `scripts/score_against_observed.py`. Arma el mosaico de las 196
-máscaras de Sentinel-2 sobre la grilla de la corrida —las máscaras se llevan a nuestros 30 m
-y no al revés, porque puntuar a 20 m inventaría una resolución que el modelo no tiene—,
-descuenta la semilla y estratifica por `pct_quemado`.
+Primera comparación de los tres mapas de combustible contra el perímetro observado, que es
+la pregunta que la Etapa B vino a responder.
 
-**Primera ejecución**, sobre `cmp_b5_ccsbap` (12 h, mapa de CCS-BAP, humedad viva medida):
+**Configuración.** AOI definitivo (2.563 × 3.222), incendio del 1-2 de febrero de 2026,
+ignición 2026-02-02 19:46 UTC, 12 h de horizonte, 13 bandas horarias de meteorología,
+`SIMULATION_TSTART` anclado al reloj, humedad viva medida (`LH` 30 %, `LW` 110 %). Lo único
+que cambia entre corridas es `fbfm40.tif`. Semilla FIRMS: 17.747 ha, idéntica en las tres.
+Los tiles de Sentinel-2 cubren el 46,2 % del dominio y dentro de esa cobertura la cicatriz
+observada es de 76.178 ha.
 
-| | |
-|---|---|
-| Cobertura de tiles sobre el dominio | 66,2 % |
-| Observado dentro de cobertura | 30.009 ha |
-| Semilla FIRMS | 8.095 ha |
-| **Anillo: IoU** | **0,128** |
-| Recall | 0,146 |
-| Precisión | 0,503 |
-| Acierto / falso positivo / no predicho | 3.813 / 3.763 / 22.277 ha |
+| Mapa | IoU | Recall | Precisión | Acierto | Falso positivo | No predicho |
+|---|---|---|---|---|---|---|
+| WorldCover 2021 (baseline) | 0,036 | 0,043 | 0,182 | 2.827 ha | 12.697 ha | 62.896 ha |
+| MapBiomas 2024 | 0,045 | 0,048 | **0,412** | 3.175 ha | 4.537 ha | 62.549 ha |
+| **CCS-BAP 2017** | **0,067** | **0,082** | 0,267 | **5.362 ha** | 14.715 ha | 60.362 ha |
 
-| Banda de `pct_quemado` | Tiles | IoU | Recall | Precisión |
+Estratificado por `pct_quemado`, que es donde el número informa (§12.4):
+
+| Banda | Tiles | IoU WorldCover | IoU MapBiomas | **IoU CCS-BAP** |
 |---|---|---|---|---|
-| 0-10 % | 96 | 0,109 | 0,298 | 0,147 |
-| 10-40 % | 62 | 0,100 | 0,118 | 0,398 |
-| 40-70 % | 27 | 0,157 | 0,173 | **0,627** |
-| 70-100 % | 11 | 0,127 | 0,134 | **0,704** |
+| 0-10 % | 96 | 0,035 | 0,044 | 0,048 |
+| 10-40 % | 62 | 0,029 | 0,043 | 0,053 |
+| 40-70 % | 27 | 0,039 | 0,045 | 0,070 |
+| **70-100 %** | 11 | 0,047 | 0,051 | **0,101** |
 
-**Cómo se lee esto, y cómo no.** El recall bajo **no mide la calidad del modelo**: es §12.2 en
-acción. La referencia es la cicatriz final, de semanas, y la corrida es de 12 h, así que el
-modelo no puede cubrirla ni siendo perfecto. Las 22.277 ha "no predichas" son sobre todo
-tiempo de simulación que no existió.
+### Qué dice
 
-**La precisión sí informa**: de lo que el modelo agregó, la mitad cayó dentro de la cicatriz
-real. Y sube de 0,147 a 0,704 con el porcentaje quemado del tile, que es el gradiente
-esperado si el harness mide algo real: en los tiles que efectivamente ardieron, lo que el
-modelo predice cae adentro.
+**El mapa patagónico predice mejor que el baseline**: IoU 0,067 contra 0,036, casi el doble,
+y en los tiles con más del 70 % de superficie quemada —los que contienen el borde real del
+fuego— la diferencia se agranda a 0,101 contra 0,047. Es el resultado que hace falsable la
+Etapa B en vez de asertiva.
 
-**Lo que falta para que el número sea el de la tesis:**
+MapBiomas se queda en el medio en IoU pero **gana en precisión** (0,412): predice poco y lo
+que predice cae adentro. CCS-BAP predice más, acierta más en términos absolutos (5.362 ha
+contra 3.175) y también se equivoca más (14.715 ha de falso positivo). Cuál de los dos
+comportamientos es preferible depende de para qué se use el sistema, y conviene decirlo así
+en la tesis en vez de declarar un ganador único.
 
-1. Una corrida que **abarque la duración del incendio**, no 12 h. Requiere meteorología
-   multibanda que cubra ese horizonte.
-2. La grilla del AOI definitivo, con preparación completa (hoy la corrida usa la reducida y
-   sólo el 66,2 % del dominio tiene tiles).
-3. Correr los tres mapas y comparar `IoU(baseline)` contra `IoU(patagónico)`, que es el
-   número que responde la pregunta de la tesis.
+### Qué NO dice
+
+**Los valores absolutos son bajos y no miden la calidad del modelo.** Es §12.2 en acción: la
+referencia es la cicatriz final de todo el período febrero-marzo y la corrida es de 12 h, así
+que el recall está acotado por construcción. Las ~62.000 ha "no predichas" son sobre todo
+tiempo de simulación que no existió, no error del modelo. **Lo comparable es el orden entre
+mapas, no la magnitud.**
+
+Además: es **un incendio y una ventana**. Para que esto sea un resultado de tesis y no una
+anécdota hace falta repetirlo sobre varias ventanas y, si se puede, sobre más de un incendio.
+
+### Lo que falta
+
+1. Correr con la **duración real del incendio**, no 12 h, para que el recall deje de estar
+   acotado. Requiere meteorología que cubra ese horizonte.
+2. Barrer varias ventanas (`Δ` ∈ {6, 12, 24} h del harness A) y reportar cuántas resultan
+   puntuables, que es en sí un resultado.
+3. Recién después, calibrar `ADJ` (IGN-25). Antes no: absorbería el error del combustible y
+   haría desaparecer justamente esta diferencia.
 
 ---
 

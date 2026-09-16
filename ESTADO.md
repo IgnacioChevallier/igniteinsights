@@ -49,8 +49,9 @@ en la tesis.
 
 | # | Pendiente | Depende de | Tamaño |
 |---|---|---|---|
-| 1 | **Preparación completa sobre el AOI definitivo**: el DEM ya se re-ingestó y los mapas se reconstruyeron sobre la grilla de 8,3 M celdas, pero falta regenerar meteorología, `phi` y dosel ahí. Sin eso ELMFIRE sigue corriendo en la grilla reducida, y el anclaje de `SIMULATION_TSTART` queda sin aplicarse, porque los directorios de preparación son anteriores al arreglo | levantar base de datos y API para una ingesta | mediano |
-| 2 | **Correr el harness B sobre una corrida de duración completa**. El harness ya está escrito y ejecutado; lo que falta es una corrida que abarque el incendio, no 12 h | 1, y meteorología que cubra el horizonte | mediano |
+| 1 | ~~Preparación completa sobre el AOI definitivo~~ **HECHO 2026-09-16**: el DEM ya se re-ingestó y los mapas se reconstruyeron sobre la grilla de 8,3 M celdas, pero falta regenerar meteorología, `phi` y dosel ahí. Sin eso ELMFIRE sigue corriendo en la grilla reducida, y el anclaje de `SIMULATION_TSTART` queda sin aplicarse, porque los directorios de preparación son anteriores al arreglo | levantar base de datos y API para una ingesta | mediano |
+| 2 | **Correr con la duración real del incendio**, no 12 h: hoy el recall del harness está acotado por construcción porque la referencia es una cicatriz de semanas | meteorología que cubra ese horizonte | mediano |
+| 2b | **Repetir sobre varias ventanas y más de un incendio**: hoy el resultado es una sola ventana de 12 h sobre un solo fuego | 2 | mediano |
 | 3 | **Aprobación del director** de IGN-20B, con las tres decisiones de su §9 | el director | — |
 | 4 | **A7 — congelar el baseline** y **B6 — comparación final contra lo observado** | 2 | mediano |
 | 5 | **ADJ / IGN-25**: calibrar el factor de ajuste | 4, y **nunca antes** | mediano |
@@ -71,4 +72,8 @@ El punto 1 desbloquea al 2, y el 2 al 4. Nada de eso depende de terceros.
   que el techo pasó a ser el sistema de modelos, no el insumo.
 - **La humedad del combustible vivo**: fijada con medición (`LH` 30 %, `LW` 110 %).
 - **El DEM del AOI ampliado**: descargado, y los tres mapas reconstruidos sobre esa grilla.
-- **El harness de validación**: escrito y ejecutado; falta la corrida de duración completa.
+- **El harness de validación**: escrito, ejecutado y **con resultado**: el mapa patagónico
+  predice mejor que el baseline (IoU 0,067 contra 0,036; 0,101 contra 0,047 en los tiles con
+  más del 70 % quemado). Ver `IGN-26-VALIDACION.md`.
+- **La preparación sobre el AOI definitivo**: hecha, con `TSTART` anclado, 13 bandas horarias
+  de clima y humedad viva medida.

@@ -19,7 +19,9 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
-from rasterio.warp import Resampling, reproject
+from rasterio.errors import WindowError
+from rasterio.warp import Resampling, reproject, transform_bounds
+from rasterio.windows import Window, from_bounds
 
 CELL_HA = 0.09
 BANDAS = [(0, 10), (10, 40), (40, 70), (70, 100.1)]
@@ -34,17 +36,39 @@ class Grilla:
             self.transform, self.crs = ref.transform, ref.crs
             self.shape = (ref.height, ref.width)
 
-    def traer(self, tile: Path, contenido: bool) -> np.ndarray:
-        """Reproyecta un tile a la grilla: su máscara quemada, o dónde el tile tiene dato."""
-        destino = np.zeros(self.shape, dtype=np.uint8)
+    def traer(self, tile: Path, contenido: bool) -> tuple[Window, np.ndarray] | None:
+        """Reproyecta un tile a la grilla, **sólo dentro de su ventana**.
+
+        Reproyectar cada tile sobre las 8,3 M celdas del dominio costaba 196 pasadas
+        completas por nada: un tile de 5 km toca una porción mínima de la grilla.
+        """
         with rasterio.open(tile) as src:
+            izq, abajo, der, arriba = transform_bounds(src.crs, self.crs, *src.bounds)
+            ventana = from_bounds(izq, abajo, der, arriba, self.transform)
+            ventana = ventana.round_offsets().round_lengths()
+            dominio = Window(0, 0, self.shape[1], self.shape[0])
+            try:
+                ventana = ventana.intersection(dominio)
+            except WindowError:
+                return None   # el tile cae entero fuera del dominio
+            if ventana.width <= 0 or ventana.height <= 0:
+                return None
+            destino = np.zeros((int(ventana.height), int(ventana.width)), dtype=np.uint8)
             fuente = (src.read(1) if contenido
                       else np.ones((src.height, src.width), dtype=np.uint8))
             reproject(source=fuente, destination=destino,
                       src_transform=src.transform, src_crs=src.crs,
-                      dst_transform=self.transform, dst_crs=self.crs,
+                      dst_transform=rasterio.windows.transform(ventana, self.transform),
+                      dst_crs=self.crs,
                       resampling=Resampling.mode if contenido else Resampling.nearest)
-        return destino.astype(bool)
+        return ventana, destino.astype(bool)
+
+    def pegar(self, lienzo: np.ndarray, recorte: tuple[Window, np.ndarray] | None) -> None:
+        if recorte is None:
+            return
+        ventana, datos = recorte
+        f, c = int(ventana.row_off), int(ventana.col_off)
+        lienzo[f:f + datos.shape[0], c:c + datos.shape[1]] |= datos
 
 
 def cargar_observado(tiles_dir: Path, grilla: Grilla) -> tuple[np.ndarray, np.ndarray]:
@@ -52,8 +76,8 @@ def cargar_observado(tiles_dir: Path, grilla: Grilla) -> tuple[np.ndarray, np.nd
     observado = np.zeros(grilla.shape, dtype=bool)
     cobertura = np.zeros(grilla.shape, dtype=bool)
     for tile in sorted(tiles_dir.glob("*.tif")):
-        observado |= grilla.traer(tile, contenido=True)
-        cobertura |= grilla.traer(tile, contenido=False)
+        grilla.pegar(observado, grilla.traer(tile, contenido=True))
+        grilla.pegar(cobertura, grilla.traer(tile, contenido=False))
     return observado, cobertura
 
 
@@ -116,7 +140,7 @@ def main() -> None:
         for f in elegidos:
             ruta = args.tiles / f"{f['tile']}.tif"
             if ruta.exists():
-                mascara |= grilla.traer(ruta, contenido=False)
+                grilla.pegar(mascara, grilla.traer(ruta, contenido=False))
         mb = metricas(quemado_pred & ~semilla, observado & ~semilla, mascara & ~semilla)
         print(f"{f'{lo:.0f}-{hi:.0f} %':>12s}{len(elegidos):7d}{mb['iou']:8.3f}"
               f"{mb['recall']:9.3f}{mb['precision']:11.3f}")
