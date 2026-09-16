@@ -39,12 +39,14 @@ cp .env.example .env
 uv sync
 ```
 
-## Run with Docker (recommended)
+## Run the complete image-based stack
 
 ```bash
-docker compose up
+docker compose build  # first run, or after dependency/Dockerfile changes
+docker compose up     # subsequent starts do not rebuild
 # API: http://localhost:8000
 # DB: localhost:5432
+# Dashboard: http://localhost:3000
 ```
 
 ```bash
@@ -52,7 +54,36 @@ docker compose up
 docker compose exec api uv run alembic upgrade head
 ```
 
-## Run locally (without Docker DB)
+## Development with hot reload (recommended on macOS)
+
+FastAPI and PostGIS run in Docker while Next.js runs on the host. Python files
+under `app/` and frontend source files reload without rebuilding an image.
+
+```bash
+cp frontend/.env.local.example frontend/.env.local
+npm --prefix frontend install
+make dev
+```
+
+The regular development command intentionally omits ELMFIRE. Start it only when
+working on simulations:
+
+```bash
+make dev-simulation
+```
+
+For an entirely containerized development environment with frontend hot reload:
+
+```bash
+make dev-docker
+# Or include ELMFIRE:
+make dev-docker-simulation
+```
+
+The Docker development override stores Linux `node_modules` and `.next` output
+in Docker volumes while bind-mounting frontend source code.
+
+## Run the API locally
 
 ```bash
 # Start only PostGIS
@@ -64,6 +95,21 @@ uv run alembic upgrade head
 # Run API
 uv run uvicorn app.main:app --reload
 ```
+
+## When to rebuild or restart
+
+| Change | Action |
+| --- | --- |
+| `app/**/*.py` | None in development; Uvicorn reloads |
+| Frontend source | None in development; Next.js reloads |
+| `pyproject.toml` or `uv.lock` | `docker compose build api && docker compose up -d --no-deps api` |
+| `frontend/package*.json` | Run `npm install` for host development, or rebuild only the Docker frontend |
+| API/frontend Dockerfile | Rebuild and recreate only that service |
+| ELMFIRE source/Dockerfile | Rebuild and recreate only `elmfire-runner` |
+| Database migration | Run Alembic; no image rebuild |
+
+Avoid `docker compose up --build` as a daily command because it checks all three
+locally built services. Plain `docker compose up -d` reuses existing images.
 
 ## Common commands
 
