@@ -15,6 +15,7 @@ informativos son los de quema parcial, que contienen el borde real del fuego.
 """
 import argparse
 import csv
+import json
 from pathlib import Path
 
 import numpy as np
@@ -99,6 +100,9 @@ def main() -> None:
     ap.add_argument("--tiles", type=Path, default=Path("../mask-dataset-gen/dataset/mascaras"))
     ap.add_argument("--metadata", type=Path,
                     default=Path("../mask-dataset-gen/dataset/metadata.csv"))
+    ap.add_argument("--caso", default=None,
+                    help="escribe artefactos para el dashboard en data/validation/harness_b/<caso>")
+    ap.add_argument("--mapa", default=None, help="etiqueta del mapa de combustible")
     args = ap.parse_args()
 
     inputs = Path("data/elmfire/inputs") / args.run
@@ -127,6 +131,9 @@ def main() -> None:
     print(f"  acierto {m['tp_ha']:,.0f} ha · falso positivo {m['fp_ha']:,.0f} ha · "
           f"no predicho {m['fn_ha']:,.0f} ha")
 
+    if args.caso:
+        escribir_artefactos(args, grilla, semilla, observado, cobertura, quemado_pred, m)
+
     if not args.metadata.exists():
         return
     filas = list(csv.DictReader(args.metadata.open()))
@@ -144,6 +151,38 @@ def main() -> None:
         mb = metricas(quemado_pred & ~semilla, observado & ~semilla, mascara & ~semilla)
         print(f"{f'{lo:.0f}-{hi:.0f} %':>12s}{len(elegidos):7d}{mb['iou']:8.3f}"
               f"{mb['recall']:9.3f}{mb['precision']:11.3f}")
+
+
+def escribir_artefactos(args, grilla, semilla, observado, cobertura, quemado_pred, m) -> None:
+    """Deja la matriz de confusión y las métricas donde el dashboard las lee.
+
+    Códigos del ráster: 0 nada · 1 semilla · 2 acierto · 3 predicho sin cicatriz ·
+    4 cicatriz no predicha · 5 fuera de la cobertura de tiles (no se puntúa).
+    """
+    destino = Path("data/validation/harness_b") / args.caso / (args.mapa or args.run)
+    destino.mkdir(parents=True, exist_ok=True)
+    pred = quemado_pred & ~semilla
+    ref = observado & ~semilla
+    confusion = np.full(semilla.shape, 5, dtype="uint8")
+    dentro = cobertura & ~semilla
+    confusion[dentro] = 0
+    confusion[dentro & pred & ref] = 2
+    confusion[dentro & pred & ~ref] = 3
+    confusion[dentro & ~pred & ref] = 4
+    confusion[semilla] = 1
+
+    with rasterio.open(Path("data/elmfire/inputs") / args.run / "phi.tif") as src:
+        perfil = src.profile | {"dtype": "uint8", "count": 1, "nodata": None}
+    with rasterio.open(destino / "confusion.tif", "w", **perfil) as dst:
+        dst.write(confusion, 1)
+    (destino / "metrics.json").write_text(json.dumps({
+        "caso": args.caso, "mapa": args.mapa or args.run, "run": args.run,
+        "semilla_ha": float(semilla.sum() * CELL_HA),
+        "observado_ha": float((observado & cobertura).sum() * CELL_HA),
+        "cobertura_pct": float(100 * cobertura.mean()),
+        **{k: float(v) for k, v in m.items()},
+    }, indent=2))
+    print(f"  artefactos → {destino}")
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@ import { FuelsPanel } from "@/components/fuels-panel";
 import { MapPanel } from "@/components/map-panel";
 import { PlaygroundPanel } from "@/components/playground-panel";
 import { SidebarNav, type DashboardSection } from "@/components/sidebar-nav";
+import { ValidationPanel } from "@/components/validation-panel";
 import type {
   DashboardData,
   Run,
@@ -461,6 +462,13 @@ export function DashboardShell({
             <FuelsPanel />
           </div>
         )}
+
+        {activeSection === "validation" && (
+
+          <ValidationPanel />
+
+        )}
+
 
         {activeSection === "playground" && (
           <div className="min-h-0 flex-1">
