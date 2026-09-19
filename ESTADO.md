@@ -15,7 +15,8 @@
 | `IGN-20B-CROSSWALK-CCSBAP.md` | **Crosswalk principal** (CCS-BAP → FBFM40) | Propuesta · **pendiente del director** |
 | `IGN-20-CROSSWALK.md` | Crosswalk de MapBiomas, comparador intermedio | Propuesta · pendiente del director |
 | `IGN-26-VALIDACION.md` | Diseño de validación (harness A y B) | **Especificado, no implementado** |
-| `PENDING_PARAMETERS.md` | Valores fijados sin criterio | Vivo · §1.1 superado, §1.5 resuelto |
+| `PENDING_PARAMETERS.md` | Valores fijados sin criterio | Vivo · §1.1 superado, §1.5 y §1.6 resueltos |
+| `RESULTADOS.md` | **Informe de resultados de validación** | Corte al 2026-09-19 |
 
 **Histórico (`docs/historico/`):** la auditoría end-to-end del 2026-08-31, el playground de
 sensibilidad y la visualización animada. Terminados o superados; se conservan porque se citan
