@@ -12,6 +12,87 @@
 > con esos números. Bloquea: `ETAPA-A §A7` (congelar el baseline) y `ETAPA-B §B6`
 > (comparación de mapas de combustible contra el perímetro observado).
 
+## Resultado del harness A (2026-09-19)
+
+Diez ventanas de 24 h repartidas en las cinco semanas de actividad del incendio, tres mapas
+de combustible cada una: **30 corridas**. Semilla: todas las detecciones FIRMS hasta T0.
+Referencia: las detecciones nuevas de (T0, T1] fuera de la semilla. Dominio recortado al
+frente activo. Reproducible con `scripts/harness_a.py`.
+
+### Agregado sobre las diez ventanas
+
+| Mapa | Recall | Recall cercano | Precisión | IoU | Acierto |
+|---|---|---|---|---|---|
+| WorldCover 2021 (baseline) | 0,162 | 0,222 | 0,033 | 0,028 | 6.445 ha |
+| MapBiomas 2024 | 0,283 | 0,387 | **0,068** | **0,058** | 11.253 ha |
+| **CCS-BAP 2017** | **0,342** | **0,467** | 0,048 | 0,044 | **13.587 ha** |
+
+*Recall cercano*: restringido a la referencia dentro de 5 km de la semilla, que es el alcance
+físico del frente en 24 h. Las detecciones más lejos son igniciones nuevas, y un modelo de
+propagación no predice dónde se inicia un foco.
+
+### Recall por ventana: el orden se repite
+
+| Ventana | WorldCover | MapBiomas | **CCS-BAP** |
+|---|---|---|---|
+| 06-01 | 0,030 | 0,090 | **0,099** |
+| 08-01 | 0,181 | 0,432 | **0,488** |
+| 09-01 | 0,133 | 0,157 | **0,201** |
+| 20-01 | 0,180 | 0,432 | **0,546** |
+| 24-01 | 0,142 | 0,355 | **0,458** |
+| 25-01 | 0,104 | 0,294 | **0,315** |
+| 31-01 | 0,729 | 0,740 | **0,937** |
+| 01-02 | 0,438 | 0,494 | **0,671** |
+| 06-02 | 0,793 | 0,981 | **1,000** |
+| 07-02 | 0,794 | 0,556 | **0,952** |
+
+**CCS-BAP tiene el mayor recall en las diez ventanas**, y los dos mapas patagónicos superan
+al baseline en nueve de diez. Que el orden se repita ventana por ventana es lo que convierte
+el resultado de §6.1 en algo más que una corrida afortunada.
+
+### La salvedad que limita la lectura: el modelo sobre-propaga
+
+| Ventana | Referencia | Predicho (CCS-BAP) | Veces la referencia |
+|---|---|---|---|
+| 06-01 | 12.318 ha | 3.135 ha | 0,3× |
+| 08-01 | 6.032 ha | 10.286 ha | 1,7× |
+| 09-01 | 4.979 ha | 10.102 ha | 2,0× |
+| 20-01 | 1.951 ha | 21.900 ha | 11,2× |
+| 25-01 | 6.447 ha | 36.177 ha | 5,6× |
+| 31-01 | 1.454 ha | 41.700 ha | 28,7× |
+| 01-02 | 3.711 ha | 73.280 ha | 19,7× |
+| 06-02 | **63 ha** | 28.875 ha | **458×** |
+| 07-02 | 260 ha | 27.850 ha | 107× |
+
+**Un recall alto se consigue quemando de más.** El 6 de febrero CCS-BAP alcanza recall 1,000
+prediciendo 28.875 ha contra una referencia de 63 ha: el número no significa nada. A partir
+del 20 de enero, cuando la semilla ya es grande, las tres corridas se desbocan.
+
+Consecuencias, en orden de importancia:
+
+1. **Las ventanas interpretables son las tres primeras** (06, 08 y 09 de enero), donde lo
+   predicho está entre 0,3 y 2 veces la referencia. También ahí CCS-BAP gana en las tres.
+2. **El recall agregado favorece al mapa que más superficie predice**, y CCS-BAP predice
+   282.164 ha contra 166.079 ha de MapBiomas en total. Por eso MapBiomas gana en IoU y en
+   precisión: equilibra las dos caras. **No hay un ganador único, y la tesis debe decirlo
+   así.**
+3. **Falta modelar la supresión.** Los incendios reales se combaten; ELMFIRE corre sin
+   extinción, así que una corrida libre de 24 h con una semilla grande no tiene nada que la
+   frene. Es la explicación más simple de un factor 100, y está sin representar en todo el
+   pipeline.
+4. `ADJ` sigue en 1,0 uniforme, o sea sin calibrar (`PENDING_PARAMETERS` §1.3). Calibrarlo es
+   lo que corresponde **después** de la comparación de combustibles, y este resultado es
+   precisamente la evidencia de que hace falta.
+
+### Qué sigue
+
+1. Modelar o acotar la supresión, o restringir la validación a ventanas de crecimiento libre
+   —las primeras de cada pulso— donde el supuesto de no intervención se sostiene.
+2. Recién después, calibrar `ADJ` contra estas mismas ventanas.
+3. La duración completa del incendio (37 días encadenados) sigue pendiente: ~50 h de cómputo.
+
+---
+
 ## Resultado (2026-09-16)
 
 Primera comparación de los tres mapas de combustible contra el perímetro observado, que es

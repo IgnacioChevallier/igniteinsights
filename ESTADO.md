@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-> Última revisión: **2026-09-16**. Índice de los planes vivos y de lo que queda pendiente.
+> Última revisión: **2026-09-19**. Índice de los planes vivos y de lo que queda pendiente.
 > Se actualiza cuando cambia un **estado**, no cuando cambia el contenido de un plan.
 
 ## Dónde está cada cosa
@@ -21,7 +21,8 @@
 sensibilidad y la visualización animada. Terminados o superados; se conservan porque se citan
 en la tesis.
 
-**Referencia (`docs/referencias/`):** la Publicación Técnica N.º 37 de CIEFAP convertida a texto.
+**Referencia (`docs/referencias/`):** la Publicación Técnica N.º 37 de CIEFAP convertida a texto;
+Bianchi & Defossé (2015) y Cóbar-Carranza et al. (2014) en PDF.
 
 ## Qué está hecho
 
@@ -50,13 +51,14 @@ en la tesis.
 | # | Pendiente | Depende de | Tamaño |
 |---|---|---|---|
 | 1 | ~~Preparación completa sobre el AOI definitivo~~ **HECHO 2026-09-16**: el DEM ya se re-ingestó y los mapas se reconstruyeron sobre la grilla de 8,3 M celdas, pero falta regenerar meteorología, `phi` y dosel ahí. Sin eso ELMFIRE sigue corriendo en la grilla reducida, y el anclaje de `SIMULATION_TSTART` queda sin aplicarse, porque los directorios de preparación son anteriores al arreglo | levantar base de datos y API para una ingesta | mediano |
+| 2b | **Modelar o acotar la supresión**, o restringir la validación a ventanas de crecimiento libre: sin extinción, una corrida de 24 h con semilla grande sobre-propaga un factor 100 | — | mediano |
 | 2 | **Correr con la duración real del incendio**, no 12 h: hoy el recall del harness está acotado por construcción porque la referencia es una cicatriz de semanas | meteorología que cubra ese horizonte | mediano |
 | 2b | **Repetir sobre varias ventanas y más de un incendio**: hoy el resultado es una sola ventana de 12 h sobre un solo fuego | 2 | mediano |
 | 3 | **Aprobación del director** de IGN-20B, con las tres decisiones de su §9 | el director | — |
 | 4 | **A7 — congelar el baseline** y **B6 — comparación final contra lo observado** | 2 | mediano |
 | 5 | **ADJ / IGN-25**: calibrar el factor de ajuste | 4, y **nunca antes** | mediano |
 | 6 | Parámetros sin criterio que quedan: humedad de muertos sin historial de secado (§1.2), `m1` sin corrección diurna, timesteps sin prueba de convergencia, `horizon_hours` por defecto sin base | — | varios |
-| 7 | Datos por parcela de la PT-37, para separar 10 h de 100 h | CIEFAP | — |
+| 7 | Datos por parcela de la PT-37, para separar 10 h de 100 h. **No están publicados** (búsqueda del 2026-09-16, `ETAPA-C` §C0). Mientras tanto rige el supuesto *todo el Medio a 10 h*, con sesgo declarado. Mail a Bianchi redactado; **envío pendiente** | CIEFAP | chico |
 
 El punto 1 desbloquea al 2, y el 2 al 4. Nada de eso depende de terceros.
 
@@ -70,8 +72,15 @@ El punto 1 desbloquea al 2, y el 2 al 4. Nada de eso depende de terceros.
 - **Cablear la fuente de combustible**: hecho. La app sirve el mapa de CCS-BAP.
 - **El paso 4 del crosswalk**: ejecutado. Su resultado no invalida las asignaciones; muestra
   que el techo pasó a ser el sistema de modelos, no el insumo.
-- **La humedad del combustible vivo**: fijada con medición (`LH` 30 %, `LW` 110 %).
+- **La humedad del combustible vivo**: `LW` 110 % medido (Bianchi & Defossé 2015); `LH` 30 %
+  es convención declarada, porque el paper no mide herbáceas.
+- **Buscar la separación 10 h / 100 h en la literatura**: hecho, no existe publicada. El Global
+  Fuelbed Dataset se evaluó y se descartó (`ETAPA-C` §C0).
 - **El DEM del AOI ampliado**: descargado, y los tres mapas reconstruidos sobre esa grilla.
+- **Harness A completo** (2026-09-19): 10 ventanas × 3 mapas = 30 corridas. CCS-BAP tiene el
+  mayor recall en las 10, y los dos mapas patagónicos superan al baseline en 9 de 10. Con una
+  salvedad que acota la lectura: desde el 20 de enero el modelo sobre-propaga hasta 458× la
+  referencia, porque no se modela la supresión. Ver `IGN-26-VALIDACION.md`.
 - **El harness de validación**: escrito, ejecutado y **con resultado**: el mapa patagónico
   predice mejor que el baseline (IoU 0,067 contra 0,036; 0,101 contra 0,047 en los tiles con
   más del 70 % quemado). Ver `IGN-26-VALIDACION.md`.
