@@ -1,18 +1,14 @@
 # IGN-20B · Tabla de correspondencia CCS-BAP → Scott & Burgan FBFM40
 
-> **Estado: propuesta, pendiente de revisión y aprobación del director.**
-> Insumo principal de la Etapa B. Convive con `IGN-20-CROSSWALK.md` (MapBiomas), que pasa a
-> ser punto intermedio de comparación, y con el baseline de WorldCover (`ETAPA-A §A7`).
+> **Estado: propuesta, pendiente de revisión y aprobación del director.** Insumo principal. Convive con `IGN-20-CROSSWALK.md` (MapBiomas), que pasa a ser punto intermedio de comparación, y con el baseline de WorldCover (`ETAPA-A §A7`).
 >
-> Área de interés: Parque Nacional Los Alerces y entorno.
-> −72,05 / −42,90 / −71,15 / −42,05 (EPSG:4326) · 699.000 ha · grilla EPSG:32719, 30 m.
+> Área de interés: Parque Nacional Los Alerces y entorno. −72,05 / −42,90 / −71,15 / −42,05 (EPSG:4326) · 699.000 ha · grilla EPSG:32719, 30 m.
 
 ---
 
 ## 1. El insumo
 
-**Clasificación de Tipos Forestales y Cobertura del Suelo de la Región Bosque Andino
-Patagónico** (CIEFAP, MAyDS y provincias). Acceso otorgado por CIEFAP el 2026-09-13.
+**Clasificación de Tipos Forestales y Cobertura del Suelo de la Región Bosque Andino Patagónico** (CIEFAP, MAyDS y provincias). Acceso otorgado por CIEFAP el 2026-09-13.
 
 
 |                   |                                                                          |
@@ -27,8 +23,7 @@ Patagónico** (CIEFAP, MAyDS y provincias). Acceso otorgado por CIEFAP el 2026-0
 | Topología         | Sin solapes (suma de polígonos = unión) y sin clases nulas, verificado   |
 
 
-También se recibieron Río Negro, Neuquén, Santa Cruz y Tierra del Fuego, y la **época 2013**
-de cada una. Ninguna es necesaria para este AOI; la de 2013 se usa como control temporal.
+También se recibieron Río Negro, Neuquén, Santa Cruz y Tierra del Fuego, y la **época 2013** de cada una. Ninguna es necesaria para este AOI; la de 2013 se usa como control temporal.
 
 ### 1.1 Por qué 2017 y no 2013
 
@@ -44,9 +39,7 @@ Comparando ambas épocas dentro del AOI aparece un cambio que ningún producto g
 | Coihue                          | 53.723 ha  | 46.919 ha     | −6.804      |
 
 
-Las pérdidas por especie suman lo que gana "remanente de disturbio reciente". Por fecha y
-magnitud corresponde al incendio de Cholila de 2015. **El 5,4 % del AOI es superficie
-quemada**, un estado de combustible propio que hay que representar (§5, clase `Rem Dist Rec`).
+Las pérdidas por especie suman lo que gana "remanente de disturbio reciente". Por fecha y magnitud corresponde al incendio de Cholila de 2015. **El 5,4 % del AOI es superficie quemada**, un estado de combustible propio que hay que representar (§5, clase `Rem Dist Rec`).
 
 ### 1.2 Por qué este insumo es el aporte
 
@@ -360,14 +353,14 @@ regla de agregación y el mismo relleno de huecos, sobre el **AOI definitivo**
 fronterizo toma el 6,90 % de la grilla en MapBiomas y el 5,38 % en CCS-BAP:
 
 
-| Tipo de combustible | WorldCover 2021 | MapBiomas 2024 | **CCS-BAP 2017** |
-| --- | --- | --- | --- |
-| NB · no combustible | 19,21 % | 26,39 % | 20,99 % |
-| GR · pastizal | 34,70 % | 12,49 % | 18,22 % |
-| GS · pastizal-arbustal | 0,00 % | 3,34 % | **5,11 %** |
-| SH · arbustal | **3,75 %** | 22,11 % | **23,25 %** |
-| TU · bosque con sotobosque | 0,00 % | 31,00 % | 16,41 % |
-| TL · hojarasca de bosque | 42,34 % | 4,68 % | 16,02 % |
+| Tipo de combustible        | WorldCover 2021 | MapBiomas 2024 | **CCS-BAP 2017** |
+| -------------------------- | --------------- | -------------- | ---------------- |
+| NB · no combustible        | 19,21 %         | 26,39 %        | 20,99 %          |
+| GR · pastizal              | 34,70 %         | 12,49 %        | 18,22 %          |
+| GS · pastizal-arbustal     | 0,00 %          | 3,34 %         | **5,11 %**       |
+| SH · arbustal              | **3,75 %**      | 22,11 %        | **23,25 %**      |
+| TU · bosque con sotobosque | 0,00 %          | 31,00 %        | 16,41 %          |
+| TL · hojarasca de bosque   | 42,34 %         | 4,68 %         | 16,02 %          |
 
 
 Lecturas:
@@ -393,29 +386,29 @@ Semilla FIRMS: 8.095 ha, verificada idéntica en las tres corridas. Humedad del 
 vivo en los valores medidos de `ETAPA-B` §B5: `LH` 30 %, `LW` 110 %.
 
 
-| Mapa | Anillo a 12 h | vs baseline | FLI mediana | FLI p90 |
-| --- | --- | --- | --- | --- |
-| WorldCover 2021 | 2.342 ha | — | 96,1 kW/m | 333 |
-| MapBiomas 2024 | 5.849 ha | +150 % | 311,1 kW/m | 1.267 |
-| **CCS-BAP 2017** | **7.576 ha** | **+223 %** | **317,0 kW/m** | 1.309 |
+| Mapa             | Anillo a 12 h | vs baseline | FLI mediana    | FLI p90 |
+| ---------------- | ------------- | ----------- | -------------- | ------- |
+| WorldCover 2021  | 2.342 ha      | —           | 96,1 kW/m      | 333     |
+| MapBiomas 2024   | 5.849 ha      | +150 %      | 311,1 kW/m     | 1.267   |
+| **CCS-BAP 2017** | **7.576 ha**  | **+223 %**  | **317,0 kW/m** | 1.309   |
 
 
 Acuerdo entre mapas sobre el anillo:
 
 
-| Par | IoU | Sólo el primero | Sólo el segundo |
-| --- | --- | --- | --- |
-| WorldCover vs MapBiomas | 0,245 | 728 ha | 4.235 ha |
-| WorldCover vs CCS-BAP | 0,269 | 243 ha | 5.476 ha |
-| MapBiomas vs CCS-BAP | **0,599** | 822 ha | 2.550 ha |
+| Par                     | IoU       | Sólo el primero | Sólo el segundo |
+| ----------------------- | --------- | --------------- | --------------- |
+| WorldCover vs MapBiomas | 0,245     | 728 ha          | 4.235 ha        |
+| WorldCover vs CCS-BAP   | 0,269     | 243 ha          | 5.476 ha        |
+| MapBiomas vs CCS-BAP    | **0,599** | 822 ha          | 2.550 ha        |
 
-> **Corrida anterior, con `LH`/`LW` en 60 %:** 1.989 / 9.328 / 10.537 ha, con IoU de 0,179 /
+
+> **Corrida anterior, con** `LH`**/**`LW` **en 60 %:** 1.989 / 9.328 / 10.537 ha, con IoU de 0,179 /
 > 0,179 / 0,629. Al pasar a la humedad medida, el fuego de los dos mapas patagónicos se reduce
 > cerca de un tercio y el del baseline **sube** —el pasto curado hace arder más el GR2—, así
 > que la diferencia entre mapas se achica de un factor 5,3 a uno de 3,2. **La conclusión no
 > cambia; la magnitud sí.** Es exactamente el motivo por el que el escalar tenía que fijarse
 > con una medición antes de citar cualquier número.
-
 
 Qué combustible quemó cada corrida, dentro del anillo:
 
@@ -436,15 +429,16 @@ lo prueba.
 **Salvedades de esta corrida:**
 
 1. **Corre sobre la grilla reducida** (1414 × 1526), aunque el DEM ya se re-ingestó y los mapas
-   de §6 están sobre el AOI definitivo. Llevar ELMFIRE al AOI completo exige regenerar también
+  de §6 están sobre el AOI definitivo. Llevar ELMFIRE al AOI completo exige regenerar también
    meteorología, `phi` y dosel, o sea una preparación entera. **Pendiente.**
 2. ~~Humedad del combustible vivo sin criterio~~ → **resuelto**: valores medidos de Bianchi &
-   Defossé (2015), fundamentados en `ETAPA-B` §B5 y cuantificados en §6.3.
+  Defossé (2015), fundamentados en `ETAPA-B` §B5 y cuantificados en §6.3.
 3. **Sin validación contra lo observado.** Las tres corridas se comparan entre sí. El harness
-   ya existe y se ejecutó (`IGN-26-VALIDACION.md`), pero puntuar de verdad exige una corrida
+  ya existe y se ejecutó (`IGN-26-VALIDACION.md`), pero puntuar de verdad exige una corrida
    que abarque el incendio completo y no 12 h.
-4. **`SIMULATION_TSTART` quedó en 0 en estas corridas**, porque el directorio de preparación es
-   anterior al arreglo del anclaje. Una preparación nueva las mueve.
+4. `SIMULATION_TSTART` **quedó en 0 en estas corridas**, porque el directorio de preparación es
+  anterior al arreglo del anclaje. Una preparación nueva las mueve.
+
 
 
 ### 6.2 · Paso 4 contra la quema experimental de la PT-37 (2026-09-16)
@@ -464,13 +458,13 @@ en las dos condiciones y el resultado se lee como horquilla. Longitud de llama p
 `L = 0,0775 · I^0,46`.
 
 
-| Modelo | ROS sostenido | Llama | ROS ráfaga | Llama | Veredicto |
-| --- | --- | --- | --- | --- | --- |
-| **SH8** (148) | 437 m/h · alta | **3,1 m** | 900 m/h · alta | 5,7 m | llama sí, propagación no |
-| SH4 (144) | 522 m/h · alta | 2,1 m | 1.201 m/h · muy alta | 3,8 m | llama sí, propagación no |
-| GS3 (123) | 627 m/h · alta | 2,4 m | 1.394 m/h · muy alta | 4,7 m | llama sí, propagación no |
-| SH9 (149) | 1.034 m/h · muy alta | 7,5 m | 2.321 m/h · muy alta | 12,8 m | llama muy por encima |
-| SH5 (145) · control | 1.091 m/h · muy alta | 4,9 m | 2.529 m/h · muy alta | 8,0 m | llama por encima |
+| Modelo              | ROS sostenido        | Llama     | ROS ráfaga           | Llama  | Veredicto                |
+| ------------------- | -------------------- | --------- | -------------------- | ------ | ------------------------ |
+| **SH8** (148)       | 437 m/h · alta       | **3,1 m** | 900 m/h · alta       | 5,7 m  | llama sí, propagación no |
+| SH4 (144)           | 522 m/h · alta       | 2,1 m     | 1.201 m/h · muy alta | 3,8 m  | llama sí, propagación no |
+| GS3 (123)           | 627 m/h · alta       | 2,4 m     | 1.394 m/h · muy alta | 4,7 m  | llama sí, propagación no |
+| SH9 (149)           | 1.034 m/h · muy alta | 7,5 m     | 2.321 m/h · muy alta | 12,8 m | llama muy por encima     |
+| SH5 (145) · control | 1.091 m/h · muy alta | 4,9 m     | 2.529 m/h · muy alta | 8,0 m  | llama por encima         |
 
 
 Reproducir: `uv run python scripts/paso4_quema_a4.py`.
@@ -478,15 +472,15 @@ Reproducir: `uv run python scripts/paso4_quema_a4.py`.
 Lecturas:
 
 1. **Ningún modelo de arbustal de SB40 reproduce propagación y llama a la vez.** SH8 clava la
-   llama —3,1 m contra 3 a 4 m medidos— y queda entre 5 y 11 veces por debajo en propagación.
+  llama —3,1 m contra 3 a 4 m medidos— y queda entre 5 y 11 veces por debajo en propagación.
    Los dos que alcanzan el orden de la propagación observada lo hacen con llamas de 7,5 a
    12,8 m, dos a tres veces lo medido.
 2. **SH9 queda descartado por segunda vez**, ahora por comportamiento y no sólo por carga
-   (§5.4): su llama duplica largamente lo observado en las dos condiciones.
+  (§5.4): su llama duplica largamente lo observado en las dos condiciones.
 3. **SH5, la familia del baseline, sigue rechazado.** Propaga más, pero con llama de 4,9 a
-   8,0 m y `mex` de 15 %, incompatible con los umbrales de ignición medidos (§2).
+  8,0 m y `mex` de 15 %, incompatible con los umbrales de ignición medidos (§2).
 4. SH4 y GS3 caen en el mismo régimen que SH8, lo que es coherente: las tres asignaciones se
-   eligieron por carga fina medida y las tres heredan el mismo sesgo.
+  eligieron por carga fina medida y las tres heredan el mismo sesgo.
 
 **Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo
 observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje,
@@ -499,8 +493,6 @@ favor de la `ETAPA-C` y de la sensibilidad S5.
 parámetros propios de SB40, no con las cargas de la PT-37 —eso es S5—, sobre terreno plano y
 con ignición puntual, sin la continuidad de combustible que la quema tenía medida.
 
-
-
 ### 6.3 · Sensibilidad a la humedad del combustible vivo (2026-09-16)
 
 Barrido uniforme de `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` sobre el mapa de CCS-BAP,
@@ -508,11 +500,11 @@ Barrido uniforme de `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` sobre el mapa 
 
 
 | LH/LW | Anillo a 12 h | vs 60 % | FLI mediana |
-| --- | --- | --- | --- |
-| 30 % | 11.293 ha | +7 % | 512,0 kW/m |
-| 60 % | 10.537 ha | — | 484,9 kW/m |
-| 90 % | 7.472 ha | −29 % | 327,5 kW/m |
-| 120 % | 4.513 ha | −57 % | 220,5 kW/m |
+| ----- | ------------- | ------- | ----------- |
+| 30 %  | 11.293 ha     | +7 %    | 512,0 kW/m  |
+| 60 %  | 10.537 ha     | —       | 484,9 kW/m  |
+| 90 %  | 7.472 ha      | −29 %   | 327,5 kW/m  |
+| 120 % | 4.513 ha      | −57 %   | 220,5 kW/m  |
 
 
 Reproducir: `uv run python scripts/sweep_live_moisture.py`.
@@ -527,9 +519,8 @@ exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
 tabla acota pero no predice: la combinación adoptada da 7.576 ha (§6.1), entre las filas de
 60 % y 90 %, que es donde tiene que caer.
 
-**Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y fenología
+## **Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y fenología
 sería la mejora, y no está en alcance.
----
 
 
 
@@ -586,14 +577,14 @@ la tabla que ELMFIRE realmente carga. ELMFIRE resuelve cualquier código ausente
 ## 9. Estado de aprobación
 
 
-|                                        |                                              |
-| -------------------------------------- | -------------------------------------------- |
-| Propuesta elaborada                    | 2026-09-15                                   |
-| Comparación de los tres mapas (§6.1)   | 2026-09-16                                   |
-| Paso 4 sobre la quema de la PT-37      | **hecho** 2026-09-16 (§6.2)                  |
-| Sensibilidad de la humedad viva (§6.3) | 2026-09-16                                   |
-| Validación contra lo observado         | 2026-09-19 (`IGN-26-VALIDACION.md`)          |
-| Revisión del director                  | **pendiente**                                |
+|                                        |                                     |
+| -------------------------------------- | ----------------------------------- |
+| Propuesta elaborada                    | 2026-09-15                          |
+| Comparación de los tres mapas (§6.1)   | 2026-09-16                          |
+| Paso 4 sobre la quema de la PT-37      | **hecho** 2026-09-16 (§6.2)         |
+| Sensibilidad de la humedad viva (§6.3) | 2026-09-16                          |
+| Validación contra lo observado         | 2026-09-19 (`IGN-26-VALIDACION.md`) |
+| Revisión del director                  | **pendiente**                       |
 
 
 Puntos que requieren decisión explícita:
@@ -608,8 +599,6 @@ discusión, pero sí cambia lo que se les puede pedir: ningún modelo de arbusta
 reproduce a la vez propagación y llama observadas (§6.2), así que las asignaciones de arbustal
 —SH8, SH4 y GS3— se aprueban **con el sesgo declarado de subestimar la propagación**. Levantar
 ese techo es `ETAPA-C`, no este crosswalk.
-
-
 
 ## 10. Fuentes
 
@@ -626,10 +615,10 @@ p. 3 · modelos dinámicos p. 4 · parámetros Tabla 7)
 Patagonian forests of Argentina.* Forest Systems.
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). Ecology 86(10).
 - Cóbar-Carranza, A.J.; García, R.A.; Pauchard, A.; Peña, E. (2014). *Effect of Pinus contorta
-  invasion on forest fuel properties and its potential implications on the fire regime of
-  Araucaria araucana and Nothofagus antarctica forests.* Biological Invasions. (Carga de leña
-  fina en rodales de ñire; inflamabilidad comparada de nativas y pino exótico, relevante para
-  la clase de forestación exótica.)
+invasion on forest fuel properties and its potential implications on the fire regime of
+Araucaria araucana and Nothofagus antarctica forests.* Biological Invasions. (Carga de leña
+fina en rodales de ñire; inflamabilidad comparada de nativas y pino exótico, relevante para
+la clase de forestación exótica.)
 - Interno: `IGN-20-CROSSWALK.md` · `ETAPA-B-INSUMO-PATAGONICO.md` ·
 `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` §C0 · `app/elmfire/builder/fuels_builder.py` ·
 `scripts/build_fuel_maps.py`

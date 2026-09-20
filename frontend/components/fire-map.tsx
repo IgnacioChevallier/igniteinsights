@@ -350,7 +350,6 @@ export function FireMap({
       mapRef.current = null;
       setLoaded(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -389,7 +388,7 @@ export function FireMap({
       return;
     }
 
-    const { t, stepHours, horizonHours } = clock;
+    const { t, stepHours } = clock;
     const burned: maplibregl.FilterSpecification = ["all", IS_TIMED, ["<=", ARRIVAL, t]];
 
     map.setFilter(BURNED_LAYER, burned);
