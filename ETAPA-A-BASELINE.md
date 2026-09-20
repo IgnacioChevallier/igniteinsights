@@ -13,8 +13,7 @@ cambio de crosswalk **no tenga efecto** o **falle en silencio**.
 Esta etapa **no mejora la predicción**. La hace *medible*. Es la condición previa para que
 la Etapa B pueda afirmar "mejoró" con un número en vez de con una opinión.
 
-El marco de la tesis es comparativo (§12.3 de `docs/historico/SIMULATION_AUDIT.md`): el aporte se demuestra
-como `IoU(baseline) vs IoU(mapa patagónico)`. Un baseline que se regenera solo, o que
+El marco de la tesis es comparativo (§12.3 de `docs/historico/SIMULATION_AUDIT.md`): el aporte se demuestra como `IoU(baseline) vs IoU(mapa patagónico)`. Un baseline que se regenera solo, o que
 depende de un caché que nadie invalida, **no sirve como término de comparación**.
 
 ## Qué NO es esta etapa
@@ -30,8 +29,7 @@ depende de un caché que nadie invalida, **no sirve como término de comparació
 ## A0 — Resolver el AOI definitivo (BLOQUEANTE)
 
 El AOI vigente en `app/config.py:30-33` es `west=-72.0, south=-42.9, east=-71.5, north=-42.5`.
-El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles**
-intersectan el AOI (`IGN-26-VALIDACION.md` §12.5, hallazgo 3).
+El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles** intersectan el AOI (`IGN-26-VALIDACION.md` §12.5, hallazgo 3).
 
 Decisión tomada: **ampliar el AOI al footprint del incendio.**
 
@@ -59,8 +57,7 @@ aoi_east  = -71.15
 aoi_north = -42.05
 ```
 
-**Costo a verificar antes de aceptarlo.** A 30 m y latitud −42,5 (1° lon ≈ 82,1 km,
-1° lat ≈ 111,1 km):
+**Costo a verificar antes de aceptarlo.** A 30 m y latitud −42,5 (1° lon ≈ 82,1 km, 1° lat ≈ 111,1 km):
 
 
 |               | Dominio    | Celdas |

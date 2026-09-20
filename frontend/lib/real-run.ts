@@ -13,6 +13,15 @@
 
 const SETTINGS_KEY = "igniteinsights.settings";
 
+/** Cover products that can feed fbfm40.tif — the backend's `fuels_source`. */
+export const FUELS_SOURCES = [
+  { id: "ccsbap", label: "CCS-BAP", description: "CIEFAP/MAyDS 2017, nivel 3 — el mapa patagónico." },
+  { id: "mapbiomas", label: "MapBiomas", description: "MapBiomas Argentina Colección 2 (2024)." },
+  { id: "worldcover", label: "WorldCover", description: "ESA WorldCover 2021 — el baseline de comparación." },
+] as const;
+
+export type FuelsSource = (typeof FUELS_SOURCES)[number]["id"];
+
 export type IngestionSettings = {
   include_firms: boolean;
   include_dem: boolean;
@@ -21,6 +30,7 @@ export type IngestionSettings = {
   include_canopy: boolean;
   firms_day_range: number;
   firms_start_date: string;
+  fuels_source: FuelsSource;
 };
 
 export const DEFAULT_SETTINGS: IngestionSettings = {
@@ -31,6 +41,7 @@ export const DEFAULT_SETTINGS: IngestionSettings = {
   include_canopy: false,
   firms_day_range: 1,
   firms_start_date: "",
+  fuels_source: "ccsbap",
 };
 
 export function loadSettings(): IngestionSettings {
@@ -96,6 +107,7 @@ export async function runRealSimulation(
     include_worldcover: settings.include_worldcover,
     include_canopy: settings.include_canopy,
     firms_day_range: settings.firms_day_range,
+    fuels_source: settings.fuels_source,
   };
   if (settings.firms_start_date) body.firms_start_date = settings.firms_start_date;
 

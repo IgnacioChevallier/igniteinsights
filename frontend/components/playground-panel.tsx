@@ -282,7 +282,7 @@ export function PlaygroundPanel() {
 
       <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-auto border-l bg-background p-3">
         <div>
-          <h2 className="text-sm font-medium">Playground de sensibilidad</h2>
+          <h2 className="text-sm font-medium">Simulador de sensibilidad</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Cada escenario cambia <strong>un solo factor</strong> respecto del anterior.
             Cargá dos en A y B para que la diferencia sea atribuible a ese factor.

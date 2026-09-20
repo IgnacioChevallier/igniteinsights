@@ -40,6 +40,43 @@ _RASTER_UNITS: dict[str, tuple[float, str]] = {
     "fireline_intensity": (1.0, "kW/m"),
 }
 
+# ── Derived payloads for the panel, memoised on the files they read ───────────────────
+#
+# Both of these turn immutable run outputs into something small, and both are expensive:
+# the isochrone GeoJSON re-polygonises the time-of-arrival raster (~4 s here) and the wind
+# bands read ws.tif and wd.tif in full (~1.6 GB, ~24 s here) to produce 25 domain means.
+# A finished run's files never change, but the panel re-requested both on every run
+# selection and every reload, so it paid that each time — which is most of the wait before
+# the map can draw anything.
+#
+# Keyed on each file's mtime and size, so a run whose outputs are regenerated in place is
+# recomputed rather than served stale.
+
+
+def _file_stamp(*paths) -> tuple:
+    stamps = []
+    for path in paths:
+        if path is None:
+            stamps.append(None)
+            continue
+        try:
+            st = path.stat()
+            stamps.append((str(path), st.st_mtime_ns, st.st_size))
+        except OSError:
+            stamps.append((str(path), None, None))
+    return tuple(stamps)
+
+
+@functools.lru_cache(maxsize=8)
+def _isochrones_cached(shp_path, toa_path, _stamp: tuple) -> dict:
+    return isochrones_to_geojson(shp_path, toa_path)
+
+
+@functools.lru_cache(maxsize=16)
+def _wind_bands_cached(ws_path, wd_path, _stamp: tuple) -> dict:
+    return wind_bands(ws_path, wd_path)
+
+
 router = APIRouter(prefix="/simulations", tags=["simulations"])
 
 
@@ -273,8 +310,9 @@ async def get_simulation_isochrones(
     # The contour lines give the levels; the raster gives which cells actually burned.
     # Without it the map has to close open contours itself and paints across lakes.
     toa = sorted(outputs.glob(_RASTER_GLOBS["time_of_arrival"]))
+    toa_path = toa[0] if toa else None
     geojson = await asyncio.to_thread(
-        isochrones_to_geojson, shp_path, toa[0] if toa else None
+        _isochrones_cached, shp_path, toa_path, _file_stamp(shp_path, toa_path)
     )
     return _envelope("success", geojson)
 
@@ -311,7 +349,10 @@ async def get_simulation_wind(
     if not (ws.exists() and wd.exists()):
         return _envelope("success", None)
 
-    return _envelope("success", await asyncio.to_thread(wind_bands, ws, wd))
+    return _envelope(
+        "success",
+        await asyncio.to_thread(_wind_bands_cached, ws, wd, _file_stamp(ws, wd)),
+    )
 
 
 @router.get(

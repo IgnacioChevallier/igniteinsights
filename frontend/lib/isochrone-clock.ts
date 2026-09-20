@@ -20,6 +20,8 @@ export type IsochroneSummary = {
   timedCount: number;
   /** Features the converter left untimed on purpose. Excluded from the animation (A5). */
   untimedCount: number;
+  /** The distinct arrival hours present, ascending. What the map can actually draw. */
+  levels: number[];
 };
 
 const DEFAULT_STEP_HOURS = 1;
@@ -51,7 +53,13 @@ export function summarizeIsochrones(
   }
 
   if (!hours.length) {
-    return { horizonHours: 0, stepHours: DEFAULT_STEP_HOURS, timedCount: 0, untimedCount };
+    return {
+      horizonHours: 0,
+      stepHours: DEFAULT_STEP_HOURS,
+      timedCount: 0,
+      untimedCount,
+      levels: [],
+    };
   }
 
   const distinct = Array.from(new Set(hours)).sort((a, b) => a - b);
@@ -65,7 +73,29 @@ export function summarizeIsochrones(
     stepHours: Number.isFinite(step) && step > 0 ? step : DEFAULT_STEP_HOURS,
     timedCount: hours.length,
     untimedCount,
+    levels: distinct,
   };
+}
+
+/**
+ * The largest level at or below `t`, or 0 when the cursor is before the first one.
+ *
+ * The map filters select `arrival_hours <= t`, and `arrival_hours` only ever takes the
+ * values in `levels` — so t=3.14 and t=3.0 select exactly the same features. Passing the
+ * raw 60 fps clock to the map therefore re-tessellated the whole isochrone source to draw
+ * identical frames. Snapping here is what makes the map update once per level instead.
+ *
+ * Snapping to the level rather than to a `stepHours` grid because the two coincide only
+ * when the levels are multiples of the step; if they are not, a grid would show a level
+ * late.
+ */
+export function snapToLevel(t: number, levels: number[]): number {
+  let snapped = 0;
+  for (const level of levels) {
+    if (level > t) break;
+    snapped = level;
+  }
+  return snapped;
 }
 
 /** `Intl` formatting of the wall-clock instant `t` simulated hours after ignition. */

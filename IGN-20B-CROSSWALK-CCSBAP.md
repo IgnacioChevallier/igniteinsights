@@ -69,7 +69,7 @@ quemada**, un estado de combustible propio que hay que representar (§5, clase `
 
 Idéntico al de `IGN-20-CROSSWALK.md` §3: el procedimiento de selección de Scott & Burgan
 (2005, pp. 8-9) aplicado paso por paso, con el paso 4 como **filtro de rechazo**. No se
-modifican los parámetros de los modelos FBFM40; eso es `ETAPA-C-MODELOS-PROPIOS.md`.
+modifican los parámetros de los modelos FBFM40; eso es `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md`.
 
 Se mantiene el marco de humedad de extinción de IGN-20 §4: los umbrales de ignición medidos
 por Bianchi & Defossé en combustibles finos muertos patagónicos (**21,5 % en ciprés, 25,0 %
@@ -446,6 +446,89 @@ lo prueba.
 4. **`SIMULATION_TSTART` quedó en 0 en estas corridas**, porque el directorio de preparación es
    anterior al arreglo del anclaje. Una preparación nueva las mueve.
 
+
+### 6.2 · Paso 4 contra la quema experimental de la PT-37 (2026-09-16)
+
+Scott & Burgan cierran su procedimiento con un filtro de rechazo: elegido un modelo, hay que
+mirar su comportamiento predicho y descartarlo si contradice lo observado. Hasta acá ese paso
+se aplicó con la escala adjetiva publicada, que está medida en un escenario de referencia
+(D2L2) que no es el nuestro. La PT-37 §3.3-3.4 da algo mejor: una **quema experimental con
+meteorología medida**, en el mismo ecotono y sobre el modelo A4.
+
+**Condiciones reproducidas** (Cerro Jones, 14-09-2011, 16:00), terreno plano, ignición puntual,
+1 h de simulación: `m1` 8,0 % —de FFMC 92,7 por la conversión de Van Wagner—, `LW` 82 % medido
+en espino negro, `LH` 30 % por pasto 100 % curado, viento sostenido de 24 km/h y ráfagas de
+51 km/h. **Observado:** el frente recorrió 40 m en 30 s, o sea 4.800 m/h y llama de 3 a 4 m.
+Esos 80 m/min son el pico bajo ráfaga y no un promedio horario, así que cada candidato se corre
+en las dos condiciones y el resultado se lee como horquilla. Longitud de llama por Byram (1959),
+`L = 0,0775 · I^0,46`.
+
+
+| Modelo | ROS sostenido | Llama | ROS ráfaga | Llama | Veredicto |
+| --- | --- | --- | --- | --- | --- |
+| **SH8** (148) | 437 m/h · alta | **3,1 m** | 900 m/h · alta | 5,7 m | llama sí, propagación no |
+| SH4 (144) | 522 m/h · alta | 2,1 m | 1.201 m/h · muy alta | 3,8 m | llama sí, propagación no |
+| GS3 (123) | 627 m/h · alta | 2,4 m | 1.394 m/h · muy alta | 4,7 m | llama sí, propagación no |
+| SH9 (149) | 1.034 m/h · muy alta | 7,5 m | 2.321 m/h · muy alta | 12,8 m | llama muy por encima |
+| SH5 (145) · control | 1.091 m/h · muy alta | 4,9 m | 2.529 m/h · muy alta | 8,0 m | llama por encima |
+
+
+Reproducir: `uv run python scripts/paso4_quema_a4.py`.
+
+Lecturas:
+
+1. **Ningún modelo de arbustal de SB40 reproduce propagación y llama a la vez.** SH8 clava la
+   llama —3,1 m contra 3 a 4 m medidos— y queda entre 5 y 11 veces por debajo en propagación.
+   Los dos que alcanzan el orden de la propagación observada lo hacen con llamas de 7,5 a
+   12,8 m, dos a tres veces lo medido.
+2. **SH9 queda descartado por segunda vez**, ahora por comportamiento y no sólo por carga
+   (§5.4): su llama duplica largamente lo observado en las dos condiciones.
+3. **SH5, la familia del baseline, sigue rechazado.** Propaga más, pero con llama de 4,9 a
+   8,0 m y `mex` de 15 %, incompatible con los umbrales de ignición medidos (§2).
+4. SH4 y GS3 caen en el mismo régimen que SH8, lo que es coherente: las tres asignaciones se
+   eligieron por carga fina medida y las tres heredan el mismo sesgo.
+
+**Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo
+observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje,
+así que **el resultado no invalida ninguna asignación**: muestra que el techo dejó de ser el
+insumo y pasó a ser el sistema de modelos. Las asignaciones se mantienen **con el sesgo
+declarado: subestiman la velocidad de propagación en arbustal**. Es el argumento directo a
+favor de la `ETAPA-C` y de la sensibilidad S5.
+
+**Salvedades.** Es **una sola quema, un solo sitio, 2011**. La comparación corre con los
+parámetros propios de SB40, no con las cargas de la PT-37 —eso es S5—, sobre terreno plano y
+con ignición puntual, sin la continuidad de combustible que la quema tenía medida.
+
+
+
+### 6.3 · Sensibilidad a la humedad del combustible vivo (2026-09-16)
+
+Barrido uniforme de `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` sobre el mapa de CCS-BAP,
+12 h, con todo lo demás congelado. Se puntúa sólo el anillo de crecimiento.
+
+
+| LH/LW | Anillo a 12 h | vs 60 % | FLI mediana |
+| --- | --- | --- | --- |
+| 30 % | 11.293 ha | +7 % | 512,0 kW/m |
+| 60 % | 10.537 ha | — | 484,9 kW/m |
+| 90 % | 7.472 ha | −29 % | 327,5 kW/m |
+| 120 % | 4.513 ha | −57 % | 220,5 kW/m |
+
+
+Reproducir: `uv run python scripts/sweep_live_moisture.py`.
+
+**Factor 2,50 en superficie entre 30 % y 120 %**, y factor 2,3 en intensidad mediana. Con el
+baseline el escalar era inocuo, porque TL3 no tiene carga viva; con CCS-BAP los modelos SH, GS
+y TU son mayoría y el escalar **pasa a ser driver de primer orden**. Ésa es la razón por la que
+tenía que fijarse con una medición antes de citar cualquier número: la fila de 60 % reproduce
+exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
+
+**Los valores adoptados no son uniformes** —`LH` 30 % y `LW` 110 % (`ETAPA-B` §B5)—, así que la
+tabla acota pero no predice: la combinación adoptada da 7.576 ha (§6.1), entre las filas de
+60 % y 90 %, que es donde tiene que caer.
+
+**Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y fenología
+sería la mejora, y no está en alcance.
 ---
 
 
@@ -503,11 +586,14 @@ la tabla que ELMFIRE realmente carga. ELMFIRE resuelve cualquier código ausente
 ## 9. Estado de aprobación
 
 
-|                                   |               |
-| --------------------------------- | ------------- |
-| Propuesta elaborada               | 2026-09-15    |
-| Paso 4 sobre la quema de la PT-37 | **pendiente** |
-| Revisión del director             | **pendiente** |
+|                                        |                                              |
+| -------------------------------------- | -------------------------------------------- |
+| Propuesta elaborada                    | 2026-09-15                                   |
+| Comparación de los tres mapas (§6.1)   | 2026-09-16                                   |
+| Paso 4 sobre la quema de la PT-37      | **hecho** 2026-09-16 (§6.2)                  |
+| Sensibilidad de la humedad viva (§6.3) | 2026-09-16                                   |
+| Validación contra lo observado         | 2026-09-19 (`IGN-26-VALIDACION.md`)          |
+| Revisión del director                  | **pendiente**                                |
 
 
 Puntos que requieren decisión explícita:
@@ -516,6 +602,12 @@ Puntos que requieren decisión explícita:
 2. **TF Le → TL6** (§5.1): la clase de bosque más extensa, elegida sin dato de sotobosque.
 3. **Rem Dist Rec → GS3** (§5.7): 5,40 % del AOI, once años de regeneración supuestos.
 4. **Época 2017 frente al desfase de nueve años** (§7.1).
+
+**Lo que el paso 4 agregó a la decisión.** No cambia ninguno de los cuatro puntos en
+discusión, pero sí cambia lo que se les puede pedir: ningún modelo de arbustal de SB40
+reproduce a la vez propagación y llama observadas (§6.2), así que las asignaciones de arbustal
+—SH8, SH4 y GS3— se aprueban **con el sesgo declarado de subestimar la propagación**. Levantar
+ese techo es `ETAPA-C`, no este crosswalk.
 
 
 
@@ -539,6 +631,6 @@ Patagonian forests of Argentina.* Forest Systems.
   fina en rodales de ñire; inflamabilidad comparada de nativas y pino exótico, relevante para
   la clase de forestación exótica.)
 - Interno: `IGN-20-CROSSWALK.md` · `ETAPA-B-INSUMO-PATAGONICO.md` ·
-`ETAPA-C-MODELOS-PROPIOS.md` §C0 · `app/elmfire/builder/fuels_builder.py` ·
+`docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` §C0 · `app/elmfire/builder/fuels_builder.py` ·
 `scripts/build_fuel_maps.py`
 

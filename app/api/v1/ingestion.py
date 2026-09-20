@@ -3,6 +3,7 @@ import logging
 import uuid
 from collections.abc import Awaitable
 from datetime import UTC, date, datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
@@ -186,6 +187,11 @@ class IngestionRunRequest(BaseModel):
     include_gfs: bool = True
     include_worldcover: bool = False
     include_canopy: bool = False
+    fuels_source: Literal["ccsbap", "mapbiomas", "worldcover"] | None = Field(
+        default=None,
+        description="Cover product that feeds fbfm40.tif for this run. Defaults to "
+                    "settings.fuels_source.",
+    )
     firms_day_range: int = Field(default=1, ge=1, le=5)
     firms_start_date: date | None = None
     gfs_date: date | None = None
@@ -271,6 +277,7 @@ async def run_ingestion(body: IngestionRunRequest):
 
     # Compute the time window so preparation queries the same fires that were just ingested
     fires_since: datetime | None = None
+    fires_until: datetime | None = None
     if body.include_firms:
         if body.firms_start_date:
             fires_since = datetime(
@@ -279,6 +286,11 @@ async def run_ingestion(body: IngestionRunRequest):
                 body.firms_start_date.day,
                 tzinfo=UTC,
             )
+            # Close the window the run actually asked for. Without this the preparation
+            # query is a bare lower bound, so detections ingested later — a different
+            # fire, weeks after — are treated as part of this window and set the
+            # ignition time.
+            fires_until = fires_since + timedelta(days=body.firms_day_range)
         else:
             fires_since = datetime.now(UTC) - timedelta(days=body.firms_day_range)
 
@@ -295,7 +307,13 @@ async def run_ingestion(body: IngestionRunRequest):
     # Prepare ELMFIRE inputs using the most recent data available in the DB
     try:
         async with async_session_factory() as s:
-            prep = await run_preparation(s, fires_since=fires_since, gfs_at=gfs_at)
+            prep = await run_preparation(
+                s,
+                fires_since=fires_since,
+                fires_until=fires_until,
+                gfs_at=gfs_at,
+                fuels_source=body.fuels_source,
+            )
         data["preparation"] = prep
     except Exception as exc:
         logger.error("Preparation failed after ingestion: %s", exc)

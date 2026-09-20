@@ -12,7 +12,7 @@ test("el area quemada nunca pinta el lago", async ({ page }) => {
     route(r),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Playground" }).click();
+  await page.getByRole("button", { name: "Simulador" }).click();
   await page.getByRole("button", { name: "Con lago" }).click();
 
   await page

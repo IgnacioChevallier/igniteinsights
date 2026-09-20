@@ -42,7 +42,9 @@ _WEATHER_MISMATCH_MAX_S = 48 * 3600.0
 async def run_preparation(
     session: AsyncSession,
     fires_since: datetime | None = None,
+    fires_until: datetime | None = None,
     gfs_at: datetime | None = None,
+    fuels_source: str | None = None,
 ) -> dict:
     """
     Derive all available ELMFIRE input rasters using the most recent DB assets.
@@ -95,7 +97,9 @@ async def run_preparation(
     # Which cover product feeds fbfm40.tif is configuration, not code (ETAPA-B §B3): the
     # thesis has to be able to regenerate any of the three maps to compare them. The
     # source id is part of the cache key, so switching sources rebuilds the raster.
-    source = settings.fuels_source
+    # A run can override the configured source, so the three maps can be compared without
+    # editing .env between runs.
+    source = fuels_source or settings.fuels_source
     fbfm_cached = static_dir / f"fbfm40_{source}.tif"
     wc_asset = await repository.find_raster_asset(session, aoi.id, "worldcover_raw")
     wc_path = _resolve(wc_asset.file_path) if wc_asset else None
@@ -197,7 +201,14 @@ async def run_preparation(
 
     # ── 4. Ignition (from FIRMS detections in DB) ─────────────────────────────
     since = fires_since or datetime.now(UTC) - timedelta(hours=48)
-    fire_features = await repository.get_active_fires(session, since=since, aoi_id=aoi.id)
+    # Bounded on both ends: `since` alone let detections from *later* ingestions into a
+    # run that asked for a specific FIRMS window. A single stray detection weeks after
+    # the window became `ignition_datetime`, which anchors TSTART — the run then asked
+    # for hundreds of weather bands it did not have and preparation died before writing
+    # the namelist.
+    fire_features = await repository.get_active_fires(
+        session, since=since, aoi_id=aoi.id, until=fires_until
+    )
     fire_points = [
         (f["properties"]["longitude"], f["properties"]["latitude"])
         for f in fire_features
@@ -349,6 +360,7 @@ async def run_preparation(
         "missing": missing,
         "warnings": warnings,
         "ignition_datetime": ignition_datetime,
+        "fuels_source": source,
     }
 
 

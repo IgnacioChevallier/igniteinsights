@@ -9,7 +9,7 @@ const SECTIONS: { id: DashboardSection; label: string; icon: LucideIcon }[] = [
   { id: "map", label: "Mapa", icon: Map },
   { id: "fuels", label: "Combustibles", icon: Trees },
   { id: "validation", label: "Validación", icon: Target },
-  { id: "playground", label: "Playground", icon: FlaskConical },
+  { id: "playground", label: "Simulador", icon: FlaskConical },
   { id: "data", label: "Datos", icon: Database },
 ];
 

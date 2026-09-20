@@ -1,6 +1,8 @@
 # IGN-26 · Diseño de validación
 
-> Estado: **harness B implementado y ejecutado** (2026-09-16); harness A pendiente.
+> Estado: **harness B implementado y ejecutado** (2026-09-16) y **harness A completo**
+> (2026-09-19, diez ventanas × tres mapas). Resultados en §Resultado del harness A y
+> §Resultado, y reunidos en `RESULTADOS.md`.
 > El diseño es la única parte viva de la auditoría del 2026-08-31, extraída de
 > `docs/historico/SIMULATION_AUDIT.md` §12 el 2026-09-15.
 >
@@ -148,8 +150,8 @@ anécdota hace falta repetirlo sobre varias ventanas y, si se puede, sobre más 
 
 1. Correr con la **duración real del incendio**, no 12 h, para que el recall deje de estar
    acotado. Requiere meteorología que cubra ese horizonte.
-2. Barrer varias ventanas (`Δ` ∈ {6, 12, 24} h del harness A) y reportar cuántas resultan
-   puntuables, que es en sí un resultado.
+2. ~~Barrer varias ventanas (`Δ` ∈ {6, 12, 24} h del harness A) y reportar cuántas resultan
+   puntuables~~ → **hecho el 2026-09-19**: diez ventanas de 24 h, arriba.
 3. Recién después, calibrar `ADJ` (IGN-25). Antes no: absorbería el error del combustible y
    haría desaparecer justamente esta diferencia.
 

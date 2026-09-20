@@ -10,7 +10,7 @@ import { SettingsButton } from "@/components/settings-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
-import { summarizeIsochrones } from "@/lib/isochrone-clock";
+import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
 import {
   describeSettings,
   loadSettings,
@@ -220,6 +220,16 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   }, [simulationRuns]);
 
   const [selectedRunId, setSelectedRunId] = useState<string | null>(defaultRunId);
+
+  // Follow the newest run whenever one arrives. The launcher in this panel selects the id
+  // it just produced, but the "Datos" header runs the same simulation from a sibling
+  // component that cannot reach this state — it only calls `router.refresh()`, so the new
+  // run landed in the dropdown while the map went on showing the previous selection. This
+  // keys on `defaultRunId`, which only moves when a genuinely newer run appears, so a
+  // manual pick from the dropdown survives an ordinary refresh.
+  useEffect(() => {
+    if (defaultRunId) setSelectedRunId(defaultRunId);
+  }, [defaultRunId]);
   const [activeFires, setActiveFires] = useState<GeoJSON.FeatureCollection | null>(null);
   const [isochrones, setIsochrones] = useState<GeoJSON.FeatureCollection | null>(null);
   const [ignitionPerimeter, setIgnitionPerimeter] = useState<GeoJSON.FeatureCollection | null>(
@@ -254,9 +264,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   // state every animation frame. That re-rendered this panel ~24x a second forever, for
   // nothing anyone could see.
   const clock = useFireClock({ horizonHours: animatable ? horizonHours : 0 });
+  // The scrubber and the timestamp follow `clock.t` at 60 fps because they are text and
+  // a slider. The map must not: its filters select `arrival_hours <= t` over a source
+  // with ~90k vertices, so every frame re-evaluated and re-tessellated the whole thing to
+  // produce a picture identical to the previous one — the levels are discrete, the clock
+  // is not. Snapping makes this object change once per isochrone (12 times a loop here)
+  // instead of 60 times a second, which is the difference between the animation dropping
+  // frames and it not.
+  const snappedT = snapToLevel(clock.t, summary.levels);
   const clockView = useMemo(
-    () => ({ t: clock.t, stepHours: summary.stepHours, horizonHours }),
-    [clock.t, summary.stepHours, horizonHours],
+    () => ({ t: snappedT, stepHours: summary.stepHours, horizonHours }),
+    [snappedT, summary.stepHours, horizonHours],
   );
 
   useEffect(() => {

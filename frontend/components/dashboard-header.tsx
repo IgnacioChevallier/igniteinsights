@@ -37,9 +37,14 @@ export function DashboardHeader({
     setErrorDetail(null);
     if (resetTimer.current) clearTimeout(resetTimer.current);
 
+    let ok = false;
     try {
-      await runRealSimulation(loadSettings(), setPhase);
-      setStatus("success");
+      // A run that ingests but produces no inputs directory simulates nothing. Reporting
+      // it as success sent people looking for a simulation on the map that was never run.
+      const simulationId = await runRealSimulation(loadSettings(), setPhase);
+      ok = simulationId !== null;
+      setStatus(ok ? "success" : "error");
+      if (!ok) setErrorDetail("La ingesta terminó sin insumos: no se simuló nada");
       router.refresh();
     } catch (err) {
       setStatus("error");
@@ -48,10 +53,12 @@ export function DashboardHeader({
       setPhase(null);
     }
 
-    resetTimer.current = setTimeout(() => {
-      setStatus("idle");
-      setErrorDetail(null);
-    }, 5000);
+    // Only the success note expires. The failure message was being wiped after 5 s too —
+    // and since the run itself takes minutes, nobody was still watching the button when
+    // it appeared and vanished, which is how a failing run looked like nothing happening.
+    if (ok) {
+      resetTimer.current = setTimeout(() => setStatus("idle"), 5000);
+    }
   }
 
   return (

@@ -15,7 +15,7 @@ test.describe("mapa esquemático del playground", () => {
       route.fulfill({ status: 200, contentType: "image/png", body: Buffer.alloc(0) }),
     );
     await page.goto("/");
-    await page.getByRole("button", { name: "Playground" }).click();
+    await page.getByRole("button", { name: "Simulador" }).click();
   });
 
   test("dibuja el escenario y conserva el mapa real", async ({ page }) => {

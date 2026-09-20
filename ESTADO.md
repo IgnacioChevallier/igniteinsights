@@ -10,13 +10,16 @@
 | Documento | Qué es | Estado |
 |---|---|---|
 | `ETAPA-A-BASELINE.md` | Baseline honesto y andamiaje de medición | A0–A6 hechos · **falta A7** |
-| `ETAPA-B-INSUMO-PATAGONICO.md` | Insumo patagónico y crosswalk fundamentado | B0–B4 hechos · **faltan B5 y B6** |
-| `ETAPA-C-MODELOS-PROPIOS.md` | Modelos de combustible propios | Puerta C0 resuelta: **rama parcial**, no camino crítico |
-| `IGN-20B-CROSSWALK-CCSBAP.md` | **Crosswalk principal** (CCS-BAP → FBFM40) | Propuesta · **pendiente del director** |
+| `ETAPA-B-INSUMO-PATAGONICO.md` | Insumo patagónico y crosswalk fundamentado | B0–B5 hechos · **falta B6** |
+| `IGN-20B-CROSSWALK-CCSBAP.md` | **Crosswalk principal** (CCS-BAP → FBFM40) | Completo, con paso 4 ejecutado · **pendiente del director** |
 | `IGN-20-CROSSWALK.md` | Crosswalk de MapBiomas, comparador intermedio | Propuesta · pendiente del director |
-| `IGN-26-VALIDACION.md` | Diseño de validación (harness A y B) | **Especificado, no implementado** |
+| `IGN-26-VALIDACION.md` | Diseño de validación (harness A y B) | Implementado y ejecutado · resultados al 2026-09-19 |
 | `PENDING_PARAMETERS.md` | Valores fijados sin criterio | Vivo · §1.1 superado, §1.5 y §1.6 resueltos |
 | `RESULTADOS.md` | **Informe de resultados de validación** | Corte al 2026-09-19 |
+
+**Fuera de alcance (`docs/out-of-scope/`):** `ETAPA-C-MODELOS-PROPIOS.md`, modelos de
+combustible propios. Puerta C0 resuelta en rama *parcial*; no es camino crítico y se conserva
+porque el paso 4 del crosswalk (`IGN-20B` §6.2) es su argumento.
 
 **Histórico (`docs/historico/`):** la auditoría end-to-end del 2026-08-31, el playground de
 sensibilidad y la visualización animada. Terminados o superados; se conservan porque se citan
@@ -55,7 +58,7 @@ Bianchi & Defossé (2015) y Cóbar-Carranza et al. (2014) en PDF.
 | 2b | **Modelar o acotar la supresión**, o restringir la validación a ventanas de crecimiento libre: sin extinción, una corrida de 24 h con semilla grande sobre-propaga un factor 100 | — | mediano |
 | 2 | **Correr con la duración real del incendio**, no 12 h: hoy el recall del harness está acotado por construcción porque la referencia es una cicatriz de semanas | meteorología que cubra ese horizonte | mediano |
 | 2b | **Repetir sobre varias ventanas y más de un incendio**: hoy el resultado es una sola ventana de 12 h sobre un solo fuego | 2 | mediano |
-| 3 | **Aprobación del director** de IGN-20B, con las tres decisiones de su §9 | el director | — |
+| 3 | **Aprobación del director** de IGN-20B, con las cuatro decisiones de su §9 | el director | — |
 | 4 | **A7 — congelar el baseline** y **B6 — comparación final contra lo observado** | 2 | mediano |
 | 5 | **ADJ / IGN-25**: calibrar el factor de ajuste | 4, y **nunca antes** | mediano |
 | 6 | Parámetros sin criterio que quedan: humedad de muertos sin historial de secado (§1.2), `m1` sin corrección diurna, timesteps sin prueba de convergencia, `horizon_hours` por defecto sin base | — | varios |

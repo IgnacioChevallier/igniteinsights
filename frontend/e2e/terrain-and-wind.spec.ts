@@ -11,7 +11,7 @@ test("el viento se lee en el mapa, y la losa muestra su combustible", async ({ p
     route.fulfill({ status: 200, contentType: "image/png", body: Buffer.alloc(0) }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Playground" }).click();
+  await page.getByRole("button", { name: "Simulador" }).click();
 
   const card = (name: string) =>
     page.locator("div.rounded-md.border", { hasText: name }).first();

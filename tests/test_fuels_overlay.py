@@ -72,3 +72,27 @@ def test_class_areas_reports_the_provenance_of_the_active_source(tmp_path):
     # Same raster, different source: CCS-BAP classes must not appear under WorldCover.
     rows_wc, _ = _class_areas(tif, source="worldcover")
     assert all(not row["source_classes"] for row in rows_wc if row["fbfm40"] in (148, 186))
+
+
+def test_fuels_map_serves_the_requested_source_and_lists_the_built_ones(tmp_path, monkeypatch):
+    import asyncio
+
+    import pytest
+    from fastapi import HTTPException
+
+    from app.api.v1 import fuels
+
+    monkeypatch.setattr(fuels, "resolve_data_path", lambda _: tmp_path)
+    _write_fbfm40(tmp_path / "fbfm40_worldcover.tif", np.array([[183, 102]], dtype=np.int16))
+    _write_fbfm40(tmp_path / "fbfm40_ccsbap.tif", np.array([[186, 186]], dtype=np.int16))
+
+    data = asyncio.run(fuels.get_fuels_map(source="worldcover"))["data"]
+    assert data["source_id"] == "worldcover"
+    assert data["source"].startswith("ESA WorldCover")
+    assert sorted(data["available_sources"]) == ["ccsbap", "worldcover"]
+    assert {row["fbfm40"] for row in data["classes"]} == {183, 102}
+
+    # A source never run is a 404, not a silent fallback to another map.
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(fuels.get_fuels_map(source="mapbiomas"))
+    assert exc.value.status_code == 404

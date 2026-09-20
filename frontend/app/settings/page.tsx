@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
   DEFAULT_SETTINGS,
+  FUELS_SOURCES,
   loadSettings,
   saveSettings,
   type IngestionSettings,
@@ -128,6 +129,41 @@ export default function SettingsPage() {
                 />
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Separator className="my-6" />
+
+        {/* ── Mapa de combustibles ─────────────────────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Mapa de combustibles</CardTitle>
+            <CardDescription>
+              Qué cobertura se traduce a FBFM40 para la simulación. Cada mapa se construye una
+              vez y queda en caché.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-1.5">
+            <label htmlFor="fuels_source" className="text-sm font-medium">
+              Fuente
+            </label>
+            <select
+              id="fuels_source"
+              value={settings.fuels_source}
+              onChange={(e) =>
+                update("fuels_source", e.target.value as IngestionSettings["fuels_source"])
+              }
+              className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {FUELS_SOURCES.map(({ id, label }) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {FUELS_SOURCES.find((s) => s.id === settings.fuels_source)?.description}
+            </p>
           </CardContent>
         </Card>
 
