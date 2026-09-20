@@ -150,12 +150,21 @@ async def bulk_insert_fire_detections(
 
 
 async def get_active_fires(
-    session: AsyncSession, since: datetime, aoi_id: uuid.UUID | None = None
+    session: AsyncSession,
+    since: datetime,
+    aoi_id: uuid.UUID | None = None,
+    until: datetime | None = None,
 ) -> list[dict]:
+    """Detections in [since, until). `until` is optional because the dashboard's
+    "last N hours" view has no end; a run that asked for a specific FIRMS window must
+    pass one, or stray detections from later ingestions land in the same result."""
     query = select(
         FireDetection,
         ST_AsGeoJSON(FireDetection.geom).label("geojson"),
     ).where(FireDetection.acq_datetime >= since)
+
+    if until is not None:
+        query = query.where(FireDetection.acq_datetime < until)
 
     if aoi_id is not None:
         query = query.join(

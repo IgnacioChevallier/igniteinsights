@@ -1,7 +1,15 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+FROM deps AS development
+ENV NODE_ENV=development
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -9,7 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG API_BASE_URL=http://api:8000
 ENV API_BASE_URL=$API_BASE_URL
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app

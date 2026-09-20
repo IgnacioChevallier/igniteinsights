@@ -2,13 +2,22 @@
 
 Wildfire spread prediction system for Parque Nacional Los Alerces (Patagonia,
 Argentina). A FastAPI backend ingests satellite fire detections (FIRMS), weather
-(NOAA GFS), topography (Copernicus DEM), and fuel cover (ESA WorldCover), derives
+(NOAA GFS), topography (Copernicus DEM), and fuel cover (ESA WorldCover today;
+CCS-BAP and MapBiomas crosswalks exist and are not wired into the pipeline yet), derives
 input rasters and a namelist from them, and hands them to **ELMFIRE 2025.0212** — a
 fire-spread model that runs as a separate microservice, not in this repo — via
 `app/elmfire/runner/client.py`. Results (hourly isochrones, time-of-arrival,
 fireline intensity) are served as GeoJSON and shown on a Next.js dashboard. See
 `docs/architecture.md` for the full pipeline and `docs/elmfire-mapping.md` for the
 source-data → ELMFIRE-input mapping.
+
+## Where the project state lives
+
+**`ESTADO.md` is the entry point**: it says what is done, what is pending and where each plan
+lives. Read it before assuming something is missing. Live plans sit in the root
+(`ETAPA-*.md`, `IGN-*.md`, `PENDING_PARAMETERS.md`); finished or superseded documents are in
+`docs/historico/`, and converted source material in `docs/referencias/`. The fuel-model
+crosswalk the thesis argues for is `IGN-20B-CROSSWALK-CCSBAP.md`.
 
 ## Working with ELMFIRE inputs
 

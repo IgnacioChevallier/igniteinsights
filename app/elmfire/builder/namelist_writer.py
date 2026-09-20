@@ -45,8 +45,29 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # raster — so any value is an area-weighted mean and the weighting has to be justified.
 # ETAPA-B-INSUMO-PATAGONICO.md §B5: source is Bianchi & Defossé (2015), LFMC by species for
 # Andean Patagonia.
-DEFAULT_LH_MOISTURE_PCT = 60.0
-DEFAULT_LW_MOISTURE_PCT = 60.0
+# ELMFIRE enciende el fuego de copas si el namelist OMITE CROWN_FIRE_MODEL
+# (.claude/skills/elmfire/references/namelist-reference.md: &SIMULATOR, 0 = off,
+# cualquier valor > 0 = on). Estaba activo por omisión, no por decisión. Se escribe
+# explícito con el valor que ya se venía usando: activado.
+DEFAULT_CROWN_FIRE_MODEL = 1
+
+# Humedad del combustible vivo, de Bianchi & Defossé (2015), IJWF 24(3):340, que mide LFMC
+# en las especies de la Patagonia andina cada 10-15 días durante la temporada de fuego
+# (mediados de noviembre a principios de abril), en hojas de la cara norte —la más expuesta
+# y por lo tanto la más seca— a 2 m de altura.
+#
+# LW: ñire, ciprés, laura y radal se mueven entre 110 y 220 % durante la temporada; la caña
+# colihue nunca supera 110 %. Se toma **110 %, el extremo seco de la banda medida**, que es
+# la condición más propensa al fuego y donde además cae la caña. Lenga, coihue y alerce no
+# fueron medidos: heredan el valor por analogía con el ñire, y eso se declara.
+# LH: no hay medición de herbáceas. 30 % representa el pasto **completamente curado** del
+# verano tardío, que es el umbral de transferencia dinámica de Scott & Burgan. Es una
+# convención de modelado declarada, no un dato.
+#
+# El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
+# Su efecto está cuantificado en IGN-20B-CROSSWALK-CCSBAP.md §6.3.
+DEFAULT_LH_MOISTURE_PCT = 30.0
+DEFAULT_LW_MOISTURE_PCT = 110.0
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:
@@ -121,6 +142,7 @@ def write_namelist(
     dt_meteorology_s: float = 3600.0,
     simulation_tstart_s: float = 0.0,
     simulator_mode: int = 1,
+    crown_fire_model: int = DEFAULT_CROWN_FIRE_MODEL,
     lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
     lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
 ) -> tuple[Path, float, list[str]]:
@@ -136,8 +158,13 @@ def write_namelist(
         dtmax_s: maximum timestep in seconds
         dtdump_s: output dump interval in seconds
         dt_meteorology_s: interval between weather-raster bands in seconds
-        simulation_tstart_s: absolute simulation start time in seconds
+        simulation_tstart_s: absolute simulation start time in seconds. Non-zero anchors
+            the run to the wall clock: ELMFIRE reads weather band n at
+            TSTART + n × DT_METEOROLOGY, so this is what puts the fire at the right point
+            of the diurnal cycle.
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
+        crown_fire_model: 0 disables crown fire; any value > 0 enables it. Written
+            explicitly because ELMFIRE enables it when the keyword is absent.
 
     Returns:
         Tuple of (namelist path, resolved dump interval in seconds, weather warnings).
@@ -150,6 +177,7 @@ def write_namelist(
         dt_meteorology_s,
         simulation_tstart_s,
         simulator_mode,
+        crown_fire_model,
     )
     duration_s = simulation_hours * 3600.0
     tstop_s = simulation_tstart_s + duration_s
@@ -212,6 +240,7 @@ def write_namelist(
 
 &SIMULATOR
   MODE                            = {simulator_mode}
+  CROWN_FIRE_MODEL                = {crown_fire_model}
 /
 
 &MISCELLANEOUS
@@ -274,6 +303,7 @@ def _validate_parameters(
     dt_meteorology_s: float,
     simulation_tstart_s: float,
     simulator_mode: int,
+    crown_fire_model: int,
 ) -> None:
     values = {
         "simulation_hours": simulation_hours,
@@ -282,6 +312,7 @@ def _validate_parameters(
         "dtdump_s": dtdump_s,
         "dt_meteorology_s": dt_meteorology_s,
         "simulation_tstart_s": simulation_tstart_s,
+        "crown_fire_model": crown_fire_model,
     }
     invalid = [name for name, value in values.items() if not math.isfinite(value) or value < 0]
     if invalid:

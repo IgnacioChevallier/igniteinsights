@@ -15,7 +15,7 @@ test.describe("mapa esquemático del playground", () => {
       route.fulfill({ status: 200, contentType: "image/png", body: Buffer.alloc(0) }),
     );
     await page.goto("/");
-    await page.getByRole("button", { name: "Playground" }).click();
+    await page.getByRole("button", { name: "Simulador" }).click();
   });
 
   test("dibuja el escenario y conserva el mapa real", async ({ page }) => {
@@ -40,9 +40,11 @@ test.describe("mapa esquemático del playground", () => {
     // the slab as real ground.
     await expect(page.getByText("Perímetro FIRMS observado", { exact: false })).toHaveCount(0);
 
+    // The wind key names its compass point, which is the only part of a 15 mph difference
+    // in direction that survives into a still screenshot.
+    await expect(page.getByText("viento 15 mph hacia el S", { exact: true })).toBeVisible();
     // This scenario has no slope, so no slope arrow and no slope key.
-    await expect(page.getByText("viento (hacia)")).toBeVisible();
-    await expect(page.getByText("pendiente (cuesta abajo)")).toHaveCount(0);
+    await expect(page.getByText(/pendiente .* cuesta abajo/)).toHaveCount(0);
 
     // Both legends live at bottom-left; at the same offset the scenario box covered the
     // isochrone key completely.
@@ -64,5 +66,17 @@ test.describe("mapa esquemático del playground", () => {
       path: "../playwright-screenshots/playground-satellite.png",
       fullPage: false,
     });
+
+    // Last, because switching terrain deliberately discards the result the screenshots
+    // above are meant to show. The lake is picked as a picture and redraws without a
+    // second ELMFIRE call: it comes from POST /preview, which is pure geometry.
+    await page.getByRole("button", { name: "Con lago" }).click();
+    await expect(page.getByText("lago (no combustible)").first()).toBeVisible();
+    // The result on screen was produced on the old ground; leaving it up would invite
+    // reading a lake-less run as if the barrier had been there.
+    await expect(page.getByText("ROS de cabeza")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Uniforme" }).click();
+    await expect(page.getByText("lago (no combustible)")).toHaveCount(0);
   });
 });

@@ -1,6 +1,7 @@
 # Playground de sensibilidad — casos base sintéticos
 
-> Estado: **implementado y verificado end-to-end** (2026-09-07)
+> **ARCHIVADO el 2026-09-15.** Estado: implementado y verificado end-to-end (2026-09-07).
+> Sigue siendo la referencia del módulo `app/playground/`; se archiva porque ya no es un plan.
 > Depende de: Etapa A (A2 tabla de combustibles propia)
 > Sirve a: IGN-20 §8 (sensibilidades S1-S4), y como material didáctico de la tesis
 
@@ -78,7 +79,7 @@ Un escenario es un conjunto de escalares. Nada más.
 |---|---|
 | Dominio | `cellsize_m`, `domain_size_m`, `crs` |
 | Topografía | `slope_deg`, `aspect_deg`, `elevation_m` |
-| Combustible | `fbfm40_code` |
+| Combustible | `fbfm40_code`, `terrain` |
 | Dosel | `cc_pct`, `ch_m`, `cbh_m`, `cbd_kg_m3` |
 | Meteorología | `wind_speed_mph`, `wind_direction_deg`, `m1_pct`, `m10_pct`, `m100_pct` |
 | Combustible vivo | `lh_moisture_pct`, `lw_moisture_pct` |
@@ -91,6 +92,104 @@ Restricción de diseño: **escalares, no rásteres**. Un escenario con gradiente
 caso base controlado y pasa a ser el AOI real. Si más adelante hace falta pendiente variable,
 se agrega un campo específico, no un mecanismo genérico.
 
+**Excepción única: `terrain`.** Es un enum corto, no un mecanismo genérico, y es en sí mismo
+uno de los factores bajo estudio: "¿qué le hace una barrera no combustible al frente?" no se
+puede responder sobre un dominio homogéneo. Vale `"uniform"` (la losa de siempre) o `"lake"`,
+que recorta un disco de FBFM 98 (NB8, agua) de radio 0,16·lado, ubicado a 0,30·lado del centro
+**en la dirección en que corre el fuego** — a favor del viento, o cuesta arriba si no hay
+viento. Fuera del camino del frente la barrera nunca se alcanza y el terreno parece no hacer
+nada. Se sostiene la misma regla que el resto: se varía entre A y B con todo lo demás fijo.
+
+### Dos vientos distintos que se veían iguales
+
+Reporte: los presets 02 (viento del norte) y 03 (viento del noreste) daban manchas
+indistinguibles. **No era un bug del pipeline.** Medido sobre los rásteres de
+`time_of_arrival`, con los parámetros exactos de los presets (12 km, 5,5 h, GR2, 15 mph):
+
+| `wind_direction_deg` | dirección de cabeza | elongación | área |
+|---|---|---|---|
+| 0 (del norte) | 180,0° | 1,22 | 1591,7 ha |
+| 45 (del noreste) | 225,1° | 1,09 | 1472,8 ha |
+| 90 (del este) | 269,8° | 1,23 | — |
+
+La dirección se propaga exactamente. Lo que falla es la **lectura**: una cicatriz elongada
+1,1× es un círculo a ojo, y rotar un círculo 45° no se ve. El mapa tenía que decirlo, no
+insinuarlo, así que ahora lo dice de dos formas — un campo de partículas animado para el
+sentido del movimiento, y el rumbo en palabras ("viento 15 mph **hacia el SO**") para lo
+que sobrevive a una captura de pantalla.
+
+### El área quemada pintaba sobre el agua, y aparecían puntitos
+
+Dos síntomas, una sola causa: **el relleno del área quemada se obtenía cerrando las
+isócronas**, que son líneas de contorno de `gdal_contour`. Medido sobre una corrida real
+con lago (6 km, 4 h): de 13 features, **12 eran LineStrings abiertas** y **9 tenían ≤6
+vértices**. MapLibre cierra cada línea abierta con una cuerda recta, y esa cuerda cruza lo
+que la línea rodeaba — el lago. Cuantificado: **1022 celdas de agua (~92 ha) pintadas como
+quemadas**. Los puntitos eran los fragmentos de contorno de ≤6 vértices, que `gdal_contour`
+genera en el borde entre la zona quemada y el `nodata = 0` de lo no quemado.
+
+Rellenar contornos abiertos es geométricamente inválido, así que el área quemada ya no sale
+de las líneas. `isochrones_to_geojson` toma **los niveles** del shapefile (son el DTDUMP que
+usó el runner, así que quedan sincronizados por construcción) y **la geometría** del ráster
+`time_of_arrival`, poligonizando la máscara `arrival > 0 ∧ arrival ≤ t` con
+`rasterio.features.shapes`. Resultado sobre el mismo caso: 4 polígonos, cada uno con el lago
+como agujero, área **exactamente igual** a las celdas quemadas × celda², **0 celdas de agua
+pintadas**, 0 puntitos.
+
+Sin filtro de área mínima a propósito: una isla de una celda es una celda que el modelo
+quemó de verdad, y descartarla ocultaría comportamiento real en vez de un artefacto. Los
+puntitos no eran islas, eran fragmentos de contorno, y poligonizar no produce ninguno. Las
+corridas viejas sin ráster o sin el atributo `-a` siguen devolviendo las líneas crudas.
+
+**Suavizado.** Poligonizar una máscara traza aristas de celda, así que el primer intento
+salió en escalera de ángulos rectos de 30 m — `gdal_contour` no se veía así porque
+interpola entre celdas vecinas. La curva se recupera con **corner-cutting de Chaikin**: cada
+pasada reemplaza cada vértice por dos puntos a 1/4 y 3/4 de sus aristas, convergiendo a un
+B-spline cuadrático. Dos pasadas es donde deja de verse escalonado; una tercera no se nota a
+escala de mapa y vuelve a duplicar los vértices. Medido sobre la corrida de 6 km con lago:
+el borde se mueve un tercio de celda como máximo y el área **encoge** 0,35 % — siempre hacia
+adentro, así que la garantía de no pintar lo no quemable se mantiene (0 celdas de agua, en
+todos los ajustes probados). `simplify` después descarta los puntos que el corte volvió
+redundantes: de 706 vértices a 270. En la API real, **0 % de segmentos en ángulo recto**.
+
+Cada banda se suaviza sola, lo que dejaba a una interior asomar una astilla fuera de la
+siguiente — menos de una celda (667 m² sobre 2,5 km²), pero suficiente para dibujar un filo
+donde las bandas se superponen. Se recorta de afuera hacia adentro y el anidamiento queda
+exacto.
+
+### Partículas de viento, al estilo Windy
+
+Windy no dibuja flechas: advecta partículas por el campo vectorial. La técnica viene de
+`earth` (Beccario) y antes de hint.fm/wind, y son seis pasos —resolver el campo a espacio
+de pantalla, sembrar N partículas con edad aleatoria, moverlas y registrar el segmento
+recorrido, **desvanecer** el canvas con `globalCompositeOperation = "destination-in"` y un
+alpha < 1 (esto multiplica el alpha existente, y es lo único que convierte los puntos en
+estelas de cometa), pintar los segmentos nuevos encima, y jubilar cada partícula a las
+`MAX_AGE` cuadros para que la población no se drene—. El paso 1 es casi todo el código de
+Windy y nada del nuestro: un escenario del playground tiene viento **uniforme**, así que el
+campo es un único vector de pantalla que sólo se recalcula cuando el mapa se mueve. Ver
+`frontend/lib/wind-particles.ts`. La escala velocidad→píxeles es visual, no física: la
+advección real a 15 mph sobre 12 km es una fracción de píxel por cuadro — correcta e
+invisible. Windy exagera por lo mismo.
+
+### Textura de combustible
+
+La losa dejó de ser un bloque de color plano. `frontend/lib/fuel-pattern.ts` genera una
+tesela por familia de combustible con glifos de vegetación —matas de pasto, arbustos,
+coníferas, troncos caídos, olas para el agua—, como la trama de vegetación de una carta
+topográfica. Las teselas son **sólo tinta, sin fondo**: el color sigue viniendo del
+servidor con la geometría, así que la paleta de combustibles conserva un único hogar
+(`fuels_builder`). El id de la tesela viaja en la feature (`pattern: "fuel-TU"`), de modo
+que la textura no puede contradecir al modelo que la simulación corrió. Familias sin
+textura definida y `NB` se dibujan desnudas a propósito: inventarle vegetación a un
+combustible desconocido sería una mentira con aplomo.
+
+En el frontend `terrain` se elige como **miniatura del propio mapa esquemático** (misma
+paleta, mismo azul de agua), no como desplegable: se reconoce el suelo, no se lee su nombre.
+Cambiar de terreno descarta las isócronas y las métricas en pantalla — se produjeron sobre
+otro suelo — y redibuja vía `POST /playground/preview`, que es geometría pura y no llama a
+ELMFIRE.
+
 ### P2 · Constructor del directorio sintético
 
 Módulo nuevo: `app/playground/builder.py`.
@@ -102,12 +201,13 @@ Módulo nuevo: `app/playground/builder.py`.
 2. Escribir los rásteres float uniformes (`ws`, `wd`, `m1`, `m10`, `m100`, `adj`) reusando
    `_write_uniform_raster`. **Moverlo de `preparation/service.py` a un módulo compartido** —
    lo van a usar los dos.
-3. Escribir los rásteres Int16 uniformes (`dem`, `slp`, `asp`, `fbfm40`, `cc`, `ch`, `cbh`,
-   `cbd`), respetando el escalado de ELMFIRE: `ch`/`cbh` ×10 m, `cbd` ×100 kg/m³
+3. Escribir los rásteres Int16 (`dem`, `slp`, `asp`, `fbfm40`, `cc`, `ch`, `cbh`, `cbd`),
+   uniformes salvo `fbfm40` cuando el escenario trae lago, respetando el escalado de ELMFIRE: `ch`/`cbh` ×10 m, `cbd` ×100 kg/m³
    (`.claude/skills/elmfire/references/interface-gotchas.md`).
 4. **Validar el código de combustible contra la tabla** con
-   `fuels_builder.assert_codes_are_defined()`. Un escenario con un código inexistente daría
-   un dominio entero no combustible, en silencio.
+   `fuels_builder.assert_codes_are_defined()`, sobre el array que efectivamente se escribe
+   para que el parche de agua también quede cubierto. Un escenario con un código inexistente
+   daría un dominio entero no combustible, en silencio.
 5. Escribir `phi`: negativo dentro del disco de ignición, positivo afuera. Reusar la lógica
    de `ignition_builder`; el audit (IGN-13) ya decidió campo de distancia con signo y no ±1.
 6. Copiar `fuel_models.csv`, igual que hace `preparation/service.py`.

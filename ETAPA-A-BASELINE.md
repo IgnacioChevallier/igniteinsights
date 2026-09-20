@@ -13,8 +13,7 @@ cambio de crosswalk **no tenga efecto** o **falle en silencio**.
 Esta etapa **no mejora la predicción**. La hace *medible*. Es la condición previa para que
 la Etapa B pueda afirmar "mejoró" con un número en vez de con una opinión.
 
-El marco de la tesis es comparativo (§12.3 de `SIMULATION_AUDIT.md`): el aporte se demuestra
-como `IoU(baseline) vs IoU(mapa patagónico)`. Un baseline que se regenera solo, o que
+El marco de la tesis es comparativo (§12.3 de `docs/historico/SIMULATION_AUDIT.md`): el aporte se demuestra como `IoU(baseline) vs IoU(mapa patagónico)`. Un baseline que se regenera solo, o que
 depende de un caché que nadie invalida, **no sirve como término de comparación**.
 
 ## Qué NO es esta etapa
@@ -30,8 +29,7 @@ depende de un caché que nadie invalida, **no sirve como término de comparació
 ## A0 — Resolver el AOI definitivo (BLOQUEANTE)
 
 El AOI vigente en `app/config.py:30-33` es `west=-72.0, south=-42.9, east=-71.5, north=-42.5`.
-El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles**
-intersectan el AOI (`SIMULATION_AUDIT.md` §12.5, hallazgo 3).
+El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles** intersectan el AOI (`IGN-26-VALIDACION.md` §12.5, hallazgo 3).
 
 Decisión tomada: **ampliar el AOI al footprint del incendio.**
 
@@ -59,8 +57,7 @@ aoi_east  = -71.15
 aoi_north = -42.05
 ```
 
-**Costo a verificar antes de aceptarlo.** A 30 m y latitud −42,5 (1° lon ≈ 82,1 km,
-1° lat ≈ 111,1 km):
+**Costo a verificar antes de aceptarlo.** A 30 m y latitud −42,5 (1° lon ≈ 82,1 km, 1° lat ≈ 111,1 km):
 
 
 |               | Dominio    | Celdas |
@@ -124,7 +121,7 @@ está documentado por escrito qué fracción queda afuera y por qué.
 Problema raíz: `app/preparation/service.py:88-95` decide regenerar con `if not fbfm_cached.exists()`.
 Cualquier cambio en `WORLDCOVER_TO_FBFM40` es un no-op mientras exista
 `data/static/fbfm40.tif`. Es exactamente el fallo que ya ocurrió con la topografía
-(`SIMULATION_AUDIT.md` §7.4, ítem 14).
+(`docs/historico/SIMULATION_AUDIT.md` §7.4, ítem 14).
 
 **El patrón ya existe en el repo**: `app/elmfire/builder/raster_aligner.py` tiene
 `DERIVATION_VERSION`, `_CACHE_KEY_FILE = ".topo_cache_key.json"` y `_cache_key()`. No se
@@ -349,7 +346,7 @@ Pasos:
   distribución de códigos FBFM por área, fracción no combustible, intensidad de línea de
    fuego mediana.
 4. Registrar el `IoU` del baseline con el harness B, puntuando **sólo el anillo de
-  crecimiento** — nunca la unión con el `phi` inicial (`SIMULATION_AUDIT.md` §12.1: el 84 %
+  crecimiento** — nunca la unión con el `phi` inicial (`IGN-26-VALIDACION.md` §12.1: el 84 %
    de lo que la corrida reporta como quemado es la semilla FIRMS, y puntuar la unión daría
    un IoU halagüeño que no mide nada de ELMFIRE).
 5. Estratificar por `pct_quemado` (§12.4): los tiles cerca de 0 o 100 son triviales; los
@@ -398,5 +395,5 @@ cual la Etapa B puede compararse.
 - Cruz, M.G.; Alexander, M.E.; Wakimoto, R.H. (2003). *Assessing canopy fuel stratum
 characteristics in crown fire prone fuel types of western North America.* IJWF 12:39-50.
 - Scott, J.H.; Burgan, R.E. (2005). *Standard Fire Behavior Fuel Models.* RMRS-GTR-153.
-- `SIMULATION_AUDIT.md` §1, §7.4, §12.1, §12.3, §12.4, §12.5
+- `docs/historico/SIMULATION_AUDIT.md` §1, §7.4 · `IGN-26-VALIDACION.md` §12.1, §12.3, §12.4, §12.5
 

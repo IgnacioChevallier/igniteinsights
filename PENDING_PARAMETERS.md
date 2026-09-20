@@ -9,7 +9,8 @@ strings and values *forced* by an external interface are deliberately excluded �
 are not judgement calls. What is listed here is everything where a different reasonable
 person could have picked a different number and nothing in the repo would object.
 
-Companion to `SIMULATION_AUDIT.md`. Last swept 2026-08-31.
+Companion to `docs/historico/SIMULATION_AUDIT.md`. Last swept 2026-08-31;
+estados revisados el 2026-09-15 (§1.1 y §1.5).
 
 **Legend for "Basis"**
 - 🔴 **Arbitrary** — no stated justification; a placeholder that stuck.
@@ -25,7 +26,14 @@ Companion to `SIMULATION_AUDIT.md`. Last swept 2026-08-31.
 
 Ranked by how much the predicted fire changes if you change them.
 
-### 1.1 🔴 WorldCover → FBFM40 crosswalk
+### 1.1 🟡 WorldCover → FBFM40 crosswalk — **superado, pendiente de aprobación**
+
+> Al 2026-09-15: reemplazado por `IGN-20B-CROSSWALK-CCSBAP.md` (CCS-BAP, principal) e
+> `IGN-20-CROSSWALK.md` (MapBiomas, comparador). Falta la aprobación del director y
+> **Cableado resuelto el 2026-09-15**: `settings.fuels_source` elige la fuente, entra en la
+> clave de caché y la procedencia viaja hasta la leyenda del dashboard. Queda pendiente sólo
+> la aprobación del director.
+
 
 `app/elmfire/builder/fuels_builder.py` · `WORLDCOVER_TO_FBFM40`
 
@@ -38,7 +46,7 @@ Ranked by how much the predicted fire changes if you change them.
 | Snow/ice → 93, Mangrove → 183, Moss → 101 | 🔴 | Negligible area; mangrove in Patagonia is a no-op mapping |
 
 **This is the single biggest lever on the output** and, per the decision in
-`SIMULATION_AUDIT.md` §10, it is the thesis contribution — the current table is the
+`docs/historico/SIMULATION_AUDIT.md` §10, it is the thesis contribution — the current table is the
 baseline to beat, not a bug.
 
 **Criterion needed:** field plots or a trained classification giving fuel type per pixel.
@@ -77,7 +85,11 @@ wind speed. Defensible and now derived rather than hardcoded, but **not measured
 Alerces**. **Criterion needed:** effective aerodynamic roughness for the AOI's canopy,
 or a roughness raster derived from `ch.tif` instead of one scalar.
 
-### 1.5 🔴 Canopy CBH/CBD lookup by fuel model
+### 1.5 ✅ Canopy CBH/CBD lookup by fuel model — **resuelto (Etapa A, A4)**
+
+> Al 2026-09-15: `_FBFM40_CBH` y `_FBFM40_CBD` ya no existen. `canopy_builder.py`
+> deriva el dosel de datos reales. Se conserva la entrada por trazabilidad.
+
 
 `canopy_builder.py` · `_FBFM40_CBH`, `_FBFM40_CBD`
 
@@ -91,7 +103,7 @@ from `ch.tif` and canopy structure rather than from the fuel model, or measure i
 ## 2. Ignition perimeter reconstruction
 
 `app/elmfire/builder/perimeter_reconstruction.py`. These decide the shape and size of the
-seed — which is **84% of what the map paints as fire** (`SIMULATION_AUDIT.md` §1).
+seed — which is **84% of what the map paints as fire** (`docs/historico/SIMULATION_AUDIT.md` §1).
 
 | Parameter | Value | Basis | Notes |
 |---|---|---|---|
@@ -108,6 +120,16 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 
 ---
 
+### 1.6 ✅ Humedad del combustible vivo — **resuelto (Etapa B, B5)**
+
+> Al 2026-09-16: `LW = 110 %`, medido por Bianchi & Defossé (2015) para la temporada de fuego
+> en la Patagonia andina. `LH = 30 %` **no** viene del paper, que no mide herbáceas: es la
+> convención de pasto curado de Scott & Burgan, declarada como tal. Antes ambos eran 60 % sin
+> criterio, por debajo de todo lo medido en la región. La sensibilidad está cuantificada en `IGN-20B-CROSSWALK-CCSBAP.md` §6.3 y la
+> fundamentación en `ETAPA-B-INSUMO-PATAGONICO.md` §B5.
+
+---
+
 ## 3. Simulation and namelist
 
 `app/elmfire/builder/namelist_writer.py`
@@ -118,9 +140,9 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 | `dtmax_s` (`SIMULATION_DTMAX`) | 300 s | 🔴 | Maximum timestep. Never varied. |
 | `dtdump_s` (`DTDUMP`) | 3600 s | 🟢 | Hourly isochrones — a product decision, and it matches `DT_METEOROLOGY`. |
 | `dt_meteorology_s` | 3600 s | 🟢 | Matches GFS hourly output. Must change together with the raster band count. |
-| `simulation_tstart_s` | **0.0** | 🔴 | **The run is not anchored to wall-clock time.** `ignition_datetime` is computed, stored, and never reaches the namelist. Now materially wrong: with real hourly bands, the run should start at the correct hour of the diurnal cycle. |
+| `simulation_tstart_s` | derivado | ✅ | **Resuelto 2026-09-15.** `preparation/service.py` lo calcula como el desfase entre la primera banda de meteorología y la hora de ignición, así que la corrida arranca en el punto correcto del ciclo diurno. Si la ignición es anterior a la banda 0, cae a 0 y lo registra como warning. |
 | `horizon_hours` (default) | 12 | 🔴 | API default. No basis. |
-| `CROWN_FIRE_MODEL` | *unset* | 🔴 | ELMFIRE defaults it **on**. Currently enabled by omission, not decision. 696.8 of 19,454 acres burned as crown fire. |
+| `CROWN_FIRE_MODEL` | **1** | ✅ | **Resuelto 2026-09-15.** Se escribe explícito en `&SIMULATOR` con el valor que ya se venía usando (activado). Antes estaba activo porque ELMFIRE lo prende cuando la clave falta, que no es lo mismo que haberlo decidido. |
 | `MODE` | 1 | ⚫ | Transient spread. The only mode this repo supports. |
 
 **Criterion needed** for `dt_s`/`dtmax_s`: a convergence check — halve them and confirm

@@ -3,7 +3,7 @@
 ELMFIRE takes every input as a raster on the computational grid, so a "constant" input
 (a spread-rate adjustment of 1.0, a synthetic flat slope) is written as a raster whose
 cells all carry the same value. Both the real pipeline and the synthetic scenarios of
-PLAYGROUND-SENSIBILIDAD.md need that, so it lives here rather than in either of them.
+docs/historico/PLAYGROUND-SENSIBILIDAD.md need that, so it lives here rather than in either of them.
 """
 from pathlib import Path
 
@@ -26,6 +26,15 @@ def write_uniform_int16(profile: dict, output: Path, value: int) -> Path:
     return _write(profile, output, value, "int16", nodata=None)
 
 
+def write_int16_array(profile: dict, output: Path, values: np.ndarray) -> Path:
+    """Int16 raster from a full array, for an input that is not constant over the domain.
+
+    The playground's only such input is `fbfm40` when a scenario carries a lake: every
+    other synthetic raster stays uniform by design.
+    """
+    return _write(profile, output, values, "int16", nodata=None)
+
+
 def write_uniform_from_reference(reference: Path, output: Path, value: float) -> Path:
     """Float32 uniform raster matching an existing raster's grid."""
     with rasterio.open(reference) as src:
@@ -33,10 +42,16 @@ def write_uniform_from_reference(reference: Path, output: Path, value: float) ->
     return write_uniform_float(profile, output, value)
 
 
-def _write(profile: dict, output: Path, value: float, dtype: str, nodata: float | None) -> Path:
+def _write(profile: dict, output: Path, value, dtype: str, nodata: float | None) -> Path:
+    """`value` is either a scalar to broadcast or an array already on the grid."""
     out = dict(profile)
     out.update(driver="GTiff", dtype=dtype, count=1, nodata=nodata)
     output.parent.mkdir(parents=True, exist_ok=True)
+    data = (
+        value.astype(dtype)
+        if isinstance(value, np.ndarray)
+        else np.full((out["height"], out["width"]), value, dtype=dtype)
+    )
     with rasterio.open(output, "w", **out) as dst:
-        dst.write(np.full((out["height"], out["width"]), value, dtype=dtype), 1)
+        dst.write(data, 1)
     return output

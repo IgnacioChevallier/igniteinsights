@@ -46,10 +46,53 @@ def test_class_areas_shares_and_crosswalk_sources(tmp_path):
     tif = tmp_path / "fbfm40.tif"
     _write_fbfm40(tif, np.array([[183, 183], [183, 102]], dtype=np.int16))
 
-    rows, total_ha = _class_areas(tif)
+    rows, total_ha = _class_areas(tif, source="worldcover")
 
     assert [row["fbfm40"] for row in rows] == [183, 102]  # sorted by pixel count
     assert rows[0]["share"] == 0.75
     assert rows[0]["area_ha"] == 0.3  # 3 px × 900 m² = 0.27 ha, rounded to 0.1 ha
-    assert "Cobertura arbórea" in rows[0]["worldcover_classes"]
+    assert "Cobertura arbórea" in rows[0]["source_classes"]
     assert total_ha == 0.4
+
+
+def test_class_areas_reports_the_provenance_of_the_active_source(tmp_path):
+    """The legend must name the classes of the source that actually built the raster.
+
+    Claiming a WorldCover provenance for a map built from CCS-BAP would be a lie the
+    dashboard tells silently — the codes exist in both crosswalks.
+    """
+    tif = tmp_path / "fbfm40.tif"
+    _write_fbfm40(tif, np.array([[148, 148], [186, 99]], dtype=np.int16))
+
+    rows, _ = _class_areas(tif, source="ccsbap")
+    by_code = {row["fbfm40"]: row for row in rows}
+
+    assert "Ñire bajo" in by_code[148]["source_classes"]
+    assert "Bosque de lenga" in by_code[186]["source_classes"]
+    # Same raster, different source: CCS-BAP classes must not appear under WorldCover.
+    rows_wc, _ = _class_areas(tif, source="worldcover")
+    assert all(not row["source_classes"] for row in rows_wc if row["fbfm40"] in (148, 186))
+
+
+def test_fuels_map_serves_the_requested_source_and_lists_the_built_ones(tmp_path, monkeypatch):
+    import asyncio
+
+    import pytest
+    from fastapi import HTTPException
+
+    from app.api.v1 import fuels
+
+    monkeypatch.setattr(fuels, "resolve_data_path", lambda _: tmp_path)
+    _write_fbfm40(tmp_path / "fbfm40_worldcover.tif", np.array([[183, 102]], dtype=np.int16))
+    _write_fbfm40(tmp_path / "fbfm40_ccsbap.tif", np.array([[186, 186]], dtype=np.int16))
+
+    data = asyncio.run(fuels.get_fuels_map(source="worldcover"))["data"]
+    assert data["source_id"] == "worldcover"
+    assert data["source"].startswith("ESA WorldCover")
+    assert sorted(data["available_sources"]) == ["ccsbap", "worldcover"]
+    assert {row["fbfm40"] for row in data["classes"]} == {183, 102}
+
+    # A source never run is a 404, not a silent fallback to another map.
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(fuels.get_fuels_map(source="mapbiomas"))
+    assert exc.value.status_code == 404

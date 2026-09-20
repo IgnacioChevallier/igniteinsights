@@ -6,7 +6,8 @@ two base cases needs exactly those, so they are derived here from `time_of_arriv
 every cell carries the second at which the front reached it.
 
 Only meaningful for a point ignition at a known location, which is why this lives in the
-playground rather than being generalised to real runs. See PLAYGROUND-SENSIBILIDAD.md §P6.
+playground rather than being generalised to real runs.
+See docs/historico/PLAYGROUND-SENSIBILIDAD.md §P6.
 """
 import logging
 import math

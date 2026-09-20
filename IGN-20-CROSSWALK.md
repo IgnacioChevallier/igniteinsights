@@ -11,9 +11,7 @@
 
 ## 1. Objeto y alcance
 
-Asignar a cada clase de cobertura de **MapBiomas Argentina Colección 2** un modelo de
-combustible del sistema **Scott & Burgan FBFM40** (Gen. Tech. Rep. RMRS-GTR-153, 2005), de
-modo que el ráster `fbfm40.tif` que consume ELMFIRE represente la vegetación patagónica con
+Asignar a cada clase de cobertura de **MapBiomas Argentina Colección 2** un modelo de combustible del sistema **Scott & Burgan FBFM40** (Gen. Tech. Rep. RMRS-GTR-153, 2005), de modo que el ráster `fbfm40.tif` que consume ELMFIRE represente la vegetación patagónica con
 un criterio explícito, citable y reproducible.
 
 **Lo que esta tabla es:** una asignación fundamentada, clase por clase, siguiendo el
@@ -22,7 +20,7 @@ evidencia de comportamiento del fuego medida en la Patagonia andina.
 
 **Lo que esta tabla no es:** una parametrización nueva del modelo de Rothermel. No se
 modifican cargas, relaciones superficie-volumen, profundidades ni humedades de extinción de
-los modelos FBFM40. Esa línea de trabajo está especificada en `ETAPA-C-MODELOS-PROPIOS.md` y
+los modelos FBFM40. Esa línea de trabajo está especificada en `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` y
 queda condicionada a disponer de mediciones de campo.
 
 ---
@@ -31,7 +29,7 @@ queda condicionada a disponer de mediciones de campo.
 
 ## 2. Por qué se cambia de insumo
 
-El crosswalk vigente parte de ESA WorldCover v200, que dispone de **una única clase arbórea** para todo el Bosque Andino Patagónico. La consecuencia, medida sobre una corrida real (`SIMULATION_AUDIT.md` §1 y §2.1):
+El crosswalk vigente parte de ESA WorldCover v200, que dispone de **una única clase arbórea** para todo el Bosque Andino Patagónico. La consecuencia, medida sobre una corrida real (`docs/historico/SIMULATION_AUDIT.md` §1 y §2.1):
 
 
 |                                 | WorldCover v200 (2021) | MapBiomas Col. 2 (2024)       |
@@ -333,7 +331,7 @@ Antecedente regional relevante: Chile **no adaptó** los modelos norteamericanos
 construyó los propios en el sistema **KITRAL** (Laboratorio de Incendios Forestales,
 Universidad de Chile), con cartografía nacional de modelos de combustible para vegetación
 chilena, incluidas formaciones de *Nothofagus*. Es el precedente que fundamenta la
-`ETAPA-C-MODELOS-PROPIOS.md`.
+`docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md`.
 
 ### 7.5 · Cobertura del insumo y hueco fronterizo
 
@@ -439,7 +437,7 @@ Puntos que requieren decisión explícita antes de implementar:
 - Bianchi, L.O.; Defossé, G.E. (2015). *Live fuel moisture content and leaf ignition of forest species in Andean Patagonia, Argentina.* Int. J. Wildland Fire 24(3):340.
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). *Landscape influences on occurrence and spread of wildfires in Patagonian forests and shrublands.* Ecology 86(10).
 - Godoy, M.M. et al. (2022). *Forty Years of Wildland Urban Interface Growth and Its Relation With Wildfires in Central-Western Chubut, Argentina.* Front. For. Glob. Change.
-- Bianchi, L.O.; Dentoni, M.C.; Muñoz, M.M.; Defossé, G.E. *Modelos de combustibles en el ecotono bosque-estepa de la Patagonia andina.* CIEFAP, Publicación Técnica N.º 37, Esquel. **(solicitada, aún no obtenida)**
+- Bianchi, L.O.; Dentoni, M.C.; Muñoz, M.M.; Defossé, G.E. *Modelos de combustibles en el ecotono bosque-estepa de la Patagonia andina.* CIEFAP, Publicación Técnica N.º 37, Esquel, 2012. **(obtenida 2026-09-13; evaluada en** `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` **§C0, todavía no incorporada a las fichas §6)**
 
 **Insumo de cobertura**
 
@@ -452,6 +450,6 @@ Puntos que requieren decisión explícita antes de implementar:
 
 **Interno**
 
-- `SIMULATION_AUDIT.md` §1, §2.1, §12 · `ETAPA-A-BASELINE.md` · `ETAPA-B-INSUMO-PATAGONICO.md` · `ETAPA-C-MODELOS-PROPIOS.md` · `scripts/probe_mapbiomas.py`
+- `docs/historico/SIMULATION_AUDIT.md` §1, §2.1 · `IGN-26-VALIDACION.md` §12 · `ETAPA-A-BASELINE.md` · `ETAPA-B-INSUMO-PATAGONICO.md` · `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` · `scripts/probe_mapbiomas.py`
 - ELMFIRE 2025.0212, `build/source/elmfire_init.f90` — [https://github.com/lautenberger/elmfire](https://github.com/lautenberger/elmfire)
 

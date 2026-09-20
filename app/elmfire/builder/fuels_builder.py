@@ -138,87 +138,27 @@ def worldcover_to_fbfm40(
     reference_path: Path,
     output_path: Path,
 ) -> Path:
-    """Reclassify WorldCover to FBFM40 on the reference grid. Cached; see `_cache_key`.
+    """Reclassify WorldCover to FBFM40 on the reference grid — the baseline map.
 
-    Aggregation to the 30 m grid is by **majority class** (`Resampling.mode`): the output
-    pixel takes the cover class occupying most of its area. This is a model assumption, not
-    an implementation detail — it discards fuel corridors narrower than one pixel, and fuel
-    continuity governs spread. Declared in ETAPA-A-BASELINE.md §A5.
-
-    The mode is taken over *cover* classes and the crosswalk applied afterwards, so the
-    aggregation is defined on the source legend and stays comparable across sources. GDAL
-    does not report how many destination pixels had a tie, so ties are not logged; the
-    resulting class histogram is logged instead.
+    Delegates to `raster_to_fbfm40`: two copies of the same reclassification would drift,
+    and the aggregation rule is a declared model assumption (ETAPA-A §A5), not an
+    implementation detail to be maintained twice. Kept as a named entry point because
+    WorldCover is the frozen baseline the thesis compares against.
     """
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    key = _cache_key(
-        worldcover_path, reference_path, WORLDCOVER_SOURCE_ID, WORLDCOVER_TO_FBFM40
-    )
-    key_path = output_path.parent / _CACHE_KEY_FILE
-    cached_key = None
-    if key_path.exists():
-        try:
-            cached_key = json.loads(key_path.read_text())
-        except (OSError, ValueError):
-            cached_key = None  # unreadable key → treat as a miss and rebuild
-
-    if output_path.exists() and cached_key == key:
-        logger.info("FBFM40 cache hit at %s — skipping", output_path)
-        return output_path
-    if output_path.exists():
-        logger.info("FBFM40 cache stale (key %s → %s) — regenerating", cached_key, key)
-
-    with rasterio.open(reference_path) as ref:
-        dst_transform = ref.transform
-        dst_crs = ref.crs
-        dst_shape = (ref.height, ref.width)
-        profile = ref.meta.copy()
-
-    with rasterio.open(worldcover_path) as src:
-        wc_raw = np.empty(dst_shape, dtype=np.float32)
-        reproject(
-            source=rasterio.band(src, 1),
-            destination=wc_raw,
-            src_transform=src.transform,
-            src_crs=src.crs,
-            dst_transform=dst_transform,
-            dst_crs=dst_crs,
-            resampling=Resampling.mode,  # land-cover: majority class per output pixel
-        )
-
-    wc_int = np.round(wc_raw).astype(np.int16)
-    fbfm40 = np.full_like(wc_int, _NODATA_FBFM40, dtype=np.int16)
-    for wc_class, fuel_model in WORLDCOVER_TO_FBFM40.items():
-        fbfm40[wc_int == wc_class] = fuel_model
-
-    # Validate before writing: a raster with an undefined code must never reach disk.
-    assert_codes_are_defined(fbfm40)
-
-    profile.update(dtype="int16", count=1, nodata=_NODATA_FBFM40)
-    with rasterio.open(output_path, "w", **profile) as dst:
-        dst.write(fbfm40, 1)
-
-    key_path.write_text(json.dumps(key, sort_keys=True))
-
-    codes, counts = np.unique(fbfm40, return_counts=True)
-    total = int(counts.sum())
-    logger.info(
-        "FBFM40 raster written to %s — %s",
+    return raster_to_fbfm40(
+        worldcover_path,
+        reference_path,
         output_path,
-        ", ".join(
-            f"{int(c)}:{n / total:.1%}"
-            for c, n in sorted(zip(codes, counts), key=lambda p: -p[1])
-        ),
+        WORLDCOVER_TO_FBFM40,
+        WORLDCOVER_SOURCE_ID,
     )
-    return output_path
 
 
 def _cache_key(
     source_path: Path,
     reference_path: Path,
     source_id: str,
-    crosswalk: dict[int, int],
+    crosswalk: dict[int, int] | dict[str, int],
 ) -> dict:
     """Identity of a cached fbfm40 raster: the source raster, which legend it speaks, the
     crosswalk applied to it, the target grid, and the version of this code.
@@ -273,3 +213,391 @@ def assert_codes_are_defined(fbfm40: "np.ndarray", table_path: Path | None = Non
             f"ELMFIRE would resolve these to model 256 (NB, unburnable) without an error. "
             f"Add them to {(table_path or FUEL_MODEL_TABLE).name} or fix the crosswalk."
         )
+
+
+# ---------------------------------------------------------------------------
+# MapBiomas Argentina Colección 2 → FBFM40 (IGN-20-CROSSWALK.md §5)
+# ---------------------------------------------------------------------------
+MAPBIOMAS_SOURCE_ID = "mapbiomas_argentina_col2_2024"
+
+MAPBIOMAS_TO_FBFM40: dict[int, int] = {
+    3: 165,    # Bosques cerrados                 → TU5
+    4: 163,    # Bosques abiertos                 → TU3
+    6: 162,    # Bosques inundables               → TU2
+    66: 149,   # Arbustales cerrados              → SH9
+    77: 144,   # Arbustales abiertos              → SH4
+    63: 123,   # Mosaicos de arbustos y herbáceas → GS3
+    12: 103,   # Herbáceas                        → GR3
+    11: 105,   # Herbáceas inundables (mallines)  → GR5
+    73: 99,    # Turberas                         → NB9, fuera de alcance (§6.6)
+    9: 188,    # Silvicultura                     → TL8
+    15: 102,   # Pasturas                         → GR2
+    18: 101,   # Agricultura                      → GR1
+    19: 101,   # Cultivos temporarios             → GR1
+    36: 101,   # Cultivos perennes                → GR1
+    21: 101,   # Mosaico de usos                  → GR1
+    24: 91,    # Áreas urbanas                    → NB1
+    25: 99,    # Otras áreas no vegetadas         → NB9
+    33: 98,    # Ríos, lagunas, lagos             → NB8
+    34: 92,    # Hielo y nieve permanente         → NB2
+    # 0 (sin dato, lado chileno) y 27 (no observado) quedan deliberadamente fuera:
+    # son hueco, y el hueco se rellena con la fuente global (§7.5, opción 1).
+}
+
+# ---------------------------------------------------------------------------
+# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver IGN-20B-CROSSWALK-CCSBAP.md
+#
+# Clave: el par (Ley_N1, Ley_N2). Ley_N2 sola es ambigua — "Le" existe como bosque
+# (TF) y como lenga achaparrada (OFL), y esa distinción estructural es justamente la
+# que separa un modelo de hojarasca de uno de matorral.
+# ---------------------------------------------------------------------------
+CCSBAP_SOURCE_ID = "ccsbap_ciefap_2017_chubut_n3"
+
+CCSBAP_TO_FBFM40: dict[tuple[str, str], int] = {
+    # --- Tierras Forestales: bosque ---
+    ("TF", "Le"): 186,    # Lenga           → TL6 hojarasca latifoliada moderada
+    ("TF", "Ñi"): 163,    # Ñire            → TU3 hojarasca con pasto y arbustos
+    ("TF", "Co"): 165,    # Coihue          → TU5 hojarasca alta con sotobosque de caña
+    ("TF", "Ci"): 165,    # Ciprés          → TU5 conífera con sotobosque arbustivo
+    ("TF", "Al"): 185,    # Alerce          → TL5 hojarasca de conífera carga alta
+    ("TF", "Mx"): 165,    # Mixtos          → TU5
+    ("TF", "Ma"): 182,    # Maitén          → TL2 hojarasca latifoliada carga baja
+    ("TF", "Rd"): 182,    # Radal           → TL2
+    ("TF", "Mr"): 182,    # Mirtáceas       → TL2
+    ("TF", "Cg"): 185,    # Ciprés guaitecas→ TL5
+    # --- Otras Formaciones Leñosas: matorral y bosque achaparrado ---
+    ("OFL", "Ñi"): 148,      # Ñire bajo       → SH8  (PT-37 modelo A1)
+    ("OFL", "Le"): 148,      # Lenga achaparrada→ SH8
+    ("OFL", "Arbu Na"): 144, # Arbustal nativo → SH4  (PT-37 modelo A3)
+    ("OFL", "MMx"): 144,     # Matorral mixto  → SH4
+    ("OFL", "Ci"): 144,      # Ciprés abierto/juvenil → SH4
+    ("OFL", "Co"): 144,      # Coihue juvenil  → SH4
+    ("OFL", "Ch"): 144,      # Chacay          → SH4
+    ("OFL", "Rd"): 144,      # Radal juvenil   → SH4
+    ("OFL", "Mr"): 144,      # Mirtáceas bajas → SH4
+    ("OFL", "Ma"): 144,      # Maitén bajo     → SH4
+    ("OFL", "Cg"): 144,      # Ciprés guaitecas juvenil → SH4
+    # --- Otras Tierras ---
+    ("OT", "Herb-Subarb"): 103,   # Estepa      → GR3 (ver override Estepa Arb/Pradera)
+    ("OT", "Erial"): 99,          # Erial       → NB9
+    ("OT", "Humedales"): 105,     # Mallín      → GR5 (ver override Turbera)
+    ("OT", "Agua"): 98,           # Agua        → NB8
+    ("OT", "Hie-Nie"): 92,        # Hielo/nieve → NB2
+    ("OT", "Rem Dist Rec"): 123,  # Remanente de disturbio reciente → GS3 (PT-37 A2)
+    ("OT", "Exot-Artif"): 101,    # Exóticas/artificial → GR1 (ver overrides)
+}
+
+# Clases de nivel 3 cuyo comportamiento del fuego NO es el de su nivel 2. Sin estos, la
+# turbera heredaría el modelo del mallín y una forestación de pino heredaría el de un
+# cultivo. Cada una está justificada en IGN-20B-CROSSWALK-CCSBAP.md §5.
+CCSBAP_N3_OVERRIDES: dict[str, int] = {
+    "Turbera": 99,       # NB9 — combustión latente, fuera del alcance de Rothermel
+    "Cg Juv-Tur": 99,    # ciprés de las guaitecas sobre turbera → ídem
+    "Caña": 149,         # caña colihue → SH9, carga muy alta, lecho profundo
+    "Estepa Arb": 123,   # estepa arbustiva → GS3 (PT-37 modelos A4 y A5)
+    "Pradera": 105,      # pradera húmeda → GR5
+    "Forest": 188,       # forestación de coníferas exóticas → TL8
+    "Arles Ex": 182,     # arboledas exóticas latifoliadas → TL2
+    "Arbu Ex": 144,      # arbustal exótico → SH4
+    "Pastura": 102,      # pastura implantada → GR2
+    "Infraest": 91,      # infraestructura → NB1
+}
+
+
+def ccsbap_fuel_code(ley_n1: str, ley_n2: str, ley_n3: str) -> int:
+    """Fuel model for one CCS-BAP polygon. Raises if the legend class is unknown —
+    silence here would map a real class to unburnable without anyone noticing."""
+    if ley_n3 in CCSBAP_N3_OVERRIDES:
+        return CCSBAP_N3_OVERRIDES[ley_n3]
+    try:
+        return CCSBAP_TO_FBFM40[(ley_n1, ley_n2)]
+    except KeyError:
+        raise ValueError(
+            f"CCS-BAP class ({ley_n1}, {ley_n2}, {ley_n3}) has no fuel model. "
+            f"Add it to CCSBAP_TO_FBFM40 or CCSBAP_N3_OVERRIDES."
+        ) from None
+
+
+def _fill_gaps(
+    fbfm40: "np.ndarray", gap_mask: "np.ndarray", fill_path: Path | None
+) -> "np.ndarray":
+    """Resolve pixels the source has no class for.
+
+    Both Argentine products (MapBiomas, CCS-BAP) stop at the international border, and the
+    gap sits on the **west edge of the domain** — an artificially unburnable border stops
+    the front by construction and biases any validation (IGN-20 §7.5). Option 1 of that
+    section: fill from the global product. Same rule for every source, or the comparison
+    measures the fill rule instead of the map.
+    """
+    if not gap_mask.any():
+        return fbfm40
+    if fill_path is None:
+        logger.warning("%d gap pixels left as NB9 — no fill raster given", int(gap_mask.sum()))
+        fbfm40[gap_mask] = _NODATA_FBFM40
+        return fbfm40
+    with rasterio.open(fill_path) as src:
+        fill = src.read(1)
+    if fill.shape != fbfm40.shape:
+        raise ValueError(f"fill raster {fill_path.name} is {fill.shape}, grid is {fbfm40.shape}")
+    fbfm40[gap_mask] = fill[gap_mask]
+    logger.info(
+        "Filled %d gap pixels (%.2f%%) from %s",
+        int(gap_mask.sum()), 100 * gap_mask.mean(), fill_path.name,
+    )
+    return fbfm40
+
+
+def raster_to_fbfm40(
+    source_path: Path,
+    reference_path: Path,
+    output_path: Path,
+    crosswalk: dict[int, int],
+    source_id: str,
+    fill_path: Path | None = None,
+) -> Path:
+    """Reclassify any raster land-cover source to FBFM40 on the reference grid.
+
+    Source-neutral version of `worldcover_to_fbfm40`: same majority aggregation (A5) and
+    same cache semantics, with the crosswalk and the source identity passed in so several
+    products can coexist (ETAPA-B §B3). Classes absent from `crosswalk` are treated as
+    gap, not as unburnable — see `_fill_gaps`.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    key = _cache_key(source_path, reference_path, source_id, crosswalk)
+    key_path = output_path.parent / f".{output_path.stem}_cache_key.json"
+    if output_path.exists() and key_path.exists():
+        try:
+            if json.loads(key_path.read_text()) == key:
+                logger.info("FBFM40 cache hit at %s — skipping", output_path)
+                return output_path
+        except (OSError, ValueError):
+            pass
+
+    with rasterio.open(reference_path) as ref:
+        dst_transform, dst_crs = ref.transform, ref.crs
+        dst_shape = (ref.height, ref.width)
+        profile = ref.meta.copy()
+
+    with rasterio.open(source_path) as src:
+        raw = np.empty(dst_shape, dtype=np.float32)
+        reproject(
+            source=rasterio.band(src, 1),
+            destination=raw,
+            src_transform=src.transform,
+            src_crs=src.crs,
+            dst_transform=dst_transform,
+            dst_crs=dst_crs,
+            resampling=Resampling.mode,
+        )
+
+    classes = np.round(raw).astype(np.int32)
+    fbfm40 = np.zeros(dst_shape, dtype=np.int16)
+    for cover_class, fuel_model in crosswalk.items():
+        fbfm40[classes == cover_class] = fuel_model
+    fbfm40 = _fill_gaps(fbfm40, fbfm40 == 0, fill_path)
+
+    assert_codes_are_defined(fbfm40)
+    profile.update(dtype="int16", count=1, nodata=_NODATA_FBFM40)
+    with rasterio.open(output_path, "w", **profile) as dst:
+        dst.write(fbfm40, 1)
+    key_path.write_text(json.dumps(key, sort_keys=True))
+    _log_distribution(output_path, fbfm40)
+    return output_path
+
+
+def ccsbap_to_fbfm40(
+    shapefile_path: Path,
+    reference_path: Path,
+    output_path: Path,
+    fill_path: Path | None = None,
+    subpixel: int = 3,
+) -> Path:
+    """Rasterize the CCS-BAP vector cover to FBFM40 on the reference grid.
+
+    CCS-BAP is vector (1 ha minimum mapping unit) while the grid is 30 m, so "majority
+    class" has to be built rather than resampled: the layer is burned at `subpixel`×
+    finer resolution (10 m by default, 9 sub-cells per output pixel) and each output pixel
+    takes the class covering most of its sub-cells. Same aggregation rule as every other
+    source (ETAPA-A §A5), so the comparison is not measuring resampling differences.
+
+    Reprojection happens before rasterizing: polygon areas are computed on the projected
+    grid, never in degrees.
+    """
+    import geopandas as gpd
+    from rasterio.features import rasterize
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    key = _cache_key(
+        shapefile_path, reference_path, CCSBAP_SOURCE_ID,
+        {f"{a}|{b}": v for (a, b), v in CCSBAP_TO_FBFM40.items()} | CCSBAP_N3_OVERRIDES,
+    )
+    key_path = output_path.parent / f".{output_path.stem}_cache_key.json"
+    if output_path.exists() and key_path.exists():
+        try:
+            if json.loads(key_path.read_text()) == key:
+                logger.info("FBFM40 cache hit at %s — skipping", output_path)
+                return output_path
+        except (OSError, ValueError):
+            pass
+
+    with rasterio.open(reference_path) as ref:
+        dst_crs, dst_transform = ref.crs, ref.transform
+        height, width, bounds = ref.height, ref.width, ref.bounds
+        profile = ref.meta.copy()
+
+    gdf = gpd.read_file(shapefile_path, bbox=gpd.GeoSeries([_box(bounds)], crs=dst_crs))
+    if gdf.empty:
+        raise ValueError(f"{shapefile_path.name} has no polygons over the reference grid")
+    gdf = gdf.to_crs(dst_crs)
+    gdf["fuel"] = [
+        ccsbap_fuel_code(a, b, c)
+        for a, b, c in zip(gdf["Ley_N1"], gdf["Ley_N2"], gdf["Ley_N3"])
+    ]
+
+    fine_transform = dst_transform * rasterio.Affine.scale(1 / subpixel, 1 / subpixel)
+    fine = rasterize(
+        ((geom, code) for geom, code in zip(gdf.geometry, gdf["fuel"])),
+        out_shape=(height * subpixel, width * subpixel),
+        transform=fine_transform,
+        fill=0,
+        dtype="int16",
+        all_touched=False,
+    )
+
+    blocks = fine.reshape(height, subpixel, width, subpixel)
+    fbfm40 = np.zeros((height, width), dtype=np.int16)
+    best = np.zeros((height, width), dtype=np.int8)
+    for code in np.unique(fine):
+        if code == 0:
+            continue
+        count = (blocks == code).sum(axis=(1, 3)).astype(np.int8)
+        wins = count > best
+        best[wins], fbfm40[wins] = count[wins], code
+
+    fbfm40 = _fill_gaps(fbfm40, fbfm40 == 0, fill_path)
+    assert_codes_are_defined(fbfm40)
+    profile.update(dtype="int16", count=1, nodata=_NODATA_FBFM40)
+    with rasterio.open(output_path, "w", **profile) as dst:
+        dst.write(fbfm40, 1)
+    key_path.write_text(json.dumps(key, sort_keys=True))
+    _log_distribution(output_path, fbfm40)
+    return output_path
+
+
+def _box(bounds) -> "object":
+    from shapely.geometry import box
+    return box(*bounds)
+
+
+def _log_distribution(output_path: Path, fbfm40: "np.ndarray") -> None:
+    codes, counts = np.unique(fbfm40, return_counts=True)
+    total = int(counts.sum())
+    logger.info(
+        "FBFM40 raster written to %s — %s",
+        output_path,
+        ", ".join(
+            f"{int(c)}:{n / total:.1%}"
+            for c, n in sorted(zip(codes, counts), key=lambda p: -p[1])
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Selección de fuente (ETAPA-B §B3)
+# ---------------------------------------------------------------------------
+SOURCE_LABELS: dict[str, str] = {
+    "worldcover": "ESA WorldCover v200 (2021)",
+    "mapbiomas": "MapBiomas Argentina Colección 2 (2024)",
+    "ccsbap": "CCS-BAP · CIEFAP/MAyDS (2017)",
+}
+
+MAPBIOMAS_LABELS: dict[int, str] = {
+    3: "Bosques cerrados", 4: "Bosques abiertos", 6: "Bosques inundables",
+    66: "Arbustales cerrados", 77: "Arbustales abiertos",
+    63: "Mosaicos de arbustos y herbáceas", 12: "Herbáceas",
+    11: "Herbáceas inundables (mallines)", 73: "Turberas", 9: "Silvicultura",
+    15: "Pasturas", 18: "Agricultura", 19: "Cultivos temporarios",
+    36: "Cultivos perennes", 21: "Mosaico de usos", 24: "Áreas urbanas",
+    25: "Otras áreas no vegetadas", 33: "Ríos, lagunas y lagos",
+    34: "Hielo y nieve permanente",
+}
+
+CCSBAP_LABELS: dict[tuple[str, str], str] = {
+    ("TF", "Le"): "Bosque de lenga", ("TF", "Ñi"): "Bosque de ñire",
+    ("TF", "Co"): "Bosque de coihue", ("TF", "Ci"): "Bosque de ciprés",
+    ("TF", "Al"): "Bosque de alerce", ("TF", "Mx"): "Bosque mixto",
+    ("TF", "Ma"): "Bosque de maitén", ("TF", "Rd"): "Bosque de radal",
+    ("TF", "Mr"): "Bosque de mirtáceas", ("TF", "Cg"): "Bosque de ciprés de las guaitecas",
+    ("OFL", "Le"): "Lenga achaparrada", ("OFL", "Ñi"): "Ñire bajo",
+    ("OFL", "Arbu Na"): "Arbustal nativo", ("OFL", "MMx"): "Matorral mixto",
+    ("OFL", "Ci"): "Ciprés abierto o juvenil", ("OFL", "Co"): "Coihue juvenil",
+    ("OFL", "Ch"): "Chacay", ("OFL", "Rd"): "Radal juvenil",
+    ("OFL", "Mr"): "Mirtáceas bajas", ("OFL", "Ma"): "Maitén bajo",
+    ("OFL", "Cg"): "Ciprés de las guaitecas juvenil",
+    ("OT", "Herb-Subarb"): "Estepa y herbáceas", ("OT", "Erial"): "Erial",
+    ("OT", "Humedales"): "Humedales", ("OT", "Agua"): "Agua",
+    ("OT", "Hie-Nie"): "Hielo y nieve", ("OT", "Exot-Artif"): "Exóticas y artificial",
+    ("OT", "Rem Dist Rec"): "Remanente de disturbio reciente",
+}
+
+CCSBAP_N3_LABELS: dict[str, str] = {
+    "Turbera": "Turbera", "Cg Juv-Tur": "Guaitecas sobre turbera",
+    "Caña": "Caña colihue", "Estepa Arb": "Estepa arbustiva", "Pradera": "Pradera",
+    "Forest": "Forestación exótica", "Arles Ex": "Arboledas exóticas",
+    "Arbu Ex": "Arbustal exótico", "Pastura": "Pastura implantada",
+    "Infraest": "Infraestructura",
+}
+
+
+def build_fbfm40(
+    source: str,
+    source_path: Path,
+    reference_path: Path,
+    output_path: Path,
+    fill_path: Path | None = None,
+) -> Path:
+    """Build fbfm40.tif from whichever cover source is configured.
+
+    One entry point per source instead of a hardwired call, so the thesis can regenerate
+    any of the three maps without editing code (ETAPA-B §B3). The source identity is part
+    of the cache key, so switching sources regenerates rather than serving the old raster.
+    """
+    if source == "ccsbap":
+        return ccsbap_to_fbfm40(source_path, reference_path, output_path, fill_path)
+    if source == "mapbiomas":
+        return raster_to_fbfm40(
+            source_path, reference_path, output_path,
+            MAPBIOMAS_TO_FBFM40, MAPBIOMAS_SOURCE_ID, fill_path,
+        )
+    if source == "worldcover":
+        return raster_to_fbfm40(
+            source_path, reference_path, output_path,
+            WORLDCOVER_TO_FBFM40, WORLDCOVER_SOURCE_ID, fill_path,
+        )
+    raise ValueError(
+        f"Unknown fuels source {source!r}; expected one of {sorted(SOURCE_LABELS)}"
+    )
+
+
+def source_classes_by_fuel_model(source: str) -> dict[int, list[str]]:
+    """Which cover classes feed each fuel model, for the map legend.
+
+    Lives next to the crosswalks so the dashboard can never claim a provenance the
+    raster does not have.
+    """
+    out: dict[int, list[str]] = {}
+    if source == "ccsbap":
+        pairs = [(CCSBAP_LABELS.get(k, f"{k[0]} {k[1]}"), v) for k, v in CCSBAP_TO_FBFM40.items()]
+        pairs += [(CCSBAP_N3_LABELS.get(k, k), v) for k, v in CCSBAP_N3_OVERRIDES.items()]
+    elif source == "mapbiomas":
+        pairs = [(MAPBIOMAS_LABELS.get(k, str(k)), v) for k, v in MAPBIOMAS_TO_FBFM40.items()]
+    elif source == "worldcover":
+        pairs = [(WORLDCOVER_LABELS.get(k, str(k)), v) for k, v in WORLDCOVER_TO_FBFM40.items()]
+    else:
+        raise ValueError(f"Unknown fuels source {source!r}")
+
+    for label, code in pairs:
+        out.setdefault(code, [])
+        if label not in out[code]:
+            out[code].append(label)
+    return out

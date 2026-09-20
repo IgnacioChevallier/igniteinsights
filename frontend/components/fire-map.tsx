@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { FUEL_PATTERN_IDS, fuelPatternImage } from "@/lib/fuel-pattern";
+import { startWindParticles, type WindField } from "@/lib/wind-particles";
 
 // Los Alerces National Park, Patagonia — matches the AOI these simulations run over.
 const INITIAL_CENTER: [number, number] = [-71.8, -42.7];
@@ -49,9 +51,16 @@ const STYLE: maplibregl.StyleSpecification = {
 
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
+// Shared with the terrain thumbnails in the playground sidebar, so the picture you click
+// and the map you get are the same blue.
+export const WATER_COLOR = "#4b83c4";
+
+/** The wind field's own grey, shared with the legends that explain it. */
+export const WIND_COLOR = "#475569";
+
 export type Basemap = "street" | "satellite" | "synthetic";
 
-// ── Fire progression animation (VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
+// ── Fire progression animation (docs/historico/VISUALIZACION-ANIMADA.md parte 1) ──────────────────────
 //
 // Three layers over the same isochrone source, filtered on `arrival_hours` against the
 // clock. A feature the converter could not time carries `arrival_hours = null`; every
@@ -110,6 +119,7 @@ export function FireMap({
   clock = null,
   overlay = null,
   syntheticLayers = null,
+  windField = null,
   initialBasemap = "satellite",
 }: {
   activeFires?: GeoJSON.FeatureCollection | null;
@@ -130,6 +140,10 @@ export function FireMap({
    *  and the forcing vectors. Built server-side by playground.builder so the geometry and
    *  the colour can never disagree with the run that produced them. */
   syntheticLayers?: GeoJSON.FeatureCollection | null;
+  /** Uniform wind to animate over `ring`. The playground derives it from its scenario; the
+   *  map reads the run's own ws/wd rasters. Memoise it — a fresh object each render
+   *  restarts the animation. */
+  windField?: WindField | null;
   initialBasemap?: Basemap;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -140,6 +154,7 @@ export function FireMap({
   // handler could only see the props captured when the map was created (all null).
   const [loaded, setLoaded] = useState(false);
   const [basemap, setBasemap] = useState<Basemap>(initialBasemap);
+  const windCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -154,6 +169,15 @@ export function FireMap({
 
     map.on("load", () => {
       // The synthetic scenario, added before everything else so it sits at the bottom.
+      // Vegetation textures, registered before the layer that names them: a fill-pattern
+      // pointing at a missing image draws nothing at all, silently.
+      for (const id of FUEL_PATTERN_IDS) {
+        const image = fuelPatternImage(id, Math.min(window.devicePixelRatio || 1, 2));
+        if (image && !map.hasImage(id)) {
+          map.addImage(id, image, { pixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+        }
+      }
+
       map.addSource(SYNTHETIC_SOURCE_ID, { type: "geojson", data: EMPTY_FC });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-domain`,
@@ -171,17 +195,36 @@ export function FireMap({
         filter: ["==", ["get", "kind"], "domain"],
         paint: { "line-color": "#57534e", "line-width": 1 },
       });
+      // Over the slab, under the vectors and the ignition: the lake is part of the
+      // ground, not an annotation on top of it.
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-water`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["==", ["get", "kind"], "water"],
+        // Opaque, unlike the 0.45 slab: an unburnable patch has to read as a hole in the
+        // fuel, not as more fuel in a different shade.
+        paint: { "fill-color": WATER_COLOR, "fill-opacity": 1 },
+      });
+      // Added after the lake, not before: the lake's fill is opaque and was painting
+      // over the wave texture. Ink over colour, in two layers on purpose: fill-pattern cannot be tinted, so
+      // baking the colour into the tile would fork the fuel palette between this file and
+      // fuels_builder. This way the server still owns every colour.
+      map.addLayer({
+        id: `${SYNTHETIC_SOURCE_ID}-domain-texture`,
+        type: "fill",
+        source: SYNTHETIC_SOURCE_ID,
+        filter: ["in", ["get", "kind"], ["literal", ["domain", "water"]]],
+        paint: { "fill-pattern": ["get", "pattern"], "fill-opacity": 0.85 },
+      });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-vectors`,
         type: "line",
         source: SYNTHETIC_SOURCE_ID,
-        filter: ["in", ["get", "kind"], ["literal", ["wind", "slope"]]],
-        paint: {
-          "line-color": [
-            "match", ["get", "kind"], "wind", "#1d4ed8", "slope", "#57534e", "#000000",
-          ],
-          "line-width": 2.5,
-        },
+        // Slope only. Wind stopped being an arrow: it is animated as drifting particles
+        // on the canvas above, the way Windy draws a flow field.
+        filter: ["==", ["get", "kind"], "slope"],
+        paint: { "line-color": "#57534e", "line-width": 2.5 },
       });
       map.addLayer({
         id: `${SYNTHETIC_SOURCE_ID}-ignition`,
@@ -214,9 +257,11 @@ export function FireMap({
         paint: { "line-color": "#cbd5e1", "line-width": 0.8, "line-opacity": 0.25 },
       });
 
-      // Burned — accumulated area. `gdal_contour` runs without `-p`, so the isochrones
-      // are LineStrings; MapLibre still fills a closed ring, which is what gives the
-      // burned interior its body. Kept low so the stacked contours read as depth.
+      // Burned — accumulated area. The server sends real Polygons, polygonised off the
+      // time-of-arrival raster: unburned ground inside the front (a lake) arrives as a
+      // hole and is never filled. Filling the raw contour LineStrings, as this did
+      // before, made MapLibre close every open contour with a chord straight across the
+      // water. Kept low so the stacked bands read as depth.
       map.addLayer({
         id: BURNED_FILL_LAYER,
         type: "fill",
@@ -305,7 +350,6 @@ export function FireMap({
       mapRef.current = null;
       setLoaded(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -344,7 +388,7 @@ export function FireMap({
       return;
     }
 
-    const { t, stepHours, horizonHours } = clock;
+    const { t, stepHours } = clock;
     const burned: maplibregl.FilterSpecification = ["all", IS_TIMED, ["<=", ARRIVAL, t]];
 
     map.setFilter(BURNED_LAYER, burned);
@@ -411,6 +455,16 @@ export function FireMap({
     source?.setData(syntheticLayers ?? EMPTY_FC);
   }, [syntheticLayers, loaded]);
 
+  // Wind as a flow field rather than a symbol. Restarted whenever the field changes, so a
+  // new direction never keeps animating the old one — callers must memoise it or the
+  // trails reset on every render.
+  useEffect(() => {
+    const map = mapRef.current;
+    const canvas = windCanvasRef.current;
+    if (!loaded || !map || !canvas || !windField || !(windField.speedMph > 0)) return;
+    return startWindParticles(map, canvas, windField);
+  }, [windField, loaded]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!loaded || !map) return;
@@ -426,6 +480,8 @@ export function FireMap({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {/* Above the map, below every control. Nothing here is interactive. */}
+      <canvas ref={windCanvasRef} className="pointer-events-none absolute inset-0 z-[1]" />
       <div className="absolute left-2 top-2 z-10 overflow-hidden rounded-md border bg-card text-xs shadow-md">
         <button
           className={`px-2 py-1 ${basemap === "street" ? "bg-primary text-primary-foreground" : ""}`}

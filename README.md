@@ -30,7 +30,11 @@ El sistema está diseñado para correr sobre los datos reales del parque con una
 cp .env.example .env
 # Completar FIRMS_MAP_KEY y OPENTOPOGRAPHY_API_KEY en .env
 
-docker compose up --build
+# First build, and whenever dependency files or a Dockerfile changes
+docker compose build
+
+# Normal startup reuses the existing images
+docker compose up
 # API  → http://localhost:8000
 # Docs → http://localhost:8000/docs
 # Dashboard → http://localhost:3000
@@ -39,17 +43,32 @@ docker compose up --build
 docker compose exec api uv run alembic upgrade head
 ```
 
-## Desarrollo local del frontend
+## Desarrollo local con hot reload
 
-Para iterar sobre el dashboard sin reconstruir la imagen Docker:
+La opción recomendada en macOS deja FastAPI y PostGIS en Docker y ejecuta Next.js
+en el host. Tanto el backend como el frontend recargan los cambios de código sin
+reconstruir imágenes:
 
 ```bash
-cd frontend
-cp .env.local.example .env.local   # API_BASE_URL=http://localhost:8000
-npm install
-npm run dev
+cp frontend/.env.local.example frontend/.env.local
+npm --prefix frontend install      # solo la primera vez o al cambiar package-lock.json
+make dev
 # Dashboard → http://localhost:3000
 ```
+
+ELMFIRE no se inicia durante el desarrollo cotidiano. Para trabajar con
+simulaciones, ejecutar `make dev-simulation` en otra terminal.
+
+También existe una variante completamente containerizada:
+
+```bash
+make dev-docker                 # API + PostGIS + Next.js con hot reload
+make dev-docker-simulation      # agrega ELMFIRE
+```
+
+Usar `docker compose up -d` para arrancar imágenes existentes. Reservar
+`docker compose build <servicio>` para cambios de dependencias/Dockerfile; no es
+necesario reconstruir todos los servicios por un cambio de código.
 
 ## Endpoints
 
@@ -142,4 +161,3 @@ de que ELMFIRE termina exitosamente. Ver [Mapeo a ELMFIRE](docs/elmfire-mapping.
 - [Fuentes de datos](docs/data-sources.md)
 - [Mapeo a ELMFIRE](docs/elmfire-mapping.md)
 - [Desarrollo local](docs/local-development.md)
-

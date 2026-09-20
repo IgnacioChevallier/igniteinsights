@@ -1,0 +1,35 @@
+services:
+  api:
+    volumes:
+      - ./app:/app/app
+    command:
+      - /app/.venv/bin/uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/app
+    restart: "no"
+
+  frontend:
+    image: igniteinsights-frontend-dev
+    build:
+      context: ./frontend
+      target: development
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+    environment:
+      API_BASE_URL: http://api:8000
+    restart: "no"
+
+  elmfire-runner:
+    restart: "no"
+
+volumes:
+  frontend_node_modules:
+  frontend_next:

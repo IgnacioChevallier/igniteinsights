@@ -2,23 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { FireMap, type ImageOverlay } from "@/components/fire-map";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { FUELS_SOURCES, loadSettings, type FuelsSource } from "@/lib/real-run";
 
-// GET /api/v1/fuels/map — the WorldCover → FBFM40 crosswalk currently in use.
+// GET /api/v1/fuels/map?source= — one cover product's FBFM40 map, as ELMFIRE receives it.
 type FuelClass = {
   fbfm40: number;
   label: string;
   color: string;
-  worldcover_classes: string[];
+  source_classes: string[];
   pixel_count: number;
   area_ha: number;
   share: number;
 };
 
 type FuelsMap = ImageOverlay & {
+  source_id: FuelsSource;
   source: string;
+  available_sources: FuelsSource[];
   classes: FuelClass[];
   total_area_ha: number;
+};
+
+// Only WorldCover's caveat is about the crosswalk's resolution; the Argentine maps are the
+// answer to it, so they point to the document that argues each assignment instead.
+const SOURCE_NOTES: Record<FuelsSource, string> = {
+  ccsbap:
+    "Crosswalk nivel 3 de CCS-BAP con diferenciación por especie — ver IGN-20B-CROSSWALK-CCSBAP.md. El hueco fronterizo se rellena con WorldCover.",
+  mapbiomas:
+    "Crosswalk de MapBiomas Argentina Col. 2 — ver IGN-20-CROSSWALK.md. El hueco fronterizo se rellena con WorldCover.",
+  worldcover:
+    "Cada clase WorldCover se asigna a un único modelo FBFM40 — no hay diferenciación por especie dentro de la cobertura arbórea (lenga, coihue, ciprés y alerce comparten TL3).",
 };
 
 const percent = (share: number) =>
@@ -28,20 +43,34 @@ const hectares = (ha: number) =>
   `${ha.toLocaleString("es", { maximumFractionDigits: 0 })} ha`;
 
 export function FuelsPanel() {
+  const [source, setSource] = useState<FuelsSource | null>(null);
+  const [available, setAvailable] = useState<FuelsSource[] | null>(null);
   const [fuels, setFuels] = useState<FuelsMap | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Start on the map the next run will use.
+  useEffect(() => setSource(loadSettings().fuels_source), []);
+
   useEffect(() => {
-    fetch("/api/fuels", { cache: "no-store" })
+    if (!source) return;
+    let cancelled = false;
+    setFuels(null);
+    setError(null);
+    fetch(`/api/fuels?source=${source}`, { cache: "no-store" })
       .then(async (res) => {
         const envelope = await res.json();
         if (!res.ok || !envelope.data) {
           throw new Error(envelope.detail ?? envelope.error?.message ?? "Sin datos");
         }
+        if (cancelled) return;
         setFuels(envelope.data as FuelsMap);
+        setAvailable(envelope.data.available_sources);
       })
-      .catch((e: Error) => setError(e.message));
-  }, []);
+      .catch((e: Error) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [source]);
 
   return (
     <div className="flex h-full">
@@ -51,9 +80,28 @@ export function FuelsPanel() {
 
       <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-auto border-l bg-background p-3">
         <div>
-          <h2 className="text-sm font-medium">Modelo de combustible actual</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {fuels?.source ?? "ESA WorldCover → Scott & Burgan FBFM40"}
+          <h2 className="text-sm font-medium">Mapa de combustibles</h2>
+          <div className="mt-2 flex gap-1" role="group" aria-label="Fuente del mapa">
+            {FUELS_SOURCES.map(({ id, label }) => {
+              const built = available?.includes(id) ?? true;
+              return (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant={id === source ? "default" : "outline"}
+                  className="h-7 flex-1 px-2 text-xs"
+                  aria-pressed={id === source}
+                  disabled={!built}
+                  title={built ? undefined : "Sin construir: corré un run con esta fuente"}
+                  onClick={() => setSource(id)}
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {fuels?.source ?? (source && FUELS_SOURCES.find((s) => s.id === source)?.description)}
           </p>
         </div>
 
@@ -88,7 +136,7 @@ export function FuelsPanel() {
                     />
                   </div>
                   <div className="mt-1 pl-5 text-[11px] text-muted-foreground">
-                    {cls.worldcover_classes.join(" + ") || "sin clase WorldCover"} ·{" "}
+                    {cls.source_classes.join(" + ") || "sin clase de cobertura"} ·{" "}
                     {hectares(cls.area_ha)}
                   </div>
                 </li>
@@ -98,11 +146,8 @@ export function FuelsPanel() {
             <Separator />
 
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Área total: {hectares(fuels.total_area_ha)}. Cada clase WorldCover se
-              asigna a un único modelo FBFM40 — no hay diferenciación por especie
-              dentro de la cobertura arbórea (lenga, coihue, ciprés y alerce comparten
-              TL3). NB9 (99) es el valor sin dato: se contabiliza pero se dibuja
-              transparente.
+              Área total: {hectares(fuels.total_area_ha)}. {SOURCE_NOTES[fuels.source_id]}{" "}
+              NB9 (99) es el valor sin dato: se contabiliza pero se dibuja transparente.
             </p>
           </>
         )}

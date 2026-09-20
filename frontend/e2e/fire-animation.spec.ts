@@ -59,15 +59,26 @@ test("progression renders and visibly changes across the clock", async ({ page }
   const canvas = page.locator("canvas.maplibregl-canvas").first();
   const shots: Record<number, Buffer> = {};
 
-  for (const t of [0, 3, 6, 12]) {
+  // Sample the selected run's own horizon rather than a fixed 12 h. Which run is newest —
+  // and therefore selected — is whatever the database happens to hold when this runs, so
+  // a hard-coded hour fails against a 6 h run for no reason to do with the animation.
+  // Whole hours only: the readout prints one decimal, and thirds of an odd horizon would
+  // be asserting the formatter rather than the clock.
+  const horizon = Number(await page.getByLabel("Hora simulada").getAttribute("max"));
+  expect(horizon, "the selected run has no horizon to animate").toBeGreaterThan(0);
+  const hours = [
+    ...new Set([0, Math.round(horizon / 3), Math.round((2 * horizon) / 3), horizon]),
+  ];
+  expect(hours.length, `horizon ${horizon} h is too short to sample`).toBeGreaterThan(2);
+
+  for (const t of hours) {
     await freezeAt(page, t);
     await expect(page.getByText(`${t},0 h`, { exact: true }).first()).toBeVisible();
     await map.screenshot({ path: path.join(SHOTS, `progression-t${t}.png`) });
     shots[t] = await canvas.screenshot();
   }
 
-  // If the filter were not being applied the four frames would be byte-identical.
-  const hours = [0, 3, 6, 12];
+  // If the filter were not being applied the frames would be byte-identical.
   for (let i = 1; i < hours.length; i += 1) {
     expect(
       shots[hours[i]].equals(shots[hours[i - 1]]),
@@ -75,9 +86,11 @@ test("progression renders and visibly changes across the clock", async ({ page }
     ).toBe(false);
   }
 
-  // Scrubber dragged to a non-integer hour, mid isochrone step.
-  await freezeAt(page, 8.5);
-  await map.screenshot({ path: path.join(SHOTS, "progression-scrubbed-t8.5.png") });
+  // Scrubber dragged between two isochrones, where the snapped map clock has to hold the
+  // level below rather than jump.
+  const midStep = Math.max(horizon - 0.5, 0);
+  await freezeAt(page, midStep);
+  await map.screenshot({ path: path.join(SHOTS, `progression-scrubbed-t${midStep}.png`) });
 
   // Controls on their own, to judge legibility and alignment.
   await freezeAt(page, 2);
