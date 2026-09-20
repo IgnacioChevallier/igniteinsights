@@ -7,8 +7,8 @@ GET  /simulations/{id} — poll simulation status
 import asyncio
 import functools
 import uuid
-from pathlib import Path
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
