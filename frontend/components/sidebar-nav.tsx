@@ -1,12 +1,14 @@
 "use client";
 
-import { Database, Map, type LucideIcon } from "lucide-react";
+import { Database, FlaskConical, Map, Trees, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type DashboardSection = "map" | "data";
+export type DashboardSection = "map" | "fuels" | "playground" | "data";
 
 const SECTIONS: { id: DashboardSection; label: string; icon: LucideIcon }[] = [
   { id: "map", label: "Mapa", icon: Map },
+  { id: "fuels", label: "Combustibles", icon: Trees },
+  { id: "playground", label: "Playground", icon: FlaskConical },
   { id: "data", label: "Datos", icon: Database },
 ];
 

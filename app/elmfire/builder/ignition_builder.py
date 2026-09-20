@@ -32,7 +32,7 @@ _DEFAULT_BUFFER_M = perimeter_reconstruction.VIIRS_PIXEL_M
 # A signed-distance-in-meters field goes far more negative than that for any interior
 # cell, so without this floor every ignition we write gets silently erased before the
 # simulation starts. Must stay strictly above -1.1.
-_PHI_IGNITION_FLOOR = -1.0
+PHI_IGNITION_FLOOR = -1.0  # public: the playground writes phi too
 
 
 def build_ignition_layer(
@@ -107,7 +107,7 @@ def build_ignition_layer(
     # Signed distance function via 4-pass L1 sweep
     phi_cells = _signed_distance(fire_mask)
     phi_m = phi_cells * cell_size
-    phi_m = np.where(phi_m < 0, np.maximum(phi_m, _PHI_IGNITION_FLOOR), phi_m)
+    phi_m = np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)
     phi_out = phi_m.astype(np.float32)
 
     with rasterio.open(phi_path, "w", **profile) as dst:

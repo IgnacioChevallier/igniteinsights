@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FireMap, type RasterOverlayData } from "@/components/fire-map";
+import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
 import { Separator } from "@/components/ui/separator";
+import { useFireClock } from "@/hooks/use-fire-clock";
+import { summarizeIsochrones } from "@/lib/isochrone-clock";
 import type { Run } from "@/lib/dashboard-types";
 
 function formatOptionLabel(run: Run) {
@@ -66,6 +69,27 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+// Caveats that change how the result should be read but leave it looking normal on the
+// map — today: weather rasters with a single band, i.e. no diurnal cycle for the run.
+function RunWarnings({ warnings }: { warnings?: string[] | null }) {
+  if (!warnings?.length) return null;
+  return (
+    <div
+      role="status"
+      className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs"
+    >
+      <p className="mb-1 font-medium text-amber-700 dark:text-amber-400">
+        ⚠ Advertencias de esta corrida
+      </p>
+      <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+        {warnings.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function MapPanel({ runs }: { runs: Run[] }) {
   const simulationRuns = useMemo(() => runs.filter((r) => r.kind === "simulation"), [runs]);
 
@@ -76,6 +100,9 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(defaultRunId);
   const [activeFires, setActiveFires] = useState<GeoJSON.FeatureCollection | null>(null);
   const [isochrones, setIsochrones] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [ignitionPerimeter, setIgnitionPerimeter] = useState<GeoJSON.FeatureCollection | null>(
+    null,
+  );
   const [statsRow, setStatsRow] = useState<FireSizeStatsRow | null>(null);
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
@@ -87,6 +114,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
 
   const selectedRun = simulationRuns.find((r) => r.id === selectedRunId);
 
+  // The horizon and the isochrone step both come out of the GeoJSON itself; the run's
+  // declared horizon_hours is only a fallback for a collection with a single level.
+  const summary = useMemo(() => summarizeIsochrones(isochrones), [isochrones]);
+  const horizonHours = summary.horizonHours || selectedRun?.horizon_hours || 0;
+  const clock = useFireClock({ horizonHours });
+  const clockView = useMemo(
+    () => ({ t: clock.t, stepHours: summary.stepHours, horizonHours }),
+    [clock.t, summary.stepHours, horizonHours],
+  );
+  const animatable = summary.timedCount > 0 && horizonHours > 0;
+
   useEffect(() => {
     fetchJson<GeoJSON.FeatureCollection>("/api/fires/active?hours=24").then(setActiveFires);
   }, []);
@@ -96,11 +134,15 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     setFirelineIntensityOverlay(null);
     if (!selectedRunId) {
       setIsochrones(null);
+      setIgnitionPerimeter(null);
       setStatsRow(null);
       return;
     }
     fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/isochrones`).then(
       setIsochrones,
+    );
+    fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/ignition`).then(
+      setIgnitionPerimeter,
     );
     fetchJson<{ rows: FireSizeStatsRow[] }>(`/api/simulations/${selectedRunId}/stats`).then(
       (data) => setStatsRow(data?.rows?.[0] ?? null),
@@ -135,8 +177,20 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         <FireMap
           activeFires={activeFires}
           isochrones={isochrones}
+          ignitionPerimeter={ignitionPerimeter}
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
+          fitTo={isochrones}
+          clock={animatable ? clockView : null}
+          overlay={
+            animatable ? (
+              <FireAnimationControls
+                clock={clock}
+                ignitionDatetime={selectedRun?.ignition_datetime ?? null}
+                untimedCount={summary.untimedCount}
+              />
+            ) : null
+          }
         />
       </div>
 
@@ -159,6 +213,8 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           </select>
           <p className="mt-2 text-xs text-muted-foreground">{formatPredictedPeriod(selectedRun)}</p>
         </div>
+
+        <RunWarnings warnings={selectedRun?.warnings} />
 
         <Separator />
 

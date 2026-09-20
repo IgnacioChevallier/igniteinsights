@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import repository
+from app.ingestion.coverage import covers_aoi
 
 from .client import download_eth_ch, download_hansen_cc
 from .errors import CanopyError
@@ -41,7 +42,9 @@ async def run_canopy_ingestion(session: AsyncSession) -> uuid.UUID:
         existing_ch = await repository.find_raster_asset(session, aoi.id, _CH_ASSET_TYPE)
         if (
             existing_cc and Path(existing_cc.file_path).exists()
+            and covers_aoi(Path(existing_cc.file_path))
             and existing_ch and Path(existing_ch.file_path).exists()
+            and covers_aoi(Path(existing_ch.file_path))
         ):
             logger.info("Canopy assets already present — skipping download")
             await repository.update_ingestion_run(

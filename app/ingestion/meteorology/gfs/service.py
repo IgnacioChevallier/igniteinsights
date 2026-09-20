@@ -18,8 +18,16 @@ GFS_SOURCE_NAME = "noaa_gfs_0p25"
 
 
 async def run_gfs_ingestion(
-    session: AsyncSession, target_date: date | None = None
+    session: AsyncSession,
+    target_date: date | None = None,
+    forecast_hours: int | None = None,
 ) -> uuid.UUID:
+    """Download one GFS cycle as multiband rasters — one band per forecast hour.
+
+    `forecast_hours` is the last hour fetched (inclusive); defaults to
+    `settings.gfs_forecast_hours`. It must cover the simulation horizon the resulting
+    rasters will be used for.
+    """
     ds = await repository.get_or_create_data_source(
         session,
         name=GFS_SOURCE_NAME,
@@ -42,6 +50,9 @@ async def run_gfs_ingestion(
             tzinfo=UTC,
         )
 
+        n_hours = forecast_hours if forecast_hours is not None else settings.gfs_forecast_hours
+        hours = list(range(n_hours + 1))
+
         raw_dir = Path(settings.raw_data_dir) / "gfs" / cycle.date
 
         downloaded: list[dict] = []
@@ -56,6 +67,7 @@ async def run_gfs_ingestion(
                 settings.aoi_east,
                 settings.aoi_north,
                 output_path,
+                hours,
             )
             await repository.create_raster_asset(
                 session,
@@ -86,6 +98,8 @@ async def run_gfs_ingestion(
                 "fxx": cycle.fxx,
                 "requested_date": target_date.isoformat() if target_date else None,
                 "variables": list(VARIABLES.keys()),
+                "forecast_hours": n_hours,
+                "band_count": len(hours),
                 "files": downloaded,
             },
         )

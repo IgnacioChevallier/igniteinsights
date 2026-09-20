@@ -3,42 +3,45 @@ ELMFIRE canopy layer derivation.
 
   reproject_canopy  — reprojects Hansen CC or ETH CH raw raster to the reference
                       grid (EPSG:32719, 30 m) using bilinear resampling.
-  derive_cbh_cbd    — derives canopy base height (m) and bulk density (kg/m³)
-                      from the fbfm40 raster via Scott & Reinhardt (2005) tables.
+  derive_cbh_cbd    — derives canopy base height and bulk density from the
+                      reprojected cc/ch rasters (see ETAPA-A-BASELINE.md §A4).
 """
+import logging
 from pathlib import Path
 
 import numpy as np
 
-# ── Scott & Reinhardt (2005) FBFM40 lookup tables ───────────────────────────
-# Keys match the FBFM40 codes produced by fuels_builder.worldcover_to_fbfm40().
-# Values are pre-scaled to ELMFIRE's Int16 encoding:
-#   cbh: 10×meters (e.g. 0.3 m → 3)
-#   cbd: 100×kg/m³ (e.g. 0.08 kg/m³ → 8)
+logger = logging.getLogger(__name__)
 
-_FBFM40_CBH: dict[int, int] = {
-    91: 0,    # NB1 Urban
-    93: 0,    # NB3 Bare/sparse
-    98: 0,    # NB8 Water
-    99: 0,    # NB9 Nodata
-    101: 3,   # GR1 Sparse grass  (0.3 m)
-    102: 3,   # GR2 Low dry grass  (0.3 m)
-    103: 3,   # GR3 Humid grass    (0.3 m)
-    145: 15,  # SH5 High dry shrub (1.5 m)
-    183: 15,  # TL3 Conifer litter (1.5 m)
-}
+# ── Canopy structure derived from measured canopy rasters ───────────────────
+# cbh/cbd used to be looked up from the FBFM40 code, which was both circular (a *surface*
+# fuel model does not determine crown structure) and fragile: the table held 9 keys, so any
+# new fuel code silently produced -9999. Derived from cc/ch instead, so the failure mode is
+# gone rather than guarded. See ETAPA-A-BASELINE.md §A4.
+#
+# Method (deliberately simple; this is infrastructure, not the thesis contribution):
+#   cbh = ch · f(cc)          self-pruning rises with stand density
+#   cbd = cfl / (ch - cbh)    bulk density = canopy fuel load / canopy layer depth
+#   cfl = cc · cfl_full       canopy cover as the available proxy for stocking
+# Cruz, Alexander & Wakimoto (2003) model cbh/cbd from basal area and stand density, which
+# we do not have for Los Alerces; cover and height are what Hansen GFC and ETH Canopy
+# Height give us. Constants are named below so they can be revisited.
+# ponytail: linear in cover, no species term. Revisit if a stand inventory ever exists.
 
-_FBFM40_CBD: dict[int, int] = {
-    91: 0,    # NB1
-    93: 0,    # NB3
-    98: 0,    # NB8
-    99: 0,    # NB9
-    101: 8,   # GR1 (0.08 kg/m³)
-    102: 8,   # GR2
-    103: 8,   # GR3
-    145: 12,  # SH5 (0.12 kg/m³)
-    183: 20,  # TL3 (0.20 kg/m³)
-}
+# Below these, treat the pixel as having no crown fuel at all.
+_MIN_CANOPY_COVER_FRAC = 0.10
+_MIN_CANOPY_HEIGHT_M = 2.0
+
+# Canopy base height as a fraction of canopy height, interpolated on canopy cover:
+# open stands keep low branches, closed stands self-prune.
+_CBH_FRACTION_OPEN = 0.20
+_CBH_FRACTION_CLOSED = 0.50
+
+# Canopy fuel load (kg/m²) at full cover. Typical conifer stands fall in 0.5-1.5 kg/m².
+_CANOPY_FUEL_LOAD_FULL = 1.0
+
+# Floor on canopy layer depth, so cbd cannot blow up when cbh approaches ch.
+_MIN_CANOPY_DEPTH_M = 1.0
 
 _NODATA = np.int16(-9999)
 
@@ -101,34 +104,58 @@ def reproject_canopy(
 
 
 def derive_cbh_cbd(
-    fbfm40_path: Path,
-    reference_path: Path,
+    cc_path: Path,
+    ch_path: Path,
     cbh_path: Path,
     cbd_path: Path,
 ) -> tuple[Path, Path]:
     """
-    Derive canopy base height (10×meters, Int16) and bulk density (100×kg/m³, Int16)
-    from fbfm40 via Scott & Reinhardt (2005).
+    Derive canopy base height (10×meters, Int16) and canopy bulk density (100×kg/m³,
+    Int16) from canopy cover and canopy height.
 
-    fbfm40 is assumed to already be in the reference grid (produced by fuels_builder),
-    so no reprojection is needed — values are read and lookup-mapped directly.
+    cc.tif is percent 0-100; ch.tif is 10×meters. Both are already on the reference grid
+    (written by reproject_canopy), so no reprojection happens here.
+
+    Pixels with no meaningful canopy get cbh = cbd = 0. cbd = 0 is the control that
+    matters: with no crown fuel there is no crown fire, whatever cbh says. Pixels where
+    either input is nodata stay nodata, matching what cc.tif and ch.tif already do.
     """
     import rasterio
 
-    with rasterio.open(fbfm40_path) as src:
-        fbfm = src.read(1).astype(np.int16)
+    with rasterio.open(cc_path) as src:
+        cc_raw = src.read(1)
+        profile = src.meta.copy()
+    with rasterio.open(ch_path) as src:
+        ch_raw = src.read(1)
 
-    with rasterio.open(reference_path) as ref:
-        profile = ref.meta.copy()
+    known = (cc_raw != _NODATA) & (ch_raw != _NODATA)
+    cc_frac = np.clip(cc_raw.astype(np.float32) / 100.0, 0.0, 1.0)
+    ch_m = ch_raw.astype(np.float32) / 10.0  # ELMFIRE Int16 encoding → meters
+
+    canopy = known & (cc_frac >= _MIN_CANOPY_COVER_FRAC) & (ch_m >= _MIN_CANOPY_HEIGHT_M)
+
+    cbh_frac = _CBH_FRACTION_OPEN + (_CBH_FRACTION_CLOSED - _CBH_FRACTION_OPEN) * cc_frac
+    cbh_m = ch_m * cbh_frac
+    depth_m = np.maximum(ch_m - cbh_m, _MIN_CANOPY_DEPTH_M)
+    cbd_kg_m3 = (cc_frac * _CANOPY_FUEL_LOAD_FULL) / depth_m
+
+    cbh_out = np.zeros(cc_raw.shape, dtype=np.int16)
+    cbd_out = np.zeros(cc_raw.shape, dtype=np.int16)
+    cbh_out[canopy] = np.round(cbh_m[canopy] * 10.0).astype(np.int16)   # → 10×meters
+    cbd_out[canopy] = np.round(cbd_kg_m3[canopy] * 100.0).astype(np.int16)  # → 100×kg/m³
+    cbh_out[~known] = _NODATA
+    cbd_out[~known] = _NODATA
+
     profile.update(dtype="int16", count=1, nodata=int(_NODATA))
-
-    for out_path, table in [(cbh_path, _FBFM40_CBH), (cbd_path, _FBFM40_CBD)]:
-        result = np.full(fbfm.shape, _NODATA, dtype=np.int16)
-        for code, value in table.items():
-            result[fbfm == code] = value
-
+    for out_path, data in [(cbh_path, cbh_out), (cbd_path, cbd_out)]:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with rasterio.open(out_path, "w", **profile) as dst:
-            dst.write(result, 1)
+            dst.write(data, 1)
+
+    logger.info(
+        "cbh/cbd derived from cc/ch — %.1f%% of the domain carries crown fuel",
+        100.0 * canopy.sum() / max(canopy.size, 1),
+    )
+    return cbh_path, cbd_path
 
     return cbh_path, cbd_path

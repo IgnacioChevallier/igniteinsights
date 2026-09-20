@@ -35,24 +35,44 @@ async def get_or_create_data_source(
 
 
 async def get_or_create_default_aoi(session: AsyncSession) -> AreaOfInterest:
+    """The stored AOI follows the configured one.
+
+    This used to create the geometry once and then only ever look it up by name, so editing
+    `aoi_*` in config changed nothing: the row kept the original box forever while the
+    ingestion clients computed tiles from the new one. Config is the single source of truth
+    for the domain; the row tracks it. See ETAPA-A-BASELINE.md §A0.
+    """
+    from geoalchemy2.shape import from_shape, to_shape
+    from shapely.geometry import box
+
+    configured = box(
+        settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north
+    )
     result = await session.execute(
         select(AreaOfInterest).where(AreaOfInterest.name == "Los Alerces")
     )
     aoi = result.scalar_one_or_none()
-    if aoi is None:
-        from geoalchemy2.shape import from_shape
-        from shapely.geometry import box
 
-        geom = from_shape(
-            box(settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north),
-            srid=4326,
-        )
+    if aoi is None:
         aoi = AreaOfInterest(
             name="Los Alerces",
-            geom=geom,
+            geom=from_shape(configured, srid=4326),
             crs_processing=settings.aoi_crs_processing,
         )
         session.add(aoi)
+        await session.flush()
+        return aoi
+
+    stored = to_shape(aoi.geom)
+    if not stored.equals_exact(configured, tolerance=1e-9):
+        logger.warning(
+            "AOI changed in config: %s → %s. Updating the stored geometry; static rasters "
+            "that no longer cover it will be re-ingested on the next run.",
+            [round(v, 4) for v in stored.bounds],
+            [round(v, 4) for v in configured.bounds],
+        )
+        aoi.geom = from_shape(configured, srid=4326)
+        aoi.crs_processing = settings.aoi_crs_processing
         await session.flush()
     return aoi
 
@@ -225,12 +245,14 @@ async def create_simulation_run(
     aoi_id: uuid.UUID,
     horizon_hours: int,
     ignition_datetime: datetime | None = None,
+    elmfire_config: dict | None = None,
 ) -> SimulationRun:
     run = SimulationRun(
         aoi_id=aoi_id,
         status="pending",
         horizon_hours=horizon_hours,
         ignition_datetime=ignition_datetime,
+        elmfire_config=elmfire_config,
         started_at=datetime.now(UTC),
     )
     session.add(run)
@@ -251,6 +273,7 @@ async def update_simulation_run(
     status: str,
     output_dir: str | None = None,
     error_message: str | None = None,
+    elmfire_config: dict | None = None,
 ) -> SimulationRun | None:
     result = await session.execute(select(SimulationRun).where(SimulationRun.id == run_id))
     run = result.scalar_one_or_none()
@@ -262,6 +285,8 @@ async def update_simulation_run(
         run.output_dir = output_dir
     if error_message is not None:
         run.error_message = error_message
+    if elmfire_config is not None:
+        run.elmfire_config = elmfire_config
     await session.flush()
     return run
 
@@ -343,6 +368,7 @@ async def list_recent_simulation_runs(
             "finished_at": run.finished_at.isoformat() if run.finished_at else None,
             "output_dir": run.output_dir,
             "error_message": run.error_message,
+            "warnings": (run.elmfire_config or {}).get("warnings", []),
         }
         for run, aoi in rows
     ]

@@ -2,8 +2,12 @@
 Reprojects a raw DEM (EPSG:4326) to the processing CRS (EPSG:32719, 30 m)
 and derives slope and aspect rasters for ELMFIRE.
 
-Outputs written to data/static/ and cached — only regenerated if missing.
+Outputs are cached in data/static/ and regenerated whenever the cache key changes —
+see `_cache_key`. Bump `DERIVATION_VERSION` on ANY change to how dem/slp/asp are
+produced, or the cache will keep serving the old rasters and the change will appear to
+work while doing nothing.
 """
+import json
 import logging
 from pathlib import Path
 
@@ -13,6 +17,13 @@ from rasterio.enums import Resampling
 from rasterio.warp import calculate_default_transform, reproject
 
 logger = logging.getLogger(__name__)
+
+# Bump on any change to _reproject_dem / _derive_slope_aspect output (dtype, nodata,
+# algorithm, units). Without this the `.exists()` check below serves stale rasters
+# forever: the cache on disk was float32 from an earlier revision while the code had
+# already moved to int16, and every simulation silently used the stale copy.
+DERIVATION_VERSION = 2
+_CACHE_KEY_FILE = ".topo_cache_key.json"
 
 
 def reproject_and_derive_topo(
@@ -28,15 +39,55 @@ def reproject_and_derive_topo(
 
     static_dir.mkdir(parents=True, exist_ok=True)
 
-    if not (dem_out.exists() and slp_out.exists() and asp_out.exists()):
-        logger.info("Deriving topography from %s", dem_raw_path)
-        _reproject_dem(dem_raw_path, dem_out, target_crs, resolution_m)
-        _derive_slope_aspect(dem_out, slp_out, asp_out, resolution_m)
-        logger.info("Topography written to %s", static_dir)
+    key = _cache_key(dem_raw_path, target_crs, resolution_m)
+    key_path = static_dir / _CACHE_KEY_FILE
+    outputs_present = dem_out.exists() and slp_out.exists() and asp_out.exists()
+    cached_key = None
+    if key_path.exists():
+        try:
+            cached_key = json.loads(key_path.read_text())
+        except (OSError, ValueError):
+            cached_key = None  # unreadable key → treat as a miss and rebuild
+
+    if outputs_present and cached_key == key:
+        logger.info("Topography cache hit at %s — skipping", static_dir)
+        return dem_out, slp_out, asp_out
+
+    if outputs_present:
+        logger.info(
+            "Topography cache stale (key %s → %s) — regenerating", cached_key, key
+        )
     else:
-        logger.info("Topography already cached at %s — skipping", static_dir)
+        logger.info("Deriving topography from %s", dem_raw_path)
+
+    _reproject_dem(dem_raw_path, dem_out, target_crs, resolution_m)
+    _derive_slope_aspect(dem_out, slp_out, asp_out, resolution_m)
+    key_path.write_text(json.dumps(key, sort_keys=True))
+    logger.info("Topography written to %s", static_dir)
 
     return dem_out, slp_out, asp_out
+
+
+def _cache_key(dem_raw_path: Path, target_crs: str, resolution_m: float) -> dict:
+    """Identity of a cached topography set: the source DEM, the parameters it was
+    derived with, and the version of the derivation code itself.
+
+    Source identity uses size + mtime rather than a content hash — the raw DEM is
+    hundreds of MB and is only ever replaced wholesale by a re-download.
+
+    mtime is nanosecond, not whole seconds: a re-download that lands in the same second
+    and produces the same file size would otherwise look identical and be served from
+    cache. ponytail: hash the file if a filesystem with coarse timestamps ever matters.
+    """
+    stat = dem_raw_path.stat()
+    return {
+        "version": DERIVATION_VERSION,
+        "src_name": dem_raw_path.name,
+        "src_size": stat.st_size,
+        "src_mtime_ns": stat.st_mtime_ns,
+        "target_crs": target_crs,
+        "resolution_m": resolution_m,
+    }
 
 
 def align_raster(

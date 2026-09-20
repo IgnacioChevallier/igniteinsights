@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import repository
+from app.ingestion.coverage import covers_aoi
 
 from .client import WorldCoverClient
 from .errors import WorldCoverError
@@ -41,7 +42,7 @@ async def run_worldcover_ingestion(session: AsyncSession) -> uuid.UUID:
 
         # Idempotency: static data — reuse if already registered and file exists
         existing = await repository.find_raster_asset(session, aoi.id, ASSET_TYPE)
-        if existing and Path(existing.file_path).exists():
+        if existing and Path(existing.file_path).exists() and covers_aoi(Path(existing.file_path)):
             logger.info("WorldCover already exists at %s — skipping download", existing.file_path)
             await repository.update_ingestion_run(
                 session,

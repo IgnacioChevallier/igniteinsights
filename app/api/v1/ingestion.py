@@ -189,6 +189,17 @@ class IngestionRunRequest(BaseModel):
     firms_day_range: int = Field(default=1, ge=1, le=5)
     firms_start_date: date | None = None
     gfs_date: date | None = None
+    gfs_forecast_hours: int | None = Field(
+        default=None,
+        ge=0,
+        le=120,
+        description=(
+            "Last GFS forecast hour to fetch (inclusive) — one raster band each. "
+            "Must cover the simulation horizon these rasters will be used for, or "
+            "ELMFIRE freezes the weather at the last band. Defaults to "
+            "settings.gfs_forecast_hours (24). GFS is hourly to f120."
+        ),
+    )
 
 
 @router.post(
@@ -231,7 +242,11 @@ async def run_ingestion(body: IngestionRunRequest):
     if body.include_dem:
         tasks["dem"] = _run(run_dem_ingestion)
     if body.include_gfs:
-        tasks["gfs"] = _run(run_gfs_ingestion, target_date=gfs_date)
+        tasks["gfs"] = _run(
+            run_gfs_ingestion,
+            target_date=gfs_date,
+            forecast_hours=body.gfs_forecast_hours,
+        )
     if body.include_worldcover:
         tasks["worldcover"] = _run(run_worldcover_ingestion)
     if body.include_canopy:

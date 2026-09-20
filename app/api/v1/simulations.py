@@ -5,9 +5,9 @@ POST /simulations/run  — trigger a full ELMFIRE simulation
 GET  /simulations/{id} — poll simulation status
 """
 import asyncio
+import functools
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,6 +15,7 @@ from fastapi import Path as FPath
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import resolve_data_path as _resolve
 from app.config import settings
 from app.db import repository
 from app.dependencies import get_db
@@ -23,7 +24,7 @@ from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.errors import ELMFIRERunnerError
 from app.elmfire.runner.schemas import SimulationRequest
 from app.postprocessing.isochrone_converter import (
-    enrich_with_arrival_time,
+    isochrones_to_geojson,
     shapefile_to_geojson,
 )
 from app.postprocessing.raster_overlay import render_raster_overlay
@@ -50,21 +51,15 @@ def _envelope(status: str, data=None, error: dict | None = None) -> dict:
     }
 
 
-def _resolve(path_str: str) -> Path:
-    p = Path(path_str)
-    if p.exists():
-        return p
-    parts = p.parts
-    if len(parts) >= 3 and parts[0] == "/" and parts[1] == "app" and parts[2] == "data":
-        local = Path.cwd() / "data" / Path(*parts[3:])
-        return local
-    return p
-
-
 class SimulationRunRequest(BaseModel):
     inputs_dir: str
     horizon_hours: int = 12
     ignition_datetime: datetime | None = None
+    # Optional overrides. None keeps the namelist writer's defaults, so existing callers
+    # are unaffected; the playground uses them to control the synthetic scenario.
+    dtdump_s: float | None = None
+    lh_moisture_pct: float | None = None
+    lw_moisture_pct: float | None = None
 
 
 @router.post(
@@ -99,7 +94,13 @@ async def run_simulation(
 
     aoi = await repository.get_or_create_default_aoi(session)
     sim_run = await repository.create_simulation_run(
-        session, aoi.id, horizon_hours=body.horizon_hours, ignition_datetime=body.ignition_datetime
+        session,
+        aoi.id,
+        horizon_hours=body.horizon_hours,
+        ignition_datetime=body.ignition_datetime,
+        # Recorded so GET /{id}/ignition can find ignicion.shp, which lives in the
+        # inputs folder — SimulationRun otherwise only tracks output_dir.
+        elmfire_config={"inputs_dir": str(inputs_dir)},
     )
     await session.commit()
     await session.refresh(sim_run)
@@ -111,8 +112,16 @@ async def run_simulation(
         # (Re)write namelist with the requested horizon
         elmfire_data = inputs_dir / "elmfire.data"
         import asyncio
-        _, resolved_dtdump_s = await asyncio.to_thread(
-            write_namelist,
+        namelist_kwargs: dict = {}
+        if body.dtdump_s is not None:
+            namelist_kwargs["dtdump_s"] = body.dtdump_s
+        if body.lh_moisture_pct is not None:
+            namelist_kwargs["lh_moisture_pct"] = body.lh_moisture_pct
+        if body.lw_moisture_pct is not None:
+            namelist_kwargs["lw_moisture_pct"] = body.lw_moisture_pct
+
+        _, resolved_dtdump_s, weather_warnings = await asyncio.to_thread(
+            functools.partial(write_namelist, **namelist_kwargs),
             inputs_dir,
             outputs_dir,
             body.horizon_hours,
@@ -135,6 +144,9 @@ async def run_simulation(
             sim_run.id,
             status="success",
             output_dir=str(outputs_dir),
+            # Surfaced on the dashboard: a run with frozen weather looks identical to a
+            # good one on the map, so the caveat has to travel with the result.
+            elmfire_config={"inputs_dir": str(inputs_dir), "warnings": weather_warnings},
         )
 
         if result.outputs.isochrones_shp:
@@ -173,6 +185,15 @@ async def run_simulation(
         )
         await session.commit()
         raise HTTPException(status_code=502, detail=str(exc))
+
+    except ValueError as exc:
+        # Namelist/input validation — e.g. horizon_hours exceeds the forecast hours the
+        # weather rasters actually carry. A caller-fixable request, not a server fault.
+        await repository.update_simulation_run(
+            session, sim_run.id, status="failed", error_message=str(exc)
+        )
+        await session.commit()
+        raise HTTPException(status_code=422, detail=str(exc))
 
     except Exception as exc:
         await repository.update_simulation_run(
@@ -213,6 +234,7 @@ async def get_simulation(
             "finished_at": run.finished_at.isoformat() if run.finished_at else None,
             "output_dir": run.output_dir,
             "error_message": run.error_message,
+            "warnings": (run.elmfire_config or {}).get("warnings", []),
         },
     )
 
@@ -223,10 +245,12 @@ async def get_simulation(
     description=(
         "Converts the run's hourly_isochrones.shp (fire-front contour lines, "
         "generated by the elmfire-runner from the time-of-arrival raster) to a "
-        "GeoJSON FeatureCollection in EPSG:4326, enriched with arrival_s/"
-        "arrival_hours per feature where the time-of-arrival raster is available. "
-        "Returns an empty FeatureCollection (not an error) if the run produced no "
-        "isochrones."
+        "GeoJSON FeatureCollection in EPSG:4326, with arrival_s/arrival_hours per "
+        "feature read from the contour level gdal_contour stored on it. Features "
+        "from runs made before that attribute was emitted carry null arrival times. "
+        "These are the PREDICTION: for the observed fire perimeter the prediction "
+        "started from, see GET /{id}/ignition. Returns an empty FeatureCollection "
+        "(not an error) if the run produced no isochrones."
     ),
 )
 async def get_simulation_isochrones(
@@ -242,14 +266,40 @@ async def get_simulation_isochrones(
     if not run.output_dir:
         return _envelope("success", {"type": "FeatureCollection", "features": []})
 
-    output_dir = _resolve(run.output_dir)
-    shp_path = output_dir / "hourly_isochrones.shp"
+    shp_path = _resolve(run.output_dir) / "hourly_isochrones.shp"
+    geojson = await asyncio.to_thread(isochrones_to_geojson, shp_path)
+    return _envelope("success", geojson)
+
+
+@router.get(
+    "/{simulation_id}/ignition",
+    summary="Get the observed fire perimeter the simulation started from, as GeoJSON",
+    description=(
+        "Returns ignicion.shp — the burn perimeter reconstructed from FIRMS "
+        "detections (clustering + concave hull) that seeded phi.tif for this run. "
+        "This is OBSERVED INPUT, not prediction: it is typically the large majority "
+        "of the burned area a run reports, so it must be shown distinctly from the "
+        "isochrones rather than blended with them. Returns an empty FeatureCollection "
+        "for runs recorded before inputs_dir was tracked, or if the file is missing."
+    ),
+)
+async def get_simulation_ignition(
+    simulation_id: uuid.UUID = FPath(
+        ...,
+        description="The simulation run ID returned by POST /api/v1/simulations/run.",
+    ),
+    session: AsyncSession = Depends(get_db),
+):
+    run = await repository.get_simulation_run(session, simulation_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    inputs_dir = (run.elmfire_config or {}).get("inputs_dir")
+    if not inputs_dir:
+        return _envelope("success", {"type": "FeatureCollection", "features": []})
+
+    shp_path = _resolve(inputs_dir) / "ignicion.shp"
     geojson = await asyncio.to_thread(shapefile_to_geojson, shp_path)
-
-    tifs = sorted(output_dir.glob("time_of_arrival_*.tif"))
-    if tifs and geojson["features"]:
-        geojson = await asyncio.to_thread(enrich_with_arrival_time, geojson, tifs[-1])
-
     return _envelope("success", geojson)
 
 

@@ -15,6 +15,9 @@ import rasterio
 logger = logging.getLogger(__name__)
 
 DEFAULT_DTDUMP_S = 3600.0
+# Weather rasters whose band count is the forecast time series. ELMFIRE reads band n as
+# the weather at TSTART + n × DT_METEOROLOGY and interpolates between bands.
+WEATHER_RASTERS = ("ws", "wd", "m1", "m10", "m100")
 REQUIRED_NAMELISTS = (
     "INPUTS",
     "COMPUTATIONAL_DOMAIN",
@@ -22,6 +25,28 @@ REQUIRED_NAMELISTS = (
     "SIMULATOR",
     "OUTPUTS",
 )
+
+
+# Fuel model table shipped with this repo (app/elmfire/fuel_models.csv), copied into the
+# inputs directory by the preparation step. ELMFIRE writes its own default table ONLY when
+# FUEL_MODEL_FILE is left at 'null'; naming it here makes the set of valid FBFM codes an
+# artefact we version and test against, instead of an implicit property of the solver.
+#
+# Gotcha: MISCELLANEOUS_INPUTS_DIRECTORY defaults to 'null' and is only substituted with
+# FUELS_AND_TOPOGRAPHY_DIRECTORY inside WRITE_FUEL_MODEL_TABLE — which runs only when
+# FUEL_MODEL_FILE == 'null'. Setting one without the other makes ELMFIRE look for
+# 'null/fuel_models.csv' and abort. Both are written together, always.
+FUEL_MODEL_FILE = "fuel_models.csv"
+
+# Live fuel moisture, percent. ELMFIRE defaults both to 60.0; written explicitly so the
+# value is a recorded decision rather than an inherited default. Inert while the crosswalk
+# only emits models with no live load (TL/NB), a first-order driver as soon as it emits
+# SH/GS/TU. ELMFIRE takes a single scalar for the whole domain — there is no live-moisture
+# raster — so any value is an area-weighted mean and the weighting has to be justified.
+# ETAPA-B-INSUMO-PATAGONICO.md §B5: source is Bianchi & Defossé (2015), LFMC by species for
+# Andean Patagonia.
+DEFAULT_LH_MOISTURE_PCT = 60.0
+DEFAULT_LW_MOISTURE_PCT = 60.0
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:
@@ -44,6 +69,47 @@ def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> floa
     return dtdump_s
 
 
+def validate_weather_coverage(
+    inputs_dir: Path, tstop_s: float, dt_meteorology_s: float
+) -> list[str]:
+    """Fail if the weather rasters do not span the simulation horizon; return warnings.
+
+    ELMFIRE indexes weather bands by `TSTART + n × DT_METEOROLOGY`. A raster with fewer
+    bands than the run needs does not error — it silently holds the last available band,
+    which freezes wind and moisture for the remainder of the simulation and removes the
+    diurnal cycle that drives fire behaviour. Catch it here instead.
+
+    Single-band rasters are allowed but warned about: they *are* constant weather. The
+    returned warnings are surfaced to the dashboard, not just logged — a run whose
+    weather never changes looks identical to a good one on the map.
+    """
+    warnings: list[str] = []
+    needed = int(math.floor(tstop_s / dt_meteorology_s)) + 1
+    for name in WEATHER_RASTERS:
+        path = inputs_dir / f"{name}.tif"
+        if not path.exists():
+            continue
+        with rasterio.open(path) as ds:
+            bands = ds.count
+        if bands == 1:
+            msg = (
+                f"{path.name} tiene una sola banda: el clima permanece constante "
+                "durante toda la simulación (sin ciclo diurno — sin pico de viento "
+                "de la tarde ni mínimo de humedad). Volvé a correr la ingesta GFS "
+                "para obtener bandas horarias."
+            )
+            logger.warning("%s", msg)
+            warnings.append(msg)
+        elif bands < needed:
+            raise ValueError(
+                f"{path.name} has {bands} band(s) but the run needs {needed} "
+                f"(TSTOP={tstop_s:.0f}s / DT_METEOROLOGY={dt_meteorology_s:.0f}s). "
+                "ELMFIRE would hold the last band and freeze weather mid-run — "
+                "shorten horizon_hours or re-ingest GFS with more forecast hours."
+            )
+    return warnings
+
+
 def write_namelist(
     inputs_dir: Path,
     outputs_dir: Path,
@@ -55,7 +121,9 @@ def write_namelist(
     dt_meteorology_s: float = 3600.0,
     simulation_tstart_s: float = 0.0,
     simulator_mode: int = 1,
-) -> tuple[Path, float]:
+    lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
+    lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
+) -> tuple[Path, float, list[str]]:
     """
     Write elmfire.data to output_path.
 
@@ -72,7 +140,7 @@ def write_namelist(
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
 
     Returns:
-        Tuple of (path to the written namelist, resolved dump interval in seconds).
+        Tuple of (namelist path, resolved dump interval in seconds, weather warnings).
     """
     _validate_parameters(
         simulation_hours,
@@ -88,6 +156,8 @@ def write_namelist(
     dtdump_s = resolve_dtdump_s(duration_s, dtdump_s)
     inputs_str = _fortran_path(inputs_dir)
     outputs_str = _fortran_path(outputs_dir)
+
+    weather_warnings = validate_weather_coverage(inputs_dir, tstop_s, dt_meteorology_s)
 
     dem_path = inputs_dir / "dem.tif"
     utm_west, utm_south, cell_size = _read_domain(dem_path)
@@ -113,6 +183,8 @@ def write_namelist(
   ADJ_FILENAME                    = 'adj'
   PHI_FILENAME                    = 'phi'
   DT_METEOROLOGY                  = {dt_meteorology_s:.1f}
+  LH_MOISTURE_CONTENT             = {lh_moisture_pct:.1f}
+  LW_MOISTURE_CONTENT             = {lw_moisture_pct:.1f}
 /
 
 &COMPUTATIONAL_DOMAIN
@@ -145,6 +217,8 @@ def write_namelist(
 &MISCELLANEOUS
   PATH_TO_GDAL                    = '/usr/bin/'
   SCRATCH                         = '/tmp/'
+  MISCELLANEOUS_INPUTS_DIRECTORY  = '{inputs_str}'
+  FUEL_MODEL_FILE                 = '{FUEL_MODEL_FILE}'
 /
 """
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -153,7 +227,7 @@ def write_namelist(
     logger.info(
         "Namelist written to %s (%.0f h, %.0f s timestep)", output_path, simulation_hours, dt_s
     )
-    return output_path, dtdump_s
+    return output_path, dtdump_s, weather_warnings
 
 
 def _read_domain(dem_path: Path) -> tuple[float, float, float]:

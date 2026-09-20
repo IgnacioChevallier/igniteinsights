@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import repository
+from app.ingestion.coverage import covers_aoi
 
 from .client import OpenTopographyClient
 from .errors import OpenTopographyError
@@ -50,7 +51,7 @@ async def run_dem_ingestion(session: AsyncSession) -> uuid.UUID:
         # Idempotency: reuse a DB-registered asset, or register the canonical file
         # when it was downloaded manually during local setup.
         existing = await repository.find_raster_asset(session, aoi.id, "dem_raw")
-        if existing and Path(existing.file_path).exists():
+        if existing and Path(existing.file_path).exists() and covers_aoi(Path(existing.file_path)):
             logger.info("DEM already exists at %s — skipping download", existing.file_path)
             await repository.update_ingestion_run(
                 session,

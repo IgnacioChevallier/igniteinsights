@@ -98,7 +98,7 @@ igniteinsights/
 │   │   │   ├── weather_builder.py # GFS u10/v10/t2m/rh → ws/wd/m1/m10/m100 ✅
 │   │   │   ├── fuels_builder.py   # WorldCover → fbfm40 (crosswalk Scott & Burgan) ✅
 │   │   │   ├── ignition_builder.py# FIRMS points → phi.tif (SDF) ✅
-│   │   │   ├── canopy_builder.py  # Hansen/ETH → cc/ch + fbfm40 → cbh/cbd ✅
+│   │   │   ├── canopy_builder.py  # Hansen/ETH → cc/ch → cbh/cbd ✅
 │   │   │   └── namelist_writer.py # Genera elmfire.data ✅
 │   │   └── runner/                # Cliente HTTP al microservicio elmfire-runner ✅
 │   │
