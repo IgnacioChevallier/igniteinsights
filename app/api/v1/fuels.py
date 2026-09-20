@@ -8,13 +8,12 @@ the default.
 import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import rasterio
 from fastapi import APIRouter, HTTPException, Query
 
-from app.config import resolve_data_path, settings
+from app.config import FuelsSource, resolve_data_path, settings
 from app.elmfire.builder.fuels_builder import (
     FBFM40_DISPLAY,
     SOURCE_LABELS,
@@ -27,7 +26,6 @@ router = APIRouter(prefix="/fuels", tags=["fuels"])
 
 _FBFM40_COLORS = {code: color for code, (_, color) in FBFM40_DISPLAY.items()}
 
-FuelsSource = Literal["ccsbap", "mapbiomas", "worldcover"]
 
 
 def _envelope(status: str, data=None, error: dict | None = None) -> dict:

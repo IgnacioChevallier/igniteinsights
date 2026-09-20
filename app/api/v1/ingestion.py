@@ -3,12 +3,12 @@ import logging
 import uuid
 from collections.abc import Awaitable
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import FuelsSource
 from app.db import repository
 from app.db.session import async_session_factory
 from app.dependencies import get_db
@@ -187,7 +187,7 @@ class IngestionRunRequest(BaseModel):
     include_gfs: bool = True
     include_worldcover: bool = False
     include_canopy: bool = False
-    fuels_source: Literal["ccsbap", "mapbiomas", "worldcover"] | None = Field(
+    fuels_source: FuelsSource | None = Field(
         default=None,
         description="Cover product that feeds fbfm40.tif for this run. Defaults to "
                     "settings.fuels_source.",

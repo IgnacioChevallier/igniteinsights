@@ -7,6 +7,7 @@ GET  /simulations/{id} — poll simulation status
 import asyncio
 import functools
 import uuid
+from pathlib import Path
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -53,17 +54,20 @@ _RASTER_UNITS: dict[str, tuple[float, str]] = {
 # recomputed rather than served stale.
 
 
-def _file_stamp(*paths) -> tuple:
-    stamps = []
+def _file_stamp(*paths: Path | None) -> tuple[tuple[str, int, int], ...]:
+    # Uniform shape on purpose: an absent path and an unreadable one stay distinguishable
+    # (the name is part of the stamp) without the entry going None and taking the tuple's
+    # type with it.
+    stamps: list[tuple[str, int, int]] = []
     for path in paths:
         if path is None:
-            stamps.append(None)
+            stamps.append(("", -1, -1))
             continue
         try:
             st = path.stat()
             stamps.append((str(path), st.st_mtime_ns, st.st_size))
         except OSError:
-            stamps.append((str(path), None, None))
+            stamps.append((str(path), -1, -1))
     return tuple(stamps)
 
 

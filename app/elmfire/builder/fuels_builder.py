@@ -158,7 +158,7 @@ def _cache_key(
     source_path: Path,
     reference_path: Path,
     source_id: str,
-    crosswalk: dict[int, int],
+    crosswalk: dict[int, int] | dict[str, int],
 ) -> dict:
     """Identity of a cached fbfm40 raster: the source raster, which legend it speaks, the
     crosswalk applied to it, the target grid, and the version of this code.

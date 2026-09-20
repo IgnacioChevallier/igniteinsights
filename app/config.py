@@ -1,6 +1,14 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings
+
+# Los tres productos de cobertura que pueden alimentar fbfm40.tif. Vive acá y no en la
+# capa de API porque `settings.fuels_source` es el default de todos ellos: tiparlo como
+# `str` obligaba a cada punto de uso a convivir con un valor que el tipo no garantizaba.
+# Como Literal, un valor mal escrito en .env falla al levantar en vez de al construir el
+# ráster.
+FuelsSource = Literal["ccsbap", "mapbiomas", "worldcover"]
 
 
 class Settings(BaseSettings):
@@ -41,7 +49,7 @@ class Settings(BaseSettings):
     # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3 (IGN-20B-CROSSWALK-CCSBAP.md)
     # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (IGN-20-CROSSWALK.md)
     # "worldcover" → ESA WorldCover 2021, el baseline de comparación (ETAPA-A §A7)
-    fuels_source: str = "ccsbap"
+    fuels_source: FuelsSource = "ccsbap"
     # Recorte al AOI de la capa vectorial de CCS-BAP, derivado con
     # scripts/prepare_ccsbap_aoi.py. Vive bajo data/ porque es lo único que el
     # contenedor del runner y de la API tienen montado.
