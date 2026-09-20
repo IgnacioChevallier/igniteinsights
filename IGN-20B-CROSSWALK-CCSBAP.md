@@ -93,7 +93,7 @@ distinta, y ahí el nivel 2 no alcanza:
 **infraestructura**.
 - `OT Herb-Subarb` contiene estepa graminosa, **estepa arbustiva** y pradera.
 
-Sin excepciones, la turbera heredaría el modelo del mallín y una plantación de pino heredaría el de un cultivo. Las diez excepciones están en §5.
+Sin excepciones, la turbera heredaría el modelo del mallín y una plantación de pino heredaría el de un cultivo. Las diez excepciones están en §4.
 
 ---
 
@@ -194,7 +194,7 @@ Es hojarasca latifoliada de carga moderada.
 **Procedencia.** El estrato portador y el tipo de hojarasca son bibliográficos; la elección
 de TL6 sobre TL2 y TU2 es juicio fundamentado del autor. **Sensibilidad S1.**
 
-### 5.2 · TF Co y TF Ci — Coihue y ciprés → **165 (TU5)** · 9,30 % del AOI
+### 5.2 · TF Co, TF Ci y TF Mx — Coihue, ciprés y mixtos → **165 (TU5)** · 12,33 % del AOI
 
 Coihue (*N. dombeyi*, perennifolio) y ciprés (*Austrocedrus chilensis*, conífera) comparten
 una característica que decide el modelo: **sotobosque leñoso denso**, de caña colihue
@@ -207,8 +207,17 @@ tree understory"*— es literalmente la estructura descrita. Es la misma elecci�
 §6.1 hizo para "bosques cerrados", acá restringida a las especies que efectivamente la
 justifican en vez de aplicarse a todo el bosque.
 
+**TF Mx — mixtos (3,03 %).** Son rodales donde ninguna especie domina, así que no aplica la
+regla general de mezclas del §4: ahí la clase hereda de la especie dominante, y acá no hay
+dominante que heredar. Se les asigna TU5 porque las especies que entran en la mezcla son las
+mismas de esta ficha más lenga, y ninguna de ellas cambia el estrato portador: el sotobosque
+leñoso de caña sigue presente y el fuego sigue corriendo por hojarasca **con** sotobosque.
+**Es la asignación con menos respaldo específico de las tres de esta ficha**, porque la
+composición exacta de cada rodal mixto no se verificó clase por clase.
+
 **Limitación.** Coihue (muy húmedo, oeste) y ciprés (más seco, este) reciben el mismo modelo
 pese a tener regímenes de humedad distintos. CCS-BAP los separa y nuestra parametrización no.
+Los mixtos agravan esto: un rodal de lenga y coihue recibe el modelo del coihue puro.
 
 ### 5.3 · TF Ñi — Bosque de ñire → **163 (TU3)** · 4,32 % del AOI
 
@@ -346,14 +355,19 @@ fronterizo toma el 6,90 % de la grilla en MapBiomas y el 5,38 % en CCS-BAP:
 
 Lecturas:
 
-1. **El arbustal pasa de 0,04 % a 20,13 %.** Es el hallazgo central de la Etapa B, ahora sobre
-  un insumo que discrimina especie.
-2. **El bosque deja de ser un solo modelo.** Donde el baseline pone 59,93 % de TL3 y MapBiomas
-  53,40 % de TU5, CCS-BAP reparte entre TU5 (21,09 %), TL6 (19,23 %) y TU3 (5,20 %) según
-   especie y estructura.
-3. **MapBiomas declara más superficie no combustible que CCS-BAP** (29,83 % contra 25,65 %),
+1. **El arbustal pasa de 3,75 % a 23,25 %**, y con el pastizal-arbustal de 3,75 % a 28,36 %.
+  Es el hallazgo central de la Etapa B, ahora sobre un insumo que discrimina especie.
+2. **El bosque deja de ser un solo modelo.** Donde el baseline pone el 42,34 % del AOI en TL3
+  —un único modelo, y además de hojarasca de conífera— y MapBiomas el 30,91 % en TU5, CCS-BAP
+   reparte entre TU5 (12,21 %), TL6 (10,51 %) y TU3 (4,17 %) según especie y estructura.
+3. **MapBiomas declara más superficie no combustible que CCS-BAP** (26,39 % contra 20,99 %),
   pese a ser nueve años posterior. La diferencia está sobre todo en nieve y hielo y merece
    revisión antes de la comparación final.
+
+> Los porcentajes por modelo se miden sobre los rásters efectivamente construidos
+> (`data/static/fbfm40_<fuente>.tif`, grilla 2.563 × 3.222). El TL3 (3,16 %) y el GR2 (0,77 %)
+> que aparecen dentro del mapa de CCS-BAP no salen de la leyenda de CIEFAP: son el relleno
+> fronterizo tomado de WorldCover (§7, limitación 2).
 
 
 
@@ -402,10 +416,29 @@ el fuego**, que es lo que Mermoz et al. (2005) documentan para la Patagonia.
 **Qué demuestra y qué no.** Demuestra que el resultado de ELMFIRE es **fuertemente sensible al
 mapa de combustible**: un factor 5 en superficie y un factor 7 en intensidad mediana, con el
 resto de los insumos congelados. Un empate habría sido un hallazgo en contra de toda la Etapa B.
-**No demuestra que CCS-BAP prediga mejor**: eso requiere puntuar contra el perímetro observado
-(§B6, harness B). Que los dos insumos patagónicos coincidan entre sí (IoU 0,599) y difieran
-igual del baseline (0,245 y 0,269) es consistente con que el baseline sea el atípico, pero no
-lo prueba.
+Por sí sola **no demuestra que CCS-BAP prediga mejor**: eso exige puntuar contra el perímetro
+observado, que es el harness B. Que los dos insumos patagónicos coincidan entre sí (IoU 0,599)
+y difieran igual del baseline (0,245 y 0,269) es consistente con que el baseline sea el
+atípico, pero no lo prueba.
+
+**Y el harness B ya corrió** (2026-09-19, `RESULTADOS.md` §4). Contra la cicatriz de
+Sentinel-2 —dNBR entre una ventana pre y una post, umbral 0,30, independiente de FIRMS, que es
+lo que construyó la semilla— sobre el mismo incendio y las mismas 12 h:
+
+| Mapa             | IoU       | Recall    | Precisión | Acierto      |
+| ---------------- | --------- | --------- | --------- | ------------ |
+| WorldCover 2021  | 0,036     | 0,043     | 0,182     | 2.827 ha     |
+| MapBiomas 2024   | 0,045     | 0,048     | **0,412** | 3.175 ha     |
+| **CCS-BAP 2017** | **0,067** | **0,082** | 0,267     | **5.362 ha** |
+
+CCS-BAP casi duplica el IoU del baseline, y en los once tiles con 70-100 % de superficie
+quemada —los que contienen el borde real del fuego, donde el número informa— la diferencia se
+agranda a **0,101 contra 0,047**.
+
+**Lo que ese número no dice.** Los valores absolutos son bajos y no miden la calidad del
+modelo: la referencia es la cicatriz final de semanas y la corrida es de 12 h, así que el
+recall está acotado por construcción y las ~62.000 ha "no predichas" son sobre todo tiempo de
+simulación que no existió. **Lo comparable es el orden entre mapas, no la magnitud.**
 
 **Salvedades de esta corrida:**
 
@@ -414,9 +447,9 @@ lo prueba.
    meteorología, `phi` y dosel, o sea una preparación entera. **Pendiente.**
 2. ~~Humedad del combustible vivo sin criterio~~ → **resuelto**: valores medidos de Bianchi &
   Defossé (2015), fundamentados en `ETAPA-B` §B5 y cuantificados en §6.3.
-3. **Sin validación contra lo observado.** Las tres corridas se comparan entre sí. El harness
-  ya existe y se ejecutó (`IGN-26-VALIDACION.md`), pero puntuar de verdad exige una corrida
-   que abarque el incendio completo y no 12 h.
+3. ~~Sin validación contra lo observado~~ → **resuelto parcialmente**: el harness B se
+  ejecutó y su resultado está arriba. Sigue pendiente puntuar sobre una corrida que abarque
+   el incendio completo y no 12 h, que es lo que hoy acota el recall por construcción.
 4. `SIMULATION_TSTART` **quedó en 0 en estas corridas**, porque el directorio de preparación es
   anterior al arreglo del anclaje. Una preparación nueva las mueve.
 
@@ -424,19 +457,10 @@ lo prueba.
 
 ### 6.2 · Paso 4 contra la quema experimental de la PT-37 (2026-09-16)
 
-Scott & Burgan cierran su procedimiento con un filtro de rechazo: elegido un modelo, hay que
-mirar su comportamiento predicho y descartarlo si contradice lo observado. Hasta acá ese paso
-se aplicó con la escala adjetiva publicada, que está medida en un escenario de referencia
-(D2L2) que no es el nuestro. La PT-37 §3.3-3.4 da algo mejor: una **quema experimental con
-meteorología medida**, en el mismo ecotono y sobre el modelo A4.
+Scott & Burgan cierran su procedimiento con un filtro de rechazo: elegido un modelo, hay que mirar su comportamiento predicho y descartarlo si contradice lo observado. Hasta acá ese paso se aplicó con la escala adjetiva publicada, que está medida en un escenario de referencia (D2L2) que no es el nuestro. La PT-37 §3.3-3.4 da algo mejor: una **quema experimental con meteorología medida**, en el mismo ecotono y sobre el modelo A4.
 
-**Condiciones reproducidas** (Cerro Jones, 14-09-2011, 16:00), terreno plano, ignición puntual,
-1 h de simulación: `m1` 8,0 % —de FFMC 92,7 por la conversión de Van Wagner—, `LW` 82 % medido
-en espino negro, `LH` 30 % por pasto 100 % curado, viento sostenido de 24 km/h y ráfagas de
-51 km/h. **Observado:** el frente recorrió 40 m en 30 s, o sea 4.800 m/h y llama de 3 a 4 m.
-Esos 80 m/min son el pico bajo ráfaga y no un promedio horario, así que cada candidato se corre
-en las dos condiciones y el resultado se lee como horquilla. Longitud de llama por Byram (1959),
-`L = 0,0775 · I^0,46`.
+**Condiciones reproducidas** (Cerro Jones, 14-09-2011, 16:00), terreno plano, ignición puntual, 1 h de simulación: `m1` 8,0 % —de FFMC 92,7 por la conversión de Van Wagner—, `LW` 82 % medido en espino negro, `LH` 30 % por pasto 100 % curado, viento sostenido de 24 km/h y ráfagas de
+51 km/h. **Observado:** el frente recorrió 40 m en 30 s, o sea 4.800 m/h y llama de 3 a 4 m. Esos 80 m/min son el pico bajo ráfaga y no un promedio horario, así que cada candidato se corre en las dos condiciones y el resultado se lee como horquilla. Longitud de llama por Byram (1959), `L = 0,0775 · I^0,46`.
 
 
 | Modelo              | ROS sostenido        | Llama     | ROS ráfaga           | Llama  | Veredicto                |
@@ -463,16 +487,10 @@ Lecturas:
 4. SH4 y GS3 caen en el mismo régimen que SH8, lo que es coherente: las tres asignaciones se
   eligieron por carga fina medida y las tres heredan el mismo sesgo.
 
-**Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo
-observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje,
-así que **el resultado no invalida ninguna asignación**: muestra que el techo dejó de ser el
-insumo y pasó a ser el sistema de modelos. Las asignaciones se mantienen **con el sesgo
-declarado: subestiman la velocidad de propagación en arbustal**. Es el argumento directo a
+**Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje, así que **el resultado no invalida ninguna asignación**: muestra que el techo dejó de ser el insumo y pasó a ser el sistema de modelos. Las asignaciones se mantienen **con el sesgo declarado: subestiman la velocidad de propagación en arbustal**. Es el argumento directo a
 favor de la `ETAPA-C` y de la sensibilidad S5.
 
-**Salvedades.** Es **una sola quema, un solo sitio, 2011**. La comparación corre con los
-parámetros propios de SB40, no con las cargas de la PT-37 —eso es S5—, sobre terreno plano y
-con ignición puntual, sin la continuidad de combustible que la quema tenía medida.
+**Salvedades.** Es **una sola quema, un solo sitio, 2011**. La comparación corre con los parámetros propios de SB40, no con las cargas de la PT-37 —eso es S5—, sobre terreno plano y con ignición puntual, sin la continuidad de combustible que la quema tenía medida.
 
 ### 6.3 · Sensibilidad a la humedad del combustible vivo (2026-09-16)
 
@@ -490,18 +508,12 @@ Barrido uniforme de `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` sobre el mapa 
 
 Reproducir: `uv run python scripts/sweep_live_moisture.py`.
 
-**Factor 2,50 en superficie entre 30 % y 120 %**, y factor 2,3 en intensidad mediana. Con el
-baseline el escalar era inocuo, porque TL3 no tiene carga viva; con CCS-BAP los modelos SH, GS
-y TU son mayoría y el escalar **pasa a ser driver de primer orden**. Ésa es la razón por la que
-tenía que fijarse con una medición antes de citar cualquier número: la fila de 60 % reproduce
-exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
+**Factor 2,50 en superficie entre 30 % y 120 %**, y factor 2,3 en intensidad mediana. Con el baseline el escalar era inocuo, porque TL3 no tiene carga viva; con CCS-BAP los modelos SH, GS y TU son mayoría y el escalar **pasa a ser driver de primer orden**. Ésa es la razón por la que tenía que fijarse con una medición antes de citar cualquier número: la fila de 60 % reproduce exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
 
-**Los valores adoptados no son uniformes** —`LH` 30 % y `LW` 110 % (`ETAPA-B` §B5)—, así que la
-tabla acota pero no predice: la combinación adoptada da 7.576 ha (§6.1), entre las filas de
-60 % y 90 %, que es donde tiene que caer.
+**Los valores adoptados no son uniformes** —`LH` 30 % y `LW` 110 % (`ETAPA-B` §B5)—, así que la tabla acota pero no predice: la combinación adoptada da 7.576 ha (§6.1), entre las filas de 60 % y 90 %, que es donde tiene que caer.
 
-## **Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y fenología
-sería la mejora, y no está en alcance.
+**Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y
+fenología sería la mejora, y no está en alcance.
 
 
 
@@ -525,6 +537,20 @@ sería la mejora, y no está en alcance.
 5. **Agregación a 30 m por clase mayoritaria**: se pierden corredores de combustible más
   angostos que un píxel, y la continuidad gobierna la propagación.
 6. **La PT-37 sólo cubre arbustales**, no bosque. Las clases de bosque siguen sin carga medida.
+7. **FBFM40 se calibró con series fotográficas de combustibles de los Estados Unidos.** Ninguna
+  especie patagónica participó de su construcción. Los cuarenta modelos son un conjunto
+   estándar pensado para otro continente, y ésta es la limitación de fondo de todo el
+   ejercicio: la tabla elige el modelo menos malo, no el correcto.
+8. **El modelo de Rothermel supone un lecho de combustible homogéneo y continuo**
+  (Scott & Burgan 2005, p. 3). Los mosaicos de bosque, matorral y estepa del ecotono violan
+   ese supuesto, y la continuidad del combustible es justamente lo que gobierna la
+   propagación. Las quemas de la PT-37 lo muestran: el fuego cruza entre parches por el
+   estrato herbáceo de los entreparches, que es geometría que el formalismo no representa.
+9. **No existe crosswalk publicado de especies patagónicas a FBFM40.** No hay precedente
+  contra el cual contrastar esta tabla ni calibración de origen que heredar: es una
+   **propuesta original** y debe presentarse y evaluarse como tal. Es también la razón por la
+   que cada asignación lleva ficha con su procedencia (§5) y por la que el §7 declara
+   sensibilidades en vez de dar la tabla por cerrada.
 
 
 
@@ -593,7 +619,11 @@ ISSN 1514-2264. (Tabla 2: cargas por clase de tamaño · §3.1: descripción de 
 - Scott, J.H.; Burgan, R.E. (2005). RMRS-GTR-153. (Procedimiento de selección pp. 8-9 · alcance
 p. 3 · modelos dinámicos p. 4 · parámetros Tabla 7)
 - Bianchi, L.O.; Defossé, G.E. *Ignition probability of fine dead surface fuels of native
-Patagonian forests of Argentina.* Forest Systems.
+Patagonian forests of Argentina.* Forest Systems. (Umbrales de ignición: 21,5 % en ciprés y
+25,0 % en ñire · §2)
+- Bianchi, L.O.; Defossé, G.E. (2015). *Live fuel moisture content and leaf ignition of forest
+species in Andean Patagonia, Argentina.* International Journal of Wildland Fire 24(3):340.
+(De acá salen `LH` 30 % y `LW` 110 %, usados en §6.1 y §6.3 y fundamentados en `ETAPA-B` §B5.)
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). Ecology 86(10).
 - Cóbar-Carranza, A.J.; García, R.A.; Pauchard, A.; Peña, E. (2014). *Effect of Pinus contorta
 invasion on forest fuel properties and its potential implications on the fire regime of
