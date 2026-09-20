@@ -60,18 +60,11 @@ Las pérdidas por especie suman lo que gana "remanente de disturbio reciente". P
 
 ## 2. Método
 
-Idéntico al de `IGN-20-CROSSWALK.md` §3: el procedimiento de selección de Scott & Burgan
-(2005, pp. 8-9) aplicado paso por paso, con el paso 4 como **filtro de rechazo**. No se
-modifican los parámetros de los modelos FBFM40; eso es `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md`.
+Idéntico al de `IGN-20-CROSSWALK.md` §3: el procedimiento de selección de Scott & Burgan (2005, pp. 8-9) aplicado paso por paso, con el paso 4 como **filtro de rechazo**. No se modifican los parámetros de los modelos FBFM40; eso es `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md`.
 
-Se mantiene el marco de humedad de extinción de IGN-20 §4: los umbrales de ignición medidos
-por Bianchi & Defossé en combustibles finos muertos patagónicos (**21,5 % en ciprés, 25,0 %
-en ñire**) descartan las variantes de clima seco con `mex` de 15 a 20 %. Toda clase con
-vegetación nativa usa `mex ≥ 25 %`.
+Se mantiene el marco de humedad de extinción de IGN-20 §4: los umbrales de ignición medidos por Bianchi & Defossé en combustibles finos muertos patagónicos (**21,5 % en ciprés, 25,0 % en ñire**) descartan las variantes de clima seco con `mex` de 15 a 20 %. Toda clase con vegetación nativa usa `mex ≥ 25 %`.
 
-**Novedad respecto de IGN-20:** cuatro clases de arbustal tienen ahora **carga medida en la
-Patagonia** (CIEFAP Publicación Técnica N.º 37, Bianchi et al. 2012), que se usa para elegir
-dentro de la familia. Conversión: `t/ha métrica × 0,0204816 = lb/ft²`.
+**Novedad respecto de IGN-20:** cuatro clases de arbustal tienen ahora **carga medida en la Patagonia** (CIEFAP Publicación Técnica N.º 37, Bianchi et al. 2012), que se usa para elegir dentro de la familia. Conversión: `t/ha métrica × 0,0204816 = lb/ft²`.
 
 
 | Modelo PT-37                     | Carga fina medida | Equivalente   | Modelo elegido | Carga 1 h del modelo |
@@ -87,9 +80,7 @@ dentro de la familia. Conversión: `t/ha métrica × 0,0204816 = lb/ft²`.
 ## 3. La clave del crosswalk
 
 `(Ley_N1, Ley_N2)`**, no** `Ley_N2` **sola.** La leyenda repite el código de especie entre
-niveles: `Le` existe como `TF Le` (bosque de lenga) y como `OFL Le` (lenga achaparrada). Esa
-diferencia es estructural y es exactamente la que separa un modelo de hojarasca de uno de
-matorral. Usar `Ley_N2` sin `Ley_N1` fusionaría ambos.
+niveles: `Le` existe como `TF Le` (bosque de lenga) y como `OFL Le` (lenga achaparrada). Esa diferencia es estructural y es exactamente la que separa un modelo de hojarasca de uno de matorral. Usar `Ley_N2` sin `Ley_N1` fusionaría ambos.
 
 Se elige el nivel 2 como principal porque es el nivel con exactitud reportada (87 %); el
 nivel 3 queda como análisis de sensibilidad (§7, S4).
@@ -102,8 +93,7 @@ distinta, y ahí el nivel 2 no alcanza:
 **infraestructura**.
 - `OT Herb-Subarb` contiene estepa graminosa, **estepa arbustiva** y pradera.
 
-Sin excepciones, la turbera heredaría el modelo del mallín y una plantación de pino heredaría
-el de un cultivo. Las diez excepciones están en §5.
+Sin excepciones, la turbera heredaría el modelo del mallín y una plantación de pino heredaría el de un cultivo. Las diez excepciones están en §5.
 
 ---
 
@@ -180,9 +170,7 @@ el de un cultivo. Las diez excepciones están en §5.
 | Infraest   | **91** NB1  | Infraestructura                                           |
 
 
-Las clases de nivel 3 que son **mezclas de especies** (`Le-Co`, `Co-Ci`, `Ñi Baj-Le`, …)
-heredan el modelo de su nivel 2, es decir el de la especie dominante, que es la que da nombre
-a la clase. Regla declarada, no caso por caso.
+Las clases de nivel 3 que son **mezclas de especies** (`Le-Co`, `Co-Ci`, `Ñi Baj-Le`, …) heredan el modelo de su nivel 2, es decir el de la especie dominante, que es la que da nombre a la clase. Regla declarada, no caso por caso.
 
 ---
 
@@ -194,21 +182,14 @@ a la clase. Regla declarada, no caso por caso.
 
 ### 5.1 · TF Le — Bosque de lenga → **186 (TL6)** · 10,64 % del AOI
 
-**Paso 1 · Estrato portador.** Hojarasca. La lenga (*Nothofagus pumilio*) es caducifolia y
-produce un lecho de hojas pequeñas; el sotobosque es pobre en los rodales densos de altura.
-Es el caso en que la familia TL corresponde y TU no.
+**Paso 1 · Estrato portador.** Hojarasca. La lenga (*Nothofagus pumilio*) es caducifolia y produce un lecho de hojas pequeñas; el sotobosque es pobre en los rodales densos de altura. Es el caso en que la familia TL corresponde y TU no.
 
-**Paso 2 · Humedad de extinción.** TL6 tiene `mex = 25 %`, que iguala el umbral de ignición
-medido en ñire (25,0 %) y supera el de ciprés. Se descarta **TL3 (183)**, la asignación del
-baseline, por dos razones: `mex = 20 %` y, sobre todo, porque es hojarasca de **conífera de
-acícula larga**, un lecho físicamente distinto del de una latifoliada caducifolia.
+**Paso 2 · Humedad de extinción.** TL6 tiene `mex = 25 %`, que iguala el umbral de ignición medido en ñire (25,0 %) y supera el de ciprés. Se descarta **TL3 (183)**, la asignación del baseline, por dos razones: `mex = 20 %` y, sobre todo, porque es hojarasca de **conífera de acícula larga**, un lecho físicamente distinto del de una latifoliada caducifolia.
 
 **Paso 3 · Estructura.** TL6: 1 h 0,11019 lb/ft², lecho 0,3 pies, sin componente vivo.
 Es hojarasca latifoliada de carga moderada.
 
-**Paso 4 · Contraste.** TL6 propaga *moderado* con llama *baja*, coherente con un fuego de
-superficie bajo dosel cerrado. El fuego de copas en lenga no se resuelve acá sino con
-`cc`/`ch`/`cbh`/`cbd`.
+**Paso 4 · Contraste.** TL6 propaga *moderado* con llama *baja*, coherente con un fuego de superficie bajo dosel cerrado. El fuego de copas en lenga no se resuelve acá sino con `cc`/`ch`/`cbh`/`cbd`.
 
 **Procedencia.** El estrato portador y el tipo de hojarasca son bibliográficos; la elección
 de TL6 sobre TL2 y TU2 es juicio fundamentado del autor. **Sensibilidad S1.**
