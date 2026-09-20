@@ -15,6 +15,8 @@ type Preset = {
   changes_from: string | null;
   expectation: string;
   scenario: Scenario;
+  fuel_model?: FuelModel;
+  map_layers?: GeoJSON.FeatureCollection;
 };
 
 type Metrics = {
@@ -32,15 +34,30 @@ type Metrics = {
   hourly: { hour: number; burned_ha: number; max_distance_m: number }[];
 };
 
+type FuelModel = {
+  code: number;
+  name: string;
+  fuel_type: string;
+  fuel_type_label: string;
+  color: string;
+  label: string;
+};
+
 type Slot = {
   preset: Preset | null;
   isochrones: GeoJSON.FeatureCollection | null;
   metrics: Metrics | null;
+  /** The scenario drawn as itself: uniform fuel slab, ignition disc, forcing vectors. */
+  mapLayers: GeoJSON.FeatureCollection | null;
+  fuelModel: FuelModel | null;
   status: "idle" | "running" | "error";
   error?: string;
 };
 
-const EMPTY_SLOT: Slot = { preset: null, isochrones: null, metrics: null, status: "idle" };
+const EMPTY_SLOT: Slot = {
+  preset: null, isochrones: null, metrics: null,
+  mapLayers: null, fuelModel: null, status: "idle",
+};
 
 const num = (v: number | null | undefined, digits = 1) =>
   v === null || v === undefined ? "—" : v.toLocaleString("es", { maximumFractionDigits: digits });
@@ -64,6 +81,8 @@ async function runScenario(scenario: Scenario) {
   return {
     isochrones: (isoEnv?.data ?? null) as GeoJSON.FeatureCollection | null,
     metrics: (metEnv?.data ?? null) as Metrics | null,
+    mapLayers: (runEnv.data.map_layers ?? null) as GeoJSON.FeatureCollection | null,
+    fuelModel: (runEnv.data.fuel_model ?? null) as FuelModel | null,
   };
 }
 
@@ -85,14 +104,21 @@ export function PlaygroundPanel() {
   const run = async (preset: Preset, slotIndex: 0 | 1) => {
     setSlots((prev) => {
       const next: [Slot, Slot] = [prev[0], prev[1]];
-      next[slotIndex] = { preset, isochrones: null, metrics: null, status: "running" };
+      next[slotIndex] = {
+        preset, isochrones: null, metrics: null,
+        // Keep showing the scenario while it runs: the slab and the vectors are known
+        // before ELMFIRE says anything, so the map is never blank.
+        mapLayers: preset.map_layers ?? null,
+        fuelModel: preset.fuel_model ?? null,
+        status: "running",
+      };
       return next;
     });
     try {
-      const { isochrones, metrics } = await runScenario(preset.scenario);
+      const result = await runScenario(preset.scenario);
       setSlots((prev) => {
         const next: [Slot, Slot] = [prev[0], prev[1]];
-        next[slotIndex] = { preset, isochrones, metrics, status: "idle" };
+        next[slotIndex] = { preset, ...result, status: "idle" };
         return next;
       });
     } catch (e) {
@@ -100,6 +126,8 @@ export function PlaygroundPanel() {
         const next: [Slot, Slot] = [prev[0], prev[1]];
         next[slotIndex] = {
           preset, isochrones: null, metrics: null,
+          mapLayers: preset.map_layers ?? null,
+          fuelModel: preset.fuel_model ?? null,
           status: "error", error: (e as Error).message,
         };
         return next;
@@ -119,7 +147,42 @@ export function PlaygroundPanel() {
         <div className="grid min-h-0 flex-1 grid-cols-2 divide-x">
           {slots.map((slot, i) => (
             <div key={i} className="relative min-h-0">
-              <FireMap isochrones={slot.isochrones} fitTo={slot.isochrones} />
+              <FireMap
+                isochrones={slot.isochrones}
+                fitTo={slot.mapLayers ?? slot.isochrones}
+                syntheticLayers={slot.mapLayers}
+                initialBasemap="synthetic"
+              />
+              {slot.fuelModel && (
+                // Stacked above FireMap's own legend, which also sits at bottom-left —
+                // at the same offset this box covered the isochrone key entirely.
+                <div className="pointer-events-none absolute bottom-24 left-2 z-10 rounded-md bg-background/90 px-2 py-1 text-[11px] shadow">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block h-3 w-3 shrink-0 rounded-sm border"
+                      style={{ backgroundColor: slot.fuelModel.color }}
+                    />
+                    <span>{slot.fuelModel.label}</span>
+                  </div>
+                  {/* Each key only appears when its arrow is on the map: a scenario with
+                      no slope drew no slope arrow, and a legend for it is a lie. */}
+                  <div className="mt-0.5 flex items-center gap-3 text-muted-foreground">
+                    {(["wind", "slope"] as const)
+                      .filter((kind) =>
+                        slot.mapLayers?.features?.some((f) => f.properties?.kind === kind),
+                      )
+                      .map((kind) => (
+                        <span key={kind} className="flex items-center gap-1">
+                          <span
+                            className="inline-block h-0.5 w-4"
+                            style={{ backgroundColor: kind === "wind" ? "#1d4ed8" : "#57534e" }}
+                          />
+                          {kind === "wind" ? "viento (hacia)" : "pendiente (cuesta abajo)"}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
               <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[80%] rounded-md bg-background/90 px-2 py-1 text-xs shadow">
                 <span className="font-semibold">{i === 0 ? "A" : "B"}</span>
                 {" · "}

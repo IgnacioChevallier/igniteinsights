@@ -6,6 +6,7 @@ runner: `POST /api/v1/simulations/run` already does both, and it only needs a di
 that exists and contains dem.tif. See PLAYGROUND-SENSIBILIDAD.md §P2.
 """
 import logging
+import math
 import shutil
 from pathlib import Path
 
@@ -127,3 +128,96 @@ def _write_phi(scenario: Scenario, profile: dict, output: Path) -> Path:
         dst.write(phi.astype(np.float32), 1)
     logger.info("Playground phi: %d burning cells at the domain centre", burning)
     return output
+
+
+def scenario_map_layers(scenario: Scenario) -> dict:
+    """GeoJSON (EPSG:4326) describing what the scenario *is*, for the synthetic map.
+
+    A satellite basemap under a synthetic run is actively misleading: it shows terrain and
+    vegetation that the scenario assumes away. These layers draw the scenario's own
+    assumptions instead — a uniform slab of one fuel model, the ignition disc, and the two
+    forcing vectors.
+
+    Built here, next to the grid, so the UTM→4326 conversion has exactly one home.
+    """
+    profile = _grid_profile(scenario)
+    transform = profile["transform"]
+    n = profile["height"]
+    x0, y0 = transform.c, transform.f                 # north-west corner
+    span = n * scenario.cellsize_m
+    x1, y1 = x0 + span, y0 - span                     # south-east corner
+    cx, cy = x0 + span / 2.0, y0 - span / 2.0
+    crs = profile["crs"]
+
+    def to_wgs(xs: list[float], ys: list[float]) -> list[list[float]]:
+        lons, lats = warp_transform(crs, "EPSG:4326", xs, ys)
+        return [[lon, lat] for lon, lat in zip(lons, lats)]
+
+    domain_ring = to_wgs([x0, x1, x1, x0, x0], [y0, y0, y1, y1, y0])
+
+    fuel = fuels_builder.fuel_model_info(scenario.fbfm40_code)
+    features: list[dict] = [{
+        "type": "Feature",
+        # The colour travels with the geometry so the map can paint it straight from the
+        # feature, and so it can never disagree with the model the run actually used.
+        "properties": {"kind": "domain", "color": fuel["color"], "label": fuel["label"]},
+        "geometry": {"type": "Polygon", "coordinates": [domain_ring]},
+    }]
+
+    # Ignition disc, as a polygon so it keeps its real size when zooming.
+    steps = 48
+    angles = [2 * math.pi * i / steps for i in range(steps + 1)]
+    features.append({
+        "type": "Feature",
+        "properties": {"kind": "ignition"},
+        "geometry": {"type": "Polygon", "coordinates": [to_wgs(
+            [cx + scenario.ignition_radius_m * math.sin(a) for a in angles],
+            [cy + scenario.ignition_radius_m * math.cos(a) for a in angles],
+        )]},
+    })
+
+    # Wind: drawn pointing where it blows TO. The raster holds the direction it comes
+    # FROM (ELMFIRE adds 180 internally, elmfire_subs.f90:473), so an arrow drawn along
+    # the raster value would point backwards — the classic error.
+    if scenario.wind_speed_mph > 0:
+        features.append(_arrow(
+            to_wgs, cx - span * 0.34, cy + span * 0.30,
+            azimuth_deg=(scenario.wind_direction_deg + 180.0) % 360.0,
+            length_m=span * (0.06 + 0.10 * min(scenario.wind_speed_mph / 40.0, 1.0)),
+            kind="wind",
+            label=f"viento {scenario.wind_speed_mph:g} mph",
+        ))
+
+    # Slope: drawn pointing downslope, which is what aspect_deg means. Fire runs the
+    # other way, upslope.
+    if scenario.slope_deg > 0:
+        features.append(_arrow(
+            to_wgs, cx - span * 0.34, cy - span * 0.30,
+            azimuth_deg=float(scenario.aspect_deg),
+            length_m=span * (0.06 + 0.10 * min(scenario.slope_deg / 45.0, 1.0)),
+            kind="slope",
+            label=f"pendiente {scenario.slope_deg}° (flecha = cuesta abajo)",
+        ))
+
+    return {"type": "FeatureCollection", "features": features}
+
+
+def _arrow(to_wgs, x: float, y: float, azimuth_deg: float, length_m: float,
+           kind: str, label: str) -> dict:
+    """Shaft plus two barbs, as one MultiLineString in projected metres."""
+    rad = math.radians(azimuth_deg)
+    dx, dy = math.sin(rad), math.cos(rad)
+    tip_x, tip_y = x + dx * length_m, y + dy * length_m
+    barb = length_m * 0.28
+
+    lines = [to_wgs([x, tip_x], [y, tip_y])]
+    for offset in (140.0, -140.0):
+        b = math.radians(azimuth_deg + offset)
+        lines.append(to_wgs(
+            [tip_x, tip_x + math.sin(b) * barb], [tip_y, tip_y + math.cos(b) * barb]
+        ))
+    return {
+        "type": "Feature",
+        "properties": {"kind": kind, "label": label, "azimuth_deg": round(azimuth_deg, 1)},
+        "geometry": {"type": "MultiLineString", "coordinates": lines},
+    }

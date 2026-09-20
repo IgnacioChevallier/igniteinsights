@@ -7,6 +7,15 @@ data/**
 *.shx
 *.prj
 *.csv
+# Excepción: la tabla de combustibles es un dato VERSIONADO, no derivado (ETAPA-A §A2).
+# Es el artefacto que define qué código FBFM40 es válido; sin ella `fuels_builder` y el
+# playground fallan al arrancar y ELMFIRE resuelve todo a modelo 256 (no combustible).
+!app/elmfire/fuel_models.csv
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/
 
 # Credenciales
 .env

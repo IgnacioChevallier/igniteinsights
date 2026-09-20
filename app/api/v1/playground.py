@@ -22,7 +22,8 @@ from app.api.v1.simulations import SimulationRunRequest, run_simulation
 from app.config import resolve_data_path, settings
 from app.db import repository
 from app.dependencies import get_db
-from app.playground.builder import build_scenario_inputs
+from app.elmfire.builder.fuels_builder import fuel_model_info
+from app.playground.builder import build_scenario_inputs, scenario_map_layers
 from app.playground.metrics import scenario_metrics
 from app.playground.schemas import Scenario
 
@@ -65,10 +66,22 @@ def _load_presets() -> list[dict]:
 )
 async def get_presets():
     presets = _load_presets()
+    # map_layers travel with the preset so the panel can draw the scenario the moment it
+    # is clicked. The slab, the ignition disc and the forcing vectors are known before
+    # ELMFIRE is asked anything; waiting for the response left the map blank for the whole
+    # run, which is exactly when the operator wants to see what they just launched.
+    enriched = []
+    for preset in presets:
+        scenario = Scenario(**preset["scenario"])
+        enriched.append({
+            **preset,
+            "fuel_model": fuel_model_info(scenario.fbfm40_code),
+            "map_layers": scenario_map_layers(scenario),
+        })
     return {
         "status": "success",
         "data": {
-            "presets": presets,
+            "presets": enriched,
             "notes": {
                 "wind_direction": (
                     "wind_direction_deg is the direction the wind blows FROM "
@@ -138,6 +151,11 @@ async def run_playground_scenario(
             )
             await session.commit()
         data["scenario"] = scenario.model_dump()
+        # What the scenario *is*, for the synthetic map: a uniform slab of one fuel model,
+        # the ignition disc, and the forcing vectors. A satellite basemap under a run that
+        # assumes flat ground and one fuel class shows terrain the scenario denies.
+        data["map_layers"] = scenario_map_layers(scenario)
+        data["fuel_model"] = fuel_model_info(scenario.fbfm40_code)
     return response
 
 
