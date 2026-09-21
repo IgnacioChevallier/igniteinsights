@@ -61,6 +61,61 @@ function ignition() {
   };
 }
 
+function windField() {
+  const width = 8;
+  const height = 8;
+  const bounds = [-71.9, -42.82, -71.7, -42.58];
+  const bands = [];
+  for (let hour = 0; hour <= HORIZON; hour += 1) {
+    const u = [];
+    const v = [];
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        // A gently curving field makes spatial interpolation observable without claiming
+        // that this synthetic Playwright fixture is a real forecast.
+        u.push(Number((2 + x * 0.55 + hour * 0.08).toFixed(3)));
+        v.push(Number((-8 + y * 0.45 + hour * 0.05).toFixed(3)));
+      }
+    }
+    const meanU = 2 + 3.5 * 0.55 + hour * 0.08;
+    const meanV = -8 + 3.5 * 0.45 + hour * 0.05;
+    const speed = Math.hypot(meanU, meanV);
+    const blowsTo = (Math.atan2(meanU, meanV) * 180) / Math.PI + 360;
+    bands.push({
+      hour,
+      u_mph: u,
+      v_mph: v,
+      speed_min_mph: 4,
+      speed_max_mph: 10,
+      speed_mph: Number(speed.toFixed(2)),
+      blows_to_deg: Number((blowsTo % 360).toFixed(1)),
+      direction_consistency: 0.98,
+      label: `viento ${speed.toFixed(1).replace(".", ",")} mph hacia el SE`,
+    });
+  }
+  return {
+    schema_version: 2,
+    bounds,
+    ring: [
+      [bounds[0], bounds[3]],
+      [bounds[2], bounds[3]],
+      [bounds[2], bounds[1]],
+      [bounds[0], bounds[1]],
+      [bounds[0], bounds[3]],
+    ],
+    width,
+    height,
+    unit: "mph",
+    basis: "elmfire_20ft",
+    height_m: 6.096,
+    source_model: "GFS 0.25°",
+    forecast_start: "2026-09-06T12:00:00Z",
+    forecast_cycle: "2026090612",
+    step_hours: 1,
+    bands,
+  };
+}
+
 const RUN = {
   id: SIM_ID,
   kind: "simulation",
@@ -103,6 +158,7 @@ http
     else if (path.endsWith("/isochrones")) body = ok(isochrones());
     else if (path.endsWith("/ignition")) body = ok(ignition());
     else if (path.endsWith("/stats")) body = ok({ rows: [] });
+    else if (path.endsWith("/wind")) body = ok(windField());
     else if (path.startsWith("/api/v1/fires/active")) body = ok({ type: "FeatureCollection", features: [] });
     else body = ok(null);
     res.writeHead(200, { "Content-Type": "application/json" });

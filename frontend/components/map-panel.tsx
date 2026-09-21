@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FireMap, WIND_COLOR, type RasterOverlayData } from "@/components/fire-map";
+import { LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
+import { FireMap, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { RasterLegend } from "@/components/raster-legend";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
+import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
 import {
   describeSettings,
   loadSettings,
@@ -18,39 +20,35 @@ import {
   type IngestionSettings,
   type RunPhase,
 } from "@/lib/real-run";
-import type { WindField } from "@/lib/wind-particles";
+import {
+  WIND_SPEED_GRADIENT,
+  type GriddedWindField,
+  type WindBand,
+} from "@/lib/wind-particles";
 import type { Run } from "@/lib/dashboard-types";
 
 /** GET /api/simulations/{id}/wind — the run's own ws/wd rasters, per hourly band. */
-type WindBands = {
+type WindFieldResponse = {
+  schema_version: 2;
+  bounds: [number, number, number, number];
   ring: [number, number][];
-  bands: {
-    hour: number;
-    speed_mph: number;
-    blows_to_deg: number;
-    label: string;
-    /** 1.0 = the whole domain points the same way. Calm hours collapse; see below. */
-    direction_consistency: number;
-  }[];
+  width: number;
+  height: number;
+  unit: "mph";
+  basis: "elmfire_20ft";
+  height_m: number;
+  source_model: string;
+  forecast_start: string | null;
+  forecast_cycle: string | null;
+  step_hours: number;
+  bands: WindBand[];
 };
-
-// Below this the band's mean direction is an average of cells pointing every which way —
-// which on a real run only happens under ~1 mph, where a confident arrow would be a lie.
-const MIN_DIRECTION_CONSISTENCY = 0.5;
 
 function formatOptionLabel(run: Run) {
   const shortId = run.id.length > 8 ? `${run.id.slice(0, 8)}...` : run.id;
-  const started = run.started_at
-    ? new Intl.DateTimeFormat("es", {
-        timeZone: "UTC",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(run.started_at))
-    : "hora desconocida";
+  const started = run.started_at ? formatArgentinaDateTime(run.started_at) : "hora desconocida";
   const horizon = run.horizon_hours ? ` (${run.horizon_hours}h)` : "";
-  return `${shortId} - ${started}${horizon} [${statusLabel(run.status)}]`;
+  return `${shortId} - ${started} ${ARGENTINA_TIME_ZONE_LABEL}${horizon} [${statusLabel(run.status)}]`;
 }
 
 function statusLabel(status: string) {
@@ -76,25 +74,99 @@ function formatPredictedPeriod(run: Run | undefined) {
   }
   const start = new Date(run.ignition_datetime);
   const end = new Date(start.getTime() + (run.horizon_hours ?? 0) * 3600_000);
-  const fmt = new Intl.DateTimeFormat("es", {
-    timeZone: "UTC",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `Periodo de predicción: ${fmt.format(start)} → ${fmt.format(end)}`;
+  return `Periodo de predicción: ${formatArgentinaDateTime(start)} → ${formatArgentinaDateTime(end)} ${ARGENTINA_TIME_ZONE_LABEL}`;
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+class DataRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DataRequestError";
+  }
+}
+
+function responseErrorMessage(envelope: Record<string, unknown>, statusCode: number): string {
+  if (typeof envelope.detail === "string") return envelope.detail;
+  if (typeof envelope.error === "string") return envelope.error;
+  return `El servidor respondió HTTP ${statusCode}.`;
+}
+
+async function fetchJsonOrThrow<T>(url: string, signal?: AbortSignal): Promise<T | null> {
+  const res = await fetch(url, { cache: "no-store", signal });
+  let envelope: Record<string, unknown>;
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-    const envelope = await res.json();
-    return envelope.data ?? null;
+    envelope = (await res.json()) as Record<string, unknown>;
+  } catch {
+    throw new DataRequestError("El servidor devolvió una respuesta que no se pudo leer.");
+  }
+  if (!res.ok) throw new DataRequestError(responseErrorMessage(envelope, res.status));
+  return (envelope.data as T | null | undefined) ?? null;
+}
+
+async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T | null> {
+  try {
+    return await fetchJsonOrThrow<T>(url, signal);
   } catch {
     return null;
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Error inesperado al cargar el resultado.";
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+type MapResultState = "idle" | "loading" | "ready" | "error";
+
+function MapResultNotice({
+  state,
+  error,
+  onRetry,
+}: {
+  state: MapResultState;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  if (state === "loading") {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none absolute left-1/2 top-4 z-20 flex w-[min(23rem,calc(100%-2rem))] -translate-x-1/2 items-start gap-3 rounded-md border border-amber-500/40 bg-card/95 px-3 py-2.5 shadow-lg backdrop-blur"
+      >
+        <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-amber-600" />
+        <div>
+          <p className="text-xs font-medium text-foreground">Procesando resultado cartográfico</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            Convirtiendo la salida de ELMFIRE en isócronas. En dominios grandes puede tardar cerca de
+            un minuto.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state !== "error") return null;
+  return (
+    <div
+      role="alert"
+      className="absolute left-1/2 top-4 z-20 flex w-[min(25rem,calc(100%-2rem))] -translate-x-1/2 items-start gap-3 rounded-md border border-destructive/50 bg-card/95 px-3 py-2.5 shadow-lg backdrop-blur"
+    >
+      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-foreground">No se pudo cargar el resultado</p>
+        <p className="mt-0.5 break-words text-[11px] leading-snug text-muted-foreground">
+          {error}
+        </p>
+        <Button className="mt-2 gap-1.5" size="sm" variant="outline" onClick={onRetry}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Reintentar
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 // Caveats that change how the result should be read but leave it looking normal on the
@@ -236,10 +308,18 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     null,
   );
   const [statsRow, setStatsRow] = useState<FireSizeStatsRow | null>(null);
-  const [wind, setWind] = useState<WindBands | null>(null);
+  const [wind, setWind] = useState<WindFieldResponse | null>(null);
+  const [mapResultState, setMapResultState] = useState<MapResultState>(
+    selectedRunId ? "loading" : "idle",
+  );
+  const [mapResultError, setMapResultError] = useState<string | null>(null);
+  const [auxiliaryLoading, setAuxiliaryLoading] = useState(false);
+  const [auxiliaryErrors, setAuxiliaryErrors] = useState<string[]>([]);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
   const [showFirelineIntensity, setShowFirelineIntensity] = useState(false);
+  const [showWindSpeed, setShowWindSpeed] = useState(false);
   const [timeOfArrivalOverlay, setTimeOfArrivalOverlay] = useState<RasterOverlayData | null>(null);
   const [firelineIntensityOverlay, setFirelineIntensityOverlay] = useState<RasterOverlayData | null>(
     null,
@@ -282,41 +362,116 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let current = true;
+
     setTimeOfArrivalOverlay(null);
     setFirelineIntensityOverlay(null);
+    setIsochrones(null);
+    setIgnitionPerimeter(null);
+    setStatsRow(null);
+    setWind(null);
+    setMapResultError(null);
+    setAuxiliaryErrors([]);
+    setAuxiliaryLoading(false);
+
     if (!selectedRunId) {
-      setIsochrones(null);
-      setIgnitionPerimeter(null);
-      setStatsRow(null);
+      setMapResultState("idle");
       return;
     }
-    fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/isochrones`).then(
-      setIsochrones,
-    );
-    fetchJson<GeoJSON.FeatureCollection>(`/api/simulations/${selectedRunId}/ignition`).then(
-      setIgnitionPerimeter,
-    );
-    fetchJson<{ rows: FireSizeStatsRow[] }>(`/api/simulations/${selectedRunId}/stats`).then(
-      (data) => setStatsRow(data?.rows?.[0] ?? null),
-    );
-    fetchJson<WindBands>(`/api/simulations/${selectedRunId}/wind`).then(setWind);
-  }, [selectedRunId]);
 
-  // The wind the run was actually driven by, following the clock: GFS gives one band per
-  // hour, so the field changes as the animation crosses each hour rather than standing
-  // still on the ignition-hour value. Keyed on the whole hour so the 60 fps clock does not
-  // rebuild the field — and therefore restart the animation — on every frame.
-  const windHour = Math.min(Math.floor(clock.t), Math.max((wind?.bands.length ?? 1) - 1, 0));
-  const windBand = wind?.bands[windHour] ?? null;
-  const windField = useMemo<WindField | null>(() => {
-    if (!wind || !windBand) return null;
-    if (windBand.direction_consistency < MIN_DIRECTION_CONSISTENCY) return null;
-    return {
-      azimuthDeg: windBand.blows_to_deg,
-      speedMph: windBand.speed_mph,
-      ring: wind.ring,
+    setMapResultState("loading");
+
+    async function loadRunResult() {
+      try {
+        // This is the map's primary result and the expensive request the operator is
+        // waiting for. Give it the API's CPU and disk bandwidth before starting any of
+        // the supplementary layers — especially wind, which reads two large rasters.
+        const nextIsochrones = await fetchJsonOrThrow<GeoJSON.FeatureCollection>(
+          `/api/simulations/${selectedRunId}/isochrones`,
+          controller.signal,
+        );
+        if (!current) return;
+        setIsochrones(nextIsochrones);
+        setMapResultState("ready");
+
+        setAuxiliaryLoading(true);
+        const [ignitionResult, statsResult] = await Promise.allSettled([
+          fetchJsonOrThrow<GeoJSON.FeatureCollection>(
+            `/api/simulations/${selectedRunId}/ignition`,
+            controller.signal,
+          ),
+          fetchJsonOrThrow<{ rows: FireSizeStatsRow[] }>(
+            `/api/simulations/${selectedRunId}/stats`,
+            controller.signal,
+          ),
+        ]);
+        if (!current) return;
+
+        const failures: string[] = [];
+        if (ignitionResult.status === "fulfilled") {
+          setIgnitionPerimeter(ignitionResult.value);
+        } else if (!isAbortError(ignitionResult.reason)) {
+          failures.push(`perímetro inicial: ${errorMessage(ignitionResult.reason)}`);
+        }
+        if (statsResult.status === "fulfilled") {
+          setStatsRow(statsResult.value?.rows?.[0] ?? null);
+        } else if (!isAbortError(statsResult.reason)) {
+          failures.push(`resumen: ${errorMessage(statsResult.reason)}`);
+        }
+
+        try {
+          const nextWind = await fetchJsonOrThrow<WindFieldResponse>(
+            `/api/simulations/${selectedRunId}/wind`,
+            controller.signal,
+          );
+          if (current) setWind(nextWind);
+        } catch (error) {
+          if (!isAbortError(error)) failures.push(`viento: ${errorMessage(error)}`);
+        }
+        if (current) setAuxiliaryErrors(failures);
+      } catch (error) {
+        if (!current || isAbortError(error)) return;
+        setMapResultError(errorMessage(error));
+        setMapResultState("error");
+      } finally {
+        if (current) setAuxiliaryLoading(false);
+      }
+    }
+
+    void loadRunResult();
+    return () => {
+      current = false;
+      controller.abort();
     };
-  }, [wind, windBand]);
+  }, [selectedRunId, loadAttempt]);
+
+  // The renderer owns fractional-time interpolation. This object changes only when a new
+  // run is loaded, so 60 fps clock updates never clear or reseed its particle trails.
+  const windHour = Math.min(
+    Math.floor(clock.t / (wind?.step_hours || 1)),
+    Math.max((wind?.bands.length ?? 1) - 1, 0),
+  );
+  const windBand = wind?.bands[windHour] ?? null;
+  const windField = useMemo<GriddedWindField | null>(() => {
+    if (!wind?.bands.length) return null;
+    return {
+      kind: "gridded",
+      bounds: wind.bounds,
+      ring: wind.ring,
+      width: wind.width,
+      height: wind.height,
+      stepHours: wind.step_hours,
+      bands: wind.bands,
+    };
+  }, [wind]);
+
+  const windValidTime = useMemo(() => {
+    if (!wind?.forecast_start) return null;
+    const start = new Date(wind.forecast_start);
+    if (!Number.isFinite(start.getTime())) return null;
+    return formatArgentinaDateTime(new Date(start.getTime() + clock.t * 3600_000));
+  }, [wind?.forecast_start, clock.t]);
 
   useEffect(() => {
     if (!showTimeOfArrival || !selectedRunId || timeOfArrivalOverlay) return;
@@ -358,6 +513,8 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
           fitTo={isochrones}
           windField={windField}
+          windTimeHours={clock.t}
+          windSurfaceVisible={showWindSpeed}
           clock={animatable ? clockView : null}
           overlay={
             animatable ? (
@@ -368,6 +525,11 @@ export function MapPanel({ runs }: { runs: Run[] }) {
               />
             ) : null
           }
+        />
+        <MapResultNotice
+          state={mapResultState}
+          error={mapResultError}
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
         />
       </div>
 
@@ -396,23 +558,71 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             ))}
           </select>
           <p className="mt-2 text-xs text-muted-foreground">{formatPredictedPeriod(selectedRun)}</p>
+          {auxiliaryLoading && mapResultState === "ready" && (
+            <p role="status" className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <LoaderCircle className="h-3 w-3 animate-spin text-amber-600" />
+              Completando perímetro, métricas y viento…
+            </p>
+          )}
+          {auxiliaryErrors.length > 0 && (
+            <div
+              role="alert"
+              className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-snug text-muted-foreground"
+            >
+              <p className="flex items-center gap-1 font-medium text-foreground">
+                <TriangleAlert className="h-3.5 w-3.5 text-amber-600" />
+                Algunas capas no se cargaron
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                {auxiliaryErrors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+              <Button
+                className="mt-2 gap-1.5"
+                size="sm"
+                variant="outline"
+                onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Reintentar capas
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* The animation says the direction while it moves; the words say it in a still,
-            which is how anyone reads a screenshot of this. */}
+        {/* Motion, colour and words carry different information: flow direction, local
+            speed and a screenshot-safe summary respectively. */}
         {windBand && (
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span
-              className="inline-block h-0.5 w-4 shrink-0"
-              style={{ backgroundColor: WIND_COLOR }}
-            />
-            {windBand.label}
-            {windBand.direction_consistency < MIN_DIRECTION_CONSISTENCY && (
-              <span title="La dirección varía demasiado dentro del dominio como para dibujar una sola: pasa con viento casi en calma.">
-                {" "}(sin dirección definida)
+          <div className="rounded-md border border-slate-300/70 bg-slate-50/70 p-2.5 dark:border-slate-700 dark:bg-slate-900/40">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-foreground">{windBand.label}</p>
+              <span className="shrink-0 rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-300">
+                20 ft
               </span>
-            )}
-          </p>
+            </div>
+            <div
+              className="mt-2 h-1.5 rounded-full shadow-inner"
+              style={{ background: WIND_SPEED_GRADIENT }}
+              aria-label="Escala de velocidad del viento de 0 a 40 mph"
+            />
+            <div className="mt-0.5 flex justify-between text-[9px] tabular-nums text-muted-foreground">
+              <span>0</span><span>20</span><span>40+ mph</span>
+            </div>
+            <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
+              {(wind?.source_model ?? "GFS 0,25°").replace("0.25", "0,25")} · entrada de
+              ELMFIRE a 6,1 m
+            </p>
+            <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+              {windValidTime
+                ? `Hora válida: ${windValidTime} ${ARGENTINA_TIME_ZONE_LABEL}`
+                : "Hora válida no disponible"}
+              {wind?.forecast_cycle ? ` · ciclo ${wind.forecast_cycle}` : ""}
+            </p>
+            <p className="mt-1 text-[9px] leading-snug text-muted-foreground/80">
+              La interpolación suaviza la lectura; no agrega detalle local al GFS de 0,25°.
+            </p>
+          </div>
         )}
 
         <RunWarnings warnings={selectedRun?.warnings} />
@@ -420,6 +630,17 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         <Separator />
 
         <div className="flex flex-col gap-2">
+          {wind && (
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={showWindSpeed}
+                onChange={(e) => setShowWindSpeed(e.target.checked)}
+              />
+              Velocidad del viento
+            </label>
+          )}
+
           <label className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"

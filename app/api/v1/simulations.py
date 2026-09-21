@@ -30,7 +30,7 @@ from app.postprocessing.isochrone_converter import (
 )
 from app.postprocessing.raster_overlay import render_raster_overlay
 from app.postprocessing.stats_reader import read_fire_size_stats
-from app.postprocessing.wind_field import wind_bands
+from app.postprocessing.wind_field import WIND_FIELD_FILENAME, read_wind_field, wind_field
 
 _RASTER_GLOBS: dict[str, str] = {
     "time_of_arrival": "time_of_arrival_*.tif",
@@ -44,8 +44,8 @@ _RASTER_UNITS: dict[str, tuple[float, str]] = {
 # ── Derived payloads for the panel, memoised on the files they read ───────────────────
 #
 # Both of these turn immutable run outputs into something small, and both are expensive:
-# the isochrone GeoJSON re-polygonises the time-of-arrival raster (~4 s here) and the wind
-# bands read ws.tif and wd.tif in full (~1.6 GB, ~24 s here) to produce 25 domain means.
+# the isochrone GeoJSON re-polygonises the time-of-arrival raster (~4 s here) and a legacy
+# run without a prepared wind sidecar must read ws.tif/wd.tif to build its compact field.
 # A finished run's files never change, but the panel re-requested both on every run
 # selection and every reload, so it paid that each time — which is most of the wait before
 # the map can draw anything.
@@ -77,8 +77,15 @@ def _isochrones_cached(shp_path, toa_path, _stamp: tuple) -> dict:
 
 
 @functools.lru_cache(maxsize=16)
-def _wind_bands_cached(ws_path, wd_path, _stamp: tuple) -> dict:
-    return wind_bands(ws_path, wd_path)
+def _wind_field_cached(ws_path, wd_path, sidecar_path, _stamp: tuple) -> dict:
+    if sidecar_path is not None:
+        try:
+            return read_wind_field(sidecar_path)
+        except (OSError, ValueError):
+            # A sidecar is only a cache. Regenerate in memory from the authoritative
+            # ELMFIRE rasters if an old or partial file is encountered.
+            pass
+    return wind_field(ws_path, wd_path)
 
 
 router = APIRouter(prefix="/simulations", tags=["simulations"])
@@ -325,8 +332,8 @@ async def get_simulation_isochrones(
     "/{simulation_id}/wind",
     summary="The real wind the run was driven by, per hourly band",
     description=(
-        "Domain-mean wind speed and blowing-to azimuth for each band of the run's own "
-        "ws.tif/wd.tif, plus the domain outline in EPSG:4326. Read from the ELMFIRE "
+        "A compact spatial u/v field plus domain-mean summaries for every band of the "
+        "run's own ws.tif/wd.tif. Read from the ELMFIRE "
         "inputs rather than the raw GFS assets, so it cannot disagree with the wind the "
         "simulation actually used. `blows_to_deg` is where the wind goes — the rasters "
         "store the direction it comes FROM. Each band carries a `direction_consistency` "
@@ -353,9 +360,17 @@ async def get_simulation_wind(
     if not (ws.exists() and wd.exists()):
         return _envelope("success", None)
 
+    sidecar = inputs / WIND_FIELD_FILENAME
+    sidecar_path = sidecar if sidecar.exists() else None
     return _envelope(
         "success",
-        await asyncio.to_thread(_wind_bands_cached, ws, wd, _file_stamp(ws, wd)),
+        await asyncio.to_thread(
+            _wind_field_cached,
+            ws,
+            wd,
+            sidecar_path,
+            _file_stamp(ws, wd, sidecar_path),
+        ),
     )
 
 

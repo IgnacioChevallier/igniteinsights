@@ -2,6 +2,7 @@
 
 import { SPEEDS, type FireClock, type Speed } from "@/hooks/use-fire-clock";
 import { formatSimulatedHour, realTimestamp } from "@/lib/isochrone-clock";
+import { ARGENTINA_TIME_ZONE_LABEL } from "@/lib/date-time";
 import { cn } from "@/lib/utils";
 
 /**
@@ -84,7 +85,7 @@ export function FireAnimationControls({
       </div>
 
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-        {stamp && <span>Hora real estimada: {stamp} UTC</span>}
+        {stamp && <span>Hora real estimada: {stamp} {ARGENTINA_TIME_ZONE_LABEL}</span>}
         {reducedMotion && <span>Movimiento reducido: inicia en pausa sobre el estado final.</span>}
         {untimedCount > 0 && (
           <span className="text-amber-700 dark:text-amber-400">

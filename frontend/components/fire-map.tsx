@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { FUEL_PATTERN_IDS, fuelPatternImage } from "@/lib/fuel-pattern";
-import { startWindParticles, type WindField } from "@/lib/wind-particles";
+import {
+  compassPoint,
+  sampleWindField,
+  startWindParticles,
+  type WindField,
+  type WindParticleController,
+} from "@/lib/wind-particles";
 
 // Los Alerces National Park, Patagonia — matches the AOI these simulations run over.
 const INITIAL_CENTER: [number, number] = [-71.8, -42.7];
@@ -17,6 +23,8 @@ const TOA_SOURCE_ID = "time-of-arrival-overlay";
 const FLIN_SOURCE_ID = "fireline-intensity-overlay";
 const FUELS_SOURCE_ID = "fuels-overlay";
 const SYNTHETIC_SOURCE_ID = "synthetic-scenario";
+const WIND_SURFACE_SOURCE_ID = "wind-speed-surface";
+const WIND_SURFACE_LAYER_ID = `${WIND_SURFACE_SOURCE_ID}-layer`;
 
 // Two tokenless basemaps, both loaded up front and toggled via layout.visibility
 // (not map.setStyle(), which would wipe every custom source/layer below).
@@ -120,6 +128,8 @@ export function FireMap({
   overlay = null,
   syntheticLayers = null,
   windField = null,
+  windTimeHours = 0,
+  windSurfaceVisible = false,
   initialBasemap = "satellite",
 }: {
   activeFires?: GeoJSON.FeatureCollection | null;
@@ -144,6 +154,10 @@ export function FireMap({
    *  map reads the run's own ws/wd rasters. Memoise it — a fresh object each render
    *  restarts the animation. */
   windField?: WindField | null;
+  /** Fractional simulated time. Unlike the snapped fire view, wind blends continuously. */
+  windTimeHours?: number;
+  /** Optional low-opacity speed wash underneath the fire result. */
+  windSurfaceVisible?: boolean;
   initialBasemap?: Basemap;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -155,6 +169,15 @@ export function FireMap({
   const [loaded, setLoaded] = useState(false);
   const [basemap, setBasemap] = useState<Basemap>(initialBasemap);
   const windCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const windControllerRef = useRef<WindParticleController | null>(null);
+  const windTimeRef = useRef(windTimeHours);
+  windTimeRef.current = windTimeHours;
+  const [windHover, setWindHover] = useState<{
+    x: number;
+    y: number;
+    speedMph: number;
+    azimuthDeg: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -455,14 +478,108 @@ export function FireMap({
     source?.setData(syntheticLayers ?? EMPTY_FC);
   }, [syntheticLayers, loaded]);
 
-  // Wind as a flow field rather than a symbol. Restarted whenever the field changes, so a
-  // new direction never keeps animating the old one — callers must memoise it or the
-  // trails reset on every render.
+  // One controller per field, not per clock tick: fractional time updates the vectors in
+  // place so the trails do not blink away at every forecast hour.
   useEffect(() => {
     const map = mapRef.current;
     const canvas = windCanvasRef.current;
-    if (!loaded || !map || !canvas || !windField || !(windField.speedMph > 0)) return;
-    return startWindParticles(map, canvas, windField);
+    if (
+      !loaded ||
+      !map ||
+      !canvas ||
+      !windField ||
+      (windField.kind === "uniform" && windField.speedMph < 0.5)
+    ) return;
+
+    const surfaceCanvas = document.createElement("canvas");
+    const [west, south, east, north] = windFieldBounds(windField);
+    map.addSource(WIND_SURFACE_SOURCE_ID, {
+      type: "canvas",
+      canvas: surfaceCanvas,
+      animate: true,
+      coordinates: [
+        [west, north],
+        [east, north],
+        [east, south],
+        [west, south],
+      ],
+    });
+    map.addLayer(
+      {
+        id: WIND_SURFACE_LAYER_ID,
+        type: "raster",
+        source: WIND_SURFACE_SOURCE_ID,
+        paint: {
+          "raster-opacity": windSurfaceVisible ? 0.25 : 0,
+          "raster-fade-duration": 0,
+          "raster-resampling": "linear",
+        },
+      },
+      map.getLayer(`${IGNITION_SOURCE_ID}-fill`) ? `${IGNITION_SOURCE_ID}-fill` : undefined,
+    );
+
+    const controller = startWindParticles(map, canvas, windField, {
+      timeHours: windTimeRef.current,
+      surfaceCanvas,
+      surfaceVisible: windSurfaceVisible,
+    });
+    windControllerRef.current = controller;
+    return () => {
+      controller.stop();
+      windControllerRef.current = null;
+      setWindHover(null);
+      if (mapRef.current === map) {
+        if (map.getLayer(WIND_SURFACE_LAYER_ID)) map.removeLayer(WIND_SURFACE_LAYER_ID);
+        if (map.getSource(WIND_SURFACE_SOURCE_ID)) map.removeSource(WIND_SURFACE_SOURCE_ID);
+      }
+    };
+    // Visibility and time update the live controller in the effects below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windField, loaded]);
+
+  useEffect(() => {
+    windControllerRef.current?.setTime(windTimeHours);
+  }, [windTimeHours]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    windControllerRef.current?.setSurfaceVisible(windSurfaceVisible);
+    if (loaded && map?.getLayer(WIND_SURFACE_LAYER_ID)) {
+      map.setPaintProperty(WIND_SURFACE_LAYER_ID, "raster-opacity", windSurfaceVisible ? 0.25 : 0);
+    }
+  }, [windSurfaceVisible, loaded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!loaded || !map || !windField) {
+      setWindHover(null);
+      return;
+    }
+    const onMove = (event: maplibregl.MapMouseEvent) => {
+      const sample = sampleWindField(
+        windField,
+        event.lngLat.lng,
+        event.lngLat.lat,
+        windTimeRef.current,
+      );
+      if (!sample || sample.speedMph < 0.5) {
+        setWindHover(null);
+        return;
+      }
+      setWindHover({
+        x: Math.min(event.point.x + 12, map.getContainer().clientWidth - 180),
+        y: Math.min(event.point.y + 12, map.getContainer().clientHeight - 54),
+        speedMph: sample.speedMph,
+        azimuthDeg: sample.azimuthDeg,
+      });
+    };
+    const onLeave = () => setWindHover(null);
+    map.on("mousemove", onMove);
+    map.on("mouseout", onLeave);
+    return () => {
+      map.off("mousemove", onMove);
+      map.off("mouseout", onLeave);
+    };
   }, [windField, loaded]);
 
   useEffect(() => {
@@ -481,7 +598,22 @@ export function FireMap({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
       {/* Above the map, below every control. Nothing here is interactive. */}
-      <canvas ref={windCanvasRef} className="pointer-events-none absolute inset-0 z-[1]" />
+      <canvas
+        ref={windCanvasRef}
+        data-testid="wind-particle-canvas"
+        data-wind-surface-visible={windSurfaceVisible ? "true" : "false"}
+        className="pointer-events-none absolute inset-0 z-[1]"
+      />
+      {windHover && (
+        <div
+          data-testid="wind-hover-readout"
+          className="pointer-events-none absolute z-10 rounded-md border border-white/25 bg-slate-950/85 px-2 py-1 text-[10px] font-medium tracking-wide text-white shadow-lg backdrop-blur-sm"
+          style={{ left: windHover.x, top: windHover.y }}
+        >
+          {windHover.speedMph.toLocaleString("es", { maximumFractionDigits: 1 })} mph · hacia el{" "}
+          {compassPoint(windHover.azimuthDeg)}
+        </div>
+      )}
       <div className="absolute left-2 top-2 z-10 overflow-hidden rounded-md border bg-card text-xs shadow-md">
         <button
           className={`px-2 py-1 ${basemap === "street" ? "bg-primary text-primary-foreground" : ""}`}
@@ -566,6 +698,21 @@ export function FireMap({
       {overlay && <div className="absolute bottom-2 left-2 right-2 z-10">{overlay}</div>}
     </div>
   );
+}
+
+function windFieldBounds(field: WindField): [number, number, number, number] {
+  if (field.kind === "gridded") return field.bounds;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const [lng, lat] of field.ring) {
+    west = Math.min(west, lng);
+    south = Math.min(south, lat);
+    east = Math.max(east, lng);
+    north = Math.max(north, lat);
+  }
+  return [west, south, east, north];
 }
 
 // Adds/updates/removes a MapLibre `image` source + raster layer as `overlay` changes.

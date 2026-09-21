@@ -1,199 +1,524 @@
-/**
- * Windy-style wind animation over a MapLibre map.
- *
- * How Windy (and earth.nullschool.net before it, and hint.fm/wind before that) draws wind:
- * it does not draw arrows at all. It advects particles through the vector field.
- *
- *   1. Resolve the u/v field into screen space — one vector per screen position.
- *   2. Seed N particles at random screen positions, each with a random starting age.
- *   3. Every frame, move each particle along the field vector at its position and record
- *      the segment it just travelled.
- *   4. Fade the whole canvas with `globalCompositeOperation = "destination-in"` and a
- *      sub-1 alpha fill. This *multiplies* existing alpha rather than painting over it,
- *      so old segments decay into comet tails instead of being erased. This one line is
- *      what makes the effect read as flow; clearing the canvas instead gives loose dots.
- *   5. Stroke the new segments on top, in `source-over`.
- *   6. Retire a particle after MAX_AGE frames and respawn it somewhere random, otherwise
- *      the whole population drains into the field's sinks and the canvas goes empty.
- *
- * Step 1 is most of Windy's code and none of ours: a playground scenario has *uniform*
- * wind, so the field is a single screen vector, recomputed only when the map moves. What
- * is left is steps 2-6, which is the part you actually see.
- */
+/** Windy-like particle advection over a MapLibre map. */
 import type { Map as MapLibreMap } from "maplibre-gl";
 
-export type WindField = {
+export type WindBand = {
+  hour: number;
+  u_mph: number[];
+  v_mph: number[];
+  speed_min_mph: number;
+  speed_max_mph: number;
+  speed_mph: number;
+  blows_to_deg: number;
+  label: string;
+  direction_consistency: number;
+};
+
+export type UniformWindField = {
+  kind: "uniform";
   /** Where the wind blows TO, degrees clockwise from north. */
   azimuthDeg: number;
   speedMph: number;
-  /** Closed lng/lat ring the wind exists inside — the scenario domain. */
   ring: [number, number][];
 };
 
-// ponytail: speed→pixels is a visual scale, not a physical one. True advection at 15 mph
-// over a 12 km domain is a fraction of a pixel per frame — correct and invisible. Windy
-// exaggerates for the same reason. Tune these two, not the maths.
-const MIN_PX_PER_FRAME = 0.55;
-const MAX_PX_PER_FRAME = 3.2;
-const SPEED_SATURATES_AT_MPH = 40;
+export type GriddedWindField = {
+  kind: "gridded";
+  bounds: [west: number, south: number, east: number, north: number];
+  ring: [number, number][];
+  width: number;
+  height: number;
+  stepHours: number;
+  bands: WindBand[];
+};
 
-const MAX_AGE_FRAMES = 90;
-/** One particle per this many square CSS pixels *of domain*, not of canvas. Seeding the
- *  whole canvas wastes most of the population outside the clip, where it is invisible. */
-const PARTICLE_DENSITY = 900;
+export type WindField = UniformWindField | GriddedWindField;
 
-/** The density above was tuned against a playground domain occupying a corner of the map.
- *  A real run's domain fills the viewport, where the same density puts ~1400 streaks on
- *  screen and the field stops reading as wind and starts reading as rain. */
-const MAX_PARTICLES = 380;
-const TRAIL_DECAY = "rgba(0,0,0,0.94)";
-// Slate, not blue: blue streaks over a map read as rain, which is the one thing this
-// is not. Grey keeps it as motion.
-const PARTICLE_COLOR = "rgba(71,85,105,0.85)";
-const LINE_WIDTH = 1.2;
+export type WindSample = {
+  uMph: number;
+  vMph: number;
+  speedMph: number;
+  /** Where the wind blows TO, degrees clockwise from north. */
+  azimuthDeg: number;
+};
 
-type Particle = { x: number; y: number; age: number };
+export type WindParticleController = {
+  setTime: (hours: number) => void;
+  setSurfaceVisible: (visible: boolean) => void;
+  resize: () => void;
+  stop: () => void;
+};
 
-/** Start the animation on `canvas`, over `map`. Returns a stop function. */
+export const WIND_SPEED_STOPS = [
+  [0, "#79c7ef"],
+  [5, "#54d6b0"],
+  [10, "#d8dd61"],
+  [20, "#f4a24b"],
+  [30, "#e8596f"],
+  [40, "#b87adf"],
+] as const;
+
+export const WIND_SPEED_GRADIENT = `linear-gradient(90deg, ${WIND_SPEED_STOPS.map(
+  ([speed, color]) => `${color} ${(speed / 40) * 100}%`,
+).join(", ")})`;
+
+const CALM_MPH = 0.5;
+const MAX_PARTICLES = 500;
+const PARTICLE_DENSITY = 2400;
+const TRAIL_DECAY = "rgba(0,0,0,0.89)";
+const MIN_AGE = 58;
+const MAX_AGE = 112;
+const SURFACE_INTERVAL_MS = 100;
+
+type Particle = {
+  x: number;
+  y: number;
+  lng: number;
+  lat: number;
+  age: number;
+  maxAge: number;
+};
+
+export function compassPoint(azimuthDeg: number): string {
+  const points = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+  return points[Math.round((((azimuthDeg % 360) + 360) % 360) / 45) % 8];
+}
+
+export function sampleWindField(
+  field: WindField,
+  lng: number,
+  lat: number,
+  timeHours: number,
+): WindSample | null {
+  if (field.kind === "uniform") {
+    const [west, south, east, north] = ringBounds(field.ring);
+    if (lng < west || lng > east || lat < south || lat > north) return null;
+    const radians = (field.azimuthDeg * Math.PI) / 180;
+    return {
+      uMph: Math.sin(radians) * field.speedMph,
+      vMph: Math.cos(radians) * field.speedMph,
+      speedMph: field.speedMph,
+      azimuthDeg: ((field.azimuthDeg % 360) + 360) % 360,
+    };
+  }
+
+  const [west, south, east, north] = field.bounds;
+  if (lng < west || lng > east || lat < south || lat > north || !field.bands.length) {
+    return null;
+  }
+
+  const x = ((lng - west) / (east - west || 1)) * (field.width - 1);
+  const y = ((north - lat) / (north - south || 1)) * (field.height - 1);
+  const step = field.stepHours > 0 ? field.stepHours : 1;
+  const bandPosition = Math.min(
+    Math.max(timeHours / step, 0),
+    Math.max(field.bands.length - 1, 0),
+  );
+  const lowerIndex = Math.floor(bandPosition);
+  const upperIndex = Math.min(lowerIndex + 1, field.bands.length - 1);
+  const alpha = bandPosition - lowerIndex;
+  const lower = sampleBand(field.bands[lowerIndex], field.width, field.height, x, y);
+  const upper = sampleBand(field.bands[upperIndex], field.width, field.height, x, y);
+  if (!lower || !upper) return null;
+
+  const uMph = lower.u + (upper.u - lower.u) * alpha;
+  const vMph = lower.v + (upper.v - lower.v) * alpha;
+  const speedMph = Math.hypot(uMph, vMph);
+  if (![uMph, vMph, speedMph].every(Number.isFinite)) return null;
+  return {
+    uMph,
+    vMph,
+    speedMph,
+    azimuthDeg: ((Math.atan2(uMph, vMph) * 180) / Math.PI + 360) % 360,
+  };
+}
+
+function sampleBand(
+  band: WindBand,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+): { u: number; v: number } | null {
+  if (band.u_mph.length !== width * height || band.v_mph.length !== width * height) return null;
+  const x0 = Math.max(0, Math.min(Math.floor(x), width - 1));
+  const y0 = Math.max(0, Math.min(Math.floor(y), height - 1));
+  const x1 = Math.min(x0 + 1, width - 1);
+  const y1 = Math.min(y0 + 1, height - 1);
+  const tx = x - x0;
+  const ty = y - y0;
+  const interpolate = (values: number[]) => {
+    const top = values[y0 * width + x0] * (1 - tx) + values[y0 * width + x1] * tx;
+    const bottom = values[y1 * width + x0] * (1 - tx) + values[y1 * width + x1] * tx;
+    return top * (1 - ty) + bottom * ty;
+  };
+  return { u: interpolate(band.u_mph), v: interpolate(band.v_mph) };
+}
+
+/** Start particles on a DOM canvas and optionally paint a georeferenced speed canvas. */
 export function startWindParticles(
   map: MapLibreMap,
   canvas: HTMLCanvasElement,
   field: WindField,
-): () => void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return () => {};
+  options: {
+    timeHours?: number;
+    surfaceCanvas?: HTMLCanvasElement | null;
+    surfaceVisible?: boolean;
+  } = {},
+): WindParticleController {
+  const context = canvas.getContext("2d");
+  const surfaceContext = options.surfaceCanvas?.getContext("2d") ?? null;
+  if (!context) return emptyController();
 
   let particles: Particle[] = [];
-  let dx = 0;
-  let dy = 0;
   let clip: Path2D | null = null;
-  /** Screen bounding box of the domain: where particles are allowed to be born. */
   let box = { x: 0, y: 0, w: 0, h: 0 };
   let width = 0;
   let height = 0;
   let frame = 0;
-
+  // Fixed for the controller's lifetime: zooming changes the projected size of the
+  // domain, not the amount of wind information it contains.
+  let particleTarget: number | null = null;
+  let timeHours = options.timeHours ?? 0;
+  let surfaceVisible = options.surfaceVisible ?? false;
+  let surfaceDirty = true;
+  let surfacePaintedAt = -Infinity;
+  let lastFrameAt = 0;
+  let moving = false;
+  let stopped = false;
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reducedMotion = motionQuery.matches;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  const speedPx =
-    MIN_PX_PER_FRAME +
-    (MAX_PX_PER_FRAME - MIN_PX_PER_FRAME) *
-      Math.min(field.speedMph / SPEED_SATURATES_AT_MPH, 1);
+  const spawn = (initial: boolean): Particle => {
+    let candidate = { x: box.x, y: box.y };
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      candidate = {
+        x: box.x + Math.random() * box.w,
+        y: box.y + Math.random() * box.h,
+      };
+      if (clip && !context.isPointInPath(clip, candidate.x, candidate.y)) continue;
+      const lngLat = map.unproject([candidate.x, candidate.y]);
+      const sample = sampleWindField(field, lngLat.lng, lngLat.lat, timeHours);
+      if (sample && sample.speedMph >= CALM_MPH) break;
+    }
+    const lngLat = map.unproject([candidate.x, candidate.y]);
+    const maxAge = MIN_AGE + Math.random() * (MAX_AGE - MIN_AGE);
+    return {
+      ...candidate,
+      lng: lngLat.lng,
+      lat: lngLat.lat,
+      age: initial ? Math.random() * maxAge : 0,
+      maxAge,
+    };
+  };
 
-  /** Screen-space direction, taken from the projection rather than from the map bearing:
-   *  this stays correct under rotation, pitch and the Mercator distortion for free. */
+  const clear = () => context.clearRect(0, 0, width, height);
+
   const resolve = () => {
     const rect = map.getContainer().getBoundingClientRect();
     width = rect.width;
     height = rect.height;
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+    const pixelWidth = Math.round(width * dpr);
+    const pixelHeight = Math.round(height * dpr);
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const [lng, lat] = ringCentre(field.ring);
-    const rad = (field.azimuthDeg * Math.PI) / 180;
-    const km = 1;
-    const ahead: [number, number] = [
-      lng + (Math.sin(rad) * km) / (111.32 * Math.cos((lat * Math.PI) / 180)),
-      lat + (Math.cos(rad) * km) / 110.57,
-    ];
-    const a = map.project([lng, lat]);
-    const b = map.project(ahead);
-    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    dx = ((b.x - a.x) / len) * speedPx;
-    dy = ((b.y - a.y) / len) * speedPx;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     clip = new Path2D();
     let x0 = Infinity;
     let y0 = Infinity;
     let x1 = -Infinity;
     let y1 = -Infinity;
-    field.ring.forEach(([rlng, rlat], i) => {
-      const p = map.project([rlng, rlat]);
-      if (i === 0) clip!.moveTo(p.x, p.y);
-      else clip!.lineTo(p.x, p.y);
-      x0 = Math.min(x0, p.x);
-      y0 = Math.min(y0, p.y);
-      x1 = Math.max(x1, p.x);
-      y1 = Math.max(y1, p.y);
+    field.ring.forEach(([lng, lat], index) => {
+      const point = map.project([lng, lat]);
+      if (index === 0) clip?.moveTo(point.x, point.y);
+      else clip?.lineTo(point.x, point.y);
+      x0 = Math.min(x0, point.x);
+      y0 = Math.min(y0, point.y);
+      x1 = Math.max(x1, point.x);
+      y1 = Math.max(y1, point.y);
     });
     clip.closePath();
-    // Clamped to the canvas: a domain panned half off-screen must not keep paying for
-    // particles nobody can see.
     x0 = Math.max(x0, 0);
     y0 = Math.max(y0, 0);
-    box = { x: x0, y: y0, w: Math.max(0, Math.min(x1, width) - x0), h: Math.max(0, Math.min(y1, height) - y0) };
-
-    const wanted = Math.min(
-      Math.round((box.w * box.h) / PARTICLE_DENSITY),
-      MAX_PARTICLES,
-    );
-    particles = Array.from({ length: wanted }, () => spawn(true));
-    ctx.clearRect(0, 0, width, height);
+    box = {
+      x: x0,
+      y: y0,
+      w: Math.max(0, Math.min(x1, width) - x0),
+      h: Math.max(0, Math.min(y1, height) - y0),
+    };
+    for (const particle of particles) {
+      const point = map.project([particle.lng, particle.lat]);
+      particle.x = point.x;
+      particle.y = point.y;
+    }
+    if (particleTarget === null) {
+      const visibleArea = Math.min(box.w * box.h, width * height);
+      particleTarget = visibleArea > 0
+        ? Math.min(MAX_PARTICLES, Math.max(80, Math.round(visibleArea / PARTICLE_DENSITY)))
+        : 0;
+    }
+    if (!particles.length && particleTarget > 0) {
+      particles = Array.from({ length: particleTarget }, () => spawn(true));
+    }
+    canvas.dataset.particleCount = String(particles.length);
+    clear();
+    if (reducedMotion) drawStatic();
   };
 
-  /** Particles live in the ring's screen bounding box; the canvas clip does the exact
-   *  shape, so no per-particle point-in-polygon is needed. */
-  const spawn = (initial: boolean): Particle => ({
-    x: box.x + Math.random() * box.w,
-    y: box.y + Math.random() * box.h,
-    // Staggered on the first fill, so the population does not blink out in unison.
-    age: initial ? Math.random() * MAX_AGE_FRAMES : 0,
-  });
+  const projectedStep = (particle: Particle, sample: WindSample, frameScale: number) => {
+    const magnitude = sample.speedMph || 1;
+    const distanceKm = 1;
+    const latitudeRadians = (particle.lat * Math.PI) / 180;
+    const ahead = map.project([
+      particle.lng +
+        ((sample.uMph / magnitude) * distanceKm) /
+          (111.32 * Math.max(Math.cos(latitudeRadians), 0.01)),
+      particle.lat + ((sample.vMph / magnitude) * distanceKm) / 110.57,
+    ]);
+    const length = Math.hypot(ahead.x - particle.x, ahead.y - particle.y) || 1;
+    const pixelsPerFrame = 0.35 + Math.min(sample.speedMph / 40, 1) * 2.85;
+    return {
+      dx: ((ahead.x - particle.x) / length) * pixelsPerFrame * frameScale,
+      dy: ((ahead.y - particle.y) / length) * pixelsPerFrame * frameScale,
+    };
+  };
 
-  const tick = () => {
-    frame = requestAnimationFrame(tick);
+  const drawStatic = () => {
     if (!clip) return;
+    clear();
+    context.save();
+    context.clip(clip);
+    context.lineWidth = 1;
+    context.lineCap = "round";
+    for (const particle of particles.slice(0, 180)) {
+      const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
+      if (!sample || sample.speedMph < CALM_MPH) continue;
+      const step = projectedStep(particle, sample, 2.4);
+      context.beginPath();
+      context.moveTo(particle.x - step.dx, particle.y - step.dy);
+      context.lineTo(particle.x + step.dx, particle.y + step.dy);
+      context.strokeStyle = colorForSpeed(sample.speedMph, 0.8);
+      context.stroke();
+    }
+    context.restore();
+  };
 
-    // Step 4 — decay, not erase. Unclipped: everything drawn is already inside the ring.
-    ctx.globalCompositeOperation = "destination-in";
-    ctx.fillStyle = TRAIL_DECAY;
-    ctx.fillRect(0, 0, width, height);
-    ctx.globalCompositeOperation = "source-over";
+  const drawSurface = () => {
+    const surfaceCanvas = options.surfaceCanvas;
+    if (!surfaceCanvas || !surfaceContext) return;
+    const surfaceWidth = field.kind === "gridded" ? field.width : 2;
+    const surfaceHeight = field.kind === "gridded" ? field.height : 2;
+    if (surfaceCanvas.width !== surfaceWidth || surfaceCanvas.height !== surfaceHeight) {
+      surfaceCanvas.width = surfaceWidth;
+      surfaceCanvas.height = surfaceHeight;
+    }
+    surfaceContext.clearRect(0, 0, surfaceWidth, surfaceHeight);
+    if (!surfaceVisible) return;
 
-    ctx.save();
-    ctx.clip(clip);
-    ctx.strokeStyle = PARTICLE_COLOR;
-    ctx.lineWidth = LINE_WIDTH;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    for (const p of particles) {
-      const nx = p.x + dx;
-      const ny = p.y + dy;
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(nx, ny);
-      p.x = nx;
-      p.y = ny;
-      p.age += 1;
-      // Step 6 — retire and reseed, or the field drains off the edge of the screen.
-      if (
-        p.age > MAX_AGE_FRAMES ||
-        nx < box.x || ny < box.y || nx > box.x + box.w || ny > box.y + box.h
-      ) {
-        Object.assign(p, spawn(false));
+    const image = surfaceContext.createImageData(surfaceWidth, surfaceHeight);
+    const [west, south, east, north] =
+      field.kind === "gridded" ? field.bounds : ringBounds(field.ring);
+    for (let y = 0; y < surfaceHeight; y += 1) {
+      for (let x = 0; x < surfaceWidth; x += 1) {
+        const lng = west + (x / Math.max(surfaceWidth - 1, 1)) * (east - west);
+        const lat = north - (y / Math.max(surfaceHeight - 1, 1)) * (north - south);
+        const sample = sampleWindField(field, lng, lat, timeHours);
+        const rgba = colorComponents(sample?.speedMph ?? 0);
+        const offset = (y * surfaceWidth + x) * 4;
+        image.data[offset] = rgba[0];
+        image.data[offset + 1] = rgba[1];
+        image.data[offset + 2] = rgba[2];
+        image.data[offset + 3] = sample && sample.speedMph >= CALM_MPH ? 255 : 0;
       }
     }
-    ctx.stroke();
-    ctx.restore();
+    surfaceContext.putImageData(image, 0, 0);
+  };
+
+  const tick = (timestamp: number) => {
+    if (stopped) return;
+    frame = requestAnimationFrame(tick);
+    if (surfaceDirty && timestamp - surfacePaintedAt >= SURFACE_INTERVAL_MS) {
+      drawSurface();
+      surfacePaintedAt = timestamp;
+      surfaceDirty = false;
+    }
+    if (!clip || moving || reducedMotion) return;
+
+    const frameScale = lastFrameAt ? Math.min((timestamp - lastFrameAt) / 16.667, 2.5) : 1;
+    lastFrameAt = timestamp;
+    context.globalCompositeOperation = "destination-in";
+    context.fillStyle = TRAIL_DECAY;
+    context.fillRect(0, 0, width, height);
+    context.globalCompositeOperation = "source-over";
+
+    const paths = WIND_SPEED_STOPS.map(() => new Path2D());
+    context.save();
+    context.clip(clip);
+    for (const particle of particles) {
+      const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
+      if (!sample || sample.speedMph < CALM_MPH) {
+        Object.assign(particle, spawn(false));
+        continue;
+      }
+      const step = projectedStep(particle, sample, frameScale);
+      const nextX = particle.x + step.dx;
+      const nextY = particle.y + step.dy;
+      const path = paths[colorBucket(sample.speedMph)];
+      path.moveTo(particle.x, particle.y);
+      path.lineTo(nextX, nextY);
+      particle.x = nextX;
+      particle.y = nextY;
+      const nextLngLat = map.unproject([nextX, nextY]);
+      particle.lng = nextLngLat.lng;
+      particle.lat = nextLngLat.lat;
+      particle.age += frameScale;
+      if (
+        particle.age > particle.maxAge ||
+        nextX < box.x ||
+        nextY < box.y ||
+        nextX > box.x + box.w ||
+        nextY > box.y + box.h
+      ) {
+        Object.assign(particle, spawn(false));
+      }
+    }
+    context.lineWidth = 1;
+    context.lineCap = "round";
+    paths.forEach((path, index) => {
+      context.strokeStyle = hexToRgba(WIND_SPEED_STOPS[index][1], 0.78);
+      context.stroke(path);
+    });
+    context.restore();
+  };
+
+  const onMoveStart = () => {
+    moving = true;
+    clear();
+  };
+  const onMove = () => {
+    moving = true;
+    resolve();
+    // Keep the same geographic particles visible while MapLibre changes projection.
+    // Trails cannot be warped safely, so short live streaks bridge the interaction.
+    if (!reducedMotion) drawStatic();
+  };
+  const onMoveEnd = () => {
+    moving = false;
+    lastFrameAt = 0;
+    resolve();
+    // Leave a projected frame in place so the animated trails resume from visible
+    // particles instead of appearing to restart on an empty canvas.
+    drawStatic();
+  };
+  const onMotionChange = (event: MediaQueryListEvent) => {
+    reducedMotion = event.matches;
+    lastFrameAt = 0;
+    if (reducedMotion) drawStatic();
+    else clear();
   };
 
   resolve();
+  drawSurface();
   frame = requestAnimationFrame(tick);
-  map.on("move", resolve);
+  map.on("movestart", onMoveStart);
+  map.on("move", onMove);
+  map.on("moveend", onMoveEnd);
   map.on("resize", resolve);
+  motionQuery.addEventListener("change", onMotionChange);
 
-  return () => {
+  const stop = () => {
+    stopped = true;
     cancelAnimationFrame(frame);
-    map.off("move", resolve);
+    map.off("movestart", onMoveStart);
+    map.off("move", onMove);
+    map.off("moveend", onMoveEnd);
     map.off("resize", resolve);
-    ctx.clearRect(0, 0, width, height);
+    motionQuery.removeEventListener("change", onMotionChange);
+    clear();
+    if (options.surfaceCanvas && surfaceContext) {
+      surfaceContext.clearRect(0, 0, options.surfaceCanvas.width, options.surfaceCanvas.height);
+    }
+  };
+
+  return {
+    setTime: (hours) => {
+      timeHours = hours;
+      surfaceDirty = true;
+      if (reducedMotion) drawStatic();
+    },
+    setSurfaceVisible: (visible) => {
+      surfaceVisible = visible;
+      surfaceDirty = true;
+      drawSurface();
+    },
+    resize: resolve,
+    stop,
   };
 }
 
-function ringCentre(ring: [number, number][]): [number, number] {
-  const pts = ring.slice(0, -1).length ? ring.slice(0, -1) : ring;
-  const sum = pts.reduce((a, [x, y]) => [a[0] + x, a[1] + y], [0, 0]);
-  return [sum[0] / pts.length, sum[1] / pts.length];
+function ringBounds(ring: [number, number][]): [number, number, number, number] {
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const [lng, lat] of ring) {
+    west = Math.min(west, lng);
+    south = Math.min(south, lat);
+    east = Math.max(east, lng);
+    north = Math.max(north, lat);
+  }
+  return [west, south, east, north];
+}
+
+function colorBucket(speedMph: number): number {
+  for (let index = WIND_SPEED_STOPS.length - 1; index >= 0; index -= 1) {
+    if (speedMph >= WIND_SPEED_STOPS[index][0]) return index;
+  }
+  return 0;
+}
+
+function colorComponents(speedMph: number): [number, number, number] {
+  const upperIndex = WIND_SPEED_STOPS.findIndex(([speed]) => speed >= speedMph);
+  if (upperIndex <= 0) return hexComponents(WIND_SPEED_STOPS[0][1]);
+  if (upperIndex === -1) return hexComponents(WIND_SPEED_STOPS.at(-1)![1]);
+  const [lowerSpeed, lowerColor] = WIND_SPEED_STOPS[upperIndex - 1];
+  const [upperSpeed, upperColor] = WIND_SPEED_STOPS[upperIndex];
+  const alpha = (speedMph - lowerSpeed) / (upperSpeed - lowerSpeed || 1);
+  const lower = hexComponents(lowerColor);
+  const upper = hexComponents(upperColor);
+  return lower.map((value, index) => Math.round(value + (upper[index] - value) * alpha)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function hexComponents(hex: string): [number, number, number] {
+  return [
+    Number.parseInt(hex.slice(1, 3), 16),
+    Number.parseInt(hex.slice(3, 5), 16),
+    Number.parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const [red, green, blue] = hexComponents(hex);
+  return `rgba(${red},${green},${blue},${alpha})`;
+}
+
+function colorForSpeed(speedMph: number, alpha: number): string {
+  const [red, green, blue] = colorComponents(speedMph);
+  return `rgba(${red},${green},${blue},${alpha})`;
+}
+
+function emptyController(): WindParticleController {
+  return {
+    setTime: () => {},
+    setSurfaceVisible: () => {},
+    resize: () => {},
+    stop: () => {},
+  };
 }

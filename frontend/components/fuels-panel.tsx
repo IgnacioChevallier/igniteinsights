@@ -1,29 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FireMap, type ImageOverlay } from "@/components/fire-map";
+import { FireMap } from "@/components/fire-map";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { loadFuelsMap, type FuelsMap } from "@/lib/fuels-cache";
 import { FUELS_SOURCES, loadSettings, type FuelsSource } from "@/lib/real-run";
 
 // GET /api/v1/fuels/map?source= — one cover product's FBFM40 map, as ELMFIRE receives it.
-type FuelClass = {
-  fbfm40: number;
-  label: string;
-  color: string;
-  source_classes: string[];
-  pixel_count: number;
-  area_ha: number;
-  share: number;
-};
-
-type FuelsMap = ImageOverlay & {
-  source_id: FuelsSource;
-  source: string;
-  available_sources: FuelsSource[];
-  classes: FuelClass[];
-  total_area_ha: number;
-};
 
 // Only WorldCover's caveat is about the crosswalk's resolution; the Argentine maps are the
 // answer to it, so they point to the document that argues each assignment instead.
@@ -56,15 +40,11 @@ export function FuelsPanel() {
     let cancelled = false;
     setFuels(null);
     setError(null);
-    fetch(`/api/fuels?source=${source}`, { cache: "no-store" })
-      .then(async (res) => {
-        const envelope = await res.json();
-        if (!res.ok || !envelope.data) {
-          throw new Error(envelope.detail ?? envelope.error?.message ?? "Sin datos");
-        }
+    loadFuelsMap(source)
+      .then((data) => {
         if (cancelled) return;
-        setFuels(envelope.data as FuelsMap);
-        setAvailable(envelope.data.available_sources);
+        setFuels(data);
+        setAvailable(data.available_sources);
       })
       .catch((e: Error) => !cancelled && setError(e.message));
     return () => {

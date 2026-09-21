@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,9 @@ import { MapPanel } from "@/components/map-panel";
 import { PlaygroundPanel } from "@/components/playground-panel";
 import { SidebarNav, type DashboardSection } from "@/components/sidebar-nav";
 import { ValidationPanel } from "@/components/validation-panel";
+import { formatArgentinaDateTime } from "@/lib/date-time";
+import { preloadFuelsMaps } from "@/lib/fuels-cache";
+import { loadSettings } from "@/lib/real-run";
 import type {
   DashboardData,
   Run,
@@ -31,13 +34,7 @@ import type {
 
 function formatDate(value: string | null) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("es", {
-    timeZone: "UTC",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatArgentinaDateTime(value);
 }
 
 function formatDecimal(value: number) {
@@ -148,8 +145,8 @@ function RunsTable({ runs }: { runs: Run[] }) {
               <TableHead>Fuente</TableHead>
               <TableHead>AOI</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Inicio</TableHead>
-              <TableHead>Fin</TableHead>
+              <TableHead>Inicio (ART)</TableHead>
+              <TableHead>Fin (ART)</TableHead>
               <TableHead>Descripción</TableHead>
             </TableRow>
           </TableHeader>
@@ -377,6 +374,18 @@ export function DashboardShell({
   apiBaseUrl: string;
 }) {
   const [activeSection, setActiveSection] = useState<DashboardSection>("map");
+
+  useEffect(() => {
+    // Start after the first paint: this warms static fuel products while the operator uses
+    // the map, without adding work to hydration or blocking the initial interface.
+    const start = () => void preloadFuelsMaps(loadSettings().fuels_source);
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(start, { timeout: 1_500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(start, 0);
+    return () => globalThis.clearTimeout(id);
+  }, []);
 
   return (
     <div className="flex h-screen">

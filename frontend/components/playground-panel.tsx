@@ -394,6 +394,7 @@ function toWindField(layers: GeoJSON.FeatureCollection | null): WindField | null
   const domain = layers?.features?.find((f) => f.properties?.kind === "domain");
   if (!wind || domain?.geometry?.type !== "Polygon") return null;
   return {
+    kind: "uniform",
     azimuthDeg: Number(wind.properties?.azimuth_deg ?? 0),
     speedMph: Number(wind.properties?.speed_mph ?? 0),
     ring: domain.geometry.coordinates[0] as [number, number][],

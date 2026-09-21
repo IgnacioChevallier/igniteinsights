@@ -6,6 +6,7 @@
  * (pre-`-a arrival_s` shapefiles). No backend call is involved — see
  * VISUALIZACION-ANIMADA.md parte 1.
  */
+import { formatArgentinaDateTime } from "@/lib/date-time";
 
 /** A feature with no usable arrival time. `coalesce` maps it to this in the map filters,
  *  which is below every real arrival hour and therefore never matches a `>= 0` clause. */
@@ -103,13 +104,7 @@ export function realTimestamp(ignitionDatetime: string | null | undefined, t: nu
   if (!ignitionDatetime) return null;
   const start = new Date(ignitionDatetime);
   if (Number.isNaN(start.getTime())) return null;
-  return new Intl.DateTimeFormat("es", {
-    timeZone: "UTC",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(start.getTime() + t * 3600_000));
+  return formatArgentinaDateTime(new Date(start.getTime() + t * 3600_000));
 }
 
 /** "3,4 h" — the simulated-hour label. */

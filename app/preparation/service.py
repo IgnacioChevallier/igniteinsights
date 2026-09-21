@@ -25,6 +25,7 @@ from app.elmfire.builder import (
     rasters,
     weather_builder,
 )
+from app.postprocessing.wind_field import WIND_FIELD_FILENAME, write_wind_field
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,21 @@ async def run_preparation(
             inputs_dir,
         )
         generated.extend(["ws.tif", "wd.tif"])
+        try:
+            await asyncio.to_thread(
+                write_wind_field,
+                ws,
+                wd,
+                inputs_dir / WIND_FIELD_FILENAME,
+                forecast_start=u10.valid_time,
+                forecast_cycle=(u10.metadata_ or {}).get("cycle"),
+            )
+            generated.append(WIND_FIELD_FILENAME)
+        except (OSError, ValueError) as exc:
+            # The sidecar is visualization-only. It must not prevent an otherwise valid
+            # ELMFIRE preparation from completing.
+            logger.warning("Could not prepare spatial wind field: %s", exc)
+            warnings.append(f"No se pudo preparar la visualización espacial del viento: {exc}")
     else:
         missing.extend(["ws.tif", "wd.tif"])
         if not (u10 and v10):
@@ -362,7 +378,6 @@ async def run_preparation(
         "ignition_datetime": ignition_datetime,
         "fuels_source": source,
     }
-
 
 
 
