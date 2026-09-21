@@ -64,7 +64,9 @@ export const WIND_SPEED_GRADIENT = `linear-gradient(90deg, ${WIND_SPEED_STOPS.ma
 const CALM_MPH = 0.5;
 const MAX_PARTICLES = 650;
 const PARTICLE_DENSITY = 1900;
-const TRAIL_DECAY = "rgba(0,0,0,0.89)";
+const MAX_TRAIL_POINTS = 18;
+const MAX_TRAIL_PIXELS = 34;
+const TRAIL_ALPHAS = [0.18, 0.32, 0.52, 0.78] as const;
 const MIN_AGE = 58;
 const MAX_AGE = 112;
 const SURFACE_INTERVAL_MS = 100;
@@ -74,6 +76,8 @@ type Particle = {
   y: number;
   lng: number;
   lat: number;
+  /** Short visual history in CSS pixels, translated with its geographic head. */
+  trail: [number, number][];
   age: number;
   maxAge: number;
 };
@@ -206,6 +210,7 @@ export function startWindParticles(
       ...candidate,
       lng: lngLat.lng,
       lat: lngLat.lat,
+      trail: [[candidate.x, candidate.y]],
       age: initial ? Math.random() * maxAge : 0,
       maxAge,
     };
@@ -252,6 +257,12 @@ export function startWindParticles(
     if (reprojectParticles || resized) {
       for (const particle of particles) {
         const point = map.project([particle.lng, particle.lat]);
+        const offsetX = point.x - particle.x;
+        const offsetY = point.y - particle.y;
+        for (const trailPoint of particle.trail) {
+          trailPoint[0] += offsetX;
+          trailPoint[1] += offsetY;
+        }
         particle.x = point.x;
         particle.y = point.y;
       }
@@ -296,9 +307,9 @@ export function startWindParticles(
     context.lineWidth = 1;
     context.lineCap = "round";
     for (const particle of particles.slice(0, 180)) {
-      const lngLat = map.unproject([particle.x, particle.y]);
-      particle.lng = lngLat.lng;
-      particle.lat = lngLat.lat;
+      const point = map.project([particle.lng, particle.lat]);
+      particle.x = point.x;
+      particle.y = point.y;
       const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
       if (!sample || sample.speedMph < CALM_MPH) continue;
       const step = projectedStep(particle, sample, 2.4);
@@ -342,6 +353,45 @@ export function startWindParticles(
     surfaceContext.putImageData(image, 0, 0);
   };
 
+  const appendTrail = (
+    paths: Path2D[],
+    trail: [number, number][],
+    targetPixels: number,
+  ) => {
+    if (trail.length < 2) return;
+    const visible = [{ x: trail.at(-1)![0], y: trail.at(-1)![1] }];
+    let distance = 0;
+
+    for (let index = trail.length - 2; index >= 0; index -= 1) {
+      const older = { x: trail[index][0], y: trail[index][1] };
+      const newer = visible[0];
+      const segment = Math.hypot(newer.x - older.x, newer.y - older.y);
+      if (distance + segment > targetPixels) {
+        const remaining = targetPixels - distance;
+        if (remaining > 0 && segment > 0) {
+          const ratio = remaining / segment;
+          visible.unshift({
+            x: newer.x + (older.x - newer.x) * ratio,
+            y: newer.y + (older.y - newer.y) * ratio,
+          });
+        }
+        break;
+      }
+      visible.unshift(older);
+      distance += segment;
+    }
+
+    for (let index = 1; index < visible.length; index += 1) {
+      const progress = index / Math.max(visible.length - 1, 1);
+      const alphaIndex = Math.min(
+        TRAIL_ALPHAS.length - 1,
+        Math.floor(progress * TRAIL_ALPHAS.length),
+      );
+      paths[alphaIndex].moveTo(visible[index - 1].x, visible[index - 1].y);
+      paths[alphaIndex].lineTo(visible[index].x, visible[index].y);
+    }
+  };
+
   const tick = (timestamp: number) => {
     if (stopped) return;
     frame = requestAnimationFrame(tick);
@@ -354,21 +404,24 @@ export function startWindParticles(
 
     const frameScale = lastFrameAt ? Math.min((timestamp - lastFrameAt) / 16.667, 2.5) : 1;
     lastFrameAt = timestamp;
-    context.globalCompositeOperation = "destination-in";
-    context.fillStyle = TRAIL_DECAY;
-    context.fillRect(0, 0, width, height);
-    context.globalCompositeOperation = "source-over";
+    clear();
 
-    const paths = WIND_SPEED_STOPS.map(() => new Path2D());
+    const paths = WIND_SPEED_STOPS.map(() => TRAIL_ALPHAS.map(() => new Path2D()));
     context.save();
     context.clip(clip);
     for (const particle of particles) {
-      // Keep the visual population in screen space while the map projection changes.
-      // Re-sampling its geographic position every frame preserves the correct local
-      // wind without scaling, pausing or multiplying the visible streaks on zoom.
-      const lngLat = map.unproject([particle.x, particle.y]);
-      particle.lng = lngLat.lng;
-      particle.lat = lngLat.lat;
+      // The head lives in geographic space. Move its short screen-space history by the
+      // same camera delta, which anchors the streak to the map without scaling its visual
+      // length or performing thousands of historical projections on every frame.
+      const point = map.project([particle.lng, particle.lat]);
+      const cameraOffsetX = point.x - particle.x;
+      const cameraOffsetY = point.y - particle.y;
+      for (const trailPoint of particle.trail) {
+        trailPoint[0] += cameraOffsetX;
+        trailPoint[1] += cameraOffsetY;
+      }
+      particle.x = point.x;
+      particle.y = point.y;
       const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
       if (!sample || sample.speedMph < CALM_MPH) {
         Object.assign(particle, spawn(false));
@@ -377,14 +430,13 @@ export function startWindParticles(
       const step = projectedStep(particle, sample, frameScale);
       const nextX = particle.x + step.dx;
       const nextY = particle.y + step.dy;
-      const path = paths[colorBucket(sample.speedMph)];
-      path.moveTo(particle.x, particle.y);
-      path.lineTo(nextX, nextY);
       particle.x = nextX;
       particle.y = nextY;
       const nextLngLat = map.unproject([nextX, nextY]);
       particle.lng = nextLngLat.lng;
       particle.lat = nextLngLat.lat;
+      particle.trail.push([nextX, nextY]);
+      if (particle.trail.length > MAX_TRAIL_POINTS) particle.trail.shift();
       particle.age += frameScale;
       if (
         particle.age > particle.maxAge ||
@@ -394,20 +446,31 @@ export function startWindParticles(
         nextY > box.y + box.h
       ) {
         Object.assign(particle, spawn(false));
+        continue;
       }
+      const targetPixels = Math.min(
+        MAX_TRAIL_PIXELS,
+        (0.35 + Math.min(sample.speedMph / 40, 1) * 2.85) * (MAX_TRAIL_POINTS - 1),
+      );
+      appendTrail(paths[colorBucket(sample.speedMph)], particle.trail, targetPixels);
     }
     context.lineWidth = 1;
     context.lineCap = "round";
-    paths.forEach((path, index) => {
-      context.strokeStyle = hexToRgba(WIND_SPEED_STOPS[index][1], 0.78);
-      context.stroke(path);
+    paths.forEach((alphaPaths, colorIndex) => {
+      alphaPaths.forEach((path, alphaIndex) => {
+        context.strokeStyle = hexToRgba(
+          WIND_SPEED_STOPS[colorIndex][1],
+          TRAIL_ALPHAS[alphaIndex],
+        );
+        context.stroke(path);
+      });
     });
     context.restore();
   };
 
   const onMove = () => {
-    // Only the geographic clip changes. Particle positions and accumulated trails stay
-    // in screen space so interaction is visually continuous.
+    // Only projection geometry changes here. The animation loop continues and redraws
+    // every geographic trail against the new camera on its next frame.
     resolve(false, false);
   };
   const onResize = () => resolve(true, true);

@@ -60,6 +60,33 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
   );
   expect(secondZoomFrame).not.toBe(firstZoomFrame);
   await expect.poll(() => particles.getAttribute("data-particle-count")).toBe(countBeforeZoom);
+
+  const horizontalCentroid = () =>
+    particles.evaluate((canvas: HTMLCanvasElement) => {
+      const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+      if (!pixels) return 0;
+      let weightedX = 0;
+      let alpha = 0;
+      for (let offset = 3; offset < pixels.length; offset += 4) {
+        const value = pixels[offset];
+        if (!value) continue;
+        weightedX += ((offset - 3) / 4 % canvas.width) * value;
+        alpha += value;
+      }
+      return alpha ? weightedX / alpha : 0;
+    });
+
+  await page.waitForTimeout(300);
+  const centroidBeforePan = await horizontalCentroid();
+  await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.35 + 120, box.y + box.height * 0.35, {
+    steps: 8,
+  });
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  const centroidAfterPan = await horizontalCentroid();
+  expect(centroidAfterPan).toBeGreaterThan(centroidBeforePan + 20);
 });
 
 test("movimiento reducido conserva una lectura estática del viento", async ({ page }) => {
