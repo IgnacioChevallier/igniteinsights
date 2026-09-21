@@ -62,8 +62,8 @@ export const WIND_SPEED_GRADIENT = `linear-gradient(90deg, ${WIND_SPEED_STOPS.ma
 ).join(", ")})`;
 
 const CALM_MPH = 0.5;
-const MAX_PARTICLES = 500;
-const PARTICLE_DENSITY = 2400;
+const MAX_PARTICLES = 650;
+const PARTICLE_DENSITY = 1900;
 const TRAIL_DECAY = "rgba(0,0,0,0.89)";
 const MIN_AGE = 58;
 const MAX_AGE = 112;
@@ -183,7 +183,6 @@ export function startWindParticles(
   let surfaceDirty = true;
   let surfacePaintedAt = -Infinity;
   let lastFrameAt = 0;
-  let moving = false;
   let stopped = false;
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   let reducedMotion = motionQuery.matches;
@@ -214,12 +213,13 @@ export function startWindParticles(
 
   const clear = () => context.clearRect(0, 0, width, height);
 
-  const resolve = () => {
+  const resolve = (reprojectParticles = true, clearTrails = true) => {
     const rect = map.getContainer().getBoundingClientRect();
     width = rect.width;
     height = rect.height;
     const pixelWidth = Math.round(width * dpr);
     const pixelHeight = Math.round(height * dpr);
+    const resized = canvas.width !== pixelWidth || canvas.height !== pixelHeight;
     if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
     if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
     canvas.style.width = `${width}px`;
@@ -249,10 +249,12 @@ export function startWindParticles(
       w: Math.max(0, Math.min(x1, width) - x0),
       h: Math.max(0, Math.min(y1, height) - y0),
     };
-    for (const particle of particles) {
-      const point = map.project([particle.lng, particle.lat]);
-      particle.x = point.x;
-      particle.y = point.y;
+    if (reprojectParticles || resized) {
+      for (const particle of particles) {
+        const point = map.project([particle.lng, particle.lat]);
+        particle.x = point.x;
+        particle.y = point.y;
+      }
     }
     if (particleTarget === null) {
       const visibleArea = Math.min(box.w * box.h, width * height);
@@ -264,7 +266,7 @@ export function startWindParticles(
       particles = Array.from({ length: particleTarget }, () => spawn(true));
     }
     canvas.dataset.particleCount = String(particles.length);
-    clear();
+    if (clearTrails || resized) clear();
     if (reducedMotion) drawStatic();
   };
 
@@ -294,6 +296,9 @@ export function startWindParticles(
     context.lineWidth = 1;
     context.lineCap = "round";
     for (const particle of particles.slice(0, 180)) {
+      const lngLat = map.unproject([particle.x, particle.y]);
+      particle.lng = lngLat.lng;
+      particle.lat = lngLat.lat;
       const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
       if (!sample || sample.speedMph < CALM_MPH) continue;
       const step = projectedStep(particle, sample, 2.4);
@@ -345,7 +350,7 @@ export function startWindParticles(
       surfacePaintedAt = timestamp;
       surfaceDirty = false;
     }
-    if (!clip || moving || reducedMotion) return;
+    if (!clip || reducedMotion) return;
 
     const frameScale = lastFrameAt ? Math.min((timestamp - lastFrameAt) / 16.667, 2.5) : 1;
     lastFrameAt = timestamp;
@@ -358,6 +363,12 @@ export function startWindParticles(
     context.save();
     context.clip(clip);
     for (const particle of particles) {
+      // Keep the visual population in screen space while the map projection changes.
+      // Re-sampling its geographic position every frame preserves the correct local
+      // wind without scaling, pausing or multiplying the visible streaks on zoom.
+      const lngLat = map.unproject([particle.x, particle.y]);
+      particle.lng = lngLat.lng;
+      particle.lat = lngLat.lat;
       const sample = sampleWindField(field, particle.lng, particle.lat, timeHours);
       if (!sample || sample.speedMph < CALM_MPH) {
         Object.assign(particle, spawn(false));
@@ -394,25 +405,12 @@ export function startWindParticles(
     context.restore();
   };
 
-  const onMoveStart = () => {
-    moving = true;
-    clear();
-  };
   const onMove = () => {
-    moving = true;
-    resolve();
-    // Keep the same geographic particles visible while MapLibre changes projection.
-    // Trails cannot be warped safely, so short live streaks bridge the interaction.
-    if (!reducedMotion) drawStatic();
+    // Only the geographic clip changes. Particle positions and accumulated trails stay
+    // in screen space so interaction is visually continuous.
+    resolve(false, false);
   };
-  const onMoveEnd = () => {
-    moving = false;
-    lastFrameAt = 0;
-    resolve();
-    // Leave a projected frame in place so the animated trails resume from visible
-    // particles instead of appearing to restart on an empty canvas.
-    drawStatic();
-  };
+  const onResize = () => resolve(true, true);
   const onMotionChange = (event: MediaQueryListEvent) => {
     reducedMotion = event.matches;
     lastFrameAt = 0;
@@ -423,19 +421,15 @@ export function startWindParticles(
   resolve();
   drawSurface();
   frame = requestAnimationFrame(tick);
-  map.on("movestart", onMoveStart);
   map.on("move", onMove);
-  map.on("moveend", onMoveEnd);
-  map.on("resize", resolve);
+  map.on("resize", onResize);
   motionQuery.addEventListener("change", onMotionChange);
 
   const stop = () => {
     stopped = true;
     cancelAnimationFrame(frame);
-    map.off("movestart", onMoveStart);
     map.off("move", onMove);
-    map.off("moveend", onMoveEnd);
-    map.off("resize", resolve);
+    map.off("resize", onResize);
     motionQuery.removeEventListener("change", onMotionChange);
     clear();
     if (options.surfaceCanvas && surfaceContext) {

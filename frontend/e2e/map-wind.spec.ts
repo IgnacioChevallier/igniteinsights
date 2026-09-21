@@ -46,10 +46,19 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
 
   await page.screenshot({ path: "../playwright-screenshots/map-wind.png" });
 
-  // Zoom changes projection, not information density: keep the same geographic
-  // particles instead of clearing and creating a denser population.
+  // Zoom changes the geographic sample under each streak, not its screen-space
+  // population. The canvas must also keep advancing while MapLibre animates.
   const countBeforeZoom = await particles.getAttribute("data-particle-count");
   await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(60);
+  const firstZoomFrame = await particles.evaluate((canvas: HTMLCanvasElement) =>
+    canvas.toDataURL(),
+  );
+  await page.waitForTimeout(100);
+  const secondZoomFrame = await particles.evaluate((canvas: HTMLCanvasElement) =>
+    canvas.toDataURL(),
+  );
+  expect(secondZoomFrame).not.toBe(firstZoomFrame);
   await expect.poll(() => particles.getAttribute("data-particle-count")).toBe(countBeforeZoom);
 });
 
