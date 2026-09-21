@@ -16,7 +16,7 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=s/0599a1bb-6b61-4686-bc5e-a71e5e248ce7-/root/.cache/uv,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
 COPY app/ ./app/

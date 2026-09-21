@@ -3,7 +3,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,id=s/0346e379-5a0a-4dea-b002-bc871b206fce-/root/.npm,target=/root/.npm npm ci
 
 FROM deps AS development
 ENV NODE_ENV=development
@@ -17,7 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG API_BASE_URL=http://api:8000
 ENV API_BASE_URL=$API_BASE_URL
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+RUN --mount=type=cache,id=s/0346e379-5a0a-4dea-b002-bc871b206fce-/app/.next/cache,target=/app/.next/cache npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
