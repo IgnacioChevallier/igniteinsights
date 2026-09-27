@@ -11,6 +11,22 @@ fireline intensity) are served as GeoJSON and shown on a Next.js dashboard. See
 `docs/architecture.md` for the full pipeline and `docs/elmfire-mapping.md` for the
 source-data → ELMFIRE-input mapping.
 
+## Commands
+
+- `make check` — ruff, mypy, pytest, `tsc` and eslint; exactly what CI runs (~20s). Run it
+  before calling a change done.
+- `uv run pytest tests/test_namelist_writer.py -k dtdump` — one file / one test.
+- `make dev` — PostGIS + API in Docker, Next.js on the host. `make dev-simulation` adds the
+  ELMFIRE runner, which docker-compose builds from the sibling repo `../elmfire-runner`;
+  without it, anything that actually runs ELMFIRE (`scripts/benchmark.py correr`, real
+  simulations) cannot work.
+- Frontend checks need no backend: `node e2e/stub-api.mjs &`, `npm run dev &`,
+  `npx playwright test` from `frontend/` (details in `frontend/e2e/README.md`).
+
+Language: planning docs (`ESTADO.md`, `IGN-*.md`) and the newer thesis code (`app/validation/`,
+`scripts/benchmark.py`) are in Spanish; the rest of `app/`, `docs/` and the frontend are in
+English. Match the file or module you are editing.
+
 ## Where the project state lives
 
 **`ESTADO.md` is the entry point**: it says what is done, what is pending and where each plan

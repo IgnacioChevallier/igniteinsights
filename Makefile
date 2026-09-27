@@ -1,9 +1,16 @@
-.PHONY: build dev dev-docker dev-docker-simulation dev-infra dev-simulation stop
+.PHONY: build check dev dev-docker dev-docker-simulation dev-infra dev-simulation stop
 
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 build:
 	docker compose build
+
+# Everything CI runs. ~30s; run it before calling a change done.
+check:
+	uv run ruff check app/ scripts/ tests/
+	uv run mypy app/
+	uv run pytest -q
+	cd frontend && npx tsc --noEmit && npx eslint .
 
 # Fastest macOS workflow: Docker for the API/database, host Node for Next.js.
 dev:
