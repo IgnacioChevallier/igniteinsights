@@ -28,8 +28,8 @@ Ranked by how much the predicted fire changes if you change them.
 
 ### 1.1 🟡 WorldCover → FBFM40 crosswalk — **superado, pendiente de aprobación**
 
-> Al 2026-09-15: reemplazado por `IGN-20B-CROSSWALK-CCSBAP.md` (CCS-BAP, principal) e
-> `IGN-20-CROSSWALK.md` (MapBiomas, comparador). Falta la aprobación del director y
+> Al 2026-09-15: reemplazado por `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` (CCS-BAP, principal) e
+> `docs/historico/IGN-20-CROSSWALK.md` (MapBiomas, comparador). Falta la aprobación del director y
 > **Cableado resuelto el 2026-09-15**: `settings.fuels_source` elige la fuente, entra en la
 > clave de caché y la procedencia viaja hasta la leyenda del dashboard. Queda pendiente sólo
 > la aprobación del director.
@@ -125,8 +125,8 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 > Al 2026-09-16: `LW = 110 %`, medido por Bianchi & Defossé (2015) para la temporada de fuego
 > en la Patagonia andina. `LH = 30 %` **no** viene del paper, que no mide herbáceas: es la
 > convención de pasto curado de Scott & Burgan, declarada como tal. Antes ambos eran 60 % sin
-> criterio, por debajo de todo lo medido en la región. La sensibilidad está cuantificada en `IGN-20B-CROSSWALK-CCSBAP.md` §6.3 y la
-> fundamentación en `ETAPA-B-INSUMO-PATAGONICO.md` §B5.
+> criterio, por debajo de todo lo medido en la región. La sensibilidad está cuantificada en `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` §6.3 y la
+> fundamentación en `docs/historico/ETAPA-B-INSUMO-PATAGONICO.md` §B5.
 
 ---
 

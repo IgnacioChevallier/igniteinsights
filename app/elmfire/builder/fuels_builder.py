@@ -216,7 +216,7 @@ def assert_codes_are_defined(fbfm40: "np.ndarray", table_path: Path | None = Non
 
 
 # ---------------------------------------------------------------------------
-# MapBiomas Argentina Colección 2 → FBFM40 (IGN-20-CROSSWALK.md §5)
+# MapBiomas Argentina Colección 2 → FBFM40 (docs/historico/IGN-20-CROSSWALK.md §5)
 # ---------------------------------------------------------------------------
 MAPBIOMAS_SOURCE_ID = "mapbiomas_argentina_col2_2024"
 
@@ -245,7 +245,7 @@ MAPBIOMAS_TO_FBFM40: dict[int, int] = {
 }
 
 # ---------------------------------------------------------------------------
-# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver IGN-20B-CROSSWALK-CCSBAP.md
+# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md
 #
 # Clave: el par (Ley_N1, Ley_N2). Ley_N2 sola es ambigua — "Le" existe como bosque
 # (TF) y como lenga achaparrada (OFL), y esa distinción estructural es justamente la
@@ -289,7 +289,7 @@ CCSBAP_TO_FBFM40: dict[tuple[str, str], int] = {
 
 # Clases de nivel 3 cuyo comportamiento del fuego NO es el de su nivel 2. Sin estos, la
 # turbera heredaría el modelo del mallín y una forestación de pino heredaría el de un
-# cultivo. Cada una está justificada en IGN-20B-CROSSWALK-CCSBAP.md §5.
+# cultivo. Cada una está justificada en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §5.
 CCSBAP_N3_OVERRIDES: dict[str, int] = {
     "Turbera": 99,       # NB9 — combustión latente, fuera del alcance de Rothermel
     "Cg Juv-Tur": 99,    # ciprés de las guaitecas sobre turbera → ídem

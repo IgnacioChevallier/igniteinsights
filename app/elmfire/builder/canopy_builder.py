@@ -4,7 +4,7 @@ ELMFIRE canopy layer derivation.
   reproject_canopy  — reprojects Hansen CC or ETH CH raw raster to the reference
                       grid (EPSG:32719, 30 m) using bilinear resampling.
   derive_cbh_cbd    — derives canopy base height and bulk density from the
-                      reprojected cc/ch rasters (see ETAPA-A-BASELINE.md §A4).
+                      reprojected cc/ch rasters (see docs/historico/ETAPA-A-BASELINE.md §A4).
 """
 import logging
 from pathlib import Path
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # cbh/cbd used to be looked up from the FBFM40 code, which was both circular (a *surface*
 # fuel model does not determine crown structure) and fragile: the table held 9 keys, so any
 # new fuel code silently produced -9999. Derived from cc/ch instead, so the failure mode is
-# gone rather than guarded. See ETAPA-A-BASELINE.md §A4.
+# gone rather than guarded. See docs/historico/ETAPA-A-BASELINE.md §A4.
 #
 # Method (deliberately simple; this is infrastructure, not the thesis contribution):
 #   cbh = ch · f(cc)          self-pruning rises with stand density

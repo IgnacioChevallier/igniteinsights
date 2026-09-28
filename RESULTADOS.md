@@ -1,8 +1,8 @@
 # Resultados de validación — comparación de tres mapas de combustible
 
 > **Corte al 2026-09-19.** Este documento reúne los números; el método vive en
-> `IGN-26-VALIDACION.md` (diseño de validación), `IGN-20B-CROSSWALK-CCSBAP.md` (crosswalk
-> de CCS-BAP) e `IGN-20-CROSSWALK.md` (crosswalk de MapBiomas). Si algún número de acá
+> `IGN-26-VALIDACION.md` (diseño de validación), `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` (crosswalk
+> de CCS-BAP) e `docs/historico/IGN-20-CROSSWALK.md` (crosswalk de MapBiomas). Si algún número de acá
 > discrepa con esos documentos, mandan ellos: son los que se regeneran con cada corrida.
 >
 > Todo es reproducible: `scripts/build_fuel_maps.py`, `scripts/run_three_maps.py`,

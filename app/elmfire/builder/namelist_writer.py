@@ -43,8 +43,8 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # only emits models with no live load (TL/NB), a first-order driver as soon as it emits
 # SH/GS/TU. ELMFIRE takes a single scalar for the whole domain — there is no live-moisture
 # raster — so any value is an area-weighted mean and the weighting has to be justified.
-# ETAPA-B-INSUMO-PATAGONICO.md §B5: source is Bianchi & Defossé (2015), LFMC by species for
-# Andean Patagonia.
+# docs/historico/ETAPA-B-INSUMO-PATAGONICO.md §B5: source is Bianchi & Defossé (2015),
+# LFMC by species for Andean Patagonia.
 # ELMFIRE enciende el fuego de copas si el namelist OMITE CROWN_FIRE_MODEL
 # (.claude/skills/elmfire/references/namelist-reference.md: &SIMULATOR, 0 = off,
 # cualquier valor > 0 = on). Estaba activo por omisión, no por decisión. Se escribe
@@ -65,7 +65,7 @@ DEFAULT_CROWN_FIRE_MODEL = 1
 # convención de modelado declarada, no un dato.
 #
 # El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
-# Su efecto está cuantificado en IGN-20B-CROSSWALK-CCSBAP.md §6.3.
+# Su efecto está cuantificado en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §6.3.
 DEFAULT_LH_MOISTURE_PCT = 30.0
 DEFAULT_LW_MOISTURE_PCT = 110.0
 

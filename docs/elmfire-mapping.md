@@ -71,7 +71,7 @@ Codificación Int16 estilo LANDFIRE — ver `.claude/skills/elmfire/references/i
 - **ch.tif** (**10×metros**): `reproject_canopy(eth_canopy_height.tif, scale_factor=10.0)`.
 - **cbh.tif** (**10×metros**) + **cbd.tif** (**100×kg/m³**): `derive_cbh_cbd(cc.tif, ch.tif)` —
   derivación estructural desde cobertura y altura de dosel medidas, con los valores
-  pre-escalados a la codificación Int16 de ELMFIRE. Ver `ETAPA-A-BASELINE.md` §A4.
+  pre-escalados a la codificación Int16 de ELMFIRE. Ver `docs/historico/ETAPA-A-BASELINE.md` §A4.
 
 ### Ignición (`ignition_builder.py` + `perimeter_reconstruction.py`)
 1. Reconstrucción de perímetro por evento (`perimeter_reconstruction.reconstruct_burn_polygon`,
