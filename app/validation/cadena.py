@@ -129,6 +129,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if "humedad_m1_delta" in par:
         _reescribir(insumos / "m1.tif",
                     lambda a: np.clip(a + par["humedad_m1_delta"], 1.0, 40.0))
+    if "rotacion_viento" in par:   # grados en sentido horario sobre la dirección de origen
+        _reescribir(insumos / "wd.tif", lambda a: (a + par["rotacion_viento"]) % 360.0)
     if "factor_viento" in par:
         _reescribir(insumos / "ws.tif", lambda a: a * par["factor_viento"])
     if "humedad_muerta_delta" in par:
@@ -153,7 +155,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
-                         "humedad_m1_delta", "modelo_humedad"}
+                         "humedad_m1_delta", "modelo_humedad", "rotacion_viento"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}

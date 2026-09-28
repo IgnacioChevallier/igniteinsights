@@ -818,6 +818,22 @@ def analizar(caso: d.Caso, receta: d.Receta) -> dict:
                     "desde_grados": round(float((np.degrees(np.arctan2(-uu, -ww))) % 360))}
         vientos.append({"n": v.inicio.isoformat(), "medio": media(np.ones_like(tarde)),
                         "tarde": media(tarde), "max_mph": round(float(ws.max()), 1)})
+    # Rumbo del frente observado cada día (el cuartil más lejano de las detecciones desde la
+    # ignición) contra hacia dónde empuja el viento medio del GFS en la ignición.
+    tr = Transformer.from_crs("EPSG:4326", str(grilla.crs), always_xy=True)
+    xs, ys = tr.transform(df["longitude"].to_numpy(), df["latitude"].to_numpy())
+    x0, y0 = rasterio.transform.xy(grilla.transform, int(f0), int(c0))
+    for v, viento in zip(caso.ventanas, vientos):
+        sel = ((df["acq_datetime"] > pd.Timestamp(v.inicio))
+               & (df["acq_datetime"] <= pd.Timestamp(v.fin))).to_numpy()
+        if sel.sum() < 4:
+            continue
+        dx, dy = xs[sel] - x0, ys[sel] - y0
+        lejos = np.hypot(dx, dy) >= np.percentile(np.hypot(dx, dy), 75)
+        viento["frente_rumbo"] = round(float(np.degrees(np.arctan2(dx[lejos].mean(),
+                                                                   dy[lejos].mean())) % 360))
+        viento["gfs_hacia"] = (viento["medio"]["desde_grados"] + 180) % 360
+        viento["desvio"] = (viento["frente_rumbo"] - viento["gfs_hacia"] + 180) % 360 - 180
     informe = {"caso": caso.id, "receta": receta.id, "curva": curva, "donde": donde_err,
                "ignicion_altura_m": round(float(dem[int(f0), int(c0)])), "viento": vientos}
     destino = d.ruta_iteracion(caso.id, receta.id) / "analisis.json"
@@ -838,6 +854,9 @@ def _imprimir_analisis(a: dict) -> None:
         rumbo = " ".join(f"{g}{v}" for g, v in m["rumbo_ha"].items() if v)
         print(f"  {nombre:15s} {m['ha']:6d} ha  alt {m['altura_m']}  pend {m['pendiente_grados']}°"
               f"  dist {m['dist_ignicion_km']} km | {comb} | {rumbo}")
+    print("  frente observado vs GFS (rumbo/hacia, desvío): " + "  ".join(
+        f"{v.get('frente_rumbo', '—')}/{v.get('gfs_hacia', '—')} ({v.get('desvio', '—'):+})"
+        if "desvio" in v else "—" for v in a["viento"]))
     print("  viento (medio / tarde desde°·mph / máx): " + "  ".join(
         f"{v['medio']['desde_grados']}·{v['medio']['mph']}/{v['tarde']['desde_grados']}·"
         f"{v['tarde']['mph']}/{v['max_mph']}" for v in a["viento"]))

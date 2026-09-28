@@ -64,3 +64,10 @@ def test_adj_por_grupo_de_combustible():
     codigos = np.array([[102, 144, 165, 186, 98]])
     factor = cadena.factor_por_grupo(codigos, {"SH": 1.5, "TL": 0.75})
     assert factor.tolist() == [[1.0, 1.5, 1.0, 0.75, 1.0]]
+
+
+def test_rotar_el_viento_da_la_vuelta(tmp_path):
+    ruta = tmp_path / "wd.tif"
+    _escribir(ruta, np.array([[[350.0, 10.0]]]))
+    cadena._reescribir(ruta, lambda a: (a + 45.0) % 360.0)
+    assert _leer(ruta).ravel().tolist() == [35.0, 55.0]

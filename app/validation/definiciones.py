@@ -35,7 +35,7 @@ PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
               "lh_moisture_pct", "lw_moisture_pct",
               # transformaciones de rásters que ELMFIRE ya lee (app/validation/cadena.py)
               "adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
-              "humedad_m1_delta", "modelo_humedad"}
+              "humedad_m1_delta", "modelo_humedad", "rotacion_viento"}
 MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
 
@@ -203,6 +203,7 @@ _INSUMOS_POR_FACTOR = {
     "adj_grupos": {"adj.tif"},
     "humedad_m1_delta": {"m1.tif"},
     "factor_viento": {"ws.tif"},
+    "rotacion_viento": {"wd.tif"},
     "humedad_muerta_delta": {"m1.tif", "m10.tif", "m100.tif"},
     "modelo_humedad": {"m1.tif", "m10.tif", "m100.tif"},
 }
