@@ -1,0 +1,67 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v2",
+  "caso_sha": "a0f1aa509dbe933b961de3f0bf8f614421b5ff6882ae114e417387d3519f171b",
+  "receta": "adj130-rot030-001",
+  "receta_sha": "814ee87e15708e2edd8fe6a532fe460b765e5546bc5a27e3b14d003dae3bd63f",
+  "padre": "adj-130-001",
+  "motivo": "Loop 4: ADJ 1,3 es la mejor receta sin alarmas (intervalo factible [1,1; 1,3]); se le suma la corrección empírica del sesgo de dirección del GFS (el frente observado va más al sur en 16 de 20 incendio-días, media ~+43°): wd + 30°.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "adj": 1.3,
+    "rotacion_viento": 30.0
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "9ff2031aac24a1ddec6440b4a74460b9cec204ff",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "5c080ee46c0bda5060d539dd2b5758bffcba114d60eacbc48bdd859b0354b582",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "26e506271f1619a4210620e8e62b3a6ce7e31078098b81b429670abdb4f17359",
+        "cbh.tif": "fe48c015bf05509236a8d14d90f2372d5304f0e83620ebbdaf88675d140a6be1",
+        "cc.tif": "2912fd21d85ee4ddec3b2d0229900fdd89f930be24c4863d4715a7f8098ab109",
+        "ch.tif": "743fa37cf663bfaec5e8f6ec927da6eb396a5063837f4a2100343dc4a9b122e9",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "9cff66f9fd2b69d7c8b5469cedba9725c136dc810ec7a4988d994c9ed4f9cdb2",
+        "fbfm40.tif": "f7d97e6e8e85c27060eb457224208ea0666abece6f6146a96c0052affb1febbf",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "54afe0241556ae4af76c2166ee2bc1af974fa4cd921a95532bbcc5d6f296ecf5",
+        "m10.tif": "2b2e3907a6c98b93e6bc8a328dabf159a8f6a4e812f53b25ed0e00f0e6eb3864",
+        "m100.tif": "3847e2df31f182baa289dd2e8cc9ef234d5ea9f9fac49ea011ba33da855724ad",
+        "phi.tif": "e55a6efb5aeffb41c2c27636ce6a61d2e19d14f750298474dc343d8c880fd4e1",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "1fbc0cd9935cce0d57f7ef1cd26055bf77e0734eb5d2adc1f55317591acb47ed",
+        "ws.tif": "3e1fca882199001270b4167c25f9e6cfb6e4038fe2b1fe44bb62e2ff639e20c2"
+      },
+      "namelist_sha": "0570a09036542cce1db56f7619a2758bf786bf9e9bb9e4234fe716b493ea59b0",
+      "salidas": {
+        "fire_size_stats.csv": "296029dd5214495595bc40a0424bcee2a37dcbf7adb8f50c73292bf91739281c",
+        "flin_0000001_0086446.tif": "3699e177dc46bbe6d62a82dc2f471bfc5e03570a9578f80dfc7c6d9733bd9c7e",
+        "hourly_isochrones.dbf": "da25c44813a5fa353b1b21bc2d1a3d09ea0cd0687d473539957ee40d0f854b45",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "c734a09d6f58583686a0bc2dcb1c4e703a02a8c85acc8e8d07caa56d76589629",
+        "hourly_isochrones.shx": "9507fc1df010ee773d1d8df153ee0ca0fdc9188ffe0c70984a6eedceee57a786",
+        "time_of_arrival_0000001_0086446.tif": "c70860003a621af1ee002414a21f88ac30b3ee62aa80b7f223a8e4cd30c96a27",
+        "vs_0000001_0086446.tif": "a5cb2bb190c6e9ee2c982c0b19e1a7595140ec5d254fcea691d98fe14edd399f"
+      },
+      "git": {
+        "sha": "9ff2031aac24a1ddec6440b4a74460b9cec204ff",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T18:01:20.117048+00:00",
+        "minutos": 0.7
+      }
+    }
+  ]
+}

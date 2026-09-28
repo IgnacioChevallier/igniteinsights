@@ -503,6 +503,23 @@ región**, corregible empíricamente como ADJ corrige la velocidad. Se evalúa c
 `rotacion_viento` calibrada con validación cruzada, declarada como corrección empírica del
 insumo y no como física.
 
+**Rotación empírica sobre ADJ 1,3, descartada: no mejora el objetivo.**
+
+| Receta | Alerces 2023 | Epuyén | Alerces 2024 | Patriada | Media GFS |
+|---|---|---|---|---|---|
+| ADJ 1,3 | 0,550 | 0,282 | 0,553 | 0,386 | 0,364 |
+| + 30° | 0,569 | 0,291 | 0,558 | 0,367 | 0,366 |
+| + 45° | 0,570 | 0,279 | 0,560 | … | … |
+| + 60° | 0,565 | 0,263 | 0,558 | … | … |
+
+Gana donde el fuego corre al sur (los valles de Los Alerces) y pierde en Patriada, donde el
+día 1 fue al NE. El sesgo medio existe, pero su efecto sobre el Dice se cancela entre
+incendios.
+
+**Veredicto de la dirección:** el error de dirección del viento de superficie es real y
+sistemático, pero con las perillas disponibles no se corrige de forma general. El atlas de
+WindNinja es la única corrección con física que ayuda, y sólo en terreno empinado (loop 5).
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
