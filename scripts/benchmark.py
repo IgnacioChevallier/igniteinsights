@@ -933,16 +933,9 @@ def resumen() -> None:
         print(f"{receta:26s}" + "".join(f"{t:>28s}" for t in textos))
 
 
-def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
-    """La función objetivo de RESULTADOS-CSS-BAP sobre un conjunto de la partición.
-
-    Principal: media y mediana del Dice al horizonte contra la cicatriz. Restricción: ningún
-    caso con alarma de sesgo. Desempate: forma (Dice a área igualada) y |t* − horizonte|.
-    Sólo recetas corridas en todos los casos del conjunto.
-    """
-    particion = json.loads((d.RAIZ / "particion.json").read_text())
-    casos = particion[conjunto][fuente]
-    filas = {}
+def _filas(casos: list[str]) -> dict[str, dict[str, dict]]:
+    """{receta: {caso: principal}} para las iteraciones puntuadas contra la cicatriz."""
+    filas: dict[str, dict[str, dict]] = {}
     for caso_id in casos:
         caso = d.Caso.cargar(caso_id)
         horizonte = (caso.ventanas[-1].fin - caso.ventanas[0].inicio).total_seconds() / 3600
@@ -957,6 +950,51 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
             filas.setdefault(m["receta"], {})[caso_id] = {
                 "dice": pr["dice"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
                 "forma": ai.get("dice"), "dt": abs(t - horizonte) if t is not None else horizonte}
+    return filas
+
+
+def validar(fuente: str = "gfs") -> None:
+    """Validación cruzada dejando un incendio afuera sobre los casos de calibración.
+
+    Para cada incendio, se elige con los demás la receta de mayor Dice medio sin alarmas de
+    sesgo (los casos límite de `particion.json` no cuentan para la restricción), y se mide
+    cómo le va al que quedó afuera. Sólo recetas corridas en todos los casos.
+    """
+    particion = json.loads((d.RAIZ / "particion.json").read_text())
+    casos = particion["calibracion"][fuente]
+    limites = set(particion.get("limites", []))
+    filas = {r: f for r, f in _filas(casos).items() if len(f) == len(casos)}
+    print(f"validación cruzada, calibración/{fuente}: {len(casos)} casos, {len(filas)} recetas")
+    afuera = []
+    for k in casos:
+        otros = [c for c in casos if c != k]
+        factibles = {r: f for r, f in filas.items()
+                     if not any(f[c]["alarma"] for c in otros if c not in limites)}
+        if not factibles:
+            print(f"  {k}: ninguna receta factible sin él")
+            continue
+        mejor = max(factibles, key=lambda r: np.mean([factibles[r][c]["dice"] for c in otros]))
+        x = filas[mejor][k]
+        afuera.append(x)
+        mejor_propio = max(filas, key=lambda r: filas[r][k]["dice"])
+        print(f"  sin {k:40s} → {mejor:22s} {x['dice']:.3f}/{x['sesgo']:.2f}"
+              f"{'⚠' if x['alarma'] else ' '}  (su mejor posible: {mejor_propio} "
+              f"{filas[mejor_propio][k]['dice']:.3f})")
+    if afuera:
+        print(f"  Dice fuera de muestra: media {np.mean([x['dice'] for x in afuera]):.3f}, "
+              f"mediana {np.median([x['dice'] for x in afuera]):.3f}")
+
+
+def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
+    """La función objetivo de RESULTADOS-CSS-BAP sobre un conjunto de la partición.
+
+    Principal: media y mediana del Dice al horizonte contra la cicatriz. Restricción: ningún
+    caso con alarma de sesgo. Desempate: forma (Dice a área igualada) y |t* − horizonte|.
+    Sólo recetas corridas en todos los casos del conjunto.
+    """
+    particion = json.loads((d.RAIZ / "particion.json").read_text())
+    casos = particion[conjunto][fuente]
+    filas = _filas(casos)
     print(f"{conjunto}/{fuente}: {len(casos)} casos; las medias de recetas incompletas (n < "
           f"{len(casos)}) no son comparables")
     cortos = [c.split("/")[0].replace("los-alerces", "alerces").replace("puerto-", "")[:13]
@@ -1002,6 +1040,7 @@ def main() -> None:
     s = sub.add_parser("objetivo")
     s.add_argument("conjunto", nargs="?", default="calibracion")
     s.add_argument("fuente", nargs="?", default="gfs")
+    sub.add_parser("validar").add_argument("fuente", nargs="?", default="gfs")
     s = sub.add_parser("comparar")
     s.add_argument("a")
     s.add_argument("b")
@@ -1016,6 +1055,8 @@ def main() -> None:
         resumen()
     elif args.cmd == "objetivo":
         objetivo(args.conjunto, args.fuente)
+    elif args.cmd == "validar":
+        validar(args.fuente)
     elif args.cmd == "empaquetar":
         empaquetar(caso)
     elif args.cmd == "diagnosticar":

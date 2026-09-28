@@ -1,5 +1,5 @@
 {
-  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida).",
+  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida). `limites`: casos fuera del alcance de cualquier receta (RESULTADOS-CSS-BAP §2.12), exentos de la restricción de alarmas.",
   "calibracion": {
     "gfs": [
       "los-alerces-2023/calibracion-v2",
@@ -22,5 +22,8 @@
       "epuyen-2019/calibracion-era5-v2",
       "los-alerces-2015/calibracion-era5-v2"
     ]
-  }
+  },
+  "limites": [
+    "las-golondrinas-2021/calibracion-v2"
+  ]
 }
