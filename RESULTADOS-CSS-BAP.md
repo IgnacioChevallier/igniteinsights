@@ -520,24 +520,74 @@ incendios.
 sistemático, pero con las perillas disponibles no se corrige de forma general. El atlas de
 WindNinja es la única corrección con física que ayuda, y sólo en terreno empinado (loop 5).
 
+### Loop 5 — la receta: ADJ uniforme, y qué tan lejos transfiere
+
+**El ADJ que pide cada incendio** para llegar a sesgo 1 (interpolado entre base, 1,1, 1,2, 1,3,
+1,4 y 1,6):
+
+| Incendio | ADJ para sesgo 1 |
+|---|---|
+| Alerces 2016 | 1,00 |
+| Alerces 2023 | 1,02 |
+| Alerces 2024 | 1,32 |
+| Patriada | 1,32 |
+| Epuyén | 1,50 |
+| Cholila | 1,53 |
+
+Media geométrica: 1,26. No se correlaciona con la hora de ignición, el viento máximo ni el m1
+mínimo del día 1 según el GFS. La dispersión (±20 %) está en lo que el GFS no ve.
+
+**ADJ uniforme, sin alarmas en los seis incendios alcanzables:**
+
+| ADJ | Alarmas | Dice GFS (media / mediana) | Dice ERA5 |
+|---|---|---|---|
+| 1,0 (base) | 2 | 0,302 / 0,340 | 0,339 |
+| 1,1 | 0 | 0,330 / 0,358 | 0,345 |
+| 1,2 | 0 | 0,347 / 0,374 | 0,356 |
+| **1,3** | **0** | **0,364 / 0,386** | **0,365** |
+| 1,4 | 2 | 0,378 / 0,404 | 0,375 |
+| 1,6 | 3 | 0,403 / 0,440 | 0,403 |
+
+A partir de 1,4, Alerces 2023 y Alerces 2016 pasan de sesgo 2: llegan al área observada a las
+~50 h y siguen quemando.
+
+**Validación cruzada.**
+
+- Con todas las recetas v2 (incluidas las que alarman), el Dice fuera de muestra es 0,396.
+  Pero al sacar Alerces 2023 se elige ADJ 1,6, que en él da sesgo 2,71; al sacar Epuyén se
+  elige el −6, que en él da 2,08.
+- **Alerces 2023 (pide lento) y Epuyén (pide rápido) acotan la receta.** Ningún factor global
+  cubre a todos con seguridad fuera de muestra: el intervalo seguro es angosto ([1,1; 1,3]).
+- Con las recetas v3 se elige `adj-130-001` en los cinco pliegues (fuera de muestra: media
+  0,364, mediana 0,386).
+
+**Receta elegida: `adj-130-001`.** Es el ADJ de PENDING_PARAMETERS §1.3, uniforme, en 1,3,
+calibrado contra seis incendios. Mejora +20 % sobre base con GFS (0,302 → 0,364) y +8 % con ERA5
+(0,339 → 0,365), sin alarmas. Lo que no hace:
+
+- Mejorar la forma: 0,346 contra 0,302 de base, porque al llegar al área a tiempo cubre algo
+  más de lo observado.
+- Reproducir el día 1: sigue 10–50 veces por debajo en las primeras 12–24 h.
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
 
 ## 6. Parámetros
 
-Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá. *(Borrador: se completa
-con los incendios que faltan en v2.)*
+Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá. 
 
 | Entrada | Veredicto | Evidencia |
 |---|---|---|
 | §1.2 humedad muerta, m1 | **Con criterio: se queda Nelson con el GFS crudo; el delta uniforme no tiene soporte.** | Estaciones (El Bolsón, Esquel, Futaleufú) dan m1 de 5,9–6,6 % en las tardes de fuego; el GFS, 5,5–9,1 %. Las tablas de Fosberg (BehavePlus, llevadas al hemisferio sur) dan lo mismo o más húmedo que Nelson. `fosberg-001` y `altura-001` cambian el Dice en ±0,01. El −6 (m1 ≈ 1 %) es un acelerador que suple el fuego de copas y el viento de valle que faltan (§4, loop 2). |
 | §1.2 humedad muerta, m10/m100 (+2/+5) | **Insensible.** | `humedad-m1-m6-001` (−6 sólo en m1) da 2/3 del efecto del −6 completo. El modelo de retardo baja m100 a ~11 % sin cambiar el resultado (`RESULTADOS.md` §8). |
-| §1.3 ADJ | *pendiente de v2 en los cinco incendios* | En Alerces 2023 v2, TU ×1,3 da 0,557 contra 0,457 de base. |
+| §1.3 ADJ | **Calibrado contra 6 incendios: 1,3 uniforme (intervalo sin alarmas [1,1; 1,3]).** Por grupo de combustible: **no identificable**. | Cada incendio pide entre 1,00 y 1,53 para llegar a sesgo 1 (media geométrica 1,26). 1,3 es el máximo sin alarmas y da +20 % de Dice (GFS) sobre 1,0. El ADJ por grupo (SH ×1,5–2,5, TU ×1,3) no sigue a la composición de las cicatrices: Alerces 2016 (52 % SH) no pide nada y Epuyén (54 % SH) pide 1,5. |
 | §1.4 rugosidad z0 | **Se queda el escalar 0,22 m; el ráster de dosel duplica el WAF.** | z0 = 0,13 × altura del dosel baja el área de Alerces 2023 un 12 % (0,442 contra 0,457), porque reduce el viento bajo el bosque, donde ELMFIRE ya aplica su propio factor de reducción por dosel. En pastizal y matorral sube el viento apenas ~5 %. |
-| §3 `dt_s` / `dtmax_s` | **Convergido.** | Con el paso a la mitad (15 s / 150 s), Alerces 2023 cambia el sesgo un 2,5 % y el Dice 0,004. Falta confirmarlo en Epuyén y Alerces 2016. |
+| §3 `dt_s` / `dtmax_s` | **Convergido: 30 s / 300 s quedan justificados.** | Con el paso a la mitad (15 s / 150 s), el Dice cambia +0,004 (Alerces 2023), +0,002 (Epuyén) y +0,003 (Alerces 2016), y el sesgo menos del 3 %. |
 | §2 reconstrucción de perímetro | **Fuera de alcance de esta calibración.** | La semilla es puntual; los parámetros de §2 sólo pesan con semilla observada (harness A). |
-| (nuevo) orientación del terreno | **Bug corregido** (`raster_aligner` v3). | Ver §4, loop 2. |
+| (nuevo) orientación del terreno | **Bug corregido** (`raster_aligner` v3). | Ver §4, loop 2. Con la pendiente bien, `base-001` pasa de 0,425 a 0,457 en Alerces 2023 y de 0,301 a 0,433 en Alerces 2016. |
+| (nuevo) viento de superficie | **La dirección del GFS está sesgada ~+43° en la región, sin corrección general con estas herramientas.** | WindNinja (conservación de masa) es neutro en promedio: +7 puntos en Alerces 2016, −2 en Alerces 2023 y Patriada. La canalización por presión y la rotación empírica tampoco mejoran el objetivo (§4, loop 4). |
+| (nuevo) dosel CBH | **El CBH no es lo que frena la copa.** | Con el CBH ×0,25, la copa sigue sin iniciarse: la superficie TL8 no da la intensidad (§4, loop 3). |
 
 ## 7. Para corregir afuera
 
