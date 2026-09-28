@@ -391,6 +391,82 @@ Todo lo anterior de esta bitácora (loops 0–2) es con la pendiente invertida. 
 de clima (H1, H3, ERA5) no dependen de eso, porque comparan insumos, no corridas. Las de
 velocidad y forma se rehacen sobre v2.
 
+### Loop 3 — v2 (pendiente corregida) en los siete incendios de calibración
+
+`benchmark.py objetivo calibracion gfs|era5`. Dice / sesgo al horizonte:
+
+| Receta | Alerces 2023 | Epuyén 2025 | Alerces 2024 | Patriada 2026 | Golondrinas 2021 | Alerces 2016 (ERA5) | Cholila 2015 (ERA5) |
+|---|---|---|---|---|---|---|---|
+| base-001 | 0,457 / 0,95 | 0,160 / 0,44 ⚠ | 0,522 / 0,53 | 0,340 / 0,69 | 0,029 / 0,05 ⚠ | 0,433 / 0,99 | 0,244 / 0,44 ⚠ |
+| adj-130-001 | 0,550 / 1,73 | 0,282 / 0,67 | 0,553 / 0,98 | … | 0,049 / 0,07 ⚠ | 0,400 / 1,72 | … |
+| adj-160-001 | 0,520 / 2,71 ⚠ | 0,440 / 1,20 | 0,564 / 1,28 | 0,426 / 1,40 | 0,067 / 0,09 ⚠ | 0,374 / 3,05 ⚠ | 0,431 / 1,10 |
+| adj-sh-200-001 | 0,470 / 1,60 | 0,273 / 0,75 | 0,550 / 1,00 | 0,473 / 1,18 | 0,040 / 0,06 ⚠ | 0,458 / 2,27 ⚠ | 0,290 / 0,68 |
+| adj-tu-130-001 | 0,557 / 1,45 | 0,217 / 0,52 | 0,564 / 0,68 | — | 0,032 / 0,05 ⚠ | 0,405 / 1,32 | — |
+| humedad-m6-001 | 0,517 / 1,77 | 0,471 / 2,08 ⚠ | 0,558 / 1,09 | 0,446 / 1,41 | 0,058 / 0,08 ⚠ | 0,410 / 2,98 ⚠ | 0,393 / 0,74 |
+
+**1. ¿Sobre o sub-propaga, y cuándo?** `base-001` sub-propaga el día 1 en todos:
+
+| Incendio | Observado | `base-001` | Factor |
+|---|---|---|---|
+| Alerces 2024 | 851 ha a las 24 h | 49 ha | 17× |
+| Patriada | 1.600 ha a las 12 h | 30 ha | 50× |
+| Alerces 2016 | 1.213 ha a las 12 h | 21 ha | ~60× |
+| Epuyén 2025 | 1.120 ha a las 6 h | 1 ha | — |
+| Cholila | clavado hasta las 30 h (364 contra 389 ha) | — | — |
+
+Cholila explota entre las 36 y las 54 h (+4.600 ha) y el modelo no. **Al horizonte el sesgo va
+de 0,44 a 0,99:** el modelo alcanza el área tarde, porque sigue creciendo cuando el real ya
+estaba combatido.
+
+**2. ¿Dónde?** Lo no predicho está al SE/E de la ignición en todos:
+
+| Incendio | No predicho al SE/E | Detalle |
+|---|---|---|
+| Alerces 2024 | 1.323 de 1.612 ha | incluye 773 ha de TL6 (lenga) a 1.073 m |
+| Patriada | 2.415 de 4.079 ha | 2.286 ha de TU |
+| Cholila | 5.470 de 5.735 ha | — |
+
+El frente observado va 20–100° más al sur que el empuje del GFS. Los falsos positivos quedan
+al SO/O, ladera arriba en Patriada (1.172 ha de GS).
+
+**3. ¿Por qué? Hipótesis descartadas en este loop:**
+
+- **H5b (ADJ por grupo), descartada.** La velocidad que pide cada incendio no sigue a su
+  composición:
+
+  | Incendio | SH | Sesgo de base |
+  |---|---|---|
+  | Alerces 2016 | 52 % | 0,99 (no pide nada) |
+  | Epuyén | 54 % | 0,44 |
+  | Alerces 2023 | 24 % | 0,95 |
+  | Cholila | 29 % | 0,44 |
+
+  El factor depende del incendio (el clima de ese día, la ignición), no del grupo de
+  combustible. Con siete incendios, ADJ por grupo no es identificable, y liberarlo sólo
+  sobreajustaría.
+- **H2 (copa por el CBH), descartada como explicación del día 1.** Con el CBH ×0,25
+  (`cbh-025-001`, 2–3 m en las plantaciones), Epuyén pasa de 0,160 a 0,166 y Alerces 2023 de
+  0,457 a 0,461. La copa sigue sin iniciarse: en TL8 la intensidad superficial no llega ni a los
+  ~600 kW/m que pide un CBH de 2,6 m. El freno está en el modelo de superficie de la
+  plantación (Forest → TL8), no en el dosel. Refuerza el hallazgo del crosswalk (§7.2).
+- **Dirección.** `rotacion-060-001` sube la forma: Alerces 2023 de 0,457 a 0,483; Epuyén de
+  0,160 a 0,183. Sigue abierta como H4, con el atlas de WindNinja (§ loop 4).
+
+**Convergencia y rugosidad (PENDING §3 y §1.4):**
+
+- Paso a la mitad: Alerces 2023 0,461/0,97 contra 0,457/0,95; Epuyén 0,162/0,44 contra
+  0,160/0,44; Alerces 2016 0,436/1,00 contra 0,433/0,99. **Convergido en los tres.**
+- `z0-dosel-001`: Alerces 2023 0,442/0,84; Epuyén 0,126/0,40. **Peor**, por el doble conteo con
+  el WAF.
+
+**4. ¿Tiene sentido el test?** Sí en los seis incendios alcanzables; Golondrinas sigue siendo
+el caso límite (§2.12). Cholila con ERA5: la primera fase coincide hasta las 30 h, lo que
+valida la ignición en la primera detección.
+
+**5. Experimento:** buscar el **ADJ uniforme** que deja a los seis sin alarma. Interpolando
+base/1,3/1,6, el intervalo factible es ~[1,1; 1,35]; se barren 1,1, 1,2, 1,3 y 1,4 en los siete.
+En paralelo, el atlas de WindNinja (protocolos v3) para la dirección.
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
