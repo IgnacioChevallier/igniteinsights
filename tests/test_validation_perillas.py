@@ -71,3 +71,10 @@ def test_rotar_el_viento_da_la_vuelta(tmp_path):
     _escribir(ruta, np.array([[[350.0, 10.0]]]))
     cadena._reescribir(ruta, lambda a: (a + 45.0) % 360.0)
     assert _leer(ruta).ravel().tolist() == [35.0, 55.0]
+
+
+def test_rugosidad_del_dosel():
+    f = cadena.factor_rugosidad(np.array([0.0, 1.7, 20.0]))
+    assert f[0] > 1.0                      # pastizal (z0 0,03) frena menos que 0,22 m
+    assert abs(f[1] - 1.0) < 0.01          # 1,7 m de dosel ≈ el escalar de hoy
+    assert 0.6 < f[2] < 0.8                # bosque de 20 m: z0 2,6 m, bastante menos viento

@@ -129,6 +129,11 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if "humedad_m1_delta" in par:
         _reescribir(insumos / "m1.tif",
                     lambda a: np.clip(a + par["humedad_m1_delta"], 1.0, 40.0))
+    if par.get("z0_desde_dosel"):
+        with rasterio.open(insumos / "ch.tif") as src:
+            ch_m = np.where(src.read(1) > 0, src.read(1) / 10.0, 0.0)   # 10 × m (LANDFIRE)
+        factor = factor_rugosidad(ch_m)
+        _reescribir(insumos / "ws.tif", lambda a: a * factor)
     if "rotacion_viento" in par:   # grados en sentido horario sobre la dirección de origen
         _reescribir(insumos / "wd.tif", lambda a: (a + par["rotacion_viento"]) % 360.0)
     if "factor_viento" in par:
@@ -155,10 +160,26 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
-                         "humedad_m1_delta", "modelo_humedad", "rotacion_viento"}
+                         "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
+                         "z0_desde_dosel"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
+
+
+def factor_rugosidad(ch_m: np.ndarray) -> np.ndarray:
+    """Cuánto cambia el viento a 20 pies si la rugosidad sale del dosel y no del escalar.
+
+    weather_builder baja el viento de 10 m a 20 pies con un perfil logarítmico y z0 = 0,22 m
+    para todo el dominio (PENDING_PARAMETERS §1.4). Acá z0 = 0,13 × altura del dosel (regla
+    clásica de Tanner y Pelton para vegetación), con piso de 0,03 m (pastizal), y se devuelve
+    el cociente entre los dos perfiles, por celda.
+    """
+    from app.elmfire.builder.weather_builder import wind_height_factor
+
+    z0 = np.clip(0.13 * ch_m, 0.03, 0.9 * 6.096)   # el log-perfil exige z0 < 20 pies
+    arriba = np.log(6.096 / z0) / np.log(10.0 / z0)
+    return (arriba / wind_height_factor()).astype("float32")
 
 
 def factor_por_grupo(codigos: np.ndarray, grupos: dict[str, float]) -> np.ndarray:
