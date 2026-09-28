@@ -672,6 +672,29 @@ así que más viento arriba casi no llega al combustible. El fuego real del día
 del dosel (copa, pavesas), y eso no está en el modelo. **El déficit del día 1 no es de viento
 medio.**
 
+**H7: humedad del combustible vivo (LW) por debajo del umbral de grandes incendios.**
+
+- `lw_moisture_pct` es un kwarg existente de `write_namelist`; no hay keyword nuevo.
+- El valor de base, 110 %, sale de Bianchi y Defossé (2015). Pero en ese trabajo 110 % es el
+  **umbral por debajo del cual ocurren los grandes incendios** en la Patagonia andina, no el
+  valor de un día de gran incendio.
+- Las medias de temporada son 110–220 % para ñire, ciprés, radal y laura, y menos de 100 % para
+  la caña colihue.
+- Simular grandes incendios con 110 % es tomar el borde húmedo. Un LW algo menor tiene
+  criterio, a diferencia del −6 en m1.
+
+| Receta | Dice GFS (media / mediana) | Epuyén | Alerces 2016 (ERA5) | Alarmas |
+|---|---|---|---|---|
+| LW 110 % (base) | 0,302 / 0,340 | 0,160 / 0,44 | 0,433 / 0,99 | 2 |
+| LW 90 % | 0,375 / 0,456 | 0,331 / 1,02 | 0,461 / 2,14 ⚠ | 1 |
+| LW 80 % | 0,403 / 0,452 | 0,437 / 1,65 | 0,447 / 2,94 ⚠ | 1 |
+
+- LW actúa donde hay carga viva (SH, TU): Epuyén (54 % SH) responde mucho más que con ADJ.
+- **No rescata el día 1** (Epuyén: 18 ha a las 24 h con LW 80 %, contra 14 ha de base). Acelera
+  desde el día 2, ya en el arbustal. Es otra perilla de reloj, pero con respaldo en mediciones
+  regionales.
+- Alerces 2016 la limita: ya llega a tiempo con base, y con LW más seco se pasa.
+
 ## 5. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte salvo en Las Golondrinas),
