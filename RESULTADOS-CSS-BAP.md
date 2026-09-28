@@ -367,6 +367,30 @@ Bolsón marcó 320° (NO) a 35 km/h a las 18 UTC del día 1, cuando el GFS daba 
 La calibración de velocidad sólo mueve el reloj. La forma la limitan el viento de superficie y
 el combustible de la ignición.
 
+**Hallazgo mayor: la pendiente estaba invertida en todas las corridas.** El patrón de Alerces 2016
+(lo no predicho sube las laderas; lo predicho de más se queda en el fondo del valle) llevó a
+revisar la convención de la orientación:
+
+- `raster_aligner._derive_slope_aspect` escribía en `asp.tif` la dirección **cuesta arriba**.
+  Verificado sobre el DEM de Epuyén: avanzando 150 m en la dirección de `asp`, el terreno sube
+  en el 96 % de las celdas con pendiente de más de 20°.
+- ELMFIRE 2025.0212 empuja la propagación por pendiente hacia `ASP − 180°`
+  (`elmfire_level_set.f90`: `SINASPM180(IASP) = SIN((IASP − 180)·π/180)`). Eso presupone la
+  convención LANDFIRE: la dirección hacia la que mira la ladera, cuesta abajo.
+- **Todas las corridas del repo empujaron el fuego ladera abajo:** las de este documento con
+  protocolo sin `-v2`, las de `RESULTADOS.md` §4–§8 y las de los harness A y B.
+- Corregido en la causa: `raster_aligner` pasa a `DERIVATION_VERSION = 3`, con tests de
+  laderas sintéticas (`tests/test_topo_aspect.py`) y la trampa documentada en el skill de
+  ELMFIRE.
+- Preparaciones corregidas en directorios nuevos (`benchmark-aoi-asp3`,
+  `benchmark-2026-09-28-asp3`) y protocolos **`calibracion-v2`** / **`calibracion-era5-v2`**.
+  Los paquetes viejos quedan como registro. La receta `aspecto-corregido-001` (asp + 180° en la
+  corrida) mide sobre los paquetes viejos cuánto cambia el resultado.
+
+Todo lo anterior de esta bitácora (loops 0–2) es con la pendiente invertida. Las conclusiones
+de clima (H1, H3, ERA5) no dependen de eso, porque comparan insumos, no corridas. Las de
+velocidad y forma se rehacen sobre v2.
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
@@ -401,3 +425,13 @@ el combustible de la ignición.
 
 - **Clima de superficie:** el GFS de 0,25° es 4–6 °C más frío que la estación de valle y
   subestima el viento de la tarde (§4 H1).
+
+### 7.4 Documentos que no edito y quedan afectados
+
+- **`RESULTADOS.md` (§4–§8) e `IGN-26-VALIDACION.md` (harness A y B, benchmark):** todas las
+  corridas usaron la orientación invertida (§4, loop 2), así que el fuego se empujaba ladera
+  abajo.
+  - Los órdenes entre mapas de combustible y las conclusiones de §8 hay que re-verificarlos
+    con `raster_aligner` v3.
+  - En particular, la frase de §8.4 "el modelo además quema ladera arriba hacia el oeste" se
+    explica por el viento, no por la pendiente.
