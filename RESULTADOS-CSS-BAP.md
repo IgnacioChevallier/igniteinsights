@@ -131,9 +131,9 @@ El diagnóstico de cada incendio está en `benchmarks/diagnosticos/<incendio>.js
 | epuyen-2019 | 99 % | 1.545 / 1.553 ha | ✓ | corregida 180 m adentro (La Rinconada, 29-ene 16:30 ART) | 120 h (tope; 80 % al día 4) | **válido con ERA5** (`calibracion-era5`) |
 | los-alerces-2015 | 93 % | 1.190 / 1.500 ha | ✓ | 300 m adentro, 841 m; hora no publicada (13 ART) | 72 h (91 % al día 3) | **válido con ERA5**, CCS-BAP 2013 |
 | los-alerces-2016 | 99 % | 1.837 / 1.700 ha | ✓ | 270 m adentro (Arroyo Cascada, 21-ene 14 ART) | 72 h (94 % al día 3) | **válido con ERA5**, CCS-BAP 2013 |
-| desemboque-2015 | 96 % | **560 / 2.307 ha** | ✓ | 240 m adentro | — | **dudoso**: la máscara es un cuarto de lo oficial |
-| currumahuida-2015 | 91 % | 4.242 / 3.151 ha | ✓ | centroide MODIS, **6,9 km** de las 1as detecciones | — | pendiente: ignición |
-| cerro-plataforma-2015 | 88 % | 6.265 / 7.371 ha | 1ª detección 14 días después del "inicio" | centroide MODIS sobre NB, 297 m afuera | — | pendiente: ¿parte del complejo Cholila? |
+| desemboque-2015 | 96 % | **560 / 2.307 ha** | ✓ | 240 m adentro | — | **excluido**: la máscara es un cuarto de lo oficial (La Nueva, 3-feb-2015: 'siguen sin control'); la referencia no mide el incendio |
+| currumahuida-2015 | 91 % | 4.242 / 3.151 ha | ✓ | centroide MODIS, **6,9 km** de las 1as detecciones | — | **excluido**: incendio de varias fases (empezó el 28-feb desde El Desemboque; reactivaciones en marzo; evacuación el 28-mar, Diario Río Negro / La Nueva). La ventana pre (15-feb a 22-mar) ya contiene la primera fase: la máscara ve sólo la reactivación, sin ignición definida |
+| cerro-plataforma-2015 | 88 % | 6.265 / 7.371 ha | 1ª detección 14 días después del "inicio" | centroide MODIS sobre NB, 297 m afuera | — | **excluido**: rayo a comienzos de febrero en El Turbio (Tres Picos y Plataforma), 'controlado' el 20-feb (Página/12); FIRMS lo ve recién el 17-feb y la máscara crece a la par de Cholila, cuya ROI se superpone. Hora de inicio incierta en semanas y referencia probablemente mezclada |
 | cholila-2015 | 97 % | 26.680 / 28.960 ha | ✓ | 1ª detección VIIRS (nacientes del Río Tigre, 1.234 m) | 120 h (tope; 39 %) | **válido con ERA5**, CCS-BAP 2013, cicatriz truncada |
 
 \* La ventana post de Patriada empieza el 1-feb, justo cuando dejan de aparecer detecciones:
