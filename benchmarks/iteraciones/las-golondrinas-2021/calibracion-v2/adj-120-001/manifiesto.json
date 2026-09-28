@@ -1,0 +1,66 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v2",
+  "caso_sha": "a0f1aa509dbe933b961de3f0bf8f614421b5ff6882ae114e417387d3519f171b",
+  "receta": "adj-120-001",
+  "receta_sha": "2c506e93bdd3c22c6af9d6ecd8c8575487e83b5d904400f0e08e27f8b7f5c255",
+  "padre": "base-001",
+  "motivo": "Loop 3: la velocidad que pide cada incendio no se explica por su composición de combustible (Alerces 2016, 52 % SH, está bien con base; Epuyén, 54 % SH, pide ~2), así que el ADJ por grupo no es identificable con estos incendios. Se busca el ADJ uniforme que deja a todos (salvo Las Golondrinas, §2.12) sin alarma de sesgo: interpolando base/1,3/1,6, el intervalo factible es ~[1,1; 1,35]. ADJ = 1,2.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "adj": 1.2
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "6c01d99d57e2a24a01d77e397c8e31b47e3c64c5",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "5e5f0280e3ed2cb235e07d2a593dd87a9f7bd8c2a6e23093e3f81c5e58ba403c",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "26e506271f1619a4210620e8e62b3a6ce7e31078098b81b429670abdb4f17359",
+        "cbh.tif": "fe48c015bf05509236a8d14d90f2372d5304f0e83620ebbdaf88675d140a6be1",
+        "cc.tif": "2912fd21d85ee4ddec3b2d0229900fdd89f930be24c4863d4715a7f8098ab109",
+        "ch.tif": "743fa37cf663bfaec5e8f6ec927da6eb396a5063837f4a2100343dc4a9b122e9",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "e2592e2f33cbb0c6c2acaeb8206f5b01c4927dc6fa6cf99b0cbf33b5016b7b86",
+        "fbfm40.tif": "f7d97e6e8e85c27060eb457224208ea0666abece6f6146a96c0052affb1febbf",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "54afe0241556ae4af76c2166ee2bc1af974fa4cd921a95532bbcc5d6f296ecf5",
+        "m10.tif": "2b2e3907a6c98b93e6bc8a328dabf159a8f6a4e812f53b25ed0e00f0e6eb3864",
+        "m100.tif": "3847e2df31f182baa289dd2e8cc9ef234d5ea9f9fac49ea011ba33da855724ad",
+        "phi.tif": "e55a6efb5aeffb41c2c27636ce6a61d2e19d14f750298474dc343d8c880fd4e1",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "a016780f0df322963dbb0d34248c9162014e255483a249f47ff5faddc565a473",
+        "ws.tif": "3e1fca882199001270b4167c25f9e6cfb6e4038fe2b1fe44bb62e2ff639e20c2"
+      },
+      "namelist_sha": "0570a09036542cce1db56f7619a2758bf786bf9e9bb9e4234fe716b493ea59b0",
+      "salidas": {
+        "fire_size_stats.csv": "c7edc67fe33a815ba671378b27123be4ea960891e5243222c5dc4a9ab0736b87",
+        "flin_0000001_0086420.tif": "4983e7c5a000431c1ae6d999f0348181e2902cf34ac6b2850eecc97306d6fed0",
+        "hourly_isochrones.dbf": "90a4fb6c7c9018309d5d299dc299942e9aec1374b0cb430c75f6aa7c420c81fd",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "cf6c27a049b723259b9aea9d5dd40bab88e3029ce5f600c1f7dda301b33c0f88",
+        "hourly_isochrones.shx": "23bf4ffc528f32d3d86e90cd1b72e5f4f81f3c6045ce020dc6f921df33f376c2",
+        "time_of_arrival_0000001_0086420.tif": "99219b189101cb5336b7204611c0eacf1067c6487a0ce7e0bc3fd9b5ab190498",
+        "vs_0000001_0086420.tif": "4f1eb81b02900ccb2cd11271ee8d81751acc80d3d65922606812076e8b5f91ad"
+      },
+      "git": {
+        "sha": "6c01d99d57e2a24a01d77e397c8e31b47e3c64c5",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T17:08:42.351350+00:00",
+        "minutos": 0.2
+      }
+    }
+  ]
+}
