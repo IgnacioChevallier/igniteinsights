@@ -444,6 +444,19 @@ def _atlas_viento(dem: Path, conf: dict) -> dict[str, str]:
     return {n: almacen.guardar(cache / n) for n in ("atlas_u.tif", "atlas_v.tif")}
 
 
+def _cerca_de(df: pd.DataFrame, mascara: np.ndarray, grilla: p.Grilla,
+              radio_m: float) -> pd.DataFrame:
+    """Las detecciones a menos de `radio_m` de la máscara (la cicatriz del incendio)."""
+    tr = Transformer.from_crs("EPSG:4326", str(grilla.crs), always_xy=True)
+    xs, ys = tr.transform(df["longitude"].to_numpy(), df["latitude"].to_numpy())
+    filas, cols = rasterio.transform.rowcol(grilla.transform, xs, ys)
+    celda = abs(grilla.transform.a)
+    dentro = [0 <= f < grilla.shape[0] and 0 <= c < grilla.shape[1]
+              and p.distancia_a(mascara, f, c, celda, radio_m) <= radio_m
+              for f, c in zip(filas, cols)]
+    return df[np.array(dentro, dtype=bool)].reset_index(drop=True)
+
+
 def _puntos_ignicion(semilla: dict) -> list[tuple[float, float]]:
     """Tipos de semilla inicial: `punto` (una ignición), `puntos` (varios focos a la misma
     hora) y `firms` (lo observado por FIRMS hasta el inicio, para arrancar un caso en la fase
@@ -488,6 +501,10 @@ def _firms_gfs(caso: d.Caso) -> dict:
         ignicion |= _mascara([pt], dem, SEMILLA_PUNTUAL_M)
     alcance_m = datos["referencias"]["firms"].get("alcance_m", 5000.0)
     ventanas = []
+    radio = semilla.get("radio_cicatriz_m")
+    if radio:   # la semilla observada, sólo del incendio objetivo (no de otros de la caja)
+        positivo, _ = p.cargar_cicatriz(Path(datos["referencias"]["cicatriz"]["run"]), grilla)
+        df = _cerca_de(df, positivo, grilla, float(radio))
     for n, (v, clima) in enumerate(zip(caso.ventanas, _clima(caso, dem))):
         antes = _puntos(df, None, v.inicio)
         if n == 0 and semilla["tipo"] != "firms":
