@@ -1,0 +1,168 @@
+{
+  "caso": "los-alerces-2023/cadena-96h",
+  "cicatriz_run": "../mask-dataset-gen/dataset/los-alerces-2023/runs/event-filter-002",
+  "firms": {
+    "fuentes": [
+      "VIIRS_SNPP_SP",
+      "VIIRS_NOAA20_SP"
+    ],
+    "desde": "2023-02-01",
+    "hasta": "2023-02-20",
+    "detecciones": 430,
+    "por_clase": {
+      "cicatriz": 424,
+      "afuera": 6
+    },
+    "a_5km": 430,
+    "fraccion_en_cicatriz_a_5km": 0.986,
+    "fraccion_en_exclusion_a_5km": 0.0,
+    "primera": "2023-02-05 04:26:00+00:00",
+    "ultima": "2023-02-10 19:18:00+00:00",
+    "por_dia": [
+      {
+        "dia": "2023-02-05",
+        "detecciones": 71,
+        "en_cicatriz": 70,
+        "area_firms_acum_ha": 777.4
+      },
+      {
+        "dia": "2023-02-06",
+        "detecciones": 150,
+        "en_cicatriz": 149,
+        "area_firms_acum_ha": 1206.7
+      },
+      {
+        "dia": "2023-02-07",
+        "detecciones": 167,
+        "en_cicatriz": 164,
+        "area_firms_acum_ha": 2059.2
+      },
+      {
+        "dia": "2023-02-08",
+        "detecciones": 24,
+        "en_cicatriz": 23,
+        "area_firms_acum_ha": 2084.4
+      },
+      {
+        "dia": "2023-02-09",
+        "detecciones": 16,
+        "en_cicatriz": 16,
+        "area_firms_acum_ha": 2089.3
+      },
+      {
+        "dia": "2023-02-10",
+        "detecciones": 2,
+        "en_cicatriz": 2,
+        "area_firms_acum_ha": 2089.3
+      }
+    ],
+    "grupos_afuera": [
+      {
+        "detecciones": 2,
+        "lon": -71.5883,
+        "lat": -42.9064,
+        "desde": "2023-02-06 18:53:00+00:00",
+        "hasta": "2023-02-07 05:28:00+00:00",
+        "dist_cicatriz_m": 395,
+        "sin_observacion": 0
+      },
+      {
+        "detecciones": 2,
+        "lon": -71.5785,
+        "lat": -42.8729,
+        "desde": "2023-02-07 04:37:00+00:00",
+        "hasta": "2023-02-07 04:37:00+00:00",
+        "dist_cicatriz_m": 391,
+        "sin_observacion": 0
+      },
+      {
+        "detecciones": 1,
+        "lon": -71.5648,
+        "lat": -42.9164,
+        "desde": "2023-02-05 19:12:00+00:00",
+        "hasta": "2023-02-05 19:12:00+00:00",
+        "dist_cicatriz_m": 558,
+        "sin_observacion": 0
+      },
+      {
+        "detecciones": 1,
+        "lon": -71.556,
+        "lat": -42.8793,
+        "desde": "2023-02-08 05:10:00+00:00",
+        "hasta": "2023-02-08 05:10:00+00:00",
+        "dist_cicatriz_m": 390,
+        "sin_observacion": 0
+      }
+    ]
+  },
+  "mascara": {
+    "area_ha": 1059.0,
+    "area_oficial_ha": 1160,
+    "area_run_ha": 1067.0065,
+    "excluido_en_zona_ha": 0.0,
+    "cobertura_valida_en_zona": 1.0,
+    "pre": {
+      "end_inclusive": "2023-02-03",
+      "start": "2022-11-01"
+    },
+    "post": {
+      "end_inclusive": "2023-03-31",
+      "start": "2023-02-20"
+    },
+    "pre_antes_de_firms": true,
+    "post_despues_de_firms": true
+  },
+  "semillas": [
+    {
+      "nombre": "mask-dataset-gen",
+      "lon": -71.576667,
+      "lat": -42.8825,
+      "hora": null,
+      "altura_m": 801,
+      "combustible": 144,
+      "dist_cicatriz_m": 0,
+      "profundidad_m": 124,
+      "primera_deteccion": "2023-02-05 04:26:00+00:00",
+      "dist_primeras_m": 723,
+      "primera_pasada": {
+        "detecciones": 1,
+        "lon": -71.59023,
+        "lat": -42.88375,
+        "altura_m": 607
+      },
+      "celda_interior": {
+        "lon": -71.57679,
+        "lat": -42.88246,
+        "dist_m": 0,
+        "altura_m": 801,
+        "combustible": 144
+      }
+    },
+    {
+      "nombre": "caso",
+      "lon": -71.576667,
+      "lat": -42.8825,
+      "hora": "2023-02-05T01:00:00+00:00",
+      "altura_m": 801,
+      "combustible": 144,
+      "dist_cicatriz_m": 0,
+      "profundidad_m": 124,
+      "primera_deteccion": "2023-02-05 04:26:00+00:00",
+      "dist_primeras_m": 723,
+      "antes_de_primera": true,
+      "primera_pasada": {
+        "detecciones": 1,
+        "lon": -71.59023,
+        "lat": -42.88375,
+        "altura_m": 607
+      },
+      "celda_interior": {
+        "lon": -71.57679,
+        "lat": -42.88246,
+        "dist_m": 0,
+        "altura_m": 801,
+        "combustible": 144
+      }
+    }
+  ]
+}

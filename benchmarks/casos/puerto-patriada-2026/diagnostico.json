@@ -1,0 +1,43 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio Puerto Patriada, El Hoyo y Epuyén 2026.",
+  "anio_fuego": 2026,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.534694,
+    "lat": -42.148083,
+    "hora": "2026-01-05T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Puerto Patriada, costa norte del Lago Epuyén; las primeras detecciones VIIRS del 5 de enero están a ~2 km al norte."
+  },
+  "ventanas": [
+    {
+      "t0": "2026-01-05T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.638,
+    -42.454,
+    -71.155,
+    -42.029
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-patriada-2026/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

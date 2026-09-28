@@ -126,3 +126,16 @@ def test_area_igualada_no_alcanzada_usa_el_final():
     ref = np.array([1, 1, 1], dtype=bool)
     r = p.area_igualada(horas, ref, HA, np.zeros(3, dtype=bool))
     assert not r["alcanzada"] and r["hora"] == 1.0
+
+
+def test_distancia_a_la_mascara():
+    m = np.zeros((20, 20), dtype=bool)
+    m[10, 15] = True
+    assert p.distancia_a(m, 10, 15, 30.0) == 0.0
+    assert p.distancia_a(m, 10, 12, 30.0) == pytest.approx(90.0)
+    assert p.distancia_a(m, 13, 11, 30.0) == pytest.approx(150.0)   # 3-4-5
+    assert p.distancia_a(m, 0, 0, 30.0, radio_m=100.0) == float("inf")
+    # profundidad: distancia a lo que NO es máscara desde adentro
+    lleno = np.ones((9, 9), dtype=bool)
+    lleno[0, :] = False
+    assert p.distancia_a(~lleno, 4, 4, 30.0) == pytest.approx(120.0)

@@ -1,0 +1,42 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio Los Alerces, cordón Situación 2015.",
+  "anio_fuego": 2015,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.6272,
+    "lat": -42.908,
+    "hora": "2015-03-22T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Primera detección VNP14A1 (23 de marzo de 2015)."
+  },
+  "ventanas": [
+    {
+      "t0": "2015-03-22T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.72,
+    -42.972,
+    -71.533,
+    -42.793
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2015/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

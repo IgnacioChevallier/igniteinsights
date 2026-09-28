@@ -1,0 +1,43 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio de Epuyén 2019.",
+  "anio_fuego": 2019,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.3243,
+    "lat": -42.2516,
+    "hora": "2019-01-28T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Primera detección VNP14A1 (30 de enero de 2019)."
+  },
+  "ventanas": [
+    {
+      "t0": "2019-01-28T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.432,
+    -42.351,
+    -71.202,
+    -42.184
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/epuyen-2019/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

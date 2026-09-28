@@ -15,6 +15,8 @@ VARIABLES: dict[str, tuple[str, str, str]] = {
     "v10": (":VGRD:10 m above ground:", "gfs_v10", "v10"),
     "t2m": (":TMP:2 m above ground:", "gfs_t2m", "t2m"),
     "rh":  (":RH:2 m above ground:", "gfs_rh", "r2"),
+    # Model terrain height: t2m/rh are valid at this elevation, not at the DEM's.
+    "orog": (":HGT:surface:", "gfs_orog", "orog"),
 }
 
 # GFS cycles are published at 00, 06, 12, 18 UTC.

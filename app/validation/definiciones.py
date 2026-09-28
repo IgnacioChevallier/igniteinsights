@@ -34,7 +34,9 @@ ANIOS_COMBUSTIBLE = {
 PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
               "lh_moisture_pct", "lw_moisture_pct",
               # transformaciones de rásters que ELMFIRE ya lee (app/validation/cadena.py)
-              "adj", "factor_viento", "humedad_muerta_delta", "modelo_humedad"}
+              "adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
+              "humedad_m1_delta", "modelo_humedad"}
+MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
 
 
@@ -138,6 +140,9 @@ class Receta:
         extras = set(self.parametros) - PARAMETROS
         if extras:
             raise ValueError(f"{self.id}: perillas no permitidas {sorted(extras)}")
+        modelo = self.parametros.get("modelo_humedad")
+        if modelo is not None and modelo not in MODELOS_HUMEDAD:
+            raise ValueError(f"{self.id}: modelo de humedad '{modelo}' no es {MODELOS_HUMEDAD}")
         if self.semilla == "prediccion" and not caso.contiguo:
             raise ValueError(f"{self.id}: sembrar con lo predicho exige ventanas contiguas, "
                              f"y {caso.id} no las tiene")
@@ -195,6 +200,8 @@ def exigir_receta_intacta(receta: Receta, caso: Caso) -> None:
 _INSUMOS_POR_FACTOR = {
     "combustible": {"fbfm40.tif"},
     "adj": {"adj.tif"},
+    "adj_grupos": {"adj.tif"},
+    "humedad_m1_delta": {"m1.tif"},
     "factor_viento": {"ws.tif"},
     "humedad_muerta_delta": {"m1.tif", "m10.tif", "m100.tif"},
     "modelo_humedad": {"m1.tif", "m10.tif", "m100.tif"},

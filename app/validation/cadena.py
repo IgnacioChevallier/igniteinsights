@@ -26,7 +26,7 @@ import rasterio
 from app.elmfire.builder import ignition_builder, namelist_writer
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
-from app.validation import almacen
+from app.validation import almacen, humedad
 from app.validation import puntuacion as p
 from app.validation.definiciones import (
     Caso,
@@ -97,7 +97,11 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         raise FileNotFoundError(f"{caso.id} no empaquetó {combustible}")
     elegidos = {nombre: archivos[nombre] for nombre in ESTATICOS}
     elegidos["fbfm40.tif"] = archivos[combustible]
-    if receta.parametros.get("modelo_humedad") == "retardo":
+    modelo = receta.parametros.get("modelo_humedad")
+    if modelo in ("fosberg", "altura") and not {"t2m_gfs.tif", "rh_gfs.tif"} <= set(archivos):
+        raise FileNotFoundError(f"{caso.id} no empaquetó el clima crudo: definir "
+                                "`clima_crudo` en el caso")
+    if modelo == "retardo":
         for nombre in ("m1.tif", "m10.tif", "m100.tif"):
             alternativo = nombre.replace(".tif", "_retardo.tif")
             if alternativo not in archivos:
@@ -112,8 +116,19 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if previa is not None and receta.semilla == "prediccion":
         ignition_builder.build_ignition_from_mask(_quemado(previa), insumos / "dem.tif", insumos)
     par = receta.parametros
+    if modelo in ("fosberg", "altura"):
+        _humedad_con_criterio(modelo, archivos, insumos, caso.ventanas[n].inicio,
+                              float(np.mean(caso.datos["caja_wgs84"][::2])))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
+    if "adj_grupos" in par:
+        with rasterio.open(insumos / "fbfm40.tif") as src:
+            codigos = src.read(1)
+        factor = factor_por_grupo(codigos, par["adj_grupos"])
+        _reescribir(insumos / "adj.tif", lambda a: a * factor)
+    if "humedad_m1_delta" in par:
+        _reescribir(insumos / "m1.tif",
+                    lambda a: np.clip(a + par["humedad_m1_delta"], 1.0, 40.0))
     if "factor_viento" in par:
         _reescribir(insumos / "ws.tif", lambda a: a * par["factor_viento"])
     if "humedad_muerta_delta" in par:
@@ -137,7 +152,46 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 
 
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
-RASTERS_TRANSFORMADOS = {"adj", "factor_viento", "humedad_muerta_delta", "modelo_humedad"}
+RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
+                         "humedad_m1_delta", "modelo_humedad"}
+# Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
+GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
+                      "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
+
+
+def factor_por_grupo(codigos: np.ndarray, grupos: dict[str, float]) -> np.ndarray:
+    """ADJ por grupo de combustible (GR/GS/SH/TU/TL/SB); 1 donde no se declara."""
+    factor = np.ones(codigos.shape, dtype="float32")
+    for grupo, valor in grupos.items():
+        desde, hasta = GRUPOS_COMBUSTIBLE[grupo]
+        factor[(codigos >= desde) & (codigos <= hasta)] = valor
+    return factor
+
+
+def _humedad_con_criterio(modelo: str, archivos: dict[str, str], insumos: Path,
+                          inicio, lon: float) -> None:
+    """Reemplaza m1 (y con `altura` también m10/m100) desde el clima crudo del GFS del
+    paquete: T y HR a 0,25° y el terreno del modelo, llevados a la grilla de la corrida."""
+    from app.elmfire.builder.weather_builder import _nelson_emc, _read_aligned
+
+    dem = insumos / "dem.tif"
+    t_k = _read_aligned(almacen.abrir(archivos["t2m_gfs.tif"]), dem)
+    hr = np.clip(_read_aligned(almacen.abrir(archivos["rh_gfs.tif"]), dem), 0, 100)
+    with rasterio.open(dem) as src:
+        altura = src.read(1).astype("float32")
+    desnivel = altura - _read_aligned(almacen.abrir(archivos["orog_gfs.tif"]), dem)[0]
+    if modelo == "altura":
+        t_k, hr = humedad.a_la_altura(t_k, hr, desnivel)
+        emc = _nelson_emc((t_k - 273.15) * 9 / 5 + 32, hr)
+        for nombre, extra in (("m1.tif", 0.0), ("m10.tif", 2.0), ("m100.tif", 5.0)):
+            _reescribir(insumos / nombre, lambda a, e=extra: np.clip(emc + e, 1.0, 40.0))
+        return
+    with rasterio.open(insumos / "slp.tif") as s1, rasterio.open(insumos / "asp.tif") as s2, \
+            rasterio.open(insumos / "cc.tif") as s3:
+        pendiente, orientacion, cc = (s.read(1).astype("float32") for s in (s1, s2, s3))
+    m1 = humedad.fosberg(t_k, hr, humedad.tiempos_de_bandas(inicio, t_k.shape[0]), lon,
+                         pendiente, orientacion, cc, desnivel)
+    _reescribir(insumos / "m1.tif", lambda a: np.clip(m1, 1.0, 40.0))
 
 
 def _reescribir(ruta: Path, transformar) -> None:

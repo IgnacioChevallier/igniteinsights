@@ -1,0 +1,43 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio El Turbio 2025.",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.9356,
+    "lat": -42.2959,
+    "hora": "2025-12-01T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Primera detección VIIRS 375 m (3 de diciembre de 2025)."
+  },
+  "ventanas": [
+    {
+      "t0": "2025-12-01T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -72.046,
+    -42.402,
+    -71.729,
+    -42.227
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/el-turbio-2025/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

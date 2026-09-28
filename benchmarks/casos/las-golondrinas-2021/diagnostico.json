@@ -1,0 +1,43 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio Las Golondrinas–Cerro Radal 2021.",
+  "anio_fuego": 2021,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.371,
+    "lat": -42.084,
+    "hora": "2021-03-09T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Centroide de la cicatriz MODIS MCD64A1; el incendio tuvo dos focos (Las Golondrinas y Cerro Radal)."
+  },
+  "ventanas": [
+    {
+      "t0": "2021-03-09T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.62,
+    -42.197,
+    -71.162,
+    -41.956
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/las-golondrinas-2021/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

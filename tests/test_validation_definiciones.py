@@ -111,3 +111,10 @@ def test_reescribir_no_toca_el_objeto_del_almacen(tmp_path, monkeypatch):
     with rasterio.open(tmp_path / "trabajo" / "ws.tif") as src:
         assert src.count == 2 and float(src.read().max()) == 15.0
     assert almacen.sha256(almacen.abrir(sha)) == sha
+
+
+def test_modelo_de_humedad_desconocido_rechazado():
+    with pytest.raises(ValueError, match="modelo de humedad"):
+        _receta(parametros={"modelo_humedad": "magia"}).validar(_caso())
+    _receta(parametros={"modelo_humedad": "fosberg", "humedad_m1_delta": -2,
+                        "adj_grupos": {"SH": 1.3}}).validar(_caso())

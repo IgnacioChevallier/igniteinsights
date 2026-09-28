@@ -1,0 +1,59 @@
+{
+  "descripcion": "Puerto Patriada, costa norte del Lago Epuyén (El Hoyo). Ignición intencional la tarde del lunes 5-ene-2026. 96 h: el 10-ene el área FIRMS salta +50 % hacia el este (El Coihue/Epuyén), fuera del incendio de Patriada según los partes (14.770 ha oficiales contra 24.457 ha de la máscara), así que el horizonte se corta antes; la cicatriz se trunca a lo detectado hasta el horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio.",
+  "anio_fuego": 2026,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.53471,
+    "lat": -42.14589,
+    "hora": "2026-01-05T17:00:00+00:00",
+    "fuente": "Wikipedia 'Incendios forestales en Argentina de 2026' e Infobae (16-ene-2026): 'alrededor de la tarde del lunes 5 de enero ... con foco en Puerto Patriada'; intencional, con combustible (fiscalía). Lugar: localidad Puerto Patriada (OSM -42.1478/-71.5347). Primera detección VIIRS: 18:59 UTC, 267 m al norte.",
+    "ajuste": "La semilla de mask-dataset-gen (la localidad) cae 150 m fuera de la cicatriz, a 321 m. Se toma la celda de la cicatriz a más de 90 m del borde más cercana a ella: 240 m, 343 m de altura, SH4. Hora: 14 ART, antes de la primera pasada (15:59 ART) que ya ve 4 píxeles."
+  },
+  "ventanas": [
+    {
+      "t0": "2026-01-05T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-06T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-07T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-08T17:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.638,
+    -42.454,
+    -71.155,
+    -42.029
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-patriada-2026/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true
+  }
+}

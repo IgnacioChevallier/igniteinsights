@@ -1,0 +1,42 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio Los Alerces, Futalaufquen 2016.",
+  "anio_fuego": 2016,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.6092,
+    "lat": -42.9215,
+    "hora": "2016-01-21T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Primera detección VNP14A1 (21 de enero de 2016)."
+  },
+  "ventanas": [
+    {
+      "t0": "2016-01-21T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.714,
+    -43.036,
+    -71.527,
+    -42.858
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2016/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

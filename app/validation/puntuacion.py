@@ -179,6 +179,23 @@ def error_llegada(horas_pred: np.ndarray, horas_det: np.ndarray) -> dict:
     }
 
 
+def distancia_a(mascara: np.ndarray, fila: int, col: int, celda_m: float,
+                radio_m: float = 5000.0) -> float:
+    """Metros desde el centro de la celda (fila, col) al centro de la celda de `mascara` más
+    cercana, buscando sólo en `radio_m` (inf si no hay ninguna). 0 si la celda misma está.
+
+    Para distancias de detecciones y de igniciones a la cicatriz, y (con `~mascara`) la
+    profundidad de un punto dentro de ella."""
+    r = int(np.ceil(radio_m / celda_m))
+    f0, c0 = max(fila - r, 0), max(col - r, 0)
+    recorte = mascara[f0:fila + r + 1, c0:col + r + 1]
+    ff, cc = np.nonzero(recorte)
+    if ff.size == 0:
+        return float("inf")
+    d = np.hypot(ff + f0 - fila, cc + c0 - col).min() * celda_m
+    return float(d) if d <= radio_m else float("inf")
+
+
 def area_igualada(horas: np.ndarray, ref: np.ndarray, celda_ha: float,
                   excluir: np.ndarray) -> dict:
     """Forma separada de velocidad: el Dice en la hora t* en que lo predicho iguala el área

@@ -1,0 +1,43 @@
+{
+  "descripcion": "PROVISORIO (diagnóstico de Fase 0): Incendio Los Alerces, Bahía Rosales 2024.",
+  "anio_fuego": 2024,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.5939,
+    "lat": -42.8036,
+    "hora": "2024-01-25T15:00:00+00:00",
+    "fuente": "mask-dataset-gen: Primera detección VIIRS 375 m (26 de enero de 2024)."
+  },
+  "ventanas": [
+    {
+      "t0": "2024-01-25T15:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.689,
+    -42.995,
+    -71.362,
+    -42.725
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2024/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

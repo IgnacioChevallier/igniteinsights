@@ -1,0 +1,58 @@
+{
+  "descripcion": "Puerto Café, brazo sur del Lago Menéndez (PN Los Alerces). Incendio por rayo (tormenta del 29-nov) detectado el 9-dic-2025, que ardió latente ~500 ha hasta el 5-ene-2026 y explotó entre la pasada VIIRS de las 19:20 UTC del 5-ene (1 detección) y la de las 04:43 UTC del 6-ene (101). El caso es esa fase: semilla observada (todo FIRMS SP hasta el inicio), 96 h de crecimiento libre, cicatriz truncada al horizonte (~30 % del área FIRMS final). Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio.",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "firms",
+    "hora": "2026-01-05T20:00:00+00:00",
+    "fuente": "Fechas: Red43 (9-dic-2025, parte de PN Los Alerces), LA NACION (28-mar-2026: 'a partir del 5 de enero ... se propagó de forma explosiva hacia los lagos Verde y Rivadavia'). Hora de arranque: entre las dos pasadas VIIRS citadas.",
+    "ajuste": "No hay ignición puntual: la fase explosiva arranca desde lo que ardía latente, que se toma de FIRMS SP (9-dic a 5-ene)."
+  },
+  "ventanas": [
+    {
+      "t0": "2026-01-05T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-06T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-07T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-08T20:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.993,
+    -42.864,
+    -71.234,
+    -42.472
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-cafe-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000,
+      "desde": "2025-12-08"
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true
+  }
+}

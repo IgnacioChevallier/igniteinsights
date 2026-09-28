@@ -1,0 +1,143 @@
+{
+  "caso": "desemboque-2015/diagnostico",
+  "cicatriz_run": "../mask-dataset-gen/dataset/desemboque-2015/runs/event-filter-001",
+  "firms": {
+    "fuentes": [
+      "VIIRS_SNPP_SP"
+    ],
+    "desde": "2015-01-27",
+    "hasta": "2015-02-15",
+    "detecciones": 72,
+    "por_clase": {
+      "cicatriz": 69,
+      "afuera": 3
+    },
+    "a_5km": 72,
+    "fraccion_en_cicatriz_a_5km": 0.958,
+    "fraccion_en_exclusion_a_5km": 0.0,
+    "primera": "2015-01-31 05:52:00+00:00",
+    "ultima": "2015-02-05 19:56:00+00:00",
+    "por_dia": [
+      {
+        "dia": "2015-01-31",
+        "detecciones": 29,
+        "en_cicatriz": 29,
+        "area_firms_acum_ha": 312.2
+      },
+      {
+        "dia": "2015-02-01",
+        "detecciones": 6,
+        "en_cicatriz": 6,
+        "area_firms_acum_ha": 344.9
+      },
+      {
+        "dia": "2015-02-02",
+        "detecciones": 32,
+        "en_cicatriz": 29,
+        "area_firms_acum_ha": 766.3
+      },
+      {
+        "dia": "2015-02-03",
+        "detecciones": 2,
+        "en_cicatriz": 2,
+        "area_firms_acum_ha": 802.8
+      },
+      {
+        "dia": "2015-02-05",
+        "detecciones": 3,
+        "en_cicatriz": 3,
+        "area_firms_acum_ha": 812.8
+      }
+    ],
+    "grupos_afuera": [
+      {
+        "detecciones": 2,
+        "lon": -71.5875,
+        "lat": -42.0926,
+        "desde": "2015-02-02 05:14:00+00:00",
+        "hasta": "2015-02-02 05:14:00+00:00",
+        "dist_cicatriz_m": 418,
+        "sin_observacion": 0
+      },
+      {
+        "detecciones": 1,
+        "lon": -71.5602,
+        "lat": -42.1025,
+        "desde": "2015-02-02 06:55:00+00:00",
+        "hasta": "2015-02-02 06:55:00+00:00",
+        "dist_cicatriz_m": 450,
+        "sin_observacion": 0
+      }
+    ]
+  },
+  "mascara": {
+    "area_ha": 559.7,
+    "area_oficial_ha": 2306.8,
+    "area_run_ha": 558.036,
+    "excluido_en_zona_ha": 0.4,
+    "cobertura_valida_en_zona": 1.0,
+    "pre": {
+      "end_inclusive": "2015-01-29",
+      "start": "2014-11-01"
+    },
+    "post": {
+      "end_inclusive": "2015-03-22",
+      "start": "2015-02-15"
+    },
+    "pre_antes_de_firms": true,
+    "post_despues_de_firms": true
+  },
+  "semillas": [
+    {
+      "nombre": "mask-dataset-gen",
+      "lon": -71.5688,
+      "lat": -42.1115,
+      "hora": null,
+      "altura_m": 471,
+      "combustible": 123,
+      "dist_cicatriz_m": 0,
+      "profundidad_m": 240,
+      "primera_deteccion": "2015-01-31 05:52:00+00:00",
+      "dist_primeras_m": 222,
+      "primera_pasada": {
+        "detecciones": 13,
+        "lon": -71.57059,
+        "lat": -42.112,
+        "altura_m": 526
+      },
+      "celda_interior": {
+        "lon": -71.5689,
+        "lat": -42.11163,
+        "dist_m": 0,
+        "altura_m": 471,
+        "combustible": 123
+      }
+    },
+    {
+      "nombre": "caso",
+      "lon": -71.5688,
+      "lat": -42.1115,
+      "hora": "2015-01-30T15:00:00+00:00",
+      "altura_m": 471,
+      "combustible": 123,
+      "dist_cicatriz_m": 0,
+      "profundidad_m": 240,
+      "primera_deteccion": "2015-01-31 05:52:00+00:00",
+      "dist_primeras_m": 222,
+      "antes_de_primera": true,
+      "primera_pasada": {
+        "detecciones": 13,
+        "lon": -71.57059,
+        "lat": -42.112,
+        "altura_m": 526
+      },
+      "celda_interior": {
+        "lon": -71.5689,
+        "lat": -42.11163,
+        "dist_m": 0,
+        "altura_m": 471,
+        "combustible": 123
+      }
+    }
+  ]
+}
