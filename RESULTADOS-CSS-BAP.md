@@ -608,9 +608,86 @@ El factor de velocidad que pide un incendio va de ~0,3 (El Turbio, Epuyén 2019)
 (Epuyén 2025, Cholila): un rango de ~5×, mucho más ancho que el que vio la calibración
 (1,0–1,5).
 
+### Loop 5c — sensibilidad a la ignición (±500 m, ±2 h), con `adj-130-001`
+
+| Incendio | Documentada | N 500 m | S 500 m | E 500 m | O 500 m | −2 h | +2 h |
+|---|---|---|---|---|---|---|---|
+| Alerces 2023 | 0,550 / 1,73 | 0,450 / 1,79 | 0,605 / 1,64 | 0,515 / 1,91 | 0,479 / 1,59 | 0,490 / **2,92** | 0,542 / 1,63 |
+| Epuyén 2025 | 0,282 / 0,67 | 0,089 / 0,33 | 0,454 / 0,93 | **0,077 / 0,07** | 0,283 / 0,66 | 0,195 / 0,52 | 0,495 / 1,61 |
+| Alerces 2016 | 0,400 / 1,72 | 0,371 / 1,79 | 0,460 / 2,05 | 0,274 / 2,19 | 0,515 / 1,24 | 0,455 / 0,77 | 0,376 / 1,89 |
+
+- **La incertidumbre de la ignición pesa más que la calibración.**
+  - Desplazar 500 m o 2 h mueve el Dice ±0,1–0,2 y el sesgo hasta 4×. En Epuyén el Dice va
+    de 0,08 a 0,50.
+  - Pasar de ADJ 1,0 a 1,3 mueve +0,06 de media.
+  - Con seis incendios, la mejora de la receta es consistente en tendencia (+20 %), pero del
+    orden de la incertidumbre de un solo caso.
+- **Epuyén es el extremo, por lo heterogéneo del lugar:**
+  - 500 m al E cae junto al lago, entre TL2 y agua, y el fuego casi no sale (sesgo 0,07).
+  - 500 m al S cae sobre el arbustal (SH4) y escapa enseguida (0,454).
+  - Es la misma trampa de la plantación del loop 2: el primer día lo decide el combustible de
+    los primeros cientos de metros.
+- **La hora importa por el ciclo diurno.** En Alerces 2023, prender 2 h antes (20 ART) le da
+  al fuego la tarde del día siguiente con más frente, y el sesgo pasa de 1,73 a 2,92.
+- **Consecuencia práctica:** para usar el sistema en pronóstico, la ignición tiene que
+  ingresarse con la mejor precisión posible (coordenada del parte, no el centroide del
+  satélite). Un ensamble sobre la incertidumbre de la ignición daría una banda más honesta que
+  una sola corrida.
+
 ## 5. Resultados
 
-*(pendiente del primer barrido sobre `calibracion`)*
+Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte salvo en Las Golondrinas),
+protocolos v2/v3 (pendiente corregida). ⚠ = sesgo fuera de [0,5×, 2×].
+
+**Calibración** (se usaron para elegir):
+
+| Incendio | Clima | `base-001` | **`adj-130-001`** | `humedad-m6-001` (mejor previa) |
+|---|---|---|---|---|
+| Alerces 2023 | GFS | 0,457 / 0,95 | **0,550 / 1,73** | 0,517 / 1,77 |
+| Epuyén 2025 | GFS | 0,160 / 0,44 ⚠ | **0,282 / 0,67** | 0,471 / 2,08 ⚠ |
+| Alerces 2024 | GFS | 0,522 / 0,53 | **0,553 / 0,98** | 0,558 / 1,09 |
+| Patriada 2026 | GFS | 0,340 / 0,69 | **0,386 / 0,97** | 0,446 / 1,41 |
+| Las Golondrinas 2021 (caso límite) | GFS | 0,029 / 0,05 ⚠ | 0,049 / 0,07 ⚠ | 0,058 / 0,08 ⚠ |
+| Alerces 2016 | ERA5 | 0,433 / 0,99 | **0,400 / 1,72** | 0,410 / 2,98 ⚠ |
+| Cholila 2015 | ERA5 | 0,244 / 0,44 ⚠ | **0,329 / 0,71** | 0,393 / 0,74 |
+| **Media GFS (5) / ERA5 (2)** | | 0,302 / 0,339 | **0,364 / 0,365** | 0,410 / 0,402 |
+| **Mediana GFS** | | 0,340 | **0,386** | 0,471 |
+| **Alarmas (sin el caso límite)** | | 2 | **0** | 3 |
+
+**Prueba** (no se usaron para elegir):
+
+| Incendio | Clima | `base-001` | **`adj-130-001`** | `humedad-m6-001` |
+|---|---|---|---|---|
+| Alerces 2015 | ERA5 | 0,195 / 0,40 ⚠ | **0,230 / 1,01** | 0,370 / 2,46 ⚠ |
+| Puerto Café 2025 (`v2s`) | GFS | 0,126 / 0,23 ⚠ | **0,179 / 0,34 ⚠** | 0,188 / 0,37 ⚠ |
+| El Turbio 2025 | GFS | 0,356 / 4,55 ⚠ | 0,241 / 7,25 ⚠ | 0,225 / 7,88 ⚠ |
+| Epuyén 2019 | ERA5 | 0,129 / 13,7 ⚠ | 0,114 / 16,0 ⚠ | 0,103 / 18,5 ⚠ |
+| **Media** | | 0,202 | **0,191** | 0,222 |
+
+**La mejor receta contra `base-001`:** `adj-130-001` sube el Dice medio de calibración un 20 %
+(GFS) y un 8 % (ERA5), y elimina las alarmas de sesgo en los seis incendios alcanzables. Lo
+hace sólo con la perilla que PENDING_PARAMETERS reserva para esto, ADJ, y con el valor en el
+centro de lo que pide cada incendio.
+
+`humedad-m6-001` tiene más Dice, pero:
+
+- viola la restricción (tres alarmas);
+- no tiene soporte físico (m1 ≈ 1 %, cuando estaciones y Fosberg dan 5–7 %);
+- en prueba no transfiere mejor: 0,222 contra 0,191, con el mismo patrón de alarmas.
+
+**Qué parámetro movió cuánto, y por qué:**
+
+| Cambio | Efecto sobre el Dice medio (calibración GFS) | Por qué |
+|---|---|---|
+| Corregir la orientación del terreno | **+0,03 a +0,13 por incendio** (el mayor) | El fuego subía ladera abajo; ahora sube la pendiente |
+| ADJ 1,0 → 1,3 | +0,062 | Lleva cada incendio al área observada a tiempo; no cambia la forma |
+| ADJ por grupo (SH, TU) | +0,03 a +0,06, con alarmas | No identificable: la velocidad no sigue a la composición |
+| Humedad con criterio (Fosberg, altura) | ±0,01 | El m1 del GFS ya es el de las estaciones |
+| Atlas de viento (WindNinja) | −0,011 GFS, +0,020 ERA5 | Ayuda en laderas empinadas (Alerces 2016, +0,07); neutro en valles |
+| Rotación empírica del viento | +0,002 | El sesgo de dirección es real, pero su efecto se cancela entre incendios |
+| Paso de tiempo a la mitad | +0,003 | Convergido |
+| z0 desde el dosel | −0,02 | Doble conteo con el WAF de ELMFIRE |
+| CBH × 0,25 | +0,004 | La copa sigue sin iniciarse: el freno es la superficie TL8 |
 
 ## 6. Parámetros
 
