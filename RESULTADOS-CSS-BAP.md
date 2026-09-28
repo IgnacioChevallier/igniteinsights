@@ -7,30 +7,30 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 2, 2026-09-28 03:30)*
+*(se reescribe en cada loop — última: loop 4, 2026-09-28 tarde)*
 
-- **Fase:** loops de calibración. Casos listos:
-  - GFS, calibración: Alerces 2023, Epuyén 2025, Alerces 2024, Patriada 2026, Las Golondrinas 2021.
-  - GFS, prueba: El Turbio 2025, Puerto Café 2025.
-  - ERA5: Alerces 2016 y Cholila 2015 (calibración); Epuyén 2019 y Alerces 2015 (prueba).
-  - Pendientes de ignición: Currumahuida, Cerro Plataforma y Desemboque (este último, dudoso).
-- **Mejor receta hasta ahora:** ninguna completa sobre los 5 de calibración GFS
-  (`benchmark.py objetivo`). En los dos chicos, `humedad-m6-001` tiene el mejor Dice medio
-  (0,464), por un mecanismo que no es de humedad (§4 loop 2). La mejor con criterio es
-  `adj-sh-250-001` (0,361).
-- **Corriendo:** consumidor único `data/benchmark/cola_run2.sh`, que lee
-  `data/benchmark/trabajos.txt` y marca en `trabajos.hechos` (log `log_run2.txt`). Siguen Cholila
-  ERA5, la convergencia de paso (`paso-mitad-001`), Alerces 2024, el barrido de ADJ en
-  Golondrinas/Alerces 2024 y Patriada. Cola de empaquetado: `cola_emp4.sh` (Puerto Café).
-- **Hipótesis abiertas:**
-  - H4, dirección del viento: la forma. Sólo se mide con la velocidad correcta.
-  - H5b, ADJ por grupo: SH contra TU. Falta en Alerces 2024 y Patriada.
-  - El día 1 explosivo no es calibrable con las perillas permitidas (copa, pavesas, ráfagas).
+- **Hallazgo mayor:** la orientación del terreno estaba invertida en todo el repo (§4, loop 2).
+  Corregida (`raster_aligner` v3); todo lo que sigue es con protocolos `-v2`/`-v3`.
+- **Mejor receta sin alarmas hasta ahora: `adj-130-001` (ADJ uniforme 1,3).**
+  - Calibración GFS: Dice medio 0,364 (mediana 0,386) contra 0,302 de base.
+  - Calibración ERA5: 0,365 contra 0,339.
+  - Es el centro de los ADJ que pide cada incendio para llegar a sesgo 1 (de 1,00 a 1,53);
+    el intervalo factible sin alarmas es [1,1; 1,3].
+  - Fuera de muestra (validación cruzada): media 0,396. Alerces 2023 y Epuyén acotan la
+    receta: sin ellos, la elegida desborda en el que quedó afuera.
+- **En evaluación:** el atlas de viento de WindNinja (protocolos `-v3`; Alerces 2016: 0,433 →
+  0,504), solo y con ADJ 1,3 (`adj130-atlas-001`), y la corrección empírica de dirección
+  (`adj130-rot030/045/060-001`).
+- **Corriendo:** consumidor `data/benchmark/cola_run2.sh` sobre `data/benchmark/trabajos.txt`
+  (log `log_run2.txt`); atlas en `cola_emp7.sh` (Golondrinas v3 al final).
+- **Hipótesis abiertas:** forma por dirección (atlas contra rotación empírica). Descartadas:
+  humedad con criterio como palanca (H1/H3), ADJ por grupo (H5b), copa por CBH (H2),
+  canalización por presión (H4b).
 - **Próximo paso:**
-  1. Con `base-001` y el barrido de ADJ en los 5, calcular el factor de velocidad que pide cada
-     incendio y ver si la composición SH/TU lo explica.
-  2. Elegir la receta candidata y probar la combinación con la rotación.
-  3. Validación cruzada dejando un incendio afuera.
+  1. Elegir entre `adj-130-001`, `adj130-atlas-001` y `adj130-rot*` con `objetivo` y `validar`.
+  2. Correr la elegida y `base-001` en los casos de prueba (El Turbio, Puerto Café, Epuyén 2019,
+     Alerces 2015).
+  3. Sensibilidad a la ignición (±500 m, ±2 h).
 
 ## 2. Supuestos
 
