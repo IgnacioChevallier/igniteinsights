@@ -467,6 +467,42 @@ valida la ignición en la primera detección.
 base/1,3/1,6, el intervalo factible es ~[1,1; 1,35]; se barren 1,1, 1,2, 1,3 y 1,4 en los siete.
 En paralelo, el atlas de WindNinja (protocolos v3) para la dirección.
 
+### Loop 4 — la dirección del viento con criterio
+
+**H4a: viento ajustado al terreno con WindNinja (atlas), descartada.**
+
+- WindNinja 3.12.2 (`tools/windninja`, sólo la CLI de conservación de masa, dominio público)
+  corre una vez por dirección (16, a 90 m, velocidad unitaria), y la corrida interpola ese
+  atlas con el viento del GFS de cada celda y hora (`app/validation/viento.py`, perilla
+  `viento_atlas`, protocolos `-v3`).
+- En Alerces 2023, la forma queda en 0,456 contra 0,457 y el sesgo pasa de 0,95 a 1,00.
+  `base-001` en v3 reproduce exactamente a v2, lo que valida el protocolo.
+- El solver desvía el flujo ±15° (percentiles 10–90) y cambia la velocidad entre 0,5 y 1,1
+  (crestas contra reparos). **La conservación de masa no produce el encauzamiento de valle**
+  que muestran los frentes (40–100°): ese flujo es dinámico y térmico. El solver de
+  momento/OpenFOAM de WindNinja sí podría, pero cuesta horas por dirección y queda fuera de
+  alcance.
+
+**H4b: canalización por gradiente de presión (Whiteman y Doran 1993), descartada como regla
+general.** Dentro de un valle, el viento sigue el eje hacia la baja presión (en el hemisferio
+sur, a la derecha del viento de arriba). Prueba sin ELMFIRE: eje del valle en la ignición
+(Hessiano del DEM suavizado a σ = 3 km), dirección canalizada contra rumbo observado del
+frente:
+
+- Mejora mucho los valles N–S de Los Alerces: Alerces 2023 pasa de −71/−80/−40° a
+  −17/−20/+28°; Alerces 2016, de −85/−103/−90° a −23/−32/−37°.
+- Empeora Alerces 2024 (de 0/−23° a +75/+54°), Patriada (de +44/−26° a +113/+47°) y
+  Las Golondrinas (de +41° a +85°).
+- Error absoluto medio: 55° contra 53° del GFS.
+
+Un solo eje en la ignición no representa por dónde corre el fuego cuando sale del valle.
+
+**Lo que sí es sistemático:** el desvío observado − GFS es positivo (el frente corre más al
+sur) en 16 de 20 incendio-días, con media ~+43°. Es un **sesgo de dirección del GFS en la
+región**, corregible empíricamente como ADJ corrige la velocidad. Se evalúa como
+`rotacion_viento` calibrada con validación cruzada, declarada como corrección empírica del
+insumo y no como física.
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
