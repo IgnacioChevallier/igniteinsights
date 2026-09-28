@@ -129,6 +129,11 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if "humedad_m1_delta" in par:
         _reescribir(insumos / "m1.tif",
                     lambda a: np.clip(a + par["humedad_m1_delta"], 1.0, 40.0))
+    if par.get("aspecto_mas_180"):
+        # Diagnóstico del bug de convención de raster_aligner (asp cuesta arriba, cuando
+        # ELMFIRE espera la dirección hacia la que mira la ladera): da vuelta el ráster.
+        _reescribir(insumos / "asp.tif",
+                    lambda a: np.where(a >= 0, (a.astype("int32") + 180) % 360, a))
     if par.get("z0_desde_dosel"):
         with rasterio.open(insumos / "ch.tif") as src:
             ch_m = np.where(src.read(1) > 0, src.read(1) / 10.0, 0.0)   # 10 × m (LANDFIRE)
@@ -161,7 +166,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
-                         "z0_desde_dosel"}
+                         "z0_desde_dosel", "aspecto_mas_180"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
