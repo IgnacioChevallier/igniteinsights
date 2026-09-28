@@ -695,6 +695,31 @@ medio.**
   regionales.
 - Alerces 2016 la limita: ya llega a tiempo con base, y con LW más seco se pasa.
 
+**Loop 6d: LW + ADJ, la receta final.** LW actúa sobre la carga viva (SH, TU) y ADJ sobre la
+velocidad base de todos los combustibles, así que se prueba si suman sin romper la
+restricción. Con la receta única para todos, se evalúa sobre los siete incendios juntos:
+`objetivo calibracion todas`, `validar todas`.
+
+| Receta | Media / mediana (7) | Alarmas (sin el caso límite) | \|Δt*\| |
+|---|---|---|---|
+| **LW 100 % + ADJ 1,15** (`lw100-adj115-001`) | **0,372 / 0,411** | **0** (Alerces 2016: 1,95, al límite) | **39,8 h** |
+| ADJ 1,3 (`adj-130-001`) | 0,364 / 0,386 | 0 | 69,5 h |
+| LW 95 % | 0,359 / 0,443 | 0 | 54,9 h |
+| LW 95 % + ADJ 1,1 | 0,382 / 0,436 | 1 (Alerces 2016: 2,27) | 40,8 h |
+| LW 90 % | 0,377 / 0,456 | 1 (Alerces 2016: 2,14) | 42,9 h |
+| LW 80 % | 0,400 / 0,447 | 1 (Alerces 2016: 2,94) | 32,6 h |
+
+- **Validación cruzada sobre los siete:** se elige `lw100-adj115-001` en 5 de 7 pliegues.
+  Fuera de muestra da media 0,364 y mediana 0,366.
+- Al sacar Alerces 2016 se elige LW 80 %, que en él desborda (2,94). Como con ADJ solo, un
+  incendio lento (Alerces 2016) y uno rápido (Epuyén) acotan la receta desde los dos lados.
+- **Receta final: `lw100-adj115-001`.** Gana a ADJ 1,3 en media, mediana y |t* − horizonte|, y
+  reparte la aceleración entre dos mecanismos con fundamento:
+  - LW justo por debajo del umbral de grandes incendios;
+  - un ADJ modesto.
+- La ventaja sobre ADJ 1,3 es chica (+0,008 de media), menor que la incertidumbre de la
+  ignición (§4, loop 5c).
+
 ## 5. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte salvo en Las Golondrinas),
@@ -702,30 +727,30 @@ protocolos v2/v3 (pendiente corregida). ⚠ = sesgo fuera de [0,5×, 2×].
 
 **Calibración** (se usaron para elegir):
 
-| Incendio | Clima | `base-001` | **`adj-130-001`** | `humedad-m6-001` (mejor previa) |
+| Incendio | Clima | `base-001` | `adj-130-001` | **`lw100-adj115-001`** | `humedad-m6-001` (mejor previa) |
 |---|---|---|---|---|
-| Alerces 2023 | GFS | 0,457 / 0,95 | **0,550 / 1,73** | 0,517 / 1,77 |
-| Epuyén 2025 | GFS | 0,160 / 0,44 ⚠ | **0,282 / 0,67** | 0,471 / 2,08 ⚠ |
-| Alerces 2024 | GFS | 0,522 / 0,53 | **0,553 / 0,98** | 0,558 / 1,09 |
-| Patriada 2026 | GFS | 0,340 / 0,69 | **0,386 / 0,97** | 0,446 / 1,41 |
-| Las Golondrinas 2021 (caso límite) | GFS | 0,029 / 0,05 ⚠ | 0,049 / 0,07 ⚠ | 0,058 / 0,08 ⚠ |
-| Alerces 2016 | ERA5 | 0,433 / 0,99 | **0,400 / 1,72** | 0,410 / 2,98 ⚠ |
-| Cholila 2015 | ERA5 | 0,244 / 0,44 ⚠ | **0,329 / 0,71** | 0,393 / 0,74 |
-| **Media GFS (5) / ERA5 (2)** | | 0,302 / 0,339 | **0,364 / 0,365** | 0,410 / 0,402 |
-| **Mediana GFS** | | 0,340 | **0,386** | 0,471 |
-| **Alarmas (sin el caso límite)** | | 2 | **0** | 3 |
+| Alerces 2023 | GFS | 0,457 / 0,95 | 0,550 / 1,73 | **0,522 / 1,61** | 0,517 / 1,77 |
+| Epuyén 2025 | GFS | 0,160 / 0,44 ⚠ | 0,282 / 0,67 | **0,291 / 0,83** | 0,471 / 2,08 ⚠ |
+| Alerces 2024 | GFS | 0,522 / 0,53 | 0,553 / 0,98 | **0,555 / 1,02** | 0,558 / 1,09 |
+| Patriada 2026 | GFS | 0,340 / 0,69 | 0,386 / 0,97 | **0,454 / 1,14** | 0,446 / 1,41 |
+| Las Golondrinas 2021 (caso límite) | GFS | 0,029 / 0,05 ⚠ | 0,049 / 0,07 ⚠ | 0,047 / 0,06 ⚠ | 0,058 / 0,08 ⚠ |
+| Alerces 2016 | ERA5 | 0,433 / 0,99 | 0,400 / 1,72 | **0,411 / 1,95** | 0,410 / 2,98 ⚠ |
+| Cholila 2015 | ERA5 | 0,244 / 0,44 ⚠ | 0,329 / 0,71 | **0,324 / 0,66** | 0,393 / 0,74 |
+| **Media GFS (5) / ERA5 (2)** | | 0,302 / 0,339 | 0,364 / 0,365 | **0,374 / 0,367** | 0,410 / 0,402 |
+| **Media / mediana (los 7)** | | 0,312 / 0,340 | 0,364 / 0,386 | **0,372 / 0,411** | 0,408 / 0,446 |
+| **Alarmas (sin el caso límite)** | | 2 | 0 | **0** | 3 |
 
 **Prueba** (no se usaron para elegir):
 
-| Incendio | Clima | `base-001` | **`adj-130-001`** | `humedad-m6-001` |
+| Incendio | Clima | `base-001` | `adj-130-001` | **`lw100-adj115-001`** | `humedad-m6-001` |
 |---|---|---|---|---|
-| Alerces 2015 | ERA5 | 0,195 / 0,40 ⚠ | **0,230 / 1,01** | 0,370 / 2,46 ⚠ |
-| Puerto Café 2025 (`v2s`) | GFS | 0,126 / 0,23 ⚠ | **0,179 / 0,34 ⚠** | 0,188 / 0,37 ⚠ |
-| El Turbio 2025 | GFS | 0,356 / 4,55 ⚠ | 0,241 / 7,25 ⚠ | 0,225 / 7,88 ⚠ |
-| Epuyén 2019 | ERA5 | 0,129 / 13,7 ⚠ | 0,114 / 16,0 ⚠ | 0,103 / 18,5 ⚠ |
-| **Media** | | 0,202 | **0,191** | 0,222 |
+| Alerces 2015 | ERA5 | 0,195 / 0,40 ⚠ | 0,230 / 1,01 | **0,312 / 1,38** | 0,370 / 2,46 ⚠ |
+| Puerto Café 2025 (`v2s`) | GFS | 0,126 / 0,23 ⚠ | 0,179 / 0,34 ⚠ | **0,167 / 0,32 ⚠** | 0,188 / 0,37 ⚠ |
+| El Turbio 2025 | GFS | 0,356 / 4,55 ⚠ | 0,241 / 7,25 ⚠ | 0,256 / 6,75 ⚠ | 0,225 / 7,88 ⚠ |
+| Epuyén 2019 | ERA5 | 0,129 / 13,7 ⚠ | 0,114 / 16,0 ⚠ | 0,112 / 16,8 ⚠ | 0,103 / 18,5 ⚠ |
+| **Media / mediana** | | 0,202 / 0,162 | 0,191 / 0,205 | **0,212 / 0,211** | 0,221 / 0,206 |
 
-**La mejor receta contra `base-001`:** `adj-130-001` sube el Dice medio de calibración un 20 %
+**La mejor receta contra `base-001`: `lw100-adj115-001`** (LW 100 % + ADJ 1,15). Sube el Dice medio de calibración de 0,312 a 0,372 (+19 %), sin alarmas, y en prueba de 0,202 a 0,212. La primera candidata, `adj-130-001`, sube el Dice medio de calibración un 20 %
 (GFS) y un 8 % (ERA5), y elimina las alarmas de sesgo en los seis incendios alcanzables. Lo
 hace sólo con la perilla que PENDING_PARAMETERS reserva para esto, ADJ, y con el valor en el
 centro de lo que pide cada incendio.
