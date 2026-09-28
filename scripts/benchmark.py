@@ -278,6 +278,61 @@ def _horas_deteccion(df: pd.DataFrame, inicio: datetime, fin: datetime, dem: Pat
     return np.where(np.isinf(horas), -1.0, horas)
 
 
+OPEN_METEO_ERA5 = "https://archive-api.open-meteo.com/v1/archive"
+PASO_ERA5 = 0.25
+
+
+def _era5_serie(var: str, inicio: datetime, horas: int, caja, destino: Path) -> None:
+    """ERA5 horario de Open-Meteo, en la grilla de 0,25° y con el mismo formato que las series
+    del GFS (EPSG:4326, una banda por hora) para que el resto del empaquetado no cambie.
+
+    Sin reducción de escala (`elevation=nan`): cada valor es el de la celda de ERA5 a la altura
+    de su terreno, que se guarda como `orog`, igual que el GFS. Baja las cinco variables juntas.
+    """
+    import httpx
+
+    o, s_, e, n = caja
+    lats = np.arange(np.floor(n / PASO_ERA5), np.ceil(s_ / PASO_ERA5) - 1, -1) * PASO_ERA5
+    lons = np.arange(np.ceil(o / PASO_ERA5), np.floor(e / PASO_ERA5) + 1) * PASO_ERA5
+    puntos = [(la, lo) for la in lats for lo in lons]
+    fin = inicio + timedelta(hours=horas)
+    horario = ("temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m")
+    datos = {v: np.full((horas + 1, len(lats), len(lons)), np.nan, dtype="float32")
+             for v in horario}
+    orog = np.full((1, len(lats), len(lons)), np.nan, dtype="float32")
+    for k in range(0, len(puntos), 50):
+        lote = puntos[k:k + 50]
+        r = httpx.get(OPEN_METEO_ERA5, timeout=120, params={
+            "latitude": ",".join(f"{la:.2f}" for la, _ in lote),
+            "longitude": ",".join(f"{lo:.2f}" for _, lo in lote),
+            "elevation": ",".join("nan" for _ in lote),
+            "start_date": inicio.date().isoformat(), "end_date": fin.date().isoformat(),
+            "hourly": ",".join(horario), "models": "era5", "wind_speed_unit": "ms",
+            "timezone": "GMT"})
+        r.raise_for_status()
+        respuestas = r.json() if len(lote) > 1 else [r.json()]
+        for (la, lo), resp in zip(lote, respuestas):
+            i, j = int(np.argmin(abs(lats - la))), int(np.argmin(abs(lons - lo)))
+            tiempos = pd.to_datetime(resp["hourly"]["time"], utc=True)
+            sel = (tiempos >= pd.Timestamp(inicio)) & (tiempos <= pd.Timestamp(fin))
+            for v in horario:
+                datos[v][:, i, j] = np.asarray(resp["hourly"][v], dtype="float32")[sel]
+            orog[0, i, j] = resp["elevation"]
+    ws, wd = datos["wind_speed_10m"], np.radians(datos["wind_direction_10m"])
+    capas = {"t2m": datos["temperature_2m"] + 273.15, "rh": datos["relative_humidity_2m"],
+             "u10": -ws * np.sin(wd), "v10": -ws * np.cos(wd), "orog": orog}
+    transform = rasterio.transform.from_origin(lons[0] - PASO_ERA5 / 2, lats[0] + PASO_ERA5 / 2,
+                                               PASO_ERA5, PASO_ERA5)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    for nombre, a in capas.items():
+        if nombre != "orog" and a.shape[0] != horas + 1:
+            raise ValueError(f"ERA5 {nombre}: {a.shape[0]} bandas, se esperaban {horas + 1}")
+        with rasterio.open(destino.parent / f"{nombre}.tif", "w", driver="GTiff",
+                           height=a.shape[1], width=a.shape[2], count=a.shape[0],
+                           dtype="float32", crs="EPSG:4326", transform=transform) as dst:
+            dst.write(a)
+
+
 def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
     """Análisis GFS encadenados para toda la cadena, cortados por ventana y llevados a la
     grilla del caso (la banda 0 de cada ventana es su inicio: TSTART = 0)."""
@@ -288,31 +343,46 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
     total = int((caso.ventanas[-1].fin - inicio).total_seconds() // 3600)
     # Las series crudas se guardan: bajarlas lleva ~1 h por caso y re-empaquetar no debe
     # repetirlo. Lo que entra al paquete (y a su hash) es lo derivado sobre la grilla.
+    fuente = caso.datos["empaquetado"].get("clima_fuente", "gfs")
+    cache = Path("data/benchmark/cache") / fuente
+
+    def bajar(var: str, desde: datetime, horas: int, destino: Path) -> None:
+        if destino.exists():
+            return
+        # Una serie ya bajada con el mismo inicio y la misma caja, pero más larga, alcanza.
+        sufijo = "_".join(f"{v:.2f}" for v in caja)
+        for otra in sorted(cache.glob(f"{desde:%Y%m%dT%H}_*h_{sufijo}")):
+            if int(otra.name.split("_")[1][:-1]) >= horas and (otra / f"{var}.tif").exists():
+                with rasterio.open(otra / f"{var}.tif") as src:
+                    datos = src.read(list(range(1, min(horas + 1, src.count) + 1)))
+                    perfil = src.profile | {"count": datos.shape[0]}
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                with rasterio.open(destino, "w", **perfil) as dst:
+                    dst.write(datos)
+                return
+        print(f"  {fuente} {var}: {horas + 1} bandas horarias desde {desde} …", flush=True)
+        if fuente == "era5":
+            _era5_serie(var, desde, horas, caja, destino)
+        else:
+            GFSClient().download_analysis_series(var, desde, horas, *caja, destino)
+
     clave = f"{inicio:%Y%m%dT%H}_{total}h_" + "_".join(f"{v:.2f}" for v in caja)
-    series = Path("data/benchmark/cache/gfs") / clave
+    series = cache / clave
     for var in ("u10", "v10", "t2m", "rh"):
-        if (series / f"{var}.tif").exists():
-            continue
-        print(f"  GFS {var}: {total + 1} bandas horarias …", flush=True)
-        GFSClient().download_analysis_series(var, inicio, total, *caja, series / f"{var}.tif")
+        bajar(var, inicio, total, series / f"{var}.tif")
     # Humedad muerta con historial de secado: una serie t2m/rh que arranca `retardo` horas
     # antes de la ignición, para el modelo de retardo (weather_builder.derive_moisture_timelag).
     retardo = int(caso.datos["empaquetado"].get("humedad_retardo_h", 0))
     if retardo:
-        previa = Path("data/benchmark/cache/gfs") / (
-            f"{inicio - timedelta(hours=retardo):%Y%m%dT%H}_{total + retardo}h_"
-            + "_".join(f"{v:.2f}" for v in caja))
+        previa = cache / (f"{inicio - timedelta(hours=retardo):%Y%m%dT%H}_{total + retardo}h_"
+                          + "_".join(f"{v:.2f}" for v in caja))
         for var in ("t2m", "rh"):
-            if not (previa / f"{var}.tif").exists():
-                print(f"  GFS {var} con {retardo} h de historia …", flush=True)
-                GFSClient().download_analysis_series(
-                    var, inicio - timedelta(hours=retardo), total + retardo, *caja,
-                    previa / f"{var}.tif")
+            bajar(var, inicio - timedelta(hours=retardo), total + retardo, previa / f"{var}.tif")
     # El clima crudo (T y HR a 0,25° y el terreno del GFS, donde valen) pesa poco y deja
     # calcular en la corrida las humedades con criterio (app/validation/humedad.py).
     crudo = bool(caso.datos["empaquetado"].get("clima_crudo"))
-    if crudo and not (series / "orog.tif").exists():
-        GFSClient().download_analysis_series("orog", inicio, 0, *caja, series / "orog.tif")
+    if crudo:
+        bajar("orog", inicio, 0, series / "orog.tif")
     salida = []
     for v in caso.ventanas:
         desde = int((v.inicio - inicio).total_seconds() // 3600)
@@ -653,6 +723,126 @@ def _fmt(v) -> str:
     return "—" if v is None else f"{v:.3f}" if isinstance(v, float) else str(v)
 
 
+SECTORES = ("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+
+
+def _rumbo(dx: np.ndarray, dy: np.ndarray) -> np.ndarray:
+    """Sector (0 = N, en sentido horario) hacia donde está cada celda desde el origen."""
+    return (np.round((np.degrees(np.arctan2(dx, dy)) % 360) / 45).astype(int)) % 8
+
+
+def analizar(caso: d.Caso, receta: d.Receta) -> dict:
+    """Las preguntas del loop, para una iteración: ¿sobre o sub-propaga, cuándo y dónde?
+
+    - Curva: área predicha (fuera de la semilla y de la exclusión) contra la cicatriz ya
+      alcanzada por detecciones VIIRS, hora a hora.
+    - Dónde: aciertos, falsos positivos y no predichos de la última ventana por grupo de
+      combustible, altura, pendiente y rumbo desde la ignición, con el viento medio al lado.
+    """
+    from app.validation import cadena
+
+    manifiesto = d.cargar_manifiesto(caso.id, receta.id)
+    paquete = caso.paquete()
+    comunes = paquete["comunes"]
+    leer = cadena._leer
+    grilla = p.Grilla(almacen.abrir(comunes["dem.tif"]))
+    ha = grilla.celda_ha
+    dem, pend = leer(comunes["dem.tif"]), leer(comunes["slp.tif"])
+    mapa = f"fbfm40_{receta.combustible['fuente']}{receta.anio_combustible(caso)}.tif"
+    fuel = leer(comunes[mapa])
+    cicatriz = leer(comunes["cicatriz.tif"]).astype(bool)
+    excluido = leer(comunes["excluido.tif"]).astype(bool)
+    semilla = leer(manifiesto["ventanas"][0]["insumos"]["phi.tif"]) < 0
+    vistas = cadena.VISTAS / caso.id / receta.id
+    with rasterio.open(vistas / "linea_tiempo.tif") as src:
+        llegada = src.read(1) / 3600.0   # horas desde el inicio del caso; <0 = no llegó
+    donde = ~excluido & ~semilla
+
+    # Curva: lo observado hasta la hora h es la cicatriz a un píxel de alguna detección.
+    df = pd.read_csv(almacen.abrir(comunes["firms.csv"]))
+    df["acq_datetime"] = pd.to_datetime(df["acq_datetime"], utc=True)
+    inicio = caso.ventanas[0].inicio
+    total_h = int((caso.ventanas[-1].fin - inicio).total_seconds() // 3600)
+    curva = []
+    for h in range(6, total_h + 1, 6):
+        vistas_h = _discos(_puntos(df, None, inicio + timedelta(hours=h)), grilla,
+                           perimeter_reconstruction.VIIRS_PIXEL_M)
+        pred = (llegada > 0) & (llegada <= h) & donde
+        curva.append({"h": h, "predicho_ha": round(float(pred.sum() * ha)),
+                      "observado_ha": round(float((cicatriz & vistas_h & donde).sum() * ha))})
+
+    # Dónde: la confusión de la última ventana.
+    n = len(manifiesto["ventanas"]) - 1
+    with rasterio.open(vistas / f"v{n}" / "confusion.tif") as src:
+        conf = src.read(1)
+    ff, cc = np.nonzero(semilla)
+    f0, c0 = ff.mean(), cc.mean()
+    filas, cols = np.indices(conf.shape)
+    celda = abs(grilla.transform.a)
+    dx, dy = (cols - c0) * celda, (f0 - filas) * celda
+    rumbo = _rumbo(dx, dy)
+    dist = np.hypot(dx, dy)
+    grupos = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149), "TU": (161, 165),
+              "TL": (181, 189), "NB": (91, 99)}
+    clases = {"acierto": cadena.ACIERTO, "falso_positivo": cadena.PREDICHO_SIN_OBS,
+              "no_predicho": cadena.OBS_SIN_PREDECIR}
+    donde_err = {}
+    for nombre, codigo in clases.items():
+        m = conf == codigo
+        if not m.any():
+            donde_err[nombre] = {"ha": 0}
+            continue
+        donde_err[nombre] = {
+            "ha": round(float(m.sum() * ha)),
+            "altura_m": [round(float(q)) for q in np.percentile(dem[m], [25, 50, 75])],
+            "pendiente_grados": round(float(np.median(pend[m]))),
+            "dist_ignicion_km": round(float(np.median(dist[m])) / 1000, 1),
+            "combustible_ha": {g: round(float((m & (fuel >= a) & (fuel <= b)).sum() * ha))
+                               for g, (a, b) in grupos.items()},
+            "rumbo_ha": {SECTORES[k]: round(float((m & (rumbo == k)).sum() * ha))
+                         for k in range(8)},
+        }
+    # Viento en la ignición, por ventana: medio y de la tarde (13-19 h locales, ~16-22 UTC).
+    vientos = []
+    for v, ventana in zip(caso.ventanas, paquete["ventanas"]):
+        with rasterio.open(almacen.abrir(ventana["ws.tif"])) as a, \
+                rasterio.open(almacen.abrir(ventana["wd.tif"])) as b:
+            ws, wd = a.read()[:, int(f0), int(c0)], b.read()[:, int(f0), int(c0)]
+        horas = np.array([(v.inicio + timedelta(hours=k)).hour for k in range(len(ws))])
+        tarde = (horas >= 16) & (horas <= 22)
+        u = -(ws * np.sin(np.radians(wd)))
+        w = -(ws * np.cos(np.radians(wd)))
+        def media(sel):
+            uu, ww = u[sel].mean(), w[sel].mean()
+            return {"mph": round(float(ws[sel].mean()), 1),
+                    "desde_grados": round(float((np.degrees(np.arctan2(-uu, -ww))) % 360))}
+        vientos.append({"n": v.inicio.isoformat(), "medio": media(np.ones_like(tarde)),
+                        "tarde": media(tarde), "max_mph": round(float(ws.max()), 1)})
+    informe = {"caso": caso.id, "receta": receta.id, "curva": curva, "donde": donde_err,
+               "ignicion_altura_m": round(float(dem[int(f0), int(c0)])), "viento": vientos}
+    destino = d.ruta_iteracion(caso.id, receta.id) / "analisis.json"
+    destino.write_text(json.dumps(informe, indent=2, ensure_ascii=False))
+    _imprimir_analisis(informe)
+    return informe
+
+
+def _imprimir_analisis(a: dict) -> None:
+    print(f"{a['caso']} · {a['receta']} (ignición a {a['ignicion_altura_m']} m)")
+    print("  curva (h: predicho/observado ha): " + "  ".join(
+        f"{c['h']}:{c['predicho_ha']}/{c['observado_ha']}" for c in a["curva"]))
+    for nombre, m in a["donde"].items():
+        if not m.get("ha"):
+            print(f"  {nombre:15s} 0 ha")
+            continue
+        comb = " ".join(f"{g}{v}" for g, v in m["combustible_ha"].items() if v)
+        rumbo = " ".join(f"{g}{v}" for g, v in m["rumbo_ha"].items() if v)
+        print(f"  {nombre:15s} {m['ha']:6d} ha  alt {m['altura_m']}  pend {m['pendiente_grados']}°"
+              f"  dist {m['dist_ignicion_km']} km | {comb} | {rumbo}")
+    print("  viento (medio / tarde desde°·mph / máx): " + "  ".join(
+        f"{v['medio']['desde_grados']}·{v['medio']['mph']}/{v['tarde']['desde_grados']}·"
+        f"{v['tarde']['mph']}/{v['max_mph']}" for v in a["viento"]))
+
+
 def tabla(caso: d.Caso) -> None:
     """Todas las recetas corridas sobre el caso, lado a lado."""
     raiz = d.ruta_iteracion(caso.id, "")
@@ -723,7 +913,7 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("empaquetar").add_argument("caso")
     sub.add_parser("diagnosticar").add_argument("caso")
-    for nombre in ("correr", "puntuar", "verificar"):
+    for nombre in ("correr", "puntuar", "verificar", "analizar"):
         s = sub.add_parser(nombre)
         s.add_argument("caso")
         s.add_argument("recetas", nargs="+")
@@ -764,10 +954,12 @@ def main() -> None:
                 cadena.puntuar(caso, receta)
             elif args.cmd == "puntuar":
                 cadena.puntuar(caso, receta)
+            elif args.cmd == "analizar":
+                analizar(caso, receta)
             else:
                 for r in cadena.verificar(caso, receta):
                     print(f"  ventana {r['n']}: {'igual' if r['toa_igual'] else 'DISTINTO'}")
-        if args.cmd != "verificar":
+        if args.cmd not in ("verificar", "analizar"):
             tabla(caso)
 
 

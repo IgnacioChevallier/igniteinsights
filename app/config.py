@@ -44,10 +44,14 @@ class Settings(BaseSettings):
     # Población Rosales scar reaches -42.95 and its ignition sat 2 km from the old edge, and
     # the old box left out the southern half of the park. North and west edges unchanged,
     # so crop offsets of earlier preparations stay valid.
+    # North edge moved from -42.05 to -41.90 on 2026-09-28 (RESULTADOS-CSS-BAP §2): the Las
+    # Golondrinas 2021 scar reaches -42.006 and both documented ignitions sit north of the old
+    # edge. This one does shift the grid origin: preparations made before it keep their own
+    # grid (the benchmark cases carry theirs), new ones start 0.15° further north.
     aoi_west: float = -72.05
     aoi_south: float = -43.20
     aoi_east: float = -71.15
-    aoi_north: float = -42.05
+    aoi_north: float = -41.90
     # Fuente de cobertura con la que se construye fbfm40.tif. Entra en la clave de
     # caché del ráster, así que cambiarla lo regenera en vez de servir el anterior.
     # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3 (IGN-20B-CROSSWALK-CCSBAP.md)

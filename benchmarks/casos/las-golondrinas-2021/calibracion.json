@@ -1,0 +1,57 @@
+{
+  "descripcion": "Las Golondrinas y Cerro Radal (Lago Puelo / El Hoyo), martes 9-mar-2021: dos focos a 30-40 min, viento extremo; 605 viviendas afectadas en un par de horas. 24 h: la primera pasada VIIRS (04:43 UTC del 10-mar) ya ve el 82 % del área FIRMS del incendio y no aparecen detecciones nuevas hasta el 13-mar. Cicatriz truncada al horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP), sobre la preparación extendida al norte.",
+  "anio_fuego": 2021,
+  "semilla_inicial": {
+    "tipo": "puntos",
+    "hora": "2021-03-09T18:00:00+00:00",
+    "puntos": [
+      {
+        "nombre": "Las Golondrinas",
+        "lon": -71.52181,
+        "lat": -42.01227
+      },
+      {
+        "nombre": "Cerro Radal",
+        "lon": -71.55865,
+        "lat": -42.03658
+      }
+    ],
+    "fuente": "Pericias citadas por elDiarioAR y Diario Río Negro (mar-2022): el foco de Las Golondrinas empezó a las 15 h del 9-mar-2021 por una línea aérea de media tensión sobre coníferas; el de Cerro Radal, 30-40 min después. Radio Nacional (9-mar-2021): 'alrededor de las 16 h' en Las Golondrinas y en Radal. Lugares: OSM (Escuela N° 41 'Las Golondrinas', -42.0152/-71.5329; Cerro Radal, -42.0328/-71.5658).",
+    "ajuste": "Los dos lugares documentados caen fuera de la cicatriz (816 m y 582 m; zona de viviendas, NB1): la cicatriz dNBR empieza al este de los poblados. Se toma para cada uno la celda de la cicatriz a más de 90 m del borde más cercana: Las Golondrinas → -42.01227/-71.52181 (969 m, 463 m de altura, TU3); Cerro Radal → -42.03658/-71.55865 (716 m, 349 m, TL8). Los dos a las 15 ART (Radal fue 30-40 min después). La semilla de mask-dataset-gen (-42.084/-71.371, centroide MODIS) está a 1.388 m, 7,9 km de las primeras detecciones (19:49 UTC, -42.014/-71.510, 602 m)."
+  },
+  "ventanas": [
+    {
+      "t0": "2021-03-09T18:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.64,
+    -42.2,
+    -71.16,
+    -41.95
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/las-golondrinas-2021/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-2026-09-28",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/elmfire/inputs/benchmark-2026-09-28/fbfm40_ccsbap2017.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true
+  }
+}
