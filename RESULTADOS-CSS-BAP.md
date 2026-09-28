@@ -7,30 +7,23 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 4, 2026-09-28 tarde)*
+*(se reescribe en cada loop — última: loop 6, 2026-09-28 noche)*
 
-- **Hallazgo mayor:** la orientación del terreno estaba invertida en todo el repo (§4, loop 2).
-  Corregida (`raster_aligner` v3); todo lo que sigue es con protocolos `-v2`/`-v3`.
-- **Mejor receta sin alarmas hasta ahora: `adj-130-001` (ADJ uniforme 1,3).**
-  - Calibración GFS: Dice medio 0,364 (mediana 0,386) contra 0,302 de base.
-  - Calibración ERA5: 0,365 contra 0,339.
-  - Es el centro de los ADJ que pide cada incendio para llegar a sesgo 1 (de 1,00 a 1,53);
-    el intervalo factible sin alarmas es [1,1; 1,3].
-  - Fuera de muestra (validación cruzada): media 0,396. Alerces 2023 y Epuyén acotan la
-    receta: sin ellos, la elegida desborda en el que quedó afuera.
-- **En evaluación:** el atlas de viento de WindNinja (protocolos `-v3`; Alerces 2016: 0,433 →
-  0,504), solo y con ADJ 1,3 (`adj130-atlas-001`), y la corrección empírica de dirección
-  (`adj130-rot030/045/060-001`).
+- **Receta elegida: `adj-130-001` (ADJ uniforme 1,3).**
+  - Calibración: Dice medio 0,364 con GFS (5 incendios; base 0,302) y 0,365 con ERA5
+    (2; base 0,339). Cero alarmas en los seis incendios alcanzables.
+  - Prueba: media 0,191 contra 0,202 de base. Mejora Alerces 2015 y Puerto Café (grandes
+    incendios de montaña). Empeora El Turbio y Epuyén 2019, que ya sobre-propagan con base
+    porque fueron combatidos o son lentos.
+  - Detalle en §5.
+- **Hallazgo mayor:** la orientación del terreno estaba invertida en todo el repo (§4, loop 2),
+  y ya está corregida.
 - **Corriendo:** consumidor `data/benchmark/cola_run2.sh` sobre `data/benchmark/trabajos.txt`
-  (log `log_run2.txt`); atlas en `cola_emp7.sh` (Golondrinas v3 al final).
-- **Hipótesis abiertas:** forma por dirección (atlas contra rotación empírica). Descartadas:
-  humedad con criterio como palanca (H1/H3), ADJ por grupo (H5b), copa por CBH (H2),
-  canalización por presión (H4b).
-- **Próximo paso:**
-  1. Elegir entre `adj-130-001`, `adj130-atlas-001` y `adj130-rot*` con `objetivo` y `validar`.
-  2. Correr la elegida y `base-001` en los casos de prueba (El Turbio, Puerto Café, Epuyén 2019,
-     Alerces 2015).
-  3. Sensibilidad a la ignición (±500 m, ±2 h).
+  (log `log_run2.txt`): loop 6, viento ×1,3 y ×1,6 en los siete de calibración (v3).
+- **Hipótesis abierta:** H6, el día 1 es viento de valle subestimado. Se mira la curva a las
+  12–24 h, no sólo el Dice final.
+- **Próximo paso:** si el viento acelera el día 1 sin romper el resto, evaluar ADJ + viento con
+  `objetivo`/`validar`. Si no, H6 queda descartada y el día 1 pasa a los límites (§7.3).
 
 ## 2. Supuestos
 
@@ -633,6 +626,19 @@ El factor de velocidad que pide un incendio va de ~0,3 (El Turbio, Epuyén 2019)
   ingresarse con la mejor precisión posible (coordenada del parte, no el centroide del
   satélite). Un ensamble sobre la incertidumbre de la ignición daría una banda más honesta que
   una sola corrida.
+
+**Ensamble sobre la incertidumbre de la ignición.** Con las siete corridas de cada incendio
+(documentada + seis perturbadas), la probabilidad de quema umbralizada en 0,5 (mayoría, sin
+ajuste) da:
+
+| Incendio | Ensamble | Documentada | Media de los miembros | Peor miembro |
+|---|---|---|---|---|
+| Alerces 2023 | 0,543 | 0,550 | 0,519 | 0,450 |
+| Epuyén 2025 | 0,280 | 0,282 | 0,268 | 0,077 |
+| Alerces 2016 | 0,400 | 0,400 | 0,407 | 0,273 |
+
+No supera a la mejor estimación, pero elimina el riesgo del peor caso. Es la forma recomendable
+de operar con una ignición incierta.
 
 ## 5. Resultados
 
