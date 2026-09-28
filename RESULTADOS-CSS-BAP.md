@@ -397,7 +397,18 @@ velocidad y forma se rehacen sobre v2.
 
 ## 6. Parámetros
 
-*(se completa a medida que haya veredicto)*
+Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá. *(Borrador: se completa
+con los incendios que faltan en v2.)*
+
+| Entrada | Veredicto | Evidencia |
+|---|---|---|
+| §1.2 humedad muerta, m1 | **Con criterio: se queda Nelson con el GFS crudo; el delta uniforme no tiene soporte.** | Estaciones (El Bolsón, Esquel, Futaleufú) dan m1 de 5,9–6,6 % en las tardes de fuego; el GFS, 5,5–9,1 %. Las tablas de Fosberg (BehavePlus, llevadas al hemisferio sur) dan lo mismo o más húmedo que Nelson. `fosberg-001` y `altura-001` cambian el Dice en ±0,01. El −6 (m1 ≈ 1 %) es un acelerador que suple el fuego de copas y el viento de valle que faltan (§4, loop 2). |
+| §1.2 humedad muerta, m10/m100 (+2/+5) | **Insensible.** | `humedad-m1-m6-001` (−6 sólo en m1) da 2/3 del efecto del −6 completo. El modelo de retardo baja m100 a ~11 % sin cambiar el resultado (`RESULTADOS.md` §8). |
+| §1.3 ADJ | *pendiente de v2 en los cinco incendios* | En Alerces 2023 v2, TU ×1,3 da 0,557 contra 0,457 de base. |
+| §1.4 rugosidad z0 | **Se queda el escalar 0,22 m; el ráster de dosel duplica el WAF.** | z0 = 0,13 × altura del dosel baja el área de Alerces 2023 un 12 % (0,442 contra 0,457), porque reduce el viento bajo el bosque, donde ELMFIRE ya aplica su propio factor de reducción por dosel. En pastizal y matorral sube el viento apenas ~5 %. |
+| §3 `dt_s` / `dtmax_s` | **Convergido.** | Con el paso a la mitad (15 s / 150 s), Alerces 2023 cambia el sesgo un 2,5 % y el Dice 0,004. Falta confirmarlo en Epuyén y Alerces 2016. |
+| §2 reconstrucción de perímetro | **Fuera de alcance de esta calibración.** | La semilla es puntual; los parámetros de §2 sólo pesan con semilla observada (harness A). |
+| (nuevo) orientación del terreno | **Bug corregido** (`raster_aligner` v3). | Ver §4, loop 2. |
 
 ## 7. Para corregir afuera
 

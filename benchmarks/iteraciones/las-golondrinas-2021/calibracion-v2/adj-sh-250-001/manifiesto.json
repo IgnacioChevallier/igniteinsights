@@ -1,0 +1,68 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v2",
+  "caso_sha": "a0f1aa509dbe933b961de3f0bf8f614421b5ff6882ae114e417387d3519f171b",
+  "receta": "adj-sh-250-001",
+  "receta_sha": "0fbc14fdefc5f15ffd53ca38c7d6c5c94f701423930381b9da4aba4a0752c0b2",
+  "padre": "base-001",
+  "motivo": "H5b (RESULTADOS-CSS-BAP §4, loop 2): la humedad realista (Fosberg, estaciones) no alcanza la velocidad observada, y la perilla con criterio para un sesgo de velocidad es ADJ por grupo (PENDING_PARAMETERS §1.3). Alerces 2023 (71 % TU) pide un factor ~1,2 y Epuyén 2025 (54 % SH) ~2: si la diferencia es de combustible, el SH4 sub-predice más que el TU3 (coherente con Mermoz et al. 2005: el matorral propaga más que el bosque). SH ×2,5, el resto en 1.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "adj_grupos": {
+      "SH": 2.5
+    }
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "8985b550fc11c110f1f149aa2efe62e821b194f7",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "b4ec58ceb38b92c226f048b931d42baaf9806539c6e4ae151abdd24b4046f272",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "26e506271f1619a4210620e8e62b3a6ce7e31078098b81b429670abdb4f17359",
+        "cbh.tif": "fe48c015bf05509236a8d14d90f2372d5304f0e83620ebbdaf88675d140a6be1",
+        "cc.tif": "2912fd21d85ee4ddec3b2d0229900fdd89f930be24c4863d4715a7f8098ab109",
+        "ch.tif": "743fa37cf663bfaec5e8f6ec927da6eb396a5063837f4a2100343dc4a9b122e9",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "b7e4e7870d53324efa81c8754938ef71b93687c0502ee459f4957273764d2852",
+        "fbfm40.tif": "f7d97e6e8e85c27060eb457224208ea0666abece6f6146a96c0052affb1febbf",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "54afe0241556ae4af76c2166ee2bc1af974fa4cd921a95532bbcc5d6f296ecf5",
+        "m10.tif": "2b2e3907a6c98b93e6bc8a328dabf159a8f6a4e812f53b25ed0e00f0e6eb3864",
+        "m100.tif": "3847e2df31f182baa289dd2e8cc9ef234d5ea9f9fac49ea011ba33da855724ad",
+        "phi.tif": "e55a6efb5aeffb41c2c27636ce6a61d2e19d14f750298474dc343d8c880fd4e1",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "a016780f0df322963dbb0d34248c9162014e255483a249f47ff5faddc565a473",
+        "ws.tif": "3e1fca882199001270b4167c25f9e6cfb6e4038fe2b1fe44bb62e2ff639e20c2"
+      },
+      "namelist_sha": "0570a09036542cce1db56f7619a2758bf786bf9e9bb9e4234fe716b493ea59b0",
+      "salidas": {
+        "fire_size_stats.csv": "f849b39bbe03ab563d77d3d87a0f2437b514cec10c46897736acba0aea23b42c",
+        "flin_0000001_0086445.tif": "33e20af6f38a6447d3d297ffc78ea432f750c28e11e536f4d2637a77de539eaf",
+        "hourly_isochrones.dbf": "aa4af3d6e4f25e8f5dfbb9c1efb387f0c06105322f7338153c6d2c3b5ed7afac",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "b3aee88498d8cdfd4e1c6542f3733956a800a33ce3dac829ad18a6087c8c3600",
+        "hourly_isochrones.shx": "9e05b1116fb30b2c2ba46e79f1841877ff6dfaf409856eaafe4630cf7cb5769c",
+        "time_of_arrival_0000001_0086445.tif": "8bfa59cde81bd8a3f99c864abb4d17ed96ef448f1ca3ec65bdd88da3de604817",
+        "vs_0000001_0086445.tif": "d1c94c754a670fdc029f3a7c689a226f0aa928b6c143a989bb3f621af71ea8a7"
+      },
+      "git": {
+        "sha": "8985b550fc11c110f1f149aa2efe62e821b194f7",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T07:11:15.993010+00:00",
+        "minutos": 0.1
+      }
+    }
+  ]
+}
