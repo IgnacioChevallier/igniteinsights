@@ -349,17 +349,25 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
     def bajar(var: str, desde: datetime, horas: int, destino: Path) -> None:
         if destino.exists():
             return
-        # Una serie ya bajada con el mismo inicio y la misma caja, pero más larga, alcanza.
+        # Una serie ya bajada con la misma caja que cubra [desde, desde + horas] alcanza:
+        # se corta con el desfase (p. ej. la ignición 2 h más tarde, o una serie más larga).
         sufijo = "_".join(f"{v:.2f}" for v in caja)
-        for otra in sorted(cache.glob(f"{desde:%Y%m%dT%H}_*h_{sufijo}")):
-            if int(otra.name.split("_")[1][:-1]) >= horas and (otra / f"{var}.tif").exists():
-                with rasterio.open(otra / f"{var}.tif") as src:
-                    datos = src.read(list(range(1, min(horas + 1, src.count) + 1)))
-                    perfil = src.profile | {"count": datos.shape[0]}
-                destino.parent.mkdir(parents=True, exist_ok=True)
-                with rasterio.open(destino, "w", **perfil) as dst:
-                    dst.write(datos)
-                return
+        for otra in sorted(cache.glob(f"*_*h_{sufijo}")):
+            inicio_otra = datetime.strptime(otra.name.split("_")[0], "%Y%m%dT%H").replace(
+                tzinfo=desde.tzinfo)
+            desfase = int((desde - inicio_otra).total_seconds() // 3600)
+            if (desfase < 0 or int(otra.name.split("_")[1][:-1]) < desfase + horas
+                    or not (otra / f"{var}.tif").exists()):
+                continue
+            with rasterio.open(otra / f"{var}.tif") as src:
+                if src.count < desfase + horas + 1:
+                    continue
+                datos = src.read(list(range(desfase + 1, desfase + horas + 2)))
+                perfil = src.profile | {"count": datos.shape[0]}
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            with rasterio.open(destino, "w", **perfil) as dst:
+                dst.write(datos)
+            return
         print(f"  {fuente} {var}: {horas + 1} bandas horarias desde {desde} …", flush=True)
         if fuente == "era5":
             _era5_serie(var, desde, horas, caja, destino)

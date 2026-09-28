@@ -1,0 +1,54 @@
+{
+  "descripcion": "Población Rosales II, PN Los Alerces: ignición el sábado 4-feb-2023 22:00 ART, 72 h en tres ventanas de 24 h. El horizonte es el de las detecciones que agregan área: el área FIRMS acumulada llega al 99 % el 7-feb y la cicatriz alcanzada por detecciones queda fija desde las ~54 h; lo que sigue es liquidación y combate (`cadena-96h` corría 96 h). Cicatriz truncada al horizonte; humedad de retardo y clima crudo del GFS disponibles. Protocolo `calibracion` (RESULTADOS-CSS-BAP). Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Sensibilidad a la ignición (p2h: +2 h), RESULTADOS-CSS-BAP loop 5.",
+  "anio_fuego": 2023,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.576667,
+    "lat": -42.8825,
+    "hora": "2023-02-05T03:00:00+00:00",
+    "fuente": "Parte citado por Red43 (2023-02-05): 'El sábado a las 22 hs se declaró un incendio denominado Población Rosales II'. Ubicación: partes del SNMF (config de mask-dataset-gen)."
+  },
+  "ventanas": [
+    {
+      "t0": "2023-02-05T03:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-06T03:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-07T03:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.78,
+    -43.05,
+    -71.33,
+    -42.72
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2023/runs/event-filter-002",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true
+  }
+}
