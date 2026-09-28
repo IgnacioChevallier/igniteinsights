@@ -58,6 +58,20 @@ Decisiones tomadas sin poder consultar, con su justificación.
    nubosidad: se supone cielo despejado, lo esperable en días de propagación). De noche, fuera
    del rango de las tablas (08–20 h), se usa la corrección sombreada de la última franja.
    Altura relativa a la "estación" = DEM menos terreno del GFS (el GFS es la estación).
+9. **"Detecciones nuevas" = detecciones que agregan área.** VIIRS sigue viendo píxeles dentro de
+   lo ya quemado días después de que el frente se detiene. El horizonte se corta cuando el área
+   FIRMS acumulada deja de crecer, no cuando dejan de aparecer píxeles. Por eso Alerces 2023
+   pasa a 72 h: la cicatriz alcanzada por detecciones queda fija desde las ~54 h, y `cadena-96h`
+   corría 96 h.
+10. **Las Golondrinas se puntúa contra la cicatriz completa.** VIIRS casi no vio ese incendio:
+    6 píxeles a las 19:49 UTC y 1 en la pasada nocturna, para ~10.000 ha. Ardió entre dos
+    pasadas y bajo el humo de otro incendio activo desde el 7-mar al este, que la máscara
+    excluye. La truncación por detecciones dejaría 853 ha. Las crónicas ("605 viviendas en un
+    par de horas") y la ausencia de detecciones posteriores ubican el crecimiento en la primera
+    noche. Con un satélite ciego, manda la cronología documentada.
+11. **La preparación extendida** (`scripts/preparar_benchmark.py` →
+    `data/elmfire/inputs/benchmark-2026-09-28`) sólo la usan los casos nuevos. Los ya
+    empaquetados conservan su grilla, así que no hace falta re-empaquetarlos.
 
 ## 3. Casos
 
@@ -173,6 +187,94 @@ tests en `tests/test_validation_humedad.py`):
 Por H1 espero que ninguna de las dos alcance el −6. Si no llegan, eso confirma que la
 velocidad que falta no es de humedad, y la próxima hipótesis es el viento (factor por incendio
 contra la estación) y la carga viva del SH4.
+
+### Loop 1 — `base-001` y la humedad con criterio sobre Alerces 2023 y Epuyén 2025
+
+`benchmark.py analizar <caso> <receta>` responde las preguntas del loop. Da:
+
+- la curva de área predicha contra la cicatriz ya alcanzada por detecciones, cada 6 h;
+- dónde caen aciertos, falsos positivos y no predichos, por grupo de combustible, altura,
+  pendiente, distancia y rumbo desde la ignición;
+- el viento del GFS en la ignición y el rumbo del frente observado cada día.
+
+**1. ¿Sobre o sub-propaga, y cuándo?** Sub-propaga, y sobre todo el día 1.
+
+| Incendio | Observado (ha) | `base-001` (ha) | `humedad-m6-001` (ha) |
+|---|---|---|---|
+| Alerces 2023 | 485 a las 24 h; 1.055 a las 54 h, y ahí se detiene (combate) | 116 a las 24 h; crece parejo hasta 697 a las 72 h | 256 a las 24 h |
+| Epuyén 2025 | **1.120 en las primeras 6 h**; 1.730 a las 18 h | 18 a las 24 h | **26 a las 24 h** |
+
+En Epuyén, el −6 alcanza el área final porque crece durante 3–4 días, no porque reproduzca la
+corrida del día 1.
+
+**2. ¿Dónde?** En las dos cicatrices, lo no predicho está al SE/S y lejos de la ignición:
+
+- Alerces 2023: 2,9 km y más alto que la ignición (900 m contra 801 m).
+- Epuyén 2025: 4,3 km.
+
+Los falsos positivos van al N/NE (Alerces) y al SO, ladera arriba (Epuyén: 1.011 ha con el −6,
+a 619 m de mediana contra 348 m de la ignición).
+
+**Rumbo del frente observado** (cuartil más lejano de las detecciones de cada día, desde la
+ignición) contra hacia dónde empuja el viento medio del GFS:
+
+| Incendio | Día 1 | Día 2 | Día 3 | Día 4 |
+|---|---|---|---|---|
+| Alerces 2023 | 169° vs 97° (+72°) | 171° vs 92° (+79°) | 123° vs 84° (+39°) | — |
+| Epuyén 2025 | 143° vs 100° (+44°) | 154° vs 91° (+63°) | 193° vs 89° (+103°) | 162° vs 96° (+66°) |
+
+El frente real va 40–100° más al sur que el empuje del GFS, siempre en el mismo sentido. Es la
+firma del **encauzamiento por los valles**, que un GFS de 0,25° no resuelve. La estación de El
+Bolsón marcó 320° (NO) a 35 km/h a las 18 UTC del día 1, cuando el GFS daba 270° (O).
+
+**3. ¿Por qué?** Hipótesis, en orden:
+
+- H4, **dirección del viento** (explica la forma);
+- H5, **velocidad**, que ninguna humedad realista alcanza: el día 1 de Epuyén (5 km en 6 h)
+  necesita viento de ráfaga y pavesas;
+- supresión, en Alerces después de las 54 h.
+
+**H1 y H3 quedan confirmadas con datos:**
+
+- *Estaciones contra GFS* (Meteostat; tardes 15–22 UTC de los días de fuego). El m1 de Nelson
+  con el GFS es igual o más seco que con la estación:
+
+  | Estación | m1 estación | m1 GFS |
+  |---|---|---|
+  | El Bolsón (Epuyén) | 6,4 % | 5,8 % |
+  | Esquel (Alerces) | 5,9 % | 5,5 % |
+  | Futaleufú | 6,6 % | 9,1 % |
+
+  El sesgo grande del GFS está en el **viento de valle**: Futaleufú marca 30 km/h de media contra
+  10 del GFS, con ráfagas de 83 contra 15. En El Bolsón, la ráfaga máxima es 35 contra 16.
+- *Fosberg contra Nelson* en Alerces 2023 (`fosberg-001`, ventana 0): mediana 7,0 contra 6,8 %
+  en el pico de la tarde y 9,0 contra 7,6 % a las 16 UTC. Las tablas no secan. El Dice queda
+  igual: 0,423 contra 0,425.
+- **Conclusión:** el m1 realista en las tardes de fuego es 5–7 %. El −6 (m1 ≈ 1 %) no tiene
+  soporte en estaciones ni en Fosberg: es una **perilla de velocidad disfrazada de humedad**,
+  que en PENDING_PARAMETERS le corresponde a ADJ (§1.3).
+
+**ERA5 contra estaciones** (para los incendios anteriores al archivo GFS):
+
+- ERA5 en su celda es más frío y más húmedo: m1 8,1 % contra 6,4 % en El Bolsón.
+- La corrección de Open-Meteo por altura baja sólo la T y deja la HR: 8,2 %.
+- Con la T llevada al DEM y el **punto de rocío conservado** (`modelo_humedad: altura`), la HR
+  baja a ~32 % y m1 ≈ 6,5 %, igual que la estación. Lo mismo en Esquel y Futaleufú.
+- Para el GFS, la misma corrección secaría de más: ya coincide crudo.
+- **Protocolo comparable entre fuentes: GFS crudo ↔ ERA5 + `altura`.**
+
+**4. ¿Tiene sentido el test?**
+
+- Alerces 2023: el horizonte pasó a 72 h (§2.9).
+- Las Golondrinas: la referencia pasó a la cicatriz completa (§2.10).
+- Epuyén 2025 sigue en 96 h con la cicatriz truncada (2.317 de 2.999 ha), porque siguió
+  creciendo en pulsos hasta el 22-ene.
+
+**5. Experimentos:**
+
+- `rotacion-060-001` (diagnóstico de H4: wd + 60°, el desvío medio) en los dos incendios.
+- Después, la velocidad con la perilla que le corresponde: ADJ por grupo de combustible,
+  contra el factor que pide cada incendio.
 
 ## 5. Resultados
 

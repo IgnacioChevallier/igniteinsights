@@ -1,5 +1,5 @@
 {
-  "descripcion": "Las Golondrinas y Cerro Radal (Lago Puelo / El Hoyo), martes 9-mar-2021: dos focos a 30-40 min, viento extremo; 605 viviendas afectadas en un par de horas. 24 h: la primera pasada VIIRS (04:43 UTC del 10-mar) ya ve el 82 % del área FIRMS del incendio y no aparecen detecciones nuevas hasta el 13-mar. Cicatriz truncada al horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP), sobre la preparación extendida al norte.",
+  "descripcion": "Las Golondrinas y Cerro Radal (Lago Puelo / El Hoyo), martes 9-mar-2021: dos focos a 30-40 min, viento extremo; 605 viviendas afectadas en un par de horas. 24 h contra la cicatriz COMPLETA: VIIRS SP casi no vio este incendio (6 píxeles a las 19:49 UTC del 9-mar, 1 en la pasada nocturna, ninguno después), porque ardió entre dos pasadas y bajo el humo de otro incendio activo desde el 7-mar al este (que la máscara excluye); truncar la cicatriz por detecciones dejaría 853 de 10.623 ha. Las crónicas y la falta de detecciones posteriores ubican casi todo el crecimiento en la primera noche. Protocolo `calibracion` (RESULTADOS-CSS-BAP), sobre la preparación extendida al norte.",
   "anio_fuego": 2021,
   "semilla_inicial": {
     "tipo": "puntos",
@@ -34,7 +34,7 @@
   "referencias": {
     "cicatriz": {
       "run": "../mask-dataset-gen/dataset/las-golondrinas-2021/runs/event-filter-001",
-      "hasta_horizonte": true
+      "hasta_horizonte": false
     },
     "firms": {
       "fuentes": [
