@@ -914,6 +914,48 @@ def resumen() -> None:
         print(f"{receta:26s}" + "".join(f"{t:>28s}" for t in textos))
 
 
+def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
+    """La función objetivo de RESULTADOS-CSS-BAP sobre un conjunto de la partición.
+
+    Principal: media y mediana del Dice al horizonte contra la cicatriz. Restricción: ningún
+    caso con alarma de sesgo. Desempate: forma (Dice a área igualada) y |t* − horizonte|.
+    Sólo recetas corridas en todos los casos del conjunto.
+    """
+    particion = json.loads((d.RAIZ / "particion.json").read_text())
+    casos = particion[conjunto][fuente]
+    filas = {}
+    for caso_id in casos:
+        caso = d.Caso.cargar(caso_id)
+        horizonte = (caso.ventanas[-1].fin - caso.ventanas[0].inicio).total_seconds() / 3600
+        raiz = d.ruta_iteracion(caso_id, "")
+        for ruta in sorted(raiz.glob("*/metricas.json")) if raiz.exists() else []:
+            m = json.loads(ruta.read_text())
+            pr = m.get("principal") or {}
+            if pr.get("referencia") != "cicatriz":
+                continue
+            ai = pr.get("area_igualada") or {}
+            t = ai.get("hora") if ai.get("alcanzada") else None
+            filas.setdefault(m["receta"], {})[caso_id] = {
+                "dice": pr["dice"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
+                "forma": ai.get("dice"), "dt": abs(t - horizonte) if t is not None else horizonte}
+    print(f"{conjunto}/{fuente}: {len(casos)} casos; las medias de recetas incompletas (n < "
+          f"{len(casos)}) no son comparables")
+    cortos = [c.split("/")[0].replace("los-alerces", "alerces").replace("puerto-", "")[:13]
+              for c in casos]
+    print(f"{'receta':24s}{'n':>2s}{'media':>7s}{'mediana':>8s}{'alarm':>6s}{'forma':>7s}"
+          f"{'|Δt*|':>7s}  " + "  ".join(f"{c:>13s}" for c in cortos))
+    orden = sorted(filas.items(), key=lambda kv: (-len(kv[1]),
+                                                  -np.mean([v["dice"] for v in kv[1].values()])))
+    for receta, f in orden:
+        v = [f[c] for c in casos if c in f]
+        celdas = "  ".join(f"{f[c]['dice']:.3f}/{f[c]['sesgo']:.2f}{'⚠' if f[c]['alarma'] else ' '}"
+                           if c in f else f"{'—':>13s}" for c in casos)
+        print(f"{receta:24s}{len(v):2d}{np.mean([x['dice'] for x in v]):7.3f}"
+              f"{np.median([x['dice'] for x in v]):8.3f}{sum(x['alarma'] for x in v):6d}"
+              f"{np.mean([x['forma'] or 0 for x in v]):7.3f}{np.mean([x['dt'] for x in v]):7.1f}  "
+              + celdas)
+
+
 def comparar(a_id: str, b_id: str) -> dict:
     def partes(i: str) -> tuple[str, str]:
         incendio, protocolo, receta = i.split("/")
@@ -938,6 +980,9 @@ def main() -> None:
         s.add_argument("recetas", nargs="+")
     sub.add_parser("tabla").add_argument("caso")
     sub.add_parser("resumen")
+    s = sub.add_parser("objetivo")
+    s.add_argument("conjunto", nargs="?", default="calibracion")
+    s.add_argument("fuente", nargs="?", default="gfs")
     s = sub.add_parser("comparar")
     s.add_argument("a")
     s.add_argument("b")
@@ -950,6 +995,8 @@ def main() -> None:
     caso = d.Caso.cargar(args.caso) if hasattr(args, "caso") else None
     if args.cmd == "resumen":
         resumen()
+    elif args.cmd == "objetivo":
+        objetivo(args.conjunto, args.fuente)
     elif args.cmd == "empaquetar":
         empaquetar(caso)
     elif args.cmd == "diagnosticar":

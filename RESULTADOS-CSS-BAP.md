@@ -107,16 +107,26 @@ El diagnóstico de cada incendio está en `benchmarks/diagnosticos/<incendio>.js
 | puerto-patriada-2026 | 96 % | 24.457 / 14.770 ha | post = fin de FIRMS* | corregida a la localidad, 343 m | 96 h (antes de la fusión del 10-ene) | **válido con horizonte acotado** |
 | puerto-cafe-2025 | 97 % | 38.188 / 31.000 ha | ✓ | fase explosiva desde lo observado | 96 h desde el 5-ene 20 UTC | **válido como fase explosiva** |
 | las-golondrinas-2021 | — | 8.988 (en grilla) / 12.901 ha | ✓ | 2 focos documentados, fuera de la grilla | 48 h (82 % en la 1ª noche) | **pendiente: AOI al norte** |
-| epuyen-2019 | 99 % | 1.545 / 1.553 ha | ✓ | 90 m afuera, 517 m | — | pendiente: clima pre-GFS |
-| los-alerces-2015 | 93 % | 1.190 / 1.500 ha | ✓ | 300 m adentro | — | pendiente: clima y CCS-BAP 2013 |
-| los-alerces-2016 | 99 % | 1.837 / 1.700 ha | ✓ | 270 m adentro | — | pendiente: clima y CCS-BAP 2013 |
+| epuyen-2019 | 99 % | 1.545 / 1.553 ha | ✓ | corregida 180 m adentro (La Rinconada, 29-ene 16:30 ART) | 120 h (tope; 80 % al día 4) | **válido con ERA5** (`calibracion-era5`) |
+| los-alerces-2015 | 93 % | 1.190 / 1.500 ha | ✓ | 300 m adentro, 841 m; hora no publicada (13 ART) | 72 h (91 % al día 3) | **válido con ERA5**, CCS-BAP 2013 |
+| los-alerces-2016 | 99 % | 1.837 / 1.700 ha | ✓ | 270 m adentro (Arroyo Cascada, 21-ene 14 ART) | 72 h (94 % al día 3) | **válido con ERA5**, CCS-BAP 2013 |
 | desemboque-2015 | 96 % | **560 / 2.307 ha** | ✓ | 240 m adentro | — | **dudoso**: la máscara es un cuarto de lo oficial |
 | currumahuida-2015 | 91 % | 4.242 / 3.151 ha | ✓ | centroide MODIS, **6,9 km** de las 1as detecciones | — | pendiente: ignición |
 | cerro-plataforma-2015 | 88 % | 6.265 / 7.371 ha | 1ª detección 14 días después del "inicio" | centroide MODIS sobre NB, 297 m afuera | — | pendiente: ¿parte del complejo Cholila? |
-| cholila-2015 | 97 % | 26.680 / 28.960 ha | ✓ | sobre agua, 350 m afuera, **15 km** de las 1as detecciones | — | pendiente: ignición |
+| cholila-2015 | 97 % | 26.680 / 28.960 ha | ✓ | 1ª detección VIIRS (nacientes del Río Tigre, 1.234 m) | 120 h (tope; 39 %) | **válido con ERA5**, CCS-BAP 2013, cicatriz truncada |
 
 \* La ventana post de Patriada empieza el 1-feb, justo cuando dejan de aparecer detecciones:
 encierra el período, pero sin margen.
+
+**CCS-BAP 2013** (`fbfm40_ccsbap2013.tif`, de `datasets/CH_2013_…/cob_2013_N3_aok_CH.shp`) se
+rasteriza con el mismo crosswalk, la misma regla de mayoría a 10 m y el mismo relleno de
+WorldCover que 2017, sobre la grilla extendida (`scripts/preparar_benchmark.py`).
+
+- **Leyenda compatible:** sobre el AOI, las ternas (`Ley_N1`, `Ley_N2`, `Ley_N3`) de 2013 y 2017 son
+  exactamente las mismas, todas con modelo asignado. No hay clases nuevas.
+- **La diferencia es de contenido:** "Remanente de disturbio reciente" pasa de 170 ha en 2013 a
+  39.715 ha en 2017. Son las cicatrices de 2015–2016, mapeadas a GS3. Con el mapa de 2017, un
+  incendio de 2015 vería su propia cicatriz: la regla de fuga temporal lo impide, con razón.
 
 **Lo que dicen las detecciones de afuera.** En todos los incendios 2021+ el 90–98 % de las
 detecciones a menos de 5 km cae en la cicatriz. Los grupos de afuera quedan a 375–450 m del borde:
@@ -295,7 +305,8 @@ Bolsón marcó 320° (NO) a 35 km/h a las 18 UTC del día 1, cuando el GFS daba 
 | puerto-patriada-2026 | -42,148083 / -71,534694 | 150 m fuera de la cicatriz | -42,14589 / -71,53471 |
 | el-turbio-2025 | -42,2959 / -71,9356 | 60 m fuera de la cicatriz | -42,29621 / -71,93738 |
 | las-golondrinas-2021 | -42,084 / -71,371 | centroide MODIS a 1.393 m, 7,9 km de las 1as detecciones; los focos documentados son dos | Las Golondrinas (-42,015 / -71,533) y Cerro Radal (-42,033 / -71,566), 15 h ART del 9-mar |
-| cholila-2015 | -42,45 / -71,7333 | sobre agua (NB8), 350 m fuera, 15 km de las 1as detecciones | pendiente |
+| cholila-2015 | -42,45 / -71,7333 | sobre el lago (NB8), 350 m fuera, 15 km de las 1as detecciones: es la coordenada del valle, no del foco | -42,48075 / -71,91938 (1ª detección VIIRS SP, nacientes del Río Tigre, 1.234 m) |
+| epuyen-2019 | -42,2516 / -71,3243 | 90 m fuera de la cicatriz | -42,25161 / -71,32657 (La Rinconada, 519 m) |
 | cerro-plataforma-2015 | -42,294 / -71,869 | centroide MODIS sobre NB, 297 m fuera | pendiente |
 | currumahuida-2015 | -42,185 / -71,553 | centroide MODIS, 6,9 km de las 1as detecciones | pendiente |
 
