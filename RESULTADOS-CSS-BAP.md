@@ -646,6 +646,32 @@ ajuste) da:
 No supera a la mejor estimación, pero elimina el riesgo del peor caso. Es la forma recomendable
 de operar con una ignición incierta.
 
+### Loop 6 — ¿qué le falta al día 1?
+
+**H6: viento de valle subestimado, descartada.** Viento ×1,3 y ×1,6 sobre v3:
+
+| Receta | Dice GFS (media) | Dice ERA5 (media) |
+|---|---|---|
+| base | 0,302 | 0,339 |
+| viento ×1,3 | 0,328 | 0,308 |
+| viento ×1,6 | 0,353 | 0,298 |
+| ADJ 1,3 | 0,364 | 0,365 |
+
+Área a las 24 h (predicho / observado, ha):
+
+| Incendio | base | viento ×1,6 | ADJ 1,3 |
+|---|---|---|---|
+| Epuyén | 14 / 1.730 | 15 | 25 |
+| Alerces 2024 | 49 / 851 | 57 | 76 |
+| Patriada | 118 / 2.474 | 122 | 210 |
+| Alerces 2016 | 102 / 1.241 | 154 | 228 |
+
+60 % más de viento apenas mueve el día 1. La razón es física: al principio el fuego avanza bajo
+dosel (TU/TL), donde ELMFIRE reduce el viento de 20 pies a media llama con un WAF de ~0,1–0,2,
+así que más viento arriba casi no llega al combustible. El fuego real del día 1 corre por encima
+del dosel (copa, pavesas), y eso no está en el modelo. **El déficit del día 1 no es de viento
+medio.**
+
 ## 5. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte salvo en Las Golondrinas),
