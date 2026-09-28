@@ -723,11 +723,39 @@ Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá.
 
 ### 7.2 Crosswalk y dosel (para el director)
 
-- Epuyén: la plantación de pino (Forest → **TL8**) de la ignición es hojarasca lenta, y con el CBH
-  derivado (10,5 m) nunca pasa a copa (§4 H2). Hallazgo del crosswalk más dosel, no de un
-  parámetro.
+- **Forest → TL8 (plantaciones de pino).**
+  - En Epuyén 2025 la ignición cae en una plantación, y el modelo queda ~30 h atrapado en
+    TL8/TU5 antes de llegar al arbustal. El incendio real cubrió 1.120 ha en 6 h, ardiendo en
+    copa.
+  - Ni siquiera con el CBH × 0,25 la copa se inicia: la hojarasca TL8 no da la intensidad
+    superficial (§4, loops 2 y 3).
+  - Para una plantación densa sin podar, un modelo de matorral o de hojarasca con arbustos
+    (SH, TU) reproduciría mejor el primer día. Es la asignación a revisar con el director.
+- **Rem Dist Rec → GS3 envejece.**
+  - Con CCS-BAP 2017, la cicatriz del complejo de 2015 en el valle de El Turbio es "Remanente de
+    disturbio reciente" (GS3).
+  - El incendio de 2025 re-quemó ese rebrote de 10 años: ardió lento, y el modelo lo corre como
+    pastizal-arbustal (sesgo 4,5; el 82 % de la cicatriz es GS3).
+  - La asignación es correcta para un disturbio de 2 años y no para uno de 10. Con un mapa de
+    2017, conviene decidir con qué modelo pasa el remanente a la clase de su vegetación actual.
 
 ### 7.3 Límites que ningún parámetro resuelve
+
+- **Supresión.** Los incendios combatidos con éxito cerca de poblados y rutas (Epuyén 2019,
+  El Turbio) sobre-propagan 4–14× sin que ninguna receta lo cambie. Los de calibración, en zonas
+  de acceso difícil, sub-propagan.
+  - El factor de velocidad que pide un incendio va de ~0,3 a ~1,5 (~5×).
+  - ELMFIRE 2025.0212 tiene un módulo de supresión (`&SUPPRESSION`), pero `write_namelist` no
+    lo expone y la regla es no agregar keywords. Queda como el trabajo futuro de mayor
+    impacto.
+- **El día 1 explosivo.** En cinco de siete incendios de calibración, el modelo va 10–50× por
+  debajo en las primeras 12–24 h. Faltan las ráfagas de valle (Futaleufú: 3× el viento del
+  GFS, con ráfagas de 75 km/h contra 15), la copa en plantaciones y las pavesas.
+- **Dirección del viento de superficie.** El frente real corre en promedio ~43° más al sur que
+  el empuje del GFS. Ni WindNinja (conservación de masa) ni la canalización por presión lo
+  corrigen en general.
+- **Ignición.** 500 m o 2 h de error cambian el Dice ±0,1–0,2 (Epuyén: de 0,08 a 0,50). La
+  precisión de la ignición es un requisito del producto, no un detalle.
 
 - **Clima de superficie:** el GFS de 0,25° es 4–6 °C más frío que la estación de valle y
   subestima el viento de la tarde (§4 H1).
