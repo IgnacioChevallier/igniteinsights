@@ -48,20 +48,23 @@ async def get_or_create_default_aoi(session: AsyncSession) -> AreaOfInterest:
     configured = box(
         settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north
     )
-    result = await session.execute(
-        select(AreaOfInterest).where(AreaOfInterest.name == "Los Alerces")
-    )
-    aoi = result.scalar_one_or_none()
+    by_name = select(AreaOfInterest).where(AreaOfInterest.name == "Los Alerces")
+    aoi = (await session.execute(by_name)).scalar_one_or_none()
 
     if aoi is None:
-        aoi = AreaOfInterest(
-            name="Los Alerces",
-            geom=from_shape(configured, srid=4326),
-            crs_processing=settings.aoi_crs_processing,
+        # /ingestion/run calls this from several sessions at once; ON CONFLICT lets the
+        # losers pick up the winner's row instead of each inserting their own.
+        await session.execute(
+            pg_insert(AreaOfInterest)
+            .values(
+                id=uuid.uuid4(),
+                name="Los Alerces",
+                geom=from_shape(configured, srid=4326),
+                crs_processing=settings.aoi_crs_processing,
+            )
+            .on_conflict_do_nothing(index_elements=["name"])
         )
-        session.add(aoi)
-        await session.flush()
-        return aoi
+        return (await session.execute(by_name)).scalar_one()
 
     stored = to_shape(aoi.geom)
     if not stored.equals_exact(configured, tolerance=1e-9):

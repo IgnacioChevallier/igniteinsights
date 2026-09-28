@@ -28,7 +28,7 @@ class AreaOfInterest(Base):
     __tablename__ = "areas_of_interest"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     geom = mapped_column(Geometry("POLYGON", srid=4326), nullable=False)
     crs_processing: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
