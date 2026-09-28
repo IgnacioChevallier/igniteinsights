@@ -325,6 +325,8 @@ def _era5_serie(var: str, inicio: datetime, horas: int, caja, destino: Path) -> 
                                                PASO_ERA5, PASO_ERA5)
     destino.parent.mkdir(parents=True, exist_ok=True)
     for nombre, a in capas.items():
+        if nombre != var and (destino.parent / f"{nombre}.tif").exists():
+            continue   # no pisar una serie ya cortada (p. ej. al bajar sólo el terreno)
         if nombre != "orog" and a.shape[0] != horas + 1:
             raise ValueError(f"ERA5 {nombre}: {a.shape[0]} bandas, se esperaban {horas + 1}")
         with rasterio.open(destino.parent / f"{nombre}.tif", "w", driver="GTiff",
