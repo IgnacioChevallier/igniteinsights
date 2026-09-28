@@ -26,7 +26,7 @@ import rasterio
 from app.elmfire.builder import ignition_builder, namelist_writer
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
-from app.validation import almacen, humedad
+from app.validation import almacen, humedad, viento
 from app.validation import puntuacion as p
 from app.validation.definiciones import (
     Caso,
@@ -137,6 +137,11 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         # ELMFIRE espera la dirección hacia la que mira la ladera): da vuelta el ráster.
         _reescribir(insumos / "asp.tif",
                     lambda a: np.where(a >= 0, (a.astype("int32") + 180) % 360, a))
+    if par.get("viento_atlas"):
+        if not {"atlas_u.tif", "atlas_v.tif"} <= set(archivos):
+            raise FileNotFoundError(f"{caso.id} no empaquetó el atlas de viento: definir "
+                                    "`viento_atlas` en el caso")
+        _viento_del_atlas(archivos, insumos)
     if par.get("z0_desde_dosel"):
         with rasterio.open(insumos / "ch.tif") as src:
             ch_m = np.where(src.read(1) > 0, src.read(1) / 10.0, 0.0)   # 10 × m (LANDFIRE)
@@ -169,10 +174,26 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
-                         "z0_desde_dosel", "aspecto_mas_180", "cbh_factor"}
+                         "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
+
+
+def _viento_del_atlas(archivos: dict[str, str], insumos: Path) -> None:
+    """Reemplaza ws/wd por el viento del GFS ajustado al terreno con el atlas de WindNinja.
+    ws.tif trae el viento a 20 pies con el perfil logarítmico de weather_builder: se vuelve a
+    10 m y el atlas hace su propio paso a 20 pies sobre el terreno."""
+    from app.elmfire.builder.weather_builder import wind_height_factor
+
+    dem = insumos / "dem.tif"
+    u = viento.a_la_grilla(almacen.abrir(archivos["atlas_u.tif"]), dem)
+    v = viento.a_la_grilla(almacen.abrir(archivos["atlas_v.tif"]), dem)
+    with rasterio.open(insumos / "ws.tif") as a, rasterio.open(insumos / "wd.tif") as b:
+        ws, wd = a.read(), b.read()
+    velocidad, desde = viento.aplicar(ws / wind_height_factor(), wd, u, v)
+    _reescribir(insumos / "ws.tif", lambda a: velocidad)
+    _reescribir(insumos / "wd.tif", lambda a: desde)
 
 
 def factor_rugosidad(ch_m: np.ndarray) -> np.ndarray:

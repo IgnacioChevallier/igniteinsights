@@ -417,6 +417,23 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
     return salida
 
 
+def _atlas_viento(dem: Path, conf: dict) -> dict[str, str]:
+    """El atlas de WindNinja del caso (app/validation/viento.py), cacheado por DEM y ajustes:
+    son 16 corridas de WindNinja y re-empaquetar no debe repetirlas."""
+    from app.validation import viento
+
+    resolucion, vegetacion = float(conf.get("resolucion_m", 90)), conf.get("vegetacion", "brush")
+    clave = f"{almacen.sha256(dem)[:16]}_{resolucion:.0f}m_{vegetacion}_{viento.DIRECCIONES}"
+    cache = Path("data/benchmark/cache/windninja") / clave
+    if not (cache / "atlas_v.tif").exists():
+        print(f"  WindNinja: {viento.DIRECCIONES} direcciones a {resolucion:.0f} m …", flush=True)
+        u, v, perfil = viento.atlas(dem, Path("data/benchmark/trabajo/windninja") / clave,
+                                    resolucion, vegetacion)
+        cache.mkdir(parents=True, exist_ok=True)
+        viento.guardar(u, v, perfil, cache)
+    return {n: almacen.guardar(cache / n) for n in ("atlas_u.tif", "atlas_v.tif")}
+
+
 def _puntos_ignicion(semilla: dict) -> list[tuple[float, float]]:
     """Tipos de semilla inicial: `punto` (una ignición), `puntos` (varios focos a la misma
     hora) y `firms` (lo observado por FIRMS hasta el inicio, para arrancar un caso en la fase
@@ -443,6 +460,8 @@ def _firms_gfs(caso: d.Caso) -> dict:
     comunes["fuel_models.csv"] = almacen.guardar(fuels_builder.FUEL_MODEL_TABLE)
     dem = recortes["dem.tif"]
     grilla = p.Grilla(dem)
+    if "viento_atlas" in datos["empaquetado"]:
+        comunes |= _atlas_viento(dem, datos["empaquetado"]["viento_atlas"])
 
     df = _firms(caso)
     with tempfile.TemporaryDirectory() as tmp:
