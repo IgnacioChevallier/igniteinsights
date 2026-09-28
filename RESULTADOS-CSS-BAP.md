@@ -7,21 +7,30 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 0, 2026-09-28)*
+*(se reescribe en cada loop — última: loop 2, 2026-09-28 03:30)*
 
-- **Fase:** 0 cerrada para los incendios 2021+ salvo Las Golondrinas (falta extender el AOI al
-  norte). Protocolo común `calibracion` (§3.1) empaquetándose para seis incendios.
-- **Mejor receta:** todavía no hay sobre el conjunto de calibración. Punto de partida:
-  `humedad-m6-001` (Dice medio 0,478 en Alerces 2023 + Epuyén 2025, `RESULTADOS.md` §8).
-- **Corriendo:** `data/benchmark/cola_emp1.sh` (protocolo `cadena-horizonte`, sirve sobre todo
-  para bajar y cachear el GFS), `cola_emp2.sh` (protocolo `calibracion`) y `cola_run2.sh`
-  (`base-001` y `humedad-m6-001` sobre `calibracion`, de a uno). Logs en
-  `data/benchmark/log_{emp1,emp2,run2}.txt`.
-- **Hipótesis abiertas:** H1 (el −6 compensa viento, no T/HR), H2 (la copa no puede iniciarse:
-  CBH de plantaciones), H3 (m1 con criterio: Fosberg y corrección por altura). Ver §4.
-- **Próximo paso:** con `base-001` en los cuatro incendios de calibración 2021+, contestar las
-  cinco preguntas del loop por incendio, y probar `modelo_humedad: fosberg` / `altura` contra
-  el −6 uniforme.
+- **Fase:** loops de calibración. Casos listos:
+  - GFS, calibración: Alerces 2023, Epuyén 2025, Alerces 2024, Patriada 2026, Las Golondrinas 2021.
+  - GFS, prueba: El Turbio 2025, Puerto Café 2025.
+  - ERA5: Alerces 2016 y Cholila 2015 (calibración); Epuyén 2019 y Alerces 2015 (prueba).
+  - Pendientes de ignición: Currumahuida, Cerro Plataforma y Desemboque (este último, dudoso).
+- **Mejor receta hasta ahora:** ninguna completa sobre los 5 de calibración GFS
+  (`benchmark.py objetivo`). En los dos chicos, `humedad-m6-001` tiene el mejor Dice medio
+  (0,464), por un mecanismo que no es de humedad (§4 loop 2). La mejor con criterio es
+  `adj-sh-250-001` (0,361).
+- **Corriendo:** consumidor único `data/benchmark/cola_run2.sh`, que lee
+  `data/benchmark/trabajos.txt` y marca en `trabajos.hechos` (log `log_run2.txt`). Siguen Cholila
+  ERA5, la convergencia de paso (`paso-mitad-001`), Alerces 2024, el barrido de ADJ en
+  Golondrinas/Alerces 2024 y Patriada. Cola de empaquetado: `cola_emp4.sh` (Puerto Café).
+- **Hipótesis abiertas:**
+  - H4, dirección del viento: la forma. Sólo se mide con la velocidad correcta.
+  - H5b, ADJ por grupo: SH contra TU. Falta en Alerces 2024 y Patriada.
+  - El día 1 explosivo no es calibrable con las perillas permitidas (copa, pavesas, ráfagas).
+- **Próximo paso:**
+  1. Con `base-001` y el barrido de ADJ en los 5, calcular el factor de velocidad que pide cada
+     incendio y ver si la composición SH/TU lo explica.
+  2. Elegir la receta candidata y probar la combinación con la rotación.
+  3. Validación cruzada dejando un incendio afuera.
 
 ## 2. Supuestos
 
@@ -69,6 +78,18 @@ Decisiones tomadas sin poder consultar, con su justificación.
     excluye. La truncación por detecciones dejaría 853 ha. Las crónicas ("605 viviendas en un
     par de horas") y la ausencia de detecciones posteriores ubican el crecimiento en la primera
     noche. Con un satélite ciego, manda la cronología documentada.
+12. **Las Golondrinas es un caso límite del clima, no del modelo:** la restricción de alarmas
+    de sesgo se evalúa sin él.
+    - La estación de El Bolsón (337 m, a 5 km de los focos) muestra una tarde muy seca: 28 °C,
+      19–22 % de HR y m1 ≈ 4 %, con viento del ONO de 10–12 km/h.
+    - A las 00 UTC del 10-mar entra una **ráfaga del norte de 54 km/h de media horaria**, con un
+      salto de temperatura (frente o corriente descendente). Es el momento de la explosión.
+    - El GFS de 0,25° no tiene ese evento: 8,5 mph del ONO.
+    - Ninguna receta pasa de sesgo 0,07: `base-001` quema 450 de 10.623 ha en 24 h.
+    - Se sigue reportando en las tablas y cuenta en la media y la mediana.
+13. **ERA5 es intercambiable con el GFS para este modelo.** En los mismos incendios da el mismo
+    Dice: Alerces 2023, 0,424 contra 0,425; Epuyén 2025, 0,118 contra 0,128. Los incendios viejos
+    se corren con ERA5 y la misma receta, pero se resumen aparte: `objetivo … era5`.
 11. **La preparación extendida** (`scripts/preparar_benchmark.py` →
     `data/elmfire/inputs/benchmark-2026-09-28`) sólo la usan los casos nuevos. Los ya
     empaquetados conservan su grilla, así que no hace falta re-empaquetarlos.
@@ -285,6 +306,66 @@ Bolsón marcó 320° (NO) a 35 km/h a las 18 UTC del día 1, cuando el GFS daba 
 - `rotacion-060-001` (diagnóstico de H4: wd + 60°, el desvío medio) en los dos incendios.
 - Después, la velocidad con la perilla que le corresponde: ADJ por grupo de combustible,
   contra el factor que pide cada incendio.
+
+### Loop 2 — velocidad con ADJ por grupo, dirección, y los incendios nuevos
+
+**Resultados de las hipótesis del loop 1:**
+
+- **H4 (dirección).** `rotacion-060-001` (wd + 60°) sube la forma de Alerces 2023 de 0,425 a
+  0,456 y no mueve Epuyén (0,128 → 0,118). **Confirmada a medias:** la dirección pesa sólo
+  cuando el modelo avanza a la velocidad correcta. En Epuyén no avanza, y lo poco que avanza lo
+  gobierna la pendiente, con un GFS de 5–7 mph.
+- **El desvío se repite en los incendios nuevos.** El frente observado va más al sur que el empuje
+  del GFS en 5 de 6 incendios:
+
+  | Incendio | Desvío por día |
+  |---|---|
+  | Alerces 2024 | +0°, +22°, +41°, +35°, +31° |
+  | Patriada | −44° (día 1), después +26°, +32°, +16° |
+  | Alerces 2016 | +85°, +103°, +90° |
+
+  El rumbo de Cholila no sirve: su caja incluye las detecciones de Cerro Plataforma.
+- **ERA5 contra GFS en los mismos incendios** (§2.13): intercambiables.
+
+**H5b (ADJ por grupo).** Barrido sobre los dos incendios chicos:
+
+| Receta | Alerces 2023 (71 % TU) | Epuyén 2025 (54 % SH) |
+|---|---|---|
+| base | 0,425 / sesgo 0,66 | 0,128 / 0,25 |
+| SH ×1,5 | 0,446 / 0,90 | 0,165 / 0,32 |
+| SH ×2 | 0,467 / 1,10 | 0,203 / 0,42 |
+| SH ×2,5 | 0,481 / 1,29 | 0,241 / 0,58 |
+| TU ×1,3 | 0,467 / 0,99 | 0,159 / 0,30 |
+| −6 (referencia) | 0,465 / 1,21 | 0,462 / 1,39 |
+
+- Alerces responde como se esperaba.
+- **Epuyén apenas responde a SH, porque el fuego queda atrapado en la ignición.** Con SH ×2,5,
+  en las primeras 24 h quema 18 ha, casi todo TU5 y TL8 (la plantación de pino donde empezó).
+  En 1 km a la redonda hay TL2, TL8, TU5 y agua, y recién a las 36 h el fuego llega al SH4.
+- El fuego real ardió en copa en la plantación desde el principio y cubrió 1.120 ha en 6 h.
+  Con el CBH derivado (10,5 m) la copa es imposible (H2), y Forest → TL8 es hojarasca lenta.
+  **Es el hallazgo del crosswalk (§7.2), cuantificado:** ninguna perilla de las permitidas
+  reproduce el día 1 de Epuyén sin romper los demás incendios.
+- **Por qué el −6 "funciona" en Epuyén.** Acelera sobre todo la hojarasca (TL8/TU5), la más
+  sensible a m1, así que el fuego escapa de la plantación uno o dos días antes y llena el área
+  a los 3–4 días, con 1.011 ha de falso positivo ladera arriba al SO. Es un **sustituto del fuego
+  de copas que falta**, no una humedad.
+
+**Alerces 2016 (ERA5), el tercero con el mismo patrón:**
+
+- 1.213 ha observadas en 12 h, contra 28 ha de `base-001`.
+- Lo no predicho trepa laderas de 30° al S/SO/O (974 m de mediana contra 602 m de la ignición).
+- Los falsos positivos se extienden por el fondo plano del valle hacia el E (3°, 551 m), a
+  favor del viento del GFS.
+
+**Diagnóstico común** en Alerces 2023, Epuyén 2025 y Alerces 2016:
+
+1. Explosión del día 1 no reproducida (encauzamiento, ráfagas, copa en plantaciones).
+2. El modelo avanza a sotavento del GFS por el fondo del valle, y el fuego real corre al S,
+   encauzado o ladera arriba.
+
+La calibración de velocidad sólo mueve el reloj. La forma la limitan el viento de superficie y
+el combustible de la ignición.
 
 ## 5. Resultados
 

@@ -1,0 +1,158 @@
+{
+  "caso": "los-alerces-2016/calibracion-era5",
+  "caso_sha": "47decaa2096603c63c6cdcc5c9967a7e962d49976844c8c6f158c6739f6b85a6",
+  "receta": "altura-001",
+  "receta_sha": "4e2870de7e10fd89157b373865718feaa8a3d38eea8cc86abdfcd84975e9f34a",
+  "padre": "base-001",
+  "motivo": "H3: la T y la HR del GFS valen a su terreno (~1.000 m), no al del valle. Nelson con la T llevada al DEM (−6,5 °C/km, rocío conservado). Las estaciones dicen que el efecto neto sobre m1 es chico; esto lo mide en el modelo.",
+  "factores": {
+    "combustible": "ccsbap2013",
+    "semilla": "prediccion",
+    "modelo_humedad": "altura"
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "93d8de0c9881b4159d243d5130491913d05e2fa4",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2016-01-21T17:00:00+00:00",
+      "inicio": "2016-01-21T17:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "89c4c59692a022b4152c352251dad7f7425fd7cc79b8d7195c53f95fd6dc50d1",
+        "asp.tif": "441c83d5c2b88bc8778f5e1182e5097418bc70fb3da33032a381353650df082e",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "3c74ed4d1b0494de07a0a12740890cb044028a07f4da8df0fb38997b718bbb61",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "e95dc38ae0ed8d33ad0c6a190de95d15e413a63765908582d8b17901b7e3628d",
+        "m10.tif": "d06253fba37eb3436879fb73e6e69d4b5ac989cd341e689342e1afde7de284f6",
+        "m100.tif": "0816cc17cc430de27e0efb9bdf3dde27dcb0b3766bda3a0298961835def778d7",
+        "phi.tif": "12cdee57e98abb9e7df6bcd5bdcf0e9f35e58e55cb44f0d932dcd9889d6bbd16",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "d2723ac9652b3780e2f4903c81d5f1072be1a1c7ab277fcca3f621020e4f56a2",
+        "ws.tif": "84f500ce60d3671480da0c723caa9d9f8028faa3d7e5deb9dff0160b9a404a76"
+      },
+      "namelist_sha": "07317f3ac7e98e23276ca0c3160452d09f4e260c6740a7e421c55091aacf3971",
+      "salidas": {
+        "fire_size_stats.csv": "6b68ae226146e099c2468ad9855b8c20ef33aa788b90344fdd78a0407055792e",
+        "flin_0000001_0086528.tif": "a865751e6e93b68457afa952d43c4709e3d6a6059b5bc86ebecd2e22c5a845f6",
+        "hourly_isochrones.dbf": "db655c5c0d9234c32710fb4289ecefc6486aefaad0a926c324e2f83dd7a256f0",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "dce7d376ba1f52ef9d9b22cc2d72d6db47eda19a999c6ab96ce0f0a6dc4e6d6f",
+        "hourly_isochrones.shx": "4b9315891384fcbaecce0ffb46c1553a3f795555b4c4df2c9cb2d1a0893d1bb8",
+        "time_of_arrival_0000001_0086528.tif": "75912ecfa1dbd5c28dcde1016fe5b695fccd42a84d6e66668afa1371dbec4ff8",
+        "vs_0000001_0086528.tif": "aab3e976160332005b4b7c6e3d64d131e37d7cd87a625d1cad71c1fa2a0190f2"
+      },
+      "git": {
+        "sha": "93d8de0c9881b4159d243d5130491913d05e2fa4",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T06:07:42.690661+00:00",
+        "minutos": 0.1
+      }
+    },
+    {
+      "n": 1,
+      "t0": "2016-01-22T17:00:00+00:00",
+      "inicio": "2016-01-22T17:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "ventana_anterior",
+      "insumos": {
+        "adj.tif": "89c4c59692a022b4152c352251dad7f7425fd7cc79b8d7195c53f95fd6dc50d1",
+        "asp.tif": "441c83d5c2b88bc8778f5e1182e5097418bc70fb3da33032a381353650df082e",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "a36434f5ea92130f0ebdd44c9110b874db8dd655901e52ff32cd6bcdf91fd93d",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "77d9afc88f58c3dd23abc26d963cb84d31f933175fcc79574e86ae0cc5163592",
+        "m10.tif": "fbc5b2f4cca48b194ecb2f430ae0db705f915bb3785293d83ce896e107218967",
+        "m100.tif": "830c078fe11d37cc97b5646be25f4b1d4cd9ef73179d075d6245a88c9d46a0e1",
+        "phi.tif": "e38b6e123c8a60545a3a9108c516ac86abd4116e16928193a75245db014def27",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "c785432a7a9a62ec7af6a535d71af2c3262838abd8732cceb6a0a57783911252",
+        "ws.tif": "3c5afc74fbfe6a0e2b91b4ecae26687dfd786773f1d4ef1188a4af3a6b2b5d2d"
+      },
+      "namelist_sha": "07317f3ac7e98e23276ca0c3160452d09f4e260c6740a7e421c55091aacf3971",
+      "salidas": {
+        "fire_size_stats.csv": "c92b701cfdc77d6a61000fdd92ee829c8eabb9e6f3594e65406b297e77ebab51",
+        "flin_0000001_0086449.tif": "9e234238bc61ad9eabeda786ba837759177341609f15eb79a830c8c3bd3e2134",
+        "hourly_isochrones.dbf": "21e58ed364e1c49d611a0cfcd5fe15c3bdf1bd6e421cc8a785f696a8f96f6062",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "36670fb366227d7cb0d1cd093b5a9408b9e3e868d394152c685a0a6df7e0ef45",
+        "hourly_isochrones.shx": "6dd835d4ed7e48dc2371bc1e13ca245548a90d406d1ef3735eba7810fa5d7b24",
+        "time_of_arrival_0000001_0086449.tif": "3c93a4586fa518cac98158519c75eca652662b16f0c333e7f09bc91ce4411075",
+        "vs_0000001_0086449.tif": "f520cedb060ca0d1b3af2922b113bdcd3cf75e9b48ade67cdd77fdcfad2389f8"
+      },
+      "git": {
+        "sha": "93d8de0c9881b4159d243d5130491913d05e2fa4",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T06:07:47.990506+00:00",
+        "minutos": 0.2
+      }
+    },
+    {
+      "n": 2,
+      "t0": "2016-01-23T17:00:00+00:00",
+      "inicio": "2016-01-23T17:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "ventana_anterior",
+      "insumos": {
+        "adj.tif": "89c4c59692a022b4152c352251dad7f7425fd7cc79b8d7195c53f95fd6dc50d1",
+        "asp.tif": "441c83d5c2b88bc8778f5e1182e5097418bc70fb3da33032a381353650df082e",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "34c7e3e54ac52f6a667936337804c31e1705199ea4ec2ceea54184c779a5478e",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "48c1cfa20dc195a5e84b5c611ca1b9a60a26c068e9d1440ffaf22aa69e1caaaa",
+        "m10.tif": "f0e5cc86cedc528750d69c69463ef962a826727eb683d1c0834485e9c76f8e20",
+        "m100.tif": "84f02fffe46465393932bc8633ce15fb9c0bdfb6efbd12c4167338cc1a29d493",
+        "phi.tif": "ad4ea01af6046b294d5b1f1b588d5448ed2dd95bb1ec3d4e956db07e189224cc",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "1461b82c14da2adf70d81e474a1e80bce410849b5ea73cdae09f719872c83752",
+        "ws.tif": "db3b498c611b7c1e010f29d5b50ff43a1e86b382160f43e651bde8e0d2136f66"
+      },
+      "namelist_sha": "07317f3ac7e98e23276ca0c3160452d09f4e260c6740a7e421c55091aacf3971",
+      "salidas": {
+        "fire_size_stats.csv": "fe4e9cbdd598043ab07c4c5a424119cd860c1be05e83f5e7cd456ae38afb5f3f",
+        "flin_0000001_0086427.tif": "8450257b12862733b05216aacbce1a249d095243b1bc549feecf46e0537d6c48",
+        "hourly_isochrones.dbf": "cea4dbb2e6342cfc911317f24c0899085b2ba45e9b099626c0e5cde2b4728406",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "25fb2b1341a01e946657aa3db27eab1531e75c834c4d9cb025d046327272211a",
+        "hourly_isochrones.shx": "34d82eeeaa8ce2ef1e29d3a8306bf634dfae4b7d123a1d4b3910bf2670d771d5",
+        "time_of_arrival_0000001_0086427.tif": "4b00abc71e500980baad43e4295be43979956cf1574c27182041dd4983f565a3",
+        "vs_0000001_0086427.tif": "13a32867f88baf6ec93233aeb7d039571f7570bebbac904d858e3ee1f0fa348d"
+      },
+      "git": {
+        "sha": "93d8de0c9881b4159d243d5130491913d05e2fa4",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-09-28T06:07:57.089760+00:00",
+        "minutos": 0.2
+      }
+    }
+  ]
+}
