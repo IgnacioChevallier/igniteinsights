@@ -960,6 +960,11 @@ def resumen() -> None:
         print(f"{receta:26s}" + "".join(f"{t:>28s}" for t in textos))
 
 
+def _casos(conjunto: dict[str, list[str]], fuente: str) -> list[str]:
+    """Los casos de una fuente de clima, o de todas (`todas`): la receta es una sola."""
+    return [c for f in conjunto.values() for c in f] if fuente == "todas" else conjunto[fuente]
+
+
 def _filas(casos: list[str]) -> dict[str, dict[str, dict]]:
     """{receta: {caso: principal}} para las iteraciones puntuadas contra la cicatriz."""
     filas: dict[str, dict[str, dict]] = {}
@@ -988,7 +993,7 @@ def validar(fuente: str = "gfs") -> None:
     cómo le va al que quedó afuera. Sólo recetas corridas en todos los casos.
     """
     particion = json.loads((d.RAIZ / "particion.json").read_text())
-    casos = particion["calibracion"][fuente]
+    casos = _casos(particion["calibracion"], fuente)
     limites = set(particion.get("limites", []))
     filas = {r: f for r, f in _filas(casos).items() if len(f) == len(casos)}
     print(f"validación cruzada, calibración/{fuente}: {len(casos)} casos, {len(filas)} recetas")
@@ -1020,7 +1025,7 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
     Sólo recetas corridas en todos los casos del conjunto.
     """
     particion = json.loads((d.RAIZ / "particion.json").read_text())
-    casos = particion[conjunto][fuente]
+    casos = _casos(particion[conjunto], fuente)
     filas = _filas(casos)
     print(f"{conjunto}/{fuente}: {len(casos)} casos; las medias de recetas incompletas (n < "
           f"{len(casos)}) no son comparables")
