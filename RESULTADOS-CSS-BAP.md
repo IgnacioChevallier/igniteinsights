@@ -7,23 +7,31 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 6, 2026-09-28 noche)*
+*(se reescribe en cada loop — última: loop 6d, 2026-09-28 21 h)*
 
-- **Receta elegida: `adj-130-001` (ADJ uniforme 1,3).**
-  - Calibración: Dice medio 0,364 con GFS (5 incendios; base 0,302) y 0,365 con ERA5
-    (2; base 0,339). Cero alarmas en los seis incendios alcanzables.
-  - Prueba: media 0,191 contra 0,202 de base. Mejora Alerces 2015 y Puerto Café (grandes
-    incendios de montaña). Empeora El Turbio y Epuyén 2019, que ya sobre-propagan con base
-    porque fueron combatidos o son lentos.
-  - Detalle en §5.
-- **Hallazgo mayor:** la orientación del terreno estaba invertida en todo el repo (§4, loop 2),
-  y ya está corregida.
-- **Corriendo:** consumidor `data/benchmark/cola_run2.sh` sobre `data/benchmark/trabajos.txt`
-  (log `log_run2.txt`): loop 6, viento ×1,3 y ×1,6 en los siete de calibración (v3).
-- **Hipótesis abierta:** H6, el día 1 es viento de valle subestimado. Se mira la curva a las
-  12–24 h, no sólo el Dice final.
-- **Próximo paso:** si el viento acelera el día 1 sin romper el resto, evaluar ADJ + viento con
-  `objetivo`/`validar`. Si no, H6 queda descartada y el día 1 pasa a los límites (§7.3).
+- **Receta final: `lw100-adj115-001`** (LW 100 % + ADJ 1,15; CCS-BAP anterior al fuego;
+  pendiente corregida).
+  - Calibración (siete incendios): Dice medio 0,372 y mediana 0,411, contra 0,312 / 0,340 de
+    base. Cero alarmas en los seis alcanzables.
+  - Prueba (cuatro incendios, no usados para elegir): 0,212 contra 0,202 de base.
+  - Tablas en §5; veredictos por parámetro en §6.
+- **Lo que se entendió:**
+  1. La orientación del terreno estaba invertida en todo el repo; corregirla es la mejora más
+     grande.
+  2. El m1 del GFS ya es el de las estaciones: el −6 no tiene soporte.
+  3. La calibración mueve el reloj, no la forma.
+  4. El día 1 explosivo (10–50× por debajo) no es de viento medio ni de humedad: faltan copa,
+     pavesas y ráfagas.
+  5. La velocidad que pide cada incendio varía ~5× según el régimen: la supresión manda en los
+     combatidos cerca de poblados.
+  6. La ignición (±500 m / ±2 h) pesa más que cualquier perilla.
+- **Corriendo:** nada. El consumidor `data/benchmark/cola_run2.sh` sigue vivo, esperando líneas
+  nuevas en `data/benchmark/trabajos.txt`.
+- **Hipótesis abiertas:** la supresión (el módulo `&SUPPRESSION` de ELMFIRE no está expuesto) y
+  la dirección del viento de superficie (sin corrección general con estas herramientas).
+- **Próximo paso posible:** sensibilidad de la receta final a la ignición (como en el loop 5c,
+  con ADJ 1,3), para confirmar que no es más frágil; revisar Forest → TL8 y Rem Dist Rec → GS3
+  con el director (§7.2).
 
 ## 2. Supuestos
 
@@ -767,6 +775,8 @@ centro de lo que pide cada incendio.
 |---|---|---|
 | Corregir la orientación del terreno | **+0,03 a +0,13 por incendio** (el mayor) | El fuego subía ladera abajo; ahora sube la pendiente |
 | ADJ 1,0 → 1,3 | +0,062 | Lleva cada incendio al área observada a tiempo; no cambia la forma |
+| LW 110 → 100 % (con ADJ 1,15) | +0,008 sobre ADJ 1,3; mediana +0,025 | Acelera donde hay carga viva (SH/TU): Epuyén y Patriada. 110 % es el umbral de grandes incendios, no el valor del día |
+| Viento ×1,3 / ×1,6 | +0,026 / +0,051 (GFS), peor con ERA5 | Bajo dosel, el WAF se come el viento: casi no mueve el día 1 |
 | ADJ por grupo (SH, TU) | +0,03 a +0,06, con alarmas | No identificable: la velocidad no sigue a la composición |
 | Humedad con criterio (Fosberg, altura) | ±0,01 | El m1 del GFS ya es el de las estaciones |
 | Atlas de viento (WindNinja) | −0,011 GFS, +0,020 ERA5 | Ayuda en laderas empinadas (Alerces 2016, +0,07); neutro en valles |
