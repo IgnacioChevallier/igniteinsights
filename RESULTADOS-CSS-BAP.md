@@ -569,6 +569,45 @@ calibrado contra seis incendios. Mejora +20 % sobre base con GFS (0,302 → 0,36
   más de lo observado.
 - Reproducir el día 1: sigue 10–50 veces por debajo en las primeras 12–24 h.
 
+### Loop 5b — la receta sobre los casos de prueba (no usados para elegir)
+
+| Incendio (prueba) | Composición de la cicatriz | `base-001` | `adj-130-001` | `humedad-m6-001` |
+|---|---|---|---|---|
+| Alerces 2015 (ERA5) | SH 45 %, TU 31 %, TL 24 % | 0,195 / 0,40 ⚠ | **0,230 / 1,01** | 0,370 / 2,46 ⚠ |
+| Puerto Café (fase explosiva, `v2s`) | TU 61 %, SH 23 %, TL 15 % | 0,126 / 0,23 ⚠ | **0,179 / 0,34 ⚠** | 0,188 / 0,37 ⚠ |
+| El Turbio 2025 | **GS3 82 %** | 0,356 / 4,55 ⚠ | 0,241 / 7,25 ⚠ | 0,225 / 7,88 ⚠ |
+| Epuyén 2019 (ERA5) | SH 66 %, TU 18 % | 0,129 / 13,7 ⚠ | 0,114 / 16,0 ⚠ | 0,103 / 18,5 ⚠ |
+
+**La receta transfiere dentro del régimen en que se calibró y falla fuera de él.**
+
+- **Alerces 2015 y Puerto Café** son grandes incendios de montaña, en zona intangible o de
+  acceso difícil, como los de calibración. ADJ 1,3 los mejora: Alerces 2015 queda con sesgo
+  1,01; Café, +42 % de Dice.
+  - Café sigue muy corto: la explosión del 6-ene (1.319 ha en 12 h, 5.619 ha a las 36 h) no
+    aparece, y lo no predicho está al E, a 18 km. Es el mismo patrón del día 1 de la
+    calibración.
+- **El Turbio y Epuyén 2019 sobre-propagan ya con `base-001`** (sesgo 4,5 y 13,7). Son el
+  otro régimen:
+  - **Epuyén 2019:** 17.044 ha de falso positivo en la estepa plana al este (GR/SH, 4°,
+    699 m). El incendio real (1.980 ha) se combatió con más de 200 brigadistas y aviones
+    junto a Epuyén y la Ruta 40. Desde las 36 h el modelo ya va 2× por encima (1.602 contra
+    812 ha): no es el horizonte, es la supresión, que ELMFIRE no modela.
+  - **El Turbio:** el 82 % de la cicatriz es GS3, el "Remanente de disturbio reciente" con que
+    CCS-BAP 2017 marca la cicatriz del complejo de 2015. El incendio de 2025 re-quemó ese
+    rebrote de 10 años. Ardió lento (latente, por rayo, diez días hasta 2.000 ha, combatido
+    por más de 110 personas), y el modelo corre por el GS3: 628 ha el primer día contra 100.
+    **Hallazgo del crosswalk:** Rem Dist Rec → GS3 (PT-37 A2) describe un disturbio de 2 años,
+    no uno de 10; con un mapa de 2017, la asignación envejece.
+- **Test corregido en Puerto Café.** Con la semilla `firms` de toda la caja, el caso sembraba
+  otros incendios activos al NE, y el modelo los propagaba: 21.718 ha de falso positivo a
+  44 km, Dice 0,044. La semilla observada ahora toma sólo detecciones a menos de 1 km de la
+  cicatriz objetivo (`radio_cicatriz_m`, protocolo `v2s`).
+
+**Media en prueba:** `base-001` 0,202, `adj-130-001` 0,191. Mejora en 2 de 4 y empeora en 2 de 4.
+El factor de velocidad que pide un incendio va de ~0,3 (El Turbio, Epuyén 2019) a ~1,5
+(Epuyén 2025, Cholila): un rango de ~5×, mucho más ancho que el que vio la calibración
+(1,0–1,5).
+
 ## 5. Resultados
 
 *(pendiente del primer barrido sobre `calibracion`)*
