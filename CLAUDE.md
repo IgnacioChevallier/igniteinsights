@@ -2,8 +2,8 @@
 
 Wildfire spread prediction system for Parque Nacional Los Alerces (Patagonia,
 Argentina). A FastAPI backend ingests satellite fire detections (FIRMS), weather
-(NOAA GFS), topography (Copernicus DEM), and fuel cover (ESA WorldCover today;
-CCS-BAP and MapBiomas crosswalks exist and are not wired into the pipeline yet), derives
+(NOAA GFS), topography (Copernicus DEM), and fuel cover (CCS-BAP by default, with
+MapBiomas and ESA WorldCover as comparison maps; `settings.fuels_source` picks one), derives
 input rasters and a namelist from them, and hands them to **ELMFIRE 2025.0212** — a
 fire-spread model that runs as a separate microservice, not in this repo — via
 `app/elmfire/runner/client.py`. Results (hourly isochrones, time-of-arrival,
@@ -23,17 +23,19 @@ source-data → ELMFIRE-input mapping.
 - Frontend checks need no backend: `node e2e/stub-api.mjs &`, `npm run dev &`,
   `npx playwright test` from `frontend/` (details in `frontend/e2e/README.md`).
 
-Language: planning docs (`ESTADO.md`, `IGN-*.md`) and the newer thesis code (`app/validation/`,
+Language: planning and results docs (`IGN-*.md`, `RESULTADOS*.md`) and the newer thesis code (`app/validation/`,
 `scripts/benchmark.py`) are in Spanish; the rest of `app/`, `docs/` and the frontend are in
 English. Match the file or module you are editing.
 
 ## Where the project state lives
 
-**`ESTADO.md` is the entry point**: it says what is done, what is pending and where each plan
-lives. Read it before assuming something is missing. Live plans sit in the root
-(`ETAPA-*.md`, `IGN-*.md`, `PENDING_PARAMETERS.md`); finished or superseded documents are in
-`docs/historico/`, and converted source material in `docs/referencias/`. The fuel-model
-crosswalk the thesis argues for is `IGN-20B-CROSSWALK-CCSBAP.md`.
+Read these before assuming something is missing. `RESULTADOS-CSS-BAP.md` §1 is the current
+state of the calibration work (rewritten every loop); `IGN-26-VALIDACION.md` is the validation
+method and benchmark; `RESULTADOS.md` holds the three-map comparison; `PENDING_PARAMETERS.md`
+lists values set without a criterion. Finished or superseded documents are in
+`docs/historico/`, deferred scope in `docs/out-of-scope/`, and converted source material in
+`docs/referencias/`. The fuel-model crosswalk the thesis argues for is
+`docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`.
 
 ## Working with ELMFIRE inputs
 

@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -55,6 +56,27 @@ class NamelistWriterTests(unittest.TestCase):
         self.assertIn("MODE                            = 1", content)
         self.assertEqual(dtdump_s, 1800.0)
         validate_namelist(content)
+
+    def test_elmfire_skill_lists_exactly_the_keywords_written(self) -> None:
+        # The elmfire skill's "What this repo emits today" table is what agents read
+        # before touching this file; it silently drifted once (MODE, CROWN_FIRE_MODEL).
+        output_path, _, _ = write_namelist(
+            self.inputs_dir,
+            self.root / "outputs",
+            simulation_hours=2,
+            output_path=self.root / "elmfire.data",
+        )
+        namelist = output_path.read_text(encoding="utf-8")
+        written = set(re.findall(r"^\s+([A-Z][A-Z0-9_]*)\s*=", namelist, re.M))
+
+        skill = Path(__file__).parents[1] / ".claude/skills/elmfire"
+        reference = (skill / "references/namelist-reference.md").read_text(encoding="utf-8")
+        emits_section = reference.split("## What this repo emits today")[1].split("\n## ")[0]
+        rows = [row for row in emits_section.splitlines() if row.startswith("| `&")]
+        keyword_cells = "".join(row.split("|")[2] for row in rows)
+        documented = set(re.findall(r"`([A-Z][A-Z0-9_]*)`", keyword_cells))
+
+        self.assertEqual(written, documented)
 
     def test_write_namelist_uses_raster_basenames_and_normalized_paths(self) -> None:
         output_path, _, _ = write_namelist(

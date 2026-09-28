@@ -15,8 +15,7 @@ dem, slp, asp, fbfm40, cc, ch, cbh, cbd, ws, wd, m1, m10, m100, adj, phi
 
 Confirmed in both `app/elmfire/builder/namelist_writer.py` and the vendor tutorials'
 `FLOAT_RASTER[n]=<name>` / `INT_RASTER[n]=<name>` convention. Do not add a `.tif`
-suffix to these values in the namelist — a previous version of `docs/elmfire-mapping.md`
-did this and was wrong.
+suffix to these values in the namelist.
 
 ## Int16 canopy rasters use LANDFIRE-style unit scaling
 
@@ -29,8 +28,8 @@ convention:
 - `cc` (canopy cover) is a plain percent 0–100, no scaling.
 
 **This repo already implements this correctly** — `app/elmfire/builder/canopy_builder.py`
-pre-scales `cbh`/`cbd` inside `derive_cbh_cbd` (derived from `cc`/`ch`, no longer from the
-FBFM code) and applies `scale_factor=10.0`
+pre-scales `cbh`/`cbd` inside `derive_cbh_cbd` (derived from `cc`/`ch`) and applies
+`scale_factor=10.0`
 for `ch` reprojection. If you're touching canopy code, verify any new derivation still
 respects this scaling — feeding raw meters/kg-m³ into an Int16 raster ELMFIRE expects
 to be pre-scaled will silently corrupt fire behavior calculations (values will look
@@ -45,9 +44,9 @@ GeoTIFFs (`ws.tif`, `wd.tif`, etc.), which is what the namelist actually points 
 The uniform time spacing between bands is set via `DT_METEOROLOGY` in `&INPUTS`
 (seconds); ELMFIRE linearly interpolates between bands at its internal timestep. This
 repo's `weather_builder.py` follows the same pattern (writes multiband rasters
-directly, no CSV intermediate) and hardcodes `DT_METEOROLOGY = 3600.0` in
-`namelist_writer.py` — if that assumption changes (e.g. sub-hourly weather), both the
-raster band count and `DT_METEOROLOGY` need to change together.
+directly, no CSV intermediate), and `write_namelist(dt_meteorology_s=3600.0)` writes the
+spacing — if it changes (e.g. sub-hourly weather), the raster band count has to change with
+it; `validate_weather_coverage()` rejects rasters with too few bands for `TSTOP`.
 
 ## Coordinate systems: two different conventions in the vendor docs, don't conflate them
 
@@ -108,16 +107,13 @@ ELMFIRE's raster loader (`elmfire_io.f90`, reading `PHI0` from `PHI_FILENAME`) d
 negative than -1.1 is treated as garbage/nodata and reset to +1.0 (unburned), no
 warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` as a
 signed-distance-in-meters field (buffer radius × cell size, e.g. -90 for a 90 m
-buffer) — every interior "on fire" cell was silently erased by this clamp before
-the simulation ever started, so **every run through this pipeline reported
-`Fire area: 0.0 acres` regardless of weather/fuel conditions**, independent of any
-namelist output-flag bug. Confirmed by testing an extreme dry/windy synthetic
-scenario (3% moisture, 20 mph wind) that still produced zero spread with the
-unclamped phi field, then produced 858.9 acres of real spread once fixed.
+buffer) — unclamped, every interior "on fire" cell is erased before the simulation
+starts and the run reports `Fire area: 0.0` whatever the weather and fuel.
 
 Fix: clamp the *negative* (interior/ignited) side of the signed-distance field to a
-floor just above -1.1 (`_PHI_IGNITION_FLOOR = -1.0` in `ignition_builder.py`) before
-writing — `np.where(phi_m < 0, np.maximum(phi_m, -1.0), phi_m)`. Leave positive
+floor just above -1.1 (`PHI_IGNITION_FLOOR = -1.0` in `ignition_builder.py`, also used by
+`app/playground/builder.py`) before writing —
+`np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)`. Leave positive
 (unburned/outside) values as true physical distances; only the interior needs
 clamping. The vendor tutorials sidestep this entirely by initializing `phi.tif`
 uniformly to `+1.0` and igniting via `&SIMULATOR` point ignitions
@@ -127,9 +123,9 @@ uses the raster approach instead, so the clamp is required.
 ## Crown fire is on by default upstream
 
 If a namelist omits `CROWN_FIRE_MODEL` entirely, ELMFIRE defaults to crown fire
-**enabled**. This repo's current namelist doesn't set `CROWN_FIRE_MODEL` at all —
-worth confirming intentionally, not by omission, if crown fire behavior is ever
-scrutinized.
+**enabled**. `namelist_writer.py` therefore always writes it (`DEFAULT_CROWN_FIRE_MODEL = 1`,
+overridable through `write_namelist(crown_fire_model=...)`) — don't drop the keyword
+from the template, or the setting silently becomes ELMFIRE's default again.
 
 ## `asp` is the direction the slope FACES (downslope), not the upslope bearing
 
