@@ -83,6 +83,12 @@ Decisiones tomadas sin poder consultar, con su justificación.
 13. **ERA5 es intercambiable con el GFS para este modelo.** En los mismos incendios da el mismo
     Dice: Alerces 2023, 0,424 contra 0,425; Epuyén 2025, 0,118 contra 0,128. Los incendios viejos
     se corren con ERA5 y la misma receta, pero se resumen aparte: `objetivo … era5`.
+14. **Cambios ajenos en `app/` durante el loop 6.** Desde el 28-sep a la tarde hay cambios sin
+    commitear que no son de esta calibración: `app/config.py`, `app/elmfire/runner/client.py`,
+    el cliente FIRMS y `.env.example` (transferencia de archivos al runner para Railway). No se
+    tocan ni se commitean desde esta rama. Los manifiestos de esas corridas registran
+    `git.sucio = true`. El valor por defecto (`elmfire_runner_transfer_files = False`) deja el
+    volumen compartido, así que la ejecución es la misma.
 11. **La preparación extendida** (`scripts/preparar_benchmark.py` →
     `data/elmfire/inputs/benchmark-2026-09-28`) sólo la usan los casos nuevos. Los ya
     empaquetados conservan su grilla, así que no hace falta re-empaquetarlos.
