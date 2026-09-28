@@ -1,0 +1,65 @@
+{
+  "descripcion": "Harness A (RESULTADOS.md §5): diez ventanas de 24 h ancladas al ciclo 18z, sembradas con todo FIRMS hasta T0 y puntuadas contra las detecciones nuevas de la ventana. Cada ventana tiene su propio recorte al frente activo.",
+  "anio_fuego": 2026,
+  "semilla_inicial": {
+    "tipo": "firms",
+    "nota": "todas las detecciones FIRMS NRT hasta T0 de cada ventana"
+  },
+  "ventanas": [
+    {
+      "t0": "2026-01-06T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-08T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-09T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-20T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-24T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-25T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-31T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-02-01T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-02-06T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-02-07T18:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "referencias": {
+    "firms": {
+      "fuentes": [
+        "VIIRS_NOAA20_NRT",
+        "VIIRS_NOAA21_NRT",
+        "VIIRS_SNPP_NRT"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-ciclo-18z (25 bandas horarias por ventana)",
+  "empaquetado": {
+    "tipo": "legado_harness_a",
+    "raiz": "data/validation/harness_a"
+  }
+}

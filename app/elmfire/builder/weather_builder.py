@@ -140,6 +140,62 @@ def derive_moisture(
 
 # ── internal helpers ───────────────────────────────────────────────────────────
 
+# Dead-fuel time-lag classes, hours. A fuel element closes ~63 % of the gap to the
+# equilibrium moisture in one time-lag (Byram 1963; the standard 1/10/100-h classes).
+TIMELAG_HOURS = {"m1": 1.0, "m10": 10.0, "m100": 100.0}
+
+
+def derive_moisture_timelag(
+    t2m_path: Path,
+    rh_path: Path,
+    reference_path: Path,
+    output_dir: Path,
+    skip_bands: int,
+    suffix: str = "",
+) -> tuple[Path, Path, Path]:
+    """m1/m10/m100 with drying history: each class relaxes toward the hourly Nelson EMC
+    with its own time-lag, instead of the instantaneous EMC plus a fixed offset.
+
+    `t2m_path`/`rh_path` are hourly series that start `skip_bands` hours *before* the
+    first band to write: that spin-up is the history the fixed-offset derivation lacks
+    (PENDING_PARAMETERS §1.2). The recursion runs on the source (GFS) grid, where it is
+    cheap, and only the written bands are reprojected. Initialised at the mean EMC of the
+    first 24 h of spin-up; with ≥ 3 × 100 h of spin-up the 100-h class forgets it.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(t2m_path) as src:
+        t_kelvin = src.read().astype("float64")
+        profile = src.profile
+    with rasterio.open(rh_path) as src:
+        rh = np.clip(src.read().astype("float64"), 0.0, 100.0)
+    if t_kelvin.shape != rh.shape:
+        raise ValueError(f"t2m {t_kelvin.shape} and rh {rh.shape} must share a time series")
+    if not 0 <= skip_bands < t_kelvin.shape[0]:
+        raise ValueError(f"skip_bands={skip_bands} outside a {t_kelvin.shape[0]}-band series")
+    emc = _nelson_emc((t_kelvin - 273.15) * 9.0 / 5.0 + 32.0, rh)
+
+    paths = []
+    for name, tau in TIMELAG_HOURS.items():
+        keep = math.exp(-1.0 / tau)
+        m = emc[:24].mean(axis=0)
+        series = np.empty_like(emc)
+        for h in range(emc.shape[0]):
+            m = emc[h] + (m - emc[h]) * keep
+            series[h] = m
+        coarse = output_dir / f".{name}{suffix}_coarse.tif"
+        with rasterio.open(coarse, "w", **(profile | {"count": emc.shape[0] - skip_bands,
+                                                    "dtype": "float32"})) as dst:
+            dst.write(series[skip_bands:].astype("float32"))
+        out = output_dir / f"{name}{suffix}.tif"
+        _write_like_reference(reference_path, out,
+                              np.clip(_read_aligned(coarse, reference_path), 1.0, 40.0))
+        coarse.unlink()
+        paths.append(out)
+    logger.info("Time-lag moisture written to %s (%d band(s), %d h spin-up)",
+                output_dir, emc.shape[0] - skip_bands, skip_bands)
+    return paths[0], paths[1], paths[2]
+
+
 def _nelson_emc(t_f: np.ndarray, rh: np.ndarray) -> np.ndarray:
     """Nelson (1984) equilibrium moisture content (%)."""
     emc = np.zeros_like(t_f)

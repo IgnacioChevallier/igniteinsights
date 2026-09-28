@@ -1,0 +1,59 @@
+{
+  "descripcion": "Epuyén, La Rinconada: 96 h desde la ignición (miércoles 15-ene-2025, pasadas las 11 ART, detrás de la Escuela 9), cuatro ventanas de 24 h encadenadas. Unas 2.000 ha el primer día: crecimiento libre. Referencias: VIIRS SP por ventana y la cicatriz dNBR filtrada por evento (event-filter-001, 2.995 ha). Variante con la ignición dentro de la cicatriz. Agrega la humedad muerta con historial de secado (120 h de spin-up) como alternativa seleccionable por receta; el resto del paquete es idéntico a epuyen-2025/cadena-96h-interior.",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.43583,
+    "lat": -42.29365,
+    "hora": "2025-01-15T14:00:00+00:00",
+    "fuente": "El Chubut y NoticiasNQN (2025-01-15): el fuego empezó pasadas las 11 en una plantación de pinos entre el cementerio y la Escuela 9. Punto: semilla del filtro de evento de mask-dataset-gen.",
+    "ajuste": "El punto reportado (-42.2921, -71.4447, 'semilla aproximada' del filtro de evento) cae 490 m fuera de la cicatriz, y la celda de la cicatriz más cercana está en su borde, rodeada de no combustible (NB9) en los tres mapas: con MapBiomas el fuego moría a las 25 h por topología, no por el mapa. Se toma la celda más cercana al punto que esté al menos 7 celdas (~210 m) dentro de la cicatriz: queda a 751 m del punto reportado y es combustible en los tres mapas (SH8 / SH4 / TL3)."
+  },
+  "ventanas": [
+    {
+      "t0": "2025-01-15T14:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-16T14:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-17T14:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-18T14:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.63,
+    -42.45,
+    -71.16,
+    -42.06
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/epuyen-2025/runs/event-filter-001"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_worldcover2021.tif": "data/static/fuel_maps/fbfm40_worldcover.tif",
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif",
+      "fbfm40_mapbiomas2024.tif": "data/static/fuel_maps/fbfm40_mapbiomas.tif"
+    },
+    "humedad_retardo_h": 120
+  }
+}

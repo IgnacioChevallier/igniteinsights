@@ -17,6 +17,9 @@ FIRMS_BASE_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
 # confirmed for the Los Alerces Jan/Feb 2026 event, detected exclusively by
 # NOAA-21 (zero NOAA-20 detections in the same AOI/period).
 FIRMS_SOURCES = ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "VIIRS_SNPP_NRT"]
+# The NRT products only reach back a few months. Past fires (validation cases) need the
+# standard-processing archive; NOAA-21 has no SP product for 2023.
+FIRMS_SOURCES_ARCHIVE = ["VIIRS_SNPP_SP", "VIIRS_NOAA20_SP"]
 
 
 class FIRMSClient:
@@ -31,10 +34,11 @@ class FIRMSClient:
         north: float,
         day_range: int = 1,
         start_date: date | None = None,
+        sources: list[str] | None = None,
     ) -> pd.DataFrame:
         bbox = f"{west},{south},{east},{north}"
         frames = []
-        for source in FIRMS_SOURCES:
+        for source in sources or FIRMS_SOURCES:
             url = f"{FIRMS_BASE_URL}/{settings.firms_map_key}/{source}/{bbox}/{day_range}"
             if start_date is not None:
                 url = f"{url}/{start_date.isoformat()}"
@@ -60,7 +64,9 @@ class FIRMSClient:
                 logger.info("FIRMS source=%s returned no detections for this bbox/period", source)
                 continue
 
-            frames.append(pd.read_csv(StringIO(response.text)))
+            frame = pd.read_csv(StringIO(response.text))
+            frame["source"] = source
+            frames.append(frame)
 
         if not frames:
             return pd.DataFrame()

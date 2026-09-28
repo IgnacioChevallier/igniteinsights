@@ -104,15 +104,7 @@ def build_ignition_layer(
             dst.write(phi_out, 1)
         return phi_path, shp_path
 
-    # Signed distance function via 4-pass L1 sweep
-    phi_cells = _signed_distance(fire_mask)
-    phi_m = phi_cells * cell_size
-    phi_m = np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)
-    phi_out = phi_m.astype(np.float32)
-
-    with rasterio.open(phi_path, "w", **profile) as dst:
-        dst.write(phi_out, 1)
-
+    _write_phi(fire_mask, cell_size, profile, phi_path)
     _write_shapefile(burn_polygon, str(crs), shp_path)
     logger.info(
         "Ignition layer: %d detections, %d burning cells → %s",
@@ -123,7 +115,38 @@ def build_ignition_layer(
     return phi_path, shp_path
 
 
+def build_ignition_from_mask(
+    fire_mask: np.ndarray,
+    reference_raster: Path,
+    output_dir: Path,
+) -> Path:
+    """Build phi.tif from an already-burned mask on the reference grid.
+
+    What a chained validation window needs: the area a previous run predicted as burned
+    becomes the next run's ignition, with no perimeter reconstruction in between —
+    re-hulling it would burn cells the model never reached.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    phi_path = output_dir / "phi.tif"
+    with rasterio.open(reference_raster) as ref:
+        cell_size = abs(ref.transform.a)
+        profile = ref.meta.copy()
+        if fire_mask.shape != (ref.height, ref.width):
+            raise ValueError(f"mask {fire_mask.shape} does not match the reference grid")
+    profile.update(dtype="float32", count=1, nodata=-9999.0)
+    _write_phi(fire_mask.astype(bool), cell_size, profile, phi_path)
+    return phi_path
+
+
 # ── internal helpers ───────────────────────────────────────────────────────────
+
+def _write_phi(fire_mask: np.ndarray, cell_size: float, profile: dict, phi_path: Path) -> None:
+    """Signed distance in metres, interior clamped to PHI_IGNITION_FLOOR (see above)."""
+    phi_m = _signed_distance(fire_mask) * cell_size
+    phi_m = np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)
+    with rasterio.open(phi_path, "w", **profile) as dst:
+        dst.write(phi_m.astype(np.float32), 1)
+
 
 def _signed_distance(fire_mask: np.ndarray) -> np.ndarray:
     """

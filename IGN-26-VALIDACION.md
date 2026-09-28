@@ -6,13 +6,106 @@
 > El diseño es la única parte viva de la auditoría del 2026-08-31, extraída de
 > `docs/historico/SIMULATION_AUDIT.md` §12 el 2026-09-15.
 >
-> Implementación: `scripts/score_against_observed.py`. Lleva las 196 máscaras de Sentinel-2
+> **Desde el 2026-09-26 la implementación vigente es el benchmark** (§Benchmark reproducible,
+> abajo). Lo que sigue describe los harness originales, que se conservan hasta que las
+> recetas `legacy-*` terminen de reproducirlos.
+>
+> Implementación original: `scripts/score_against_observed.py`. Lleva las 196 máscaras de Sentinel-2
 > a la grilla de la corrida —y no al revés, porque puntuar a 20 m inventaría una resolución
 > que el modelo no tiene—, descuenta la semilla y estratifica por `pct_quemado`.
 >
 > Se conserva la numeración original (§12.1 … §12.5) porque el resto de los planes la citan
 > con esos números. Bloquea: `ETAPA-A §A7` (congelar el baseline) y `ETAPA-B §B6`
 > (comparación de mapas de combustible contra el perímetro observado).
+
+## Benchmark reproducible (2026-09-26)
+
+Los dos harness se reemplazan por un benchmark donde **cada corrida es un estado inmutable**
+y se sabe exactamente qué factor cambió entre dos versiones del modelo. Código en
+`app/validation/`, CLI en `scripts/benchmark.py`, visor en la sección Validación del dashboard.
+
+**Modelo.** *Incendio → protocolo* es un **caso**: la semilla, las ventanas y las
+referencias de un incendio, congeladas en un paquete de archivos identificados por su sha256
+(`benchmarks/casos/<incendio>/<protocolo>.json` y `.paquete.json`). Una **receta** es una
+versión del modelo, global (`benchmarks/recetas/<id>.json`): declara padre, motivo,
+combustible, parámetros y política de semilla. Una **iteración** es una receta aplicada a un
+caso. Sólo se comparan recetas distintas sobre el mismo caso, o la misma receta sobre casos
+distintos; `comparar` rechaza el resto.
+
+**Inmutabilidad.** Cada insumo que lee ELMFIRE (incluido `elmfire.data` y la phi heredada) y
+cada salida se guardan por hash en `data/benchmark/objetos/`. El manifiesto de la iteración
+(`benchmarks/iteraciones/…/manifiesto.json`, en git) lista esos hashes, el commit y si había
+cambios sin commitear. `benchmark.py verificar` re-ejecuta desde los hashes y compara el TOA.
+Lo que cambia sin estar declarado en la receta aparece como **cambio no declarado**.
+
+**Reglas que el runner hace cumplir:**
+
+- *Fuga temporal*: el año del mapa de combustible tiene que ser anterior al incendio. Una
+  receta puede pedir `"anio": "anterior_al_fuego"` y el año se resuelve por caso.
+- *Perillas*: sólo los kwargs de `namelist_writer.write_namelist` y el ADJ uniforme.
+- *Semilla*: `prediccion` (la ventana n+1 arranca de lo que predijo la n; exige ventanas
+  contiguas) u `observacion` (FIRMS hasta el inicio de la ventana, como el harness A).
+- *Receta intacta*: una receta con iteraciones corridas no se edita; se crea otra con padre.
+
+**Puntuación.** Contra FIRMS, el *incremento* de cada ventana, excluyendo lo que el modelo
+ya daba por quemado al empezar. Contra la cicatriz, el *acumulado*: con semilla `prediccion`,
+todo lo quemado desde la semilla del caso; con `observacion`, sólo el anillo, por §12.1. Las
+celdas sin observación válida o con cambios que la máscara no atribuye al incendio
+(`cambio_no_confirmado`, `otro_incendio_probable`) van a **zona de exclusión**. Métrica
+principal: **Dice contra la cicatriz en la última ventana**, con el **sesgo de área**
+(predicho / observado) al lado y alarma fuera de [0,5×, 2×] (el caso de §6: recall 1 con 458×).
+También se reportan IoU, recall, precisión, TP/FP/FN en ha, el recall cercano (5 km) y el error de
+tiempo de llegada contra las detecciones.
+
+**Verificación contra lo publicado.** Puntuar las salidas viejas con el código nuevo reproduce
+exactamente el harness B (IoU 0,036 / 0,045 / 0,067, y las bandas por % quemado) y el
+harness A (recall agregado 0,162 / 0,283 / 0,342 y el recall de las diez ventanas). Re-correr la
+ventana del 6 de enero con `legacy-ccsbap` da un **TOA idéntico byte a byte** al de la corrida
+de 2026-09-19. ELMFIRE es determinista y el estado se reconstruye. El 2026-09-27, además, las diez ventanas de `legacy-ccsbap` reprodujeron el harness A dígito a dígito (recall 0,342, cercano 0,467), y `benchmark.py verificar los-alerces-2023/cadena-96h humedad-m6-001` re-ejecutó las cuatro ventanas desde sus hashes con TOA idéntico. Los paquetes también son reproducibles: re-empaquetar Alerces y Epuyén dio los mismos hashes en todos los archivos.
+
+**Hallazgo.** La corrida publicada del harness B usó un clima de **13 bandas** para 12 h que
+arrancan a las 19:46, o sea 14 bandas necesarias. ELMFIRE mantuvo la última banda durante los
+últimos ~46 minutos. El `namelist_writer` actual rechaza esa configuración, así que
+`puerto-patriada-2026/cicatriz-12h` no se puede re-correr tal cual. Se re-empaquetó con el mismo
+ciclo 18z y 25 bandas. Como mask-dataset-gen retiró `legacy-v1` (commit 5318c24), la referencia
+pasó a `baseline-002`, con una ventana pre más cercana al incendio (nov-2025 a ene-2026) y sin filtro de evento
+(`event-filter-001` terminó en `failed`). Los números nuevos de ese caso no son comparables con
+los publicados.
+
+**Casos históricos (2026-09-27).** El empaquetador `firms_gfs` arma un caso de un incendio pasado
+con:
+
+- los estáticos y los mapas recortados a la caja del caso;
+- FIRMS SP congelado como CSV;
+- análisis GFS encadenados (f000–f005), cortados por ventana;
+- una semilla puntual en la ventana 0 y la semilla observada en el resto;
+- la referencia FIRMS por ventana, con la hora de cada detección, y la cicatriz.
+
+Hay dos casos:
+
+- **`los-alerces-2023/cadena-96h`**: Población Rosales II, con ignición el sábado 4-feb-2023 a las
+  22:00 ART según el parte citado por Red43.
+- **`epuyen-2025/cadena-96h-interior`**: La Rinconada, 15-ene-2025, pasadas las 11 ART. El punto
+  del filtro de evento cae 490 m fuera de la cicatriz, y la celda más cercana está en su borde
+  rodeada de NB9 (con MapBiomas el fuego moría a las 25 h). Se toma la celda más cercana que esté
+  ~210 m adentro. Los protocolos `cadena-96h` y `cadena-96h-ign` quedan como registro de esa
+  sensibilidad.
+
+**Métrica de forma.** Dice @96h contra la cicatriz final de un incendio combatido mezcla dónde
+quema el modelo con cuán rápido. Un modelo sin supresión que acelera cubre más cicatriz y la
+desborda. Por eso también se reporta el **Dice a área igualada**: el Dice en la hora t\* en que lo
+predicho alcanza el área observada. Mide la forma, y t\* frente a las ~96 h reales mide la
+velocidad.
+
+```bash
+uv run python scripts/benchmark.py empaquetar <incendio>/<protocolo>
+uv run python scripts/benchmark.py correr     <incendio>/<protocolo> <receta> [<receta> …]
+uv run python scripts/benchmark.py tabla      <incendio>/<protocolo>
+uv run python scripts/benchmark.py comparar   <incendio>/<protocolo>/<a> <incendio>/<protocolo>/<b>
+uv run python scripts/benchmark.py verificar  <incendio>/<protocolo> <receta>
+```
+
+---
 
 ## Resultado del harness A (2026-09-19)
 

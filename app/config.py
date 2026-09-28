@@ -40,8 +40,12 @@ class Settings(BaseSettings):
     # lon -72.014..-71.201 and lat -42.818..-42.079 (../mask-dataset-gen/dataset/metadata.csv);
     # the old AOI stopped at -42.5 and only 70 of its 196 tiles were scorable.
     # ~7.8M cells at 30 m, up from ~2.0M. See ETAPA-A-BASELINE.md §A0.
+    # South edge moved from -42.90 to -43.20 on 2026-09-26 (IGN-26 §Benchmark): the 2023
+    # Población Rosales scar reaches -42.95 and its ignition sat 2 km from the old edge, and
+    # the old box left out the southern half of the park. North and west edges unchanged,
+    # so crop offsets of earlier preparations stay valid.
     aoi_west: float = -72.05
-    aoi_south: float = -42.90
+    aoi_south: float = -43.20
     aoi_east: float = -71.15
     aoi_north: float = -42.05
     # Fuente de cobertura con la que se construye fbfm40.tif. Entra en la clave de

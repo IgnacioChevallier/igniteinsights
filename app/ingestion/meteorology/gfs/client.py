@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from time import sleep
 
 from .errors import GFSCycleResolutionError, GFSDownloadError
 from .schemas import GFSCycleInfo, GFSVariableMetadata
@@ -19,6 +20,8 @@ VARIABLES: dict[str, tuple[str, str, str]] = {
 # GFS cycles are published at 00, 06, 12, 18 UTC.
 # We try cycles from most-recent backwards (NOMADS keeps ~48 h of availability).
 CYCLE_HOURS = [18, 12, 6, 0]
+FETCH_ATTEMPTS = 5
+FETCH_BACKOFF_S = 10.0
 MAX_LOOKBACK_DAYS = 2
 
 # Forecast hours fetched per cycle. Each becomes one band of the output GeoTIFF, and
@@ -161,6 +164,53 @@ class GFSClient:
             search_string=search_string,
         )
 
+    def download_analysis_series(
+        self,
+        var_key: str,
+        start: datetime,
+        hours: int,
+        bbox_west: float,
+        bbox_south: float,
+        bbox_east: float,
+        bbox_north: float,
+        output_path: Path,
+    ) -> Path:
+        """Hourly bands for [start, start + hours], each from the latest cycle at or before
+        it (f000–f005 of successive 6-hourly cycles).
+
+        For hindcasts: the closest thing to observed weather GFS offers, so a validation run
+        measures fire-spread skill rather than forecast error. `start` must be on the hour.
+        """
+        import numpy as np
+        import rasterio
+
+        if start.minute or start.second:
+            raise GFSDownloadError(f"start {start} is not on the hour")
+        search_string, _, field_name = VARIABLES[var_key]
+        bands, transform = [], None
+        for h in range(hours + 1):
+            valid = start + timedelta(hours=h)
+            cycle_hour = valid.hour - valid.hour % 6
+            cycle = GFSCycleInfo(date=valid.date().isoformat(), cycle_hour=cycle_hour)
+            clipped = self._fetch_clipped(
+                cycle, valid.hour - cycle_hour, var_key, search_string, field_name,
+                bbox_west, bbox_south, bbox_east, bbox_north,
+            )
+            if transform is None:
+                transform = clipped.rio.transform()
+            bands.append(clipped.values.astype("float32"))
+        stack = np.stack(bands)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with rasterio.open(
+            output_path, "w", driver="GTiff",
+            height=stack.shape[1], width=stack.shape[2], count=stack.shape[0],
+            dtype="float32", crs="EPSG:4326", transform=transform,
+        ) as dst:
+            dst.write(stack)
+        logger.info("Saved GFS analysis series %s → %s (%d bands)",
+                    var_key, output_path, len(bands))
+        return output_path
+
     def _fetch_clipped(
         self,
         cycle: GFSCycleInfo,
@@ -177,13 +227,21 @@ class GFSClient:
         from herbie import Herbie
 
         date_str = f"{cycle.date} {cycle.cycle_hour:02d}:00"
-        try:
-            H = Herbie(date_str, model="gfs", product="pgrb2.0p25", fxx=fxx, verbose=False)
-            ds = H.xarray(search_string)
-        except Exception as exc:
-            raise GFSDownloadError(
-                f"Failed to fetch GFS variable {var_key} at fxx={fxx}: {exc}"
-            ) from exc
+        # The public buckets drop connections now and then; a multi-day hindcast makes
+        # hundreds of requests, so one transient failure must not lose the whole series.
+        for intento in range(FETCH_ATTEMPTS):
+            try:
+                H = Herbie(date_str, model="gfs", product="pgrb2.0p25", fxx=fxx, verbose=False)
+                ds = H.xarray(search_string)
+                break
+            except Exception as exc:
+                if intento == FETCH_ATTEMPTS - 1:
+                    raise GFSDownloadError(
+                        f"Failed to fetch GFS variable {var_key} at fxx={fxx}: {exc}"
+                    ) from exc
+                logger.warning("GFS %s fxx=%d attempt %d failed: %s", var_key, fxx,
+                               intento + 1, exc)
+                sleep(FETCH_BACKOFF_S * (intento + 1))
 
         # Extract the DataArray — field name varies, fall back to first data variable
         if field_name in ds:

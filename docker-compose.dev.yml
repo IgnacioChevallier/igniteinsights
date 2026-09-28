@@ -2,6 +2,7 @@ services:
   api:
     volumes:
       - ./app:/app/app
+      - ./benchmarks:/app/benchmarks
     command:
       - /app/.venv/bin/uvicorn
       - app.main:app

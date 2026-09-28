@@ -1,0 +1,33 @@
+{
+  "descripcion": "Harness B (RESULTADOS.md §4): 12 h desde la ignición del 2026-02-02 19:46 UTC, semilla FIRMS de 17.747 ha, contra la cicatriz dNBR de baseline-002 (ventana temporal corregida, sin filtro de evento: event-filter-001 terminó en 'failed' en mask-dataset-gen). La cicatriz del harness B publicado (legacy-v1, ventana pre nov-dic 2023) ya no existe en mask-dataset-gen (commit 5318c24); los números publicados se reprodujeron puntuando las salidas viejas antes de ese cambio (IGN-26 §Benchmark).",
+  "anio_fuego": 2026,
+  "semilla_inicial": {
+    "tipo": "firms",
+    "nota": "FIRMS hasta la ignición"
+  },
+  "ventanas": [
+    {
+      "t0": "2026-02-02T18:00:00+00:00",
+      "horas": 12,
+      "tstart_s": 6360.0
+    }
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-patriada-2026/runs/baseline-002"
+    }
+  },
+  "clima": "gfs-ciclo-18z del 2026-02-02, 25 bandas horarias (la corrida publicada usó 13 para 14 necesarias; ver IGN-26 §Benchmark)",
+  "empaquetado": {
+    "tipo": "legado_harness_b",
+    "corridas": {
+      "worldcover": "data/elmfire/inputs/cmp_aoi_worldcover",
+      "mapbiomas": "data/elmfire/inputs/cmp_aoi_mapbiomas",
+      "ccsbap": "data/elmfire/inputs/cmp_aoi_ccsbap"
+    },
+    "clima_gfs": {
+      "ciclo": "2026-02-02T18:00:00+00:00",
+      "horas": 24
+    }
+  }
+}

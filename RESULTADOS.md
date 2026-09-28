@@ -207,7 +207,132 @@ Cuatro consecuencias, en orden de importancia:
    cómputo.
 4. Repetir en un segundo incendio.
 
-## 8. Cómo reproducir
+## 8. Benchmark sobre dos incendios nuevos (2026-09-27)
+
+Método en `IGN-26-VALIDACION.md` §Benchmark. Resultados versionados en
+`benchmarks/iteraciones/`, visibles en la sección Validación del dashboard; la tabla cruzada sale
+de `scripts/benchmark.py resumen`.
+
+**Casos.**
+
+- **Los Alerces 2023** (Población Rosales II, `los-alerces-2023/cadena-96h`): 1.067 ha según la
+  cicatriz filtrada por evento.
+- **Epuyén 2025** (La Rinconada, `epuyen-2025/cadena-96h-lago`): 2.995 ha.
+
+Los dos arrancan de una **ignición puntual** a la hora reportada y corren **96 h en cuatro
+ventanas de 24 h**. Cada ventana se siembra con lo que predijo la anterior; el modelo corre solo.
+El clima son análisis GFS encadenados. Las referencias son la cicatriz dNBR filtrada por evento
+(principal) y las detecciones VIIRS SP de cada ventana (diagnóstico).
+
+**Métricas.**
+
+- **Dice @96h** contra la cicatriz.
+- **Sesgo de área** (predicho / observado), con alarma fuera de [0,5×, 2×].
+- **Forma**: el Dice a área igualada, en la hora t\* en que lo predicho alcanza la superficie
+  observada. Separa dónde quema el modelo de cuán rápido lo hace; las ~96 h reales son la
+  referencia para t\*.
+
+### 8.1 CCS-BAP gana en los dos incendios
+
+| Mapa | Alerces Dice / sesgo / forma | Epuyén Dice / sesgo / forma |
+|---|---|---|
+| **CCS-BAP 2017** | **0,484** / 1,05 / **0,477** | **0,107** / 0,20 / **0,107** |
+| MapBiomas (2022 / 2024) | 0,328 / 0,38 / 0,328 | 0,088 / 0,10 / 0,088 |
+| WorldCover 2021 | 0,029 / 0,02 / 0,029 | 0,007 / 0,01 / 0,007 |
+
+- **En Alerces CCS-BAP gana con margen**, y con la velocidad correcta: alcanza el área observada
+  a las 93 h. WorldCover casi no propaga, porque su 42 % de TL3 lo frena.
+- **En Epuyén los tres mapas se quedan muy cortos**, a una quinta parte de la superficie o menos:
+  el día 1 el modelo quema 18 ha contra ~2.900 reales (§8.2). Aun así, el orden se repite.
+- **Salvedad: en Epuyén el orden depende de la ignición** (§8.3). La cicatriz tiene 9 % de
+  forestación exótica de pino, que el crosswalk lleva a **TL8** (hojarasca, lenta; IGN-20B §5). Es
+  un punto concreto para revisar con el director.
+
+### 8.2 La calibración mueve el reloj, no la forma
+
+Barrido sobre `base-001` (CCS-BAP), un factor por receta:
+
+| Receta | Alerces Dice / sesgo / forma / t\* | Epuyén Dice / sesgo / forma / t\* |
+|---|---|---|
+| base-001 | 0,484 / 1,05 / 0,477 / 93 h | 0,107 / 0,20 / 0,107 / no llega |
+| ADJ 0,7 | 0,396 / 0,51 / 0,396 / no llega | — |
+| ADJ 1,3 | 0,561 / 1,85 / 0,466 / 67 h | 0,178 / 0,29 / 0,178 / no llega |
+| ADJ 1,6 | 0,495 / 2,95 ⚠ / 0,470 / 54 h | 0,326 / 0,61 / 0,326 / no llega |
+| ADJ 2,0 | 0,362 / 4,49 ⚠ / 0,458 / 42 h | 0,428 / 1,09 / 0,418 / 92 h |
+| viento ×1,6 | 0,519 / 1,37 / 0,470 / 80 h | 0,160 / 0,26 / 0,160 / no llega |
+| humedad muerta −4 | 0,509 / 1,53 / 0,443 / 77 h | 0,284 / 0,65 / 0,284 / no llega |
+| **humedad muerta −6** | **0,528 / 1,89 / 0,435 / 65 h** | **0,427 / 1,10 / 0,414 / 93 h** |
+| ADJ 1,3 + humedad −4 | 0,531 / 2,54 ⚠ / 0,442 / 57 h | 0,438 / 1,17 / 0,416 / 91 h |
+| humedad con historial de secado | 0,481 / 1,29 / 0,445 / 85 h | 0,096 / 0,18 / 0,096 / no llega |
+| LW 150 / 200 % | 0,442 / 0,371 | — |
+| sin fuego de copas | idéntico a base, byte a byte | idéntico a base |
+
+1. **La forma no depende de ADJ, del viento ni de la humedad.** Una vez que el modelo alcanza el
+   área, se queda en 0,44–0,48 en Alerces y en 0,41–0,42 en Epuyén. Lo que cambian esas
+   perillas es t\*, cuándo llega. **El dónde lo pone el mapa de combustible, y la calibración
+   sólo mueve el reloj.**
+2. **La mejor receta sin alarma en ninguno de los dos es *humedad muerta −6*.** Dice medio 0,478
+   contra 0,295 de base (**+62 %**). Llega al área observada a las 65 h en Alerces y a las 93 h en
+   Epuyén.
+3. **Epuyén está limitado por la humedad del combustible fino, no por el viento.** Viento ×1,6
+   apenas mueve el resultado, y humedad −6 lo cuadruplica. Fue un día de calor extremo. El
+   modelo necesita ~20 m/min para cubrir los 5 km que VIIRS ya ve a las 4 h, y con m1 ≈ 7 % y
+   7 mph de viento del GFS da 1–3 m/min.
+4. **Cada incendio pide su propia velocidad.** Alerces se calibra con la configuración base y
+   Epuyén necesita m1 más seco o ADJ ≈ 2. Con −6, Alerces llega a las 65 h y con sesgo 1,89, en el
+   borde de la alarma. Un parámetro global compensa un sesgo del clima de entrada que cambia de
+   un incendio a otro.
+5. **La humedad con historial de secado no es la palanca.** El modelo de retardo
+   (τ = 1/10/100 h, 120 h de spin-up) baja mucho m100 (de 16–20 % a ~11 %), pero deja m1 igual y
+   no mejora ninguno de los dos casos. El delta uniforme funciona porque baja m1, que sale directo
+   de la temperatura y la humedad del GFS de 0,25°. **La corrección de fondo es un clima de
+   superficie más fino** (estaciones, o reanálisis con corrección por altura), no un parámetro.
+   ERA5-Land por Open-Meteo resultó aún más frío que el GFS en Epuyén: su celda está a 1.181 m.
+6. **La receta no se transfiere a Patriada.** Con *humedad −6* y semilla observada
+   (`humedad-m6-obs-001`, las diez ventanas del harness A), el recall sube de 0,342 a 0,406
+   (cercano: de 0,467 a 0,555), pero la sobre-propagación empeora en todas las ventanas (la del
+   6-feb pasa de 458× a 800×) e IoU y precisión bajan (0,044 → 0,038 y 0,048 → 0,040). En un
+   incendio combatido con semillas grandes, secar el combustible agranda lo que ya sobraba:
+   sin modelar la supresión, ninguna calibración de humedad sirve para los tres casos.
+7. **El fuego de copas nunca se activa.** `CROWN_FIRE_MODEL` 0 y 1 dan un TOA idéntico byte a byte
+   en Alerces y en Epuyén.
+
+### 8.3 La ignición importa tanto como el mapa
+
+El punto que traía mask-dataset-gen para Epuyén ("semilla aproximada" del filtro de evento,
+-42,2921 / -71,4447) **está a 1.400 m, en la montaña**, 490 m fuera de la cicatriz. Las
+crónicas ubican el origen "entre el cementerio y la Escuela 9, próximo al lago", en una
+plantación de pinos. Hay tres protocolos versionados:
+
+| Protocolo | Ignición | CCS-BAP | MapBiomas | WorldCover |
+|---|---|---|---|---|
+| `cadena-96h` | punto reportado, fuera de la cicatriz (1.400 m) | 0,118 | 0,166 | 0,033 |
+| `cadena-96h-interior` | 210 m dentro de la cicatriz (1.331 m) | 0,135 | **0,225** | 0,181 |
+| **`cadena-96h-lago`** | **junto a la localidad Lago Epuyén (348 m, TL8/TU5)** | **0,107** | 0,088 | 0,007 |
+
+Con el punto de montaña, el modelo no tocó una sola detección en tres días. El orden de los
+mapas se invierte según dónde se prende el fuego. Con la ignición más consistente con las
+crónicas, CCS-BAP gana, y las recetas calibradas responden: *humedad −6* pasa de 0,261 a 0,427.
+**La coordenada del filtro de evento de mask-dataset-gen conviene corregirla allá.**
+
+### 8.4 Lo que no está demostrado
+
+- **Dos incendios no alcanzan para fijar parámetros.** El delta de humedad compensa un sesgo del
+  clima de entrada, y su valor bueno cambia de un incendio a otro.
+- **Ningún incendio real corrió libre.** Los dos se combatieron, así que un Dice @96h alto con
+  sesgo alto no es mejor modelo: es un modelo más rápido que llega antes a la cicatriz.
+- **La dinámica dentro de cada ventana sigue mal.** El recall contra las detecciones de cada
+  ventana queda bajo (0,02–0,2) en todas las recetas. El modelo llega al área final, pero no
+  reproduce el día 1 explosivo de Epuyén.
+- **En Epuyén el error tiene dirección.** El GFS da viento del oeste (~270°, ~10 mph a 20 pies)
+  en la tarde del día 1, y el modelo avanza al este-sureste, donde están sus aciertos. Pero el
+  fuego real llegó ~3,5 km más lejos en esa dirección, y el modelo además quema ladera arriba
+  hacia el oeste (predicho sin observar a 699 m de altura media, contra la ignición a 348 m). Es
+  velocidad insuficiente a favor del viento, con la pendiente dominando donde el viento es débil.
+  La convención de dirección está verificada de punta a punta: con `wd = 0` el playground avanza
+  al sur.
+
+## 9. Cómo reproducir
 
 ```bash
 # 1. Los tres mapas sobre la misma grilla
@@ -224,6 +349,16 @@ uv run python scripts/score_against_observed.py --run cmp_aoi_ccsbap --caso feb2
 uv run python scripts/harness_a.py
 ```
 
-Los resultados quedan en `data/validation/`, y la sección **Validación** del dashboard los
+Benchmark (§8), con insumos inmutables y trazabilidad por receta:
+
+```bash
+uv run python scripts/benchmark.py empaquetar los-alerces-2023/cadena-96h
+uv run python scripts/benchmark.py correr     los-alerces-2023/cadena-96h base-001 humedad-m6-001
+uv run python scripts/benchmark.py tabla      los-alerces-2023/cadena-96h
+uv run python scripts/benchmark.py resumen    # cada receta en cada incendio
+uv run python scripts/benchmark.py verificar  los-alerces-2023/cadena-96h base-001
+```
+
+Los resultados de los harness originales quedan en `data/validation/`, y la sección **Validación** del dashboard los
 dibuja: semilla, acierto, predicho sin observación y observado sin predecir, alternando entre
 los tres mapas sobre el mismo caso.

@@ -18,27 +18,28 @@ from rasterio.warp import transform_bounds
 from rasterio.windows import from_bounds
 
 from app.elmfire.builder import fuels_builder as fb
+from app.ingestion.coverage import covers_aoi
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 log = logging.getLogger("build_fuel_maps")
 
 MAPBIOMAS_COG = (
     "https://storage.googleapis.com/mapbiomas-public/initiatives/argentina"
-    "/collection-2/coverage/argentina_coverage_2024.tif"
+    "/collection-2/coverage/argentina_coverage_{year}.tif"
 )
 CCSBAP_SHP = Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
 
 
-def fetch_mapbiomas_window(reference: Path, out: Path) -> Path:
+def fetch_mapbiomas_window(reference: Path, out: Path, year: int = 2024) -> Path:
     """Cut the AOI window out of the public COG instead of downloading 650 MB."""
-    if out.exists():
+    if out.exists() and covers_aoi(out):
         log.info("MapBiomas window already local at %s", out)
         return out
     out.parent.mkdir(parents=True, exist_ok=True)
     with rasterio.open(reference) as ref:
         west, south, east, north = transform_bounds(ref.crs, "EPSG:4326", *ref.bounds)
     pad = 0.02  # margin so the reprojection has data past the edges
-    with rasterio.open(MAPBIOMAS_COG) as src:
+    with rasterio.open(MAPBIOMAS_COG.format(year=year)) as src:
         window = from_bounds(west - pad, south - pad, east + pad, north + pad, src.transform)
         data = src.read(1, window=window)
         profile = src.profile | {
@@ -55,6 +56,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reference", type=Path, default=Path("data/static/dem.tif"))
     ap.add_argument("--out-dir", type=Path, default=Path("data/static/fuel_maps"))
+    ap.add_argument("--mapbiomas-years", type=int, nargs="+", default=[2024])
     args = ap.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -62,11 +64,17 @@ def main() -> None:
         Path("data/raw/worldcover/esa_worldcover_v200_10m.tif"), args.reference,
         args.out_dir / "fbfm40_worldcover.tif", fb.WORLDCOVER_TO_FBFM40, fb.WORLDCOVER_SOURCE_ID,
     )
-    mapbiomas = fb.raster_to_fbfm40(
-        fetch_mapbiomas_window(args.reference, Path("data/raw/mapbiomas/mapbiomas_2024_aoi.tif")),
-        args.reference, args.out_dir / "fbfm40_mapbiomas.tif",
-        fb.MAPBIOMAS_TO_FBFM40, fb.MAPBIOMAS_SOURCE_ID, fill_path=baseline,
-    )
+    # 2024 es el mapa que sirve la app (fbfm40_mapbiomas.tif). Otros años, para validar
+    # incendios anteriores sin fuga temporal (IGN-26 §Benchmark), llevan el año en el nombre.
+    for year in args.mapbiomas_years:
+        salida = args.out_dir / ("fbfm40_mapbiomas.tif" if year == 2024
+                                 else f"fbfm40_mapbiomas{year}.tif")
+        mapbiomas = fb.raster_to_fbfm40(
+            fetch_mapbiomas_window(args.reference,
+                                   Path(f"data/raw/mapbiomas/mapbiomas_{year}_aoi.tif"), year),
+            args.reference, salida,
+            fb.MAPBIOMAS_TO_FBFM40, fb.MAPBIOMAS_SOURCE_ID, fill_path=baseline,
+        )
     ccsbap = fb.ccsbap_to_fbfm40(
         CCSBAP_SHP, args.reference, args.out_dir / "fbfm40_ccsbap.tif", fill_path=baseline,
     )

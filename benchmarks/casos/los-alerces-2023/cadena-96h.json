@@ -1,0 +1,57 @@
+{
+  "descripcion": "Población Rosales II, PN Los Alerces: 96 h de crecimiento desde la ignición (sábado 4-feb-2023 22:00 ART), cuatro ventanas de 24 h encadenadas. Referencias: detecciones VIIRS SP nuevas por ventana y la cicatriz dNBR filtrada por evento (event-filter-002, 1.067 ha).",
+  "anio_fuego": 2023,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.576667,
+    "lat": -42.8825,
+    "hora": "2023-02-05T01:00:00+00:00",
+    "fuente": "Parte citado por Red43 (2023-02-05): 'El sábado a las 22 hs se declaró un incendio denominado Población Rosales II'. Ubicación: partes del SNMF (config de mask-dataset-gen)."
+  },
+  "ventanas": [
+    {
+      "t0": "2023-02-05T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-06T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-07T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-08T01:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.78,
+    -43.05,
+    -71.33,
+    -42.72
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2023/runs/event-filter-002"
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/d1c0fa5b-ae98-455e-9b4c-f4f91403f3cb",
+    "mapas": {
+      "fbfm40_worldcover2021.tif": "data/static/fuel_maps/fbfm40_worldcover.tif",
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif",
+      "fbfm40_mapbiomas2022.tif": "data/static/fuel_maps/fbfm40_mapbiomas2022.tif"
+    }
+  }
+}
