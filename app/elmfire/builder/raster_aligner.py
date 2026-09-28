@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 # algorithm, units). Without this the `.exists()` check below serves stale rasters
 # forever: the cache on disk was float32 from an earlier revision while the code had
 # already moved to int16, and every simulation silently used the stale copy.
-DERIVATION_VERSION = 2
+# 3: aspect was the upslope bearing; ELMFIRE read it as the facing direction and pushed
+# every fire downslope (RESULTADOS-CSS-BAP, loop 2).
+DERIVATION_VERSION = 3
 _CACHE_KEY_FILE = ".topo_cache_key.json"
 
 
@@ -174,8 +176,11 @@ def _derive_slope_aspect(
     slope_rad = np.arctan(np.sqrt(dz_dx**2 + dz_dy**2))
     slope_deg = np.degrees(slope_rad)
 
-    # Aspect: compass bearing from which slope descends (0=N, 90=E)
-    math_angle = np.degrees(np.arctan2(-dz_dy, dz_dx))
+    # Aspect: compass bearing the slope FACES, i.e. the downslope direction (0=N, 90=E) —
+    # the LANDFIRE convention ELMFIRE expects: it pushes spread toward ASP - 180
+    # (elmfire_level_set.f90, SINASPM180), which is upslope only if ASP faces downslope.
+    # Rows grow southward, so north is -dz_dy; downslope is minus the gradient.
+    math_angle = np.degrees(np.arctan2(dz_dy, -dz_dx))
     aspect_compass = 90.0 - math_angle
     aspect_compass = np.where(aspect_compass < 0, aspect_compass + 360.0, aspect_compass)
     aspect_compass = np.where(aspect_compass >= 360.0, aspect_compass - 360.0, aspect_compass)

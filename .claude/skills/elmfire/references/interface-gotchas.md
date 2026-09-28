@@ -130,3 +130,13 @@ If a namelist omits `CROWN_FIRE_MODEL` entirely, ELMFIRE defaults to crown fire
 **enabled**. This repo's current namelist doesn't set `CROWN_FIRE_MODEL` at all —
 worth confirming intentionally, not by omission, if crown fire behavior is ever
 scrutinized.
+
+## `asp` is the direction the slope FACES (downslope), not the upslope bearing
+
+ELMFIRE 2025.0212 pushes slope-driven spread toward `ASP − 180°`
+(`elmfire_level_set.f90`: `SINASPM180(IASP) = SIN((IASP − 180) · π/180)`), which is upslope only
+if `ASP` is the LANDFIRE aspect: the azimuth the slope faces, i.e. downslope. Until
+`raster_aligner.DERIVATION_VERSION = 3` (2026-09-28) this repo wrote the **upslope** bearing, and
+every run pushed fires **downhill** (found in RESULTADOS-CSS-BAP, loop 2: 150 m along `asp`, the
+terrain rose in 96 % of cells steeper than 20°). `tests/test_topo_aspect.py` pins the convention
+with synthetic slopes: a slope rising to the north faces south (180).
