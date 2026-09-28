@@ -728,6 +728,23 @@ restricción. Con la receta única para todos, se evalúa sobre los siete incend
 - La ventaja sobre ADJ 1,3 es chica (+0,008 de media), menor que la incertidumbre de la
   ignición (§4, loop 5c).
 
+### Loop 7 — robustez de la receta final a la ignición
+
+Las 21 corridas perturbadas del loop 5c (±500 m, ±2 h en Alerces 2023, Epuyén y Alerces 2016),
+repetidas con la receta final:
+
+| Receta | Media | Mediana | Alarmas de sesgo |
+|---|---|---|---|
+| `adj-130-001` | 0,398 | 0,454 | 5 de 21 |
+| `lw100-adj115-001` | 0,395 | 0,440 | 7 de 21 |
+
+- **Las dos son equivalentes dentro de la incertidumbre de la ignición.** La final es algo más
+  frágil: Alerces 2016 pasa de sesgo 2 en E 500 m, +2 h y S 500 m.
+- Se mantiene `lw100-adj115-001` porque la función objetivo definida (nominal: media, mediana,
+  restricción, desempate) la elige, en calibración y en prueba.
+- **`adj-130-001` es la alternativa conservadora:** mejor cuando la ignición es incierta.
+  Conviene decirlo así en la tesis.
+
 ## 5. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte salvo en Las Golondrinas),
