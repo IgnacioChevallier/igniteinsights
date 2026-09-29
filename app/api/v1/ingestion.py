@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1 import jobs
 from app.config import FuelsSource
 from app.db import repository
 from app.db.session import async_session_factory
@@ -321,6 +322,15 @@ async def run_ingestion(body: IngestionRunRequest):
 
     status = "partial_failure" if errors else "success"
     return _envelope(status=status, data=data, error=errors or None)
+
+
+@router.post(
+    "/run/async",
+    summary="Start POST /ingestion/run in the background",
+    description="Same body as /ingestion/run. Returns data.job_id; poll GET /jobs/{job_id}.",
+)
+async def run_ingestion_async(body: IngestionRunRequest):
+    return _envelope(status="success", data={"job_id": jobs.start(run_ingestion(body))})
 
 
 @router.get(

@@ -88,6 +88,45 @@ export function extractErrorMessage(
 
 export type RunPhase = "ingesting" | "simulating" | null;
 
+/** A proxy in the way (Railway's edge, Next's rewrite) answers errors in plain text. */
+async function readJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { detail: text || `HTTP ${res.status}` };
+  }
+}
+
+const POLL_MS = 5000;
+
+/**
+ * Start `/api/v1/<path>/async` and poll its job until it ends; returns the envelope the
+ * synchronous endpoint would have answered. Both legs take minutes (~11 for ingestion on
+ * Railway), longer than the 300 s after which the browser-to-Railway connection is cut,
+ * so neither may be one long request.
+ */
+async function runJob(path: string, body: unknown): Promise<Record<string, unknown>> {
+  const start = await fetch(`/api/v1/${path}/async`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const started = await readJson(start);
+  const jobId = (started.data as { job_id?: string } | null)?.job_id;
+  if (!start.ok || !jobId) throw new Error(extractErrorMessage(started, start.status));
+
+  for (;;) {
+    await new Promise((r) => setTimeout(r, POLL_MS));
+    const res = await fetch(`/api/v1/jobs/${jobId}`);
+    const job = await readJson(res);
+    if (res.status === 404) throw new Error(extractErrorMessage(job, res.status));
+    if (!res.ok || job.status === "running") continue; // a blip while polling is not a failure
+    if (job.status === "failed") throw new Error(String(job.error));
+    return job.result as Record<string, unknown>;
+  }
+}
+
 /**
  * Ingest → prepare → simulate. Returns the new simulation id, or null when the ingestion
  * produced no inputs directory (nothing to simulate). Throws with a readable message on
@@ -112,32 +151,31 @@ export async function runRealSimulation(
   if (settings.firms_start_date) body.firms_start_date = settings.firms_start_date;
 
   onPhase("ingesting");
-  const res = await fetch("/api/ingestion/run", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const envelope = await res.json();
-  if (!res.ok || (envelope.status && envelope.status !== "success")) {
-    throw new Error(`Falló la ingesta: ${extractErrorMessage(envelope, res.status)}`);
+  let envelope: Record<string, unknown>;
+  try {
+    envelope = await runJob("ingestion/run", body);
+  } catch (err) {
+    throw new Error(`Falló la ingesta: ${(err as Error).message}`);
+  }
+  if (envelope.status && envelope.status !== "success") {
+    throw new Error(`Falló la ingesta: ${extractErrorMessage(envelope, 200)}`);
   }
 
-  const inputsDir = envelope.data?.preparation?.inputs_dir;
-  const ignitionDatetime = envelope.data?.preparation?.ignition_datetime;
+  const preparation = (envelope.data as { preparation?: Record<string, string> } | null)
+    ?.preparation;
+  const inputsDir = preparation?.inputs_dir;
+  const ignitionDatetime = preparation?.ignition_datetime;
   if (!inputsDir) return null;
 
   onPhase("simulating");
-  const simRes = await fetch("/api/simulations/run", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  let simEnvelope: Record<string, unknown>;
+  try {
+    simEnvelope = await runJob("simulations/run", {
       inputs_dir: inputsDir,
       ...(ignitionDatetime ? { ignition_datetime: ignitionDatetime } : {}),
-    }),
-  });
-  const simEnvelope = await simRes.json();
-  if (!simRes.ok || (simEnvelope.status && simEnvelope.status !== "success")) {
-    throw new Error(`Falló la simulación: ${extractErrorMessage(simEnvelope, simRes.status)}`);
+    });
+  } catch (err) {
+    throw new Error(`Falló la simulación: ${(err as Error).message}`);
   }
-  return (simEnvelope.data?.simulation_id as string) ?? null;
+  return ((simEnvelope.data as { simulation_id?: string } | null)?.simulation_id) ?? null;
 }

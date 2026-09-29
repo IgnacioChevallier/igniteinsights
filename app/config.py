@@ -28,6 +28,9 @@ class Settings(BaseSettings):
 
     elmfire_runner_url: str = "http://localhost:8001"
     elmfire_runner_timeout: int = 300
+    # False: api and runner share /app/data (docker-compose). True: they don't (Railway),
+    # so the client uploads inputs_dir and downloads outputs_dir around each run.
+    elmfire_runner_transfer_files: bool = False
 
     data_dir: str = "/app/data"
     raw_data_dir: str = "/app/data/raw"

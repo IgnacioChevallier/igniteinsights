@@ -36,6 +36,8 @@ class FIRMSClient:
         start_date: date | None = None,
         sources: list[str] | None = None,
     ) -> pd.DataFrame:
+        if not settings.firms_map_key:
+            raise FIRMSAuthError("FIRMS_MAP_KEY no está configurada")
         bbox = f"{west},{south},{east},{north}"
         frames = []
         for source in sources or FIRMS_SOURCES:

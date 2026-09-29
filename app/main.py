@@ -12,6 +12,8 @@ from app.config import settings
 from app.db.session import engine
 
 logging.basicConfig(level=settings.log_level.upper())
+# httpx logs every request URL at INFO, and the FIRMS and OpenTopography keys travel in it.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 

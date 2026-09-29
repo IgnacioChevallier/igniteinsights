@@ -14,7 +14,9 @@ import https from "node:https";
  * `node:http` has no such default and needs no dependency to say so.
  *
  * ponytail: a synchronous multi-minute request is fragile whatever the timeout — a reload
- * loses it. The durable fix is an async job with polling, which is a backend change.
+ * loses it, and on Railway the browser-side connection is cut at 300 s anyway. Ingestion
+ * and simulation already moved to background jobs (`/run/async` + GET /jobs/{id}, see
+ * lib/real-run.ts); the playground, the last user of this, should follow.
  */
 export function postLong(
   url: string,

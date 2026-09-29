@@ -5,6 +5,7 @@ from app.api.v1 import (
     fires,
     fuels,
     ingestion,
+    jobs,
     playground,
     simulations,
     validation,
@@ -19,3 +20,4 @@ api_router.include_router(dashboard.router)
 api_router.include_router(fuels.router)
 api_router.include_router(playground.router)
 api_router.include_router(validation.router)
+api_router.include_router(jobs.router)

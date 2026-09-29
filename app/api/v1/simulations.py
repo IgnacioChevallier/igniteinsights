@@ -16,9 +16,11 @@ from fastapi import Path as FPath
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1 import jobs
 from app.config import resolve_data_path as _resolve
 from app.config import settings
 from app.db import repository
+from app.db.session import async_session_factory
 from app.dependencies import get_db
 from app.elmfire.builder.namelist_writer import write_namelist
 from app.elmfire.runner.client import ELMFIRERunnerClient
@@ -250,6 +252,20 @@ async def run_simulation(
         )
         await session.commit()
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post(
+    "/run/async",
+    summary="Start POST /simulations/run in the background",
+    description="Same body as /simulations/run. Returns data.job_id; poll GET /jobs/{job_id}.",
+)
+async def run_simulation_async(body: SimulationRunRequest):
+    async def _run():
+        # The request-scoped session closes with this response; the job needs its own.
+        async with async_session_factory() as session:
+            return await run_simulation(body, session)
+
+    return _envelope(status="success", data={"job_id": jobs.start(_run())})
 
 
 @router.get(
