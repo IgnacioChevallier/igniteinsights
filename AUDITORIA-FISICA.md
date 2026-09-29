@@ -11,7 +11,7 @@
 - **Tres bugs de interfaz confirmados con ELMFIRE real y corregidos** (§3, hallazgos 1–3):
   clima congelado en la banda 0, frente a ~0,5× por el `phi` en metros, `wd` interpolado como
   ángulo plano. Más dos menores (4: WAF 0 con CH 0; la capa "sin ignición" leída como quemada).
-- **Sospecha abierta (5): dosel incoherente con el combustible.** En el matorral quemado (ñire
+- **Sospecha abierta (6): dosel incoherente con el combustible.** En el matorral quemado (ñire
   bajo, lenga baja, arbustal nativo) Hansen 2000 + ETH 2020 dicen bosque cerrado y ELMFIRE le da
   el WAF de bosque (~0,08 en vez de 0,46). Diagnóstico `dosel-coherente-001` en la cola.
 - **`base-001` sobre v4, siete incendios:** media 0,361, mediana 0,444, 2 alarmas sin el caso
@@ -323,7 +323,7 @@ disco lleno):
 2. **¿Dónde?** Igual que en `base-001` (loop B): el día 1 corto y el frente al sur de lo que
    empuja el GFS.
 3. **¿Por qué? Dos sospechas de insumos, medidas:**
-   - **Dosel incoherente (sospecha 5).** Anular el dosel en GR/GS/SH (LANDFIRE) ayuda donde el
+   - **Dosel incoherente (sospecha 6).** Anular el dosel en GR/GS/SH (LANDFIRE) ayuda donde el
      matorral quemado tiene dosel de Hansen (Patriada +0,096, Alerces 2024 +0,057) y empeora los
      lentos (Alerces 2016 −0,12, Alerces 2023 −0,08). La media no cambia: redistribuye velocidad,
      no la corrige. Queda documentado como incoherencia de insumos (§7), no como corrección.
@@ -338,6 +338,34 @@ disco lleno):
    extra son 18 h de fuego sin supresión: el test lo castiga por lo que el combate hizo. Nuevo
    protocolo `calibracion-v4-h54` (ventanas de 24 + 24 + 6 h), aplicando la regla tal cual.
 5. **Experimento:** ADJ 0,8, 1,1 y 1,2 en los siete, y las recetas clave sobre Alerces 2023 h54.
+
+**Resultado** (`objetivo calibracion todas`, Alerces 2023 con h54; ⚠ sin contar el caso límite):
+
+| Receta | A23 h54 | Epuyén | A24 | Patriada | Golondrinas | A16 | Cholila | Media / mediana | Alarmas |
+|---|---|---|---|---|---|---|---|---|---|
+| `base-001` | 0,460 / 1,55 | 0,466 / 1,30 | 0,556 / 1,37 | 0,321 / 0,74 | 0,010 | 0,444 / 1,05 | 0,255 / 0,44 ⚠ | 0,359 / 0,444 | 1 |
+| ADJ 0,9 | 0,433 / 1,28 | 0,406 / 0,95 | 0,549 / 1,21 | 0,310 / 0,63 | 0,009 | 0,422 / 0,86 | 0,222 / 0,34 ⚠ | 0,336 / 0,406 | 1 |
+| **ADJ 1,1 (`adj-110-001`)** | 0,490 / 1,84 | 0,498 / 1,60 | 0,561 / 1,55 | 0,335 / 0,83 | 0,013 | 0,430 / 1,31 | 0,283 / 0,53 | **0,373 / 0,430** | **0** |
+| ADJ 1,2 | 0,496 / 2,22 ⚠ | 0,519 / 1,87 | 0,560 / 1,71 | 0,341 / 0,98 | 0,014 | 0,414 / 1,60 | 0,312 / 0,63 | 0,379 / 0,414 | 1 |
+| `lw100-adj115-001` | 0,487 / 2,47 ⚠ | 0,521 / 2,33 ⚠ | 0,571 / 1,88 | 0,397 / 1,18 | 0,014 | 0,405 / 1,83 | 0,331 / 0,69 | 0,389 / 0,405 | 2 |
+| `dosel-coherente-001` | 0,432 / 2,50 ⚠ | 0,487 / 1,50 | 0,613 / 1,95 | 0,417 / 0,98 | 0,020 | 0,322 / 2,13 ⚠ | 0,261 / 0,44 ⚠ | 0,365 / 0,417 | 3 |
+
+- **Receta candidata: `adj-110-001`** (ADJ 1,1, LW 110 %). Es la única que cumple la restricción:
+  el intervalo sin alarmas es ~[1,05; 1,15], acotado por Cholila abajo y Alerces 2023 arriba.
+  La validación cruzada (`validar todas`) la elige en 6 de 7 pliegues; fuera de muestra, media
+  0,374 y mediana 0,430.
+- **Lo que dice sobre la calibración vieja:** con la interfaz corregida, el modelo pide ADJ 1,1
+  y LW en su valor de base. El ADJ 1,15–1,3 y el LW 100 % de RESULTADOS-CSS-BAP compensaban en
+  parte los bugs (frente a la mitad y clima congelado). Las cifras finales se parecen (0,373 /
+  0,430 contra 0,372 / 0,411), pero ahora con un modelo que avanza a la velocidad de Rothermel y
+  con el clima hora a hora, y sin tocar LW.
+- **ERA5 con el viento ×1,3** (`viento-130-001` sobre los ERA5 v4 de control) reproduce al GFS:
+  Epuyén 0,455 / 1,30 contra 0,466 / 1,30 del GFS; Alerces 2023 sesgo 2,64 contra 2,72. El
+  déficit de ERA5 es de velocidad del viento, y el factor coincide con el cociente GFS/ERA5
+  medido contra las estaciones (mediana 1,26). Próximo loop: homogeneizar ERA5 al GFS como
+  corrección del insumo (protocolo nuevo), no como perilla de receta.
+- **Pendiente para aceptar la receta:** robustez a la ignición (±500 m, ±2 h en Alerces 2023
+  h54, Epuyén y Alerces 2016) y los cuatro de prueba. En la cola.
 
 ## 6. Resultados
 

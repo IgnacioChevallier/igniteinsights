@@ -1,8 +1,8 @@
 {
-  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida). `limites`: casos fuera del alcance de cualquier receta (RESULTADOS-CSS-BAP §2.12), exentos de la restricción de alarmas. Desde el loop 5, calibración sobre -v3 (v2 + atlas de viento; base-001 da idéntico a v2). Desde la auditoría física (AUDITORIA-FISICA.md), protocolos -v4: los tres bugs de interfaz corregidos (NUM_METEOROLOGY_TIMES, phi ±1, wd por el camino corto); los v2/v3 corrieron con el clima de la primera hora y el frente a la mitad de su velocidad.",
+  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida). `limites`: casos fuera del alcance de cualquier receta (RESULTADOS-CSS-BAP §2.12), exentos de la restricción de alarmas. Desde el loop 5, calibración sobre -v3 (v2 + atlas de viento; base-001 da idéntico a v2). Desde la auditoría física (AUDITORIA-FISICA.md), protocolos -v4: los tres bugs de interfaz corregidos (NUM_METEOROLOGY_TIMES, phi ±1, wd por el camino corto); los v2/v3 corrieron con el clima de la primera hora y el frente a la mitad de su velocidad. Alerces 2023 con horizonte de 54 h (v4-h54): el área FIRMS deja de crecer ahí y la regla del horizonte corta ahí (AUDITORIA-FISICA loop C); 72 h redondeaba a ventanas de 24 h.",
   "calibracion": {
     "gfs": [
-      "los-alerces-2023/calibracion-v4",
+      "los-alerces-2023/calibracion-v4-h54",
       "epuyen-2025/calibracion-v4",
       "los-alerces-2024/calibracion-v4",
       "puerto-patriada-2026/calibracion-v4",
