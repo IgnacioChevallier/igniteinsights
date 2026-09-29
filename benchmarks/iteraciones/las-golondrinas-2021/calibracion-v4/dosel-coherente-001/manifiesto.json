@@ -1,0 +1,66 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v4",
+  "caso_sha": "0601a3b812ffc768e61ca34cbad4127d52a94cf726d14008625d5bc4095cdd36",
+  "receta": "dosel-coherente-001",
+  "receta_sha": "9df351d2f9b963124a7c8245b08f6acc73578362c408fc4e6a6931848d710e7e",
+  "padre": "base-001",
+  "motivo": "AUDITORIA-FISICA, sospecha del dosel: dentro de las cicatrices, el matorral (SH) tiene cobertura de Hansen 2000 mediana 78-91 % y altura ETH 2020 13-18 m (Patriada, Alerces 2024, Alerces 2016), así que ELMFIRE le aplica el WAF de un bosque cerrado (~0,08) en vez del de matorral abierto (0,46). Diagnóstico: sin dosel donde el combustible es GR/GS/SH, como en LANDFIRE. No es candidata mientras no se entienda: el dosel es infraestructura que la tesis no fundamenta.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "dosel_coherente": true
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "c864e612dd59e96ed11d21672b7b737913a3cdc7",
+    "sucio": true
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "84efa6a82ce94b3fed41895b19a53fee3d9cfe4fe5a39378d40ec3f6f819bda3",
+        "cbh.tif": "4b6c0be51cab1477a39ceeef5aa9b84970ae38f40160c73d96e32d631fe1ac9b",
+        "cc.tif": "2c5fb8cae0dadc443cbb2a66d29ccc0781ae1fecc89cdc787b0b6da9506037f1",
+        "ch.tif": "7368fd7ae7976348ec1bc556f8a1b17ea9c045edd1b2dbf0a4f9710fdb779adb",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "3df7f842d63ca2b8cde61253ff7e2adfa1a5829a516e2707b78a9c8fe67602fa",
+        "fbfm40.tif": "f7d97e6e8e85c27060eb457224208ea0666abece6f6146a96c0052affb1febbf",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "54afe0241556ae4af76c2166ee2bc1af974fa4cd921a95532bbcc5d6f296ecf5",
+        "m10.tif": "2b2e3907a6c98b93e6bc8a328dabf159a8f6a4e812f53b25ed0e00f0e6eb3864",
+        "m100.tif": "3847e2df31f182baa289dd2e8cc9ef234d5ea9f9fac49ea011ba33da855724ad",
+        "phi.tif": "022c96c2b5ff3d6d237ac0dae1e9404b4f0ad1112fda0bf7f85c13c483ab9fc2",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "c6c66d2ce7703c2ba7c1efb8f03f5f46dc0a9a83c508b132fe99a6b26f95f845",
+        "ws.tif": "3e1fca882199001270b4167c25f9e6cfb6e4038fe2b1fe44bb62e2ff639e20c2"
+      },
+      "namelist_sha": "5b5e834085453171293701852217b40990ebe954d9093d39a752068148de75c3",
+      "salidas": {
+        "fire_size_stats.csv": "bd2d1f9c73c76808479f09b52352eed92da4df29042bab67f6f85537cd8c53a3",
+        "flin_0000001_0086484.tif": "16bae2c51b559b856ff856a30caf4f7adcc52d51309f9b621d55b1e848b7cdd6",
+        "hourly_isochrones.dbf": "6033b3207d04b617561f6edbc9f87ff76963492d92adca9d94a5cd32568fa442",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "6b9f219aa0d6e285637f7f80963ceaccbb6a79eaa0ea7694ac1c757095be48b9",
+        "hourly_isochrones.shx": "70d28d6e1ec55ed0830014c7efa2d15052fa765e8b1ca2ff03921b6b486d954e",
+        "time_of_arrival_0000001_0086484.tif": "61fd5a8441631b0022d2b8e4b8c6d20781fad97fc18f17fb03a54b13a5695be2",
+        "vs_0000001_0086484.tif": "32d789d7021d2b50c8cdc6af2cdd06bbfe4e72ca7709a88dfcee47e58ae446a8"
+      },
+      "git": {
+        "sha": "c864e612dd59e96ed11d21672b7b737913a3cdc7",
+        "sucio": true
+      },
+      "corrida": {
+        "inicio": "2026-09-29T22:41:54.515797+00:00",
+        "minutos": 0.3
+      }
+    }
+  ]
+}

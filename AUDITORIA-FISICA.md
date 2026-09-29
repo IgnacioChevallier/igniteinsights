@@ -6,23 +6,23 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop A, 2026-09-29)*
+*(se reescribe en cada loop — última: loop C en curso, 2026-09-29 18:40)*
 
-- **Tres bugs de interfaz confirmados con ELMFIRE real** (§3). Los tres estaban en todas las
-  corridas del repo, incluidas las de `RESULTADOS-CSS-BAP.md`:
-  1. **Sin `NUM_METEOROLOGY_TIMES`, ELMFIRE usaba la banda 0 del clima toda la ventana.** Cada
-     ventana de 24 h corrió con el viento y la humedad de su primera hora.
-  2. **`phi.tif` en metros frenaba el frente a ~0,5×** la velocidad que ELMFIRE mismo calcula.
-  3. **`wd` se interpola como ángulo plano** (latente mientras existía el 1): un viento del
-     sur gira una vuelta por hora.
-- **Corregidos en la causa**, con tests: `namelist_writer` (1), `ignition_builder` y el
-  playground (2), `weather_builder.wd_for_elmfire` más `cadena` (3). Trampas en el skill.
-- **Mejor receta:** todavía `lw100-adj115-001` sobre v3 (0,372 / 0,411). Sobre v4 deja de
-  estar calibrada: los tres bugs frenaban el modelo, así que hay que recalibrar ADJ y LW.
-- **Corriendo:** empaquetado `-v4` de los siete de calibración; en la cola, `base-001` y
-  `lw100-adj115-001` sobre esos siete.
-- **Próximo paso:** con `base-001` v4, leer las curvas (`analizar`) y barrer ADJ hacia abajo
-  (0,5–1,0) y LW; la Fase B (insumos reales) en paralelo.
+- **Tres bugs de interfaz confirmados con ELMFIRE real y corregidos** (§3, hallazgos 1–3):
+  clima congelado en la banda 0, frente a ~0,5× por el `phi` en metros, `wd` interpolado como
+  ángulo plano. Más dos menores (4: WAF 0 con CH 0; la capa "sin ignición" leída como quemada).
+- **Sospecha abierta (5): dosel incoherente con el combustible.** En el matorral quemado (ñire
+  bajo, lenga baja, arbustal nativo) Hansen 2000 + ETH 2020 dicen bosque cerrado y ELMFIRE le da
+  el WAF de bosque (~0,08 en vez de 0,46). Diagnóstico `dosel-coherente-001` en la cola.
+- **`base-001` sobre v4, siete incendios:** media 0,361, mediana 0,444, 2 alarmas sin el caso
+  límite (Alerces 2023 2,72; Cholila 0,44). La receta vigente `lw100-adj115-001` en v4: 0,375 /
+  0,397 con 2 alarmas (Alerces 2023 4,17; Epuyén 2,33) — **ya no está calibrada**.
+- **Corriendo** (consumidor `cola_run2.sh`, ahora con guarda de disco de 20 GB): barrido ADJ
+  0,5/0,7/0,9 en los siete, después `dosel-coherente-001` y `base-001` en ERA5 v4 (Alerces 2023,
+  Epuyén) para re-verificar la equivalencia GFS/ERA5. Empaquetando Café v4s y los ERA5 v4.
+- **Particion:** `benchmarks/particion.json` apunta a los protocolos v4.
+- **Próximo paso:** con el barrido, el intervalo factible de ADJ (y LW) sobre v4; decidir con la
+  función objetivo; sensibilidad a la ignición de la receta nueva; prueba al final.
 
 ## 2. Supuestos
 
@@ -151,6 +151,49 @@
 - **Sin corregir todavía**: impacto chico y la corrección toca `canopy_builder` (derivación
   del dosel), fuera de lo que la tesis fundamenta. Queda en §7.
 
+### Hallazgo 5 — Con la grilla de clima más alta que ancha, la franja norte lee el clima de otra fila
+
+- **Evidencia en el fuente.** `MAP_FINE_TO_COARSE` (`elmfire_subs.f90:296-297`) acota la fila del
+  clima con `COARSE%NCOLS` en vez de `NROWS`. Las filas se cuentan desde el sur (el lector las
+  invierte, `elmfire_io.f90:1265`), así que toda fila con `IY > NCOLS` lee la fila `NCOLS`. Todas
+  las lecturas de clima pasan por `IROW_ANALYSIS_F2C` (propagación, spotting, interpolación de
+  humedad); el re-acotado de `WX_IROW_FROM_ANALYSIS_IY` con `NROWS` llega tarde.
+- **Experimento** (`pruebas_fisicas.py grilla`): dominio de 81 columnas × 161 filas, viento de
+  20 mph del oeste en una mitad y calma en la otra, 2 h.
+  - Ignición al sur (IY 41): 879 m al este.
+  - Ignición en la franja norte (IY 121): **0 m** (60 celdas, el círculo sin viento): lee la fila 81, en calma.
+  - La misma, con el clima rellenado al este hasta 161 columnas: 879 m (3.475 celdas contra 3.479).
+    ELMFIRE acepta clima de otra forma que el combustible.
+- **Alcance.** 5 de los 10 casos tienen la grilla más alta que ancha, en todos sus protocolos:
+  - Epuyén 2025: 147 filas, 4,4 km;
+  - Alerces 2015: 149 filas, 4,5 km;
+  - Alerces 2016: 146 filas, 4,4 km;
+  - Alerces 2024: 105 filas, 3,1 km;
+  - Patriada: 160 filas, 4,8 km; `cicatriz-12h`, 659 filas; `ventanas-firms`, 1.034 filas (31 km).
+  - La app también: el AOI mide ~72 × 144 km y casi todas sus grillas son altas (2563 × 3222 →
+    659 filas, ~20 km).
+
+  Medido sobre los insumos registrados de las 238 iteraciones de esos casos: diferencia entre
+  el clima real de la franja y la fila que ELMFIRE leyó, en todas las bandas; y cuánto de lo
+  quemado cae en la franja.
+  - **Calibración v4: prácticamente sin efecto.** El GFS o ERA5 interpolado apenas cambia en
+    4 km: |Δws| medio 0,02–0,12 mph, |Δm1| 0,03–0,09 pp. La cicatriz está fuera de la franja
+    (Patriada: 0,2 %). El fuego simulado sólo entra en Alerces 2016 (`lw100-adj115-001` v4:
+    687 de 30.292 celdas; `base-001`: 5).
+  - **Donde sí pesa:** recetas con detalle de terreno. Con el atlas de WindNinja, |Δws| medio
+    1,1–1,4 mph, máx 20–30, y Δwd hasta 180°; con `altura-001`, Δm1 hasta 12–21 pp. En esas el
+    fuego casi no entró en la franja (Alerces 2016: 97 y 128 celdas).
+  - **`puerto-patriada-2026/ventanas-firms`** (harness A): el 54 % (`legacy-ccsbap`) y el 51 %
+    (`humedad-m6-obs-001`) de las celdas quemadas, sumadas por ventana, están en la franja, con
+    Δwd hasta 180° y Δm1 hasta 17 pp. Sostiene el punto 6 de `RESULTADOS.md` (la receta no se
+    transfiere a Patriada), que ya estaba por rehacerse por los hallazgos 1 y 2.
+  - `cicatriz-12h`: 17,7 % de la cicatriz en la franja, pero el fuego simulado nunca entró.
+- **Sin corregir todavía.** El arreglo es del lado del repo y en un solo lugar: `write_namelist`
+  (por donde pasan la API, `cadena`, el banco y los harness) rellena al este las columnas de los
+  rásters de clima hasta `NCOLS ≥ NROWS` (`np.pad`, `mode="edge"`); las columnas extra nunca se
+  leen. Cambia lo que recibe ELMFIRE, así que en el benchmark es un protocolo nuevo, y no se
+  aplica con la cola v4 corriendo. Trampa en el skill.
+
 ### Sospechas descartadas (con el experimento que las descartó)
 
 | Sospecha | Experimento | Resultado |
@@ -197,6 +240,7 @@ de Albini y Baughman y la elipse de Anderson (1983), dentro del script.
 | `dosel` | WAF bajo dosel; CC con CH 0; activación de copa | ±10 %; > 1,5× | 1,05 contra 1,05; WAF 0 (**hallazgo 4**); 9,75× |
 | `tiempo` | Bandas, TSTART, `wd` 170/190, cadena | ver arriba | Anterior: 0 m (**hallazgo 1**); crudo: 173° (**hallazgo 3**); corregidos: OK; cadena 1,05 |
 | `georreferencia` | Punto → celda; grilla del TOA | ±0,5 celda | Exacto |
+| `grilla` | Dominio 81 × 161 con viento en una mitad: ignición al sur, en la franja norte y en la franja con el clima rellenado | > 500 m al este | 879 m; **0 m** (**hallazgo 5**); 879 m |
 
 GS2 con LH 60 %: ELMFIRE funde la herbácea curada en la clase 1-h (una clase con SAV
 ponderada), mi referencia la deja como clase muerta aparte. Coinciden con curado total (LH 30 %,
@@ -259,6 +303,42 @@ disco lleno):
    modelo ya no va lento.
 5. **Experimento:** ADJ 0,5 / 0,7 / 0,9 sobre los siete (en la cola; interrumpido por el disco).
 
+### Loop C — recalibración sobre v4: ADJ, dosel coherente, ERA5 y el horizonte de Alerces 2023
+
+**Barrido de ADJ uniforme** (Dice / sesgo al horizonte; ⚠ fuera de [0,5; 2]):
+
+| Receta | Alerces 2023 | Epuyén | Alerces 2024 | Patriada | Golondrinas | Alerces 2016 | Cholila | Media / mediana |
+|---|---|---|---|---|---|---|---|---|
+| ADJ 0,5 | 0,362 / 0,67 | 0,095 / 0,25 ⚠ | 0,445 / 0,40 ⚠ | 0,130 / 0,12 ⚠ | 0,005 | 0,173 / 0,18 ⚠ | 0,100 / 0,14 ⚠ | 0,187 / 0,130 |
+| ADJ 0,7 | 0,446 / 1,36 | 0,191 / 0,49 ⚠ | 0,534 / 0,86 | 0,223 / 0,34 ⚠ | 0,007 | 0,293 / 0,44 ⚠ | 0,154 / 0,22 ⚠ | 0,264 / 0,223 |
+| ADJ 0,9 | 0,491 / 2,17 ⚠ | 0,406 / 0,95 | 0,549 / 1,21 | 0,310 / 0,63 | 0,009 | 0,422 / 0,86 | 0,222 / 0,34 ⚠ | 0,344 / 0,406 |
+| **ADJ 1 (`base-001`)** | 0,477 / 2,72 ⚠ | 0,466 / 1,30 | 0,556 / 1,37 | 0,321 / 0,74 | 0,010 | 0,444 / 1,05 | 0,255 / 0,44 ⚠ | **0,361 / 0,444** |
+| `lw100-adj115-001` | 0,385 / 4,17 ⚠ | 0,521 / 2,33 ⚠ | 0,571 / 1,88 | 0,397 / 1,18 | 0,014 | 0,405 / 1,83 | 0,331 / 0,69 | 0,375 / 0,397 |
+| `dosel-coherente-001` | 0,397 / 3,99 ⚠ | 0,487 / 1,50 | 0,613 / 1,95 | 0,417 / 0,98 | 0,020 | 0,322 / 2,13 ⚠ | 0,261 / 0,44 ⚠ | 0,360 / 0,397 |
+
+1. **¿Sobre o sub-propaga?** Con los bugs corregidos, el ADJ que pide cada incendio está
+   alrededor de 1, no de 1,3: bajar el ADJ sólo ayuda a Alerces 2023, y subirlo a Cholila. Es
+   la misma tensión que en v3 (un incendio lento que se frenó por combate contra uno rápido),
+   ahora centrada en 1.
+2. **¿Dónde?** Igual que en `base-001` (loop B): el día 1 corto y el frente al sur de lo que
+   empuja el GFS.
+3. **¿Por qué? Dos sospechas de insumos, medidas:**
+   - **Dosel incoherente (sospecha 5).** Anular el dosel en GR/GS/SH (LANDFIRE) ayuda donde el
+     matorral quemado tiene dosel de Hansen (Patriada +0,096, Alerces 2024 +0,057) y empeora los
+     lentos (Alerces 2016 −0,12, Alerces 2023 −0,08). La media no cambia: redistribuye velocidad,
+     no la corrige. Queda documentado como incoherencia de insumos (§7), no como corrección.
+   - **ERA5 contra GFS en v4.** `base-001` en los mismos incendios: Alerces 2023 0,477 / 2,72
+     (GFS) contra 0,501 / 2,17 (ERA5); Epuyén 0,466 / 1,30 contra 0,372 / 1,05. ERA5 propaga un
+     ~20 % menos. La equivalencia del supuesto §2.13 de RESULTADOS-CSS-BAP (medida con los bugs)
+     ya no es exacta; los dos de calibración con ERA5 (Alerces 2016, Cholila) quedan sesgados
+     hacia abajo. Coincide con el viento de ERA5 más flojo contra las estaciones (Fase B).
+4. **¿Tiene sentido el test en Alerces 2023?** El área FIRMS deja de crecer a las 54 h (1.055
+   ha a las 54 h, 1.056 a las 72 h), y la regla del horizonte (§2.9 de RESULTADOS-CSS-BAP) corta
+   ahí; las 72 h redondeaban a ventanas de 24 h. Con el modelo a su velocidad real, esas 18 h
+   extra son 18 h de fuego sin supresión: el test lo castiga por lo que el combate hizo. Nuevo
+   protocolo `calibracion-v4-h54` (ventanas de 24 + 24 + 6 h), aplicando la regla tal cual.
+5. **Experimento:** ADJ 0,8, 1,1 y 1,2 en los siete, y las recetas clave sobre Alerces 2023 h54.
+
 ## 6. Resultados
 
 *(pendiente: `base-001` y `lw100-adj115-001` sobre v4)*
@@ -279,3 +359,6 @@ disco lleno):
   `tests/test_fuels_source_and_clock.py`.
 - **Dosel (hallazgo 4):** celdas con cobertura de Hansen ≥ 15 % y altura de ETH 0 quedan sin
   viento. Corregirlo en `canopy_builder` (sin altura, sin dosel) con su versión de caché.
+- **Grilla de clima alta (hallazgo 5):** rellenar las columnas del clima en `write_namelist`.
+  Afecta sobre todo a la app (grillas del AOI de ~20 km de franja) y a `ventanas-firms`; en la
+  calibración v4 el efecto medido es despreciable.
