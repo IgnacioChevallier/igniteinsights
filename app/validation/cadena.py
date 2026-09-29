@@ -119,6 +119,12 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if modelo in ("fosberg", "altura"):
         _humedad_con_criterio(modelo, archivos, insumos, caso.ventanas[n].inicio,
                               float(np.mean(caso.datos["caja_wgs84"][::2])))
+    if "reasignar_combustible" in par:
+        # Diagnóstico de un hallazgo del crosswalk (nunca receta candidata: el crosswalk es el
+        # aporte de la tesis y no se calibra). {"188": 165} modela las plantaciones TL8 como TU5.
+        cambios = {int(k): v for k, v in par["reasignar_combustible"].items()}
+        _reescribir(insumos / "fbfm40.tif",
+                    lambda a: np.select([a == k for k in cambios], list(cambios.values()), a))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -174,7 +180,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
-                         "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas"}
+                         "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
+                         "reasignar_combustible"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
