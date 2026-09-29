@@ -124,6 +124,15 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         # aporte de la tesis y no se calibra). {"188": 165} modela las plantaciones TL8 como TU5.
         _reescribir(insumos / "fbfm40.tif",
                     lambda a: reasignar(a, par["reasignar_combustible"]))
+    if par.get("dosel_coherente"):
+        # Diagnóstico (auditoría física): el combustible sale de CCS-BAP y el dosel de Hansen 2000
+        # + ETH 2020, y en el matorral quemado se contradicen. Con dosel, ELMFIRE le da al SH el
+        # WAF de un bosque cerrado (~0,08 en vez de 0,46). Como LANDFIRE, sin dosel donde el
+        # combustible no es forestal.
+        with rasterio.open(insumos / "fbfm40.tif") as src:
+            sin_dosel = no_forestal(src.read(1))
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -184,7 +193,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
-                         "reasignar_combustible"}
+                         "reasignar_combustible", "dosel_coherente"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
@@ -219,6 +228,12 @@ def factor_rugosidad(ch_m: np.ndarray) -> np.ndarray:
     z0 = np.clip(0.13 * ch_m, 0.03, 0.9 * 6.096)   # el log-perfil exige z0 < 20 pies
     arriba = np.log(6.096 / z0) / np.log(10.0 / z0)
     return (arriba / wind_height_factor()).astype("float32")
+
+
+def no_forestal(codigos: np.ndarray) -> np.ndarray:
+    """Celdas con combustible de pastizal, pastizal-arbustal o arbustal (GR, GS, SH): los
+    grupos de Scott y Burgan sin dosel arbóreo."""
+    return (codigos >= GRUPOS_COMBUSTIBLE["GR"][0]) & (codigos <= GRUPOS_COMBUSTIBLE["SH"][1])
 
 
 def reasignar(codigos: np.ndarray, cambios: dict) -> np.ndarray:

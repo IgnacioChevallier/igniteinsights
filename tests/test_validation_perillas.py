@@ -83,3 +83,8 @@ def test_rugosidad_del_dosel():
 def test_reasignar_combustible():
     codigos = np.array([[188, 144, 188, 98]])
     assert cadena.reasignar(codigos, {"188": 165}).tolist() == [[165, 144, 165, 98]]
+
+
+def test_dosel_coherente_solo_en_combustibles_no_forestales():
+    codigos = np.array([[102, 123, 144, 165, 188, 98]])
+    assert cadena.no_forestal(codigos).tolist() == [[True, True, True, False, False, False]]
