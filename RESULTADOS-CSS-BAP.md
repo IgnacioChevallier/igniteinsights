@@ -7,7 +7,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 8, 2026-09-28 22 h)*
+*(se reescribe en cada loop — última: loop 9, 2026-09-28 23 h)*
 
 - **Receta final: `lw100-adj115-001`** (LW 100 % + ADJ 1,15; CCS-BAP anterior al fuego;
   pendiente corregida).
@@ -774,6 +774,27 @@ El Bolsón, a 5 km de Las Golondrinas y 25 km de Epuyén):
   debajo de la hora), no un mejor viento medio.
 - Con estos dos diagnósticos se cierran todas las vías de entrada que tiene el pipeline:
   humedad muerta, humedad viva, viento, dirección, combustible de la ignición y dosel.
+
+### Loop 9 — sensibilidad al horizonte (±24 h)
+
+| Caso | `base-001` | `adj-130-001` | `lw100-adj115-001` |
+|---|---|---|---|
+| Epuyén, 96 → 72 h | 0,160/0,44 → 0,098/0,27 | 0,282/0,67 → 0,172/0,47 | 0,291/0,83 → 0,164/0,49 |
+| Alerces 2024, 120 → 96 h | 0,522/0,53 → 0,409/0,37 | 0,553/0,98 → 0,544/0,60 | 0,555/1,02 → 0,575/0,72 |
+| Patriada, 96 → 72 h | 0,340/0,69 → 0,277/0,38 | 0,386/0,97 → 0,368/0,72 | 0,454/1,14 → 0,418/0,87 |
+| Cholila, 120 → 96 h | 0,244/0,44 → 0,199/0,32 | 0,329/0,71 → 0,288/0,59 | 0,324/0,66 → 0,272/0,52 |
+| Alerces 2023, 72 → 96 h | 0,457/0,95 → 0,550/1,56 | 0,550/1,73 → 0,499/**2,88** | 0,522/1,61 → 0,538/**2,55** |
+
+- **Con horizontes más cortos, todos sub-propagan más.** El modelo recupera tarde lo que no quema
+  el día 1: la calibración compensa un retraso, no un ritmo. El orden entre recetas se mantiene
+  (calibradas > base).
+- **La receta depende de la regla del horizonte.** En Alerces 2023, volver a las 96 h de
+  `cadena-96h` hace desbordar a las dos recetas calibradas (2,88 y 2,55), y ahí la mejor es
+  base.
+  - El supuesto §2.9 (cortar cuando el área FIRMS deja de crecer: 72 h) es decisivo. Con 96 h,
+    el intervalo factible de ADJ bajaría a ~1,0.
+  - Es la misma tensión de siempre, ahora del lado del test: un incendio que se detuvo por
+    combate le pide al modelo que se detenga, y el modelo no sabe hacerlo.
 
 ## 5. Resultados
 
