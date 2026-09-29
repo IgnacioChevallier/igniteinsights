@@ -744,6 +744,8 @@ repetidas con la receta final:
   restricción, desempate) la elige, en calibración y en prueba.
 - **`adj-130-001` es la alternativa conservadora:** mejor cuando la ignición es incierta.
   Conviene decirlo así en la tesis.
+- **Reproducible:** `benchmark.py verificar los-alerces-2023/calibracion-v3 lw100-adj115-001`
+  re-ejecuta las tres ventanas desde los hashes, con TOA idéntico.
 
 ## 5. Resultados
 
