@@ -14,8 +14,10 @@ Outputs (matched to reference grid, Float32, one band per forecast hour):
   m10.tif  — 10-hour fuel moisture (%)
   m100.tif — 100-hour fuel moisture (%)
 
-**Band count is the time series.** ELMFIRE reads band *n* as the weather at
-`SIMULATION_TSTART + n × DT_METEOROLOGY` and linearly interpolates between bands, so
+**Band count is the time series.** ELMFIRE reads band *n* as the weather at absolute time
+`n × DT_METEOROLOGY` (band 0 is T = 0; SIMULATION_TSTART is measured from it) and linearly
+interpolates between bands — given `&MONTE_CARLO NUM_METEOROLOGY_TIMES`, which
+`namelist_writer` writes — so
 the band count must cover the simulation horizon. A single-band raster paired with
 `DT_METEOROLOGY = 3600` silently freezes weather for the whole run — no diurnal wind
 peak, no afternoon RH minimum. See `namelist_writer.validate_weather_coverage()`.
@@ -89,7 +91,7 @@ def derive_wind(
     wd_deg = (np.degrees(np.arctan2(-u10, -v10)) + 360.0) % 360.0
 
     _write_like_reference(reference_path, ws_path, ws_mph)
-    _write_like_reference(reference_path, wd_path, wd_deg)
+    _write_like_reference(reference_path, wd_path, wd_for_elmfire(wd_deg))
     logger.info(
         "Wind rasters written to %s (%d band(s), 20-ft factor %.3f)",
         output_dir,
@@ -97,6 +99,42 @@ def derive_wind(
         wind_height_factor(),
     )
     return ws_path, wd_path
+
+
+def _elmfire_blows_to(wd: np.ndarray) -> np.ndarray:
+    """The "to" angle ELMFIRE interpolates (elmfire_subs.f90 INTERP_WD_RASTER):
+    wd + 180, minus 360 once if that exceeds 360."""
+    to = wd + 180.0
+    return np.where(to > 360.0, to - 360.0, to)
+
+
+def wd_for_elmfire(wd_deg: np.ndarray) -> np.ndarray:
+    """Re-express a (bands, rows, cols) from-direction series so ELMFIRE interpolates it
+    the short way round.
+
+    Between two bands ELMFIRE interpolates the *angle* linearly, after mapping it to a
+    "to" direction in (0, 360]: from 170° to 190° (a southerly) that is 350° → 10°, and
+    for the whole hour the wind swings through north instead of staying southerly
+    (AUDITORIA-FISICA.md, hallazgo 3). Every angle is only meaningful mod 360, so each
+    pixel's series is rewritten with values whose "to" angles differ by ≤ 180° from band
+    to band: unwrapped, and centred so a window turning < 720° stays in [-180, 540], where
+    ELMFIRE's single wrap lands the result in [0, 360]. wd - 180 reaches a "to" T ≤ 360
+    and wd + 180 one above 360, so any T is reachable. Beyond that range the result only
+    leaves [0, 360], harmless in MODE = 1: the level set reads it through sin/cos
+    (elmfire_level_set.f90); the lookup tables indexed by it are MODE = 2 and the building
+    model's. Idempotent. Values outside [0, 360) are deliberate: consumers use sin/cos.
+    """
+    wd = np.asarray(wd_deg, dtype="float64")
+    if wd.ndim != 3 or wd.shape[0] < 2:
+        return wd_deg
+    valid = np.isfinite(wd) & (wd != _NODATA)
+    to = _elmfire_blows_to(np.mod(np.where(valid, wd, 0.0), 360.0))
+    steps = (np.diff(to, axis=0) + 180.0) % 360.0 - 180.0
+    unwrapped = np.concatenate([to[:1], to[:1] + np.cumsum(steps, axis=0)], axis=0)
+    centre = (unwrapped.max(axis=0) + unwrapped.min(axis=0)) / 2.0
+    unwrapped -= 360.0 * np.round((centre - 180.0) / 360.0)
+    out = np.where(unwrapped <= 360.0, unwrapped - 180.0, unwrapped + 180.0)
+    return np.where(valid, out, wd).astype(np.float32)
 
 
 def derive_moisture(

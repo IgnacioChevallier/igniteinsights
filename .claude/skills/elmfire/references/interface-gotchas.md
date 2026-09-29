@@ -42,7 +42,8 @@ one row per time band, no explicit time column) — but **ELMFIRE never reads `w
 directly**. The tutorial's `01-run.sh` script parses it and burns it into multiband
 GeoTIFFs (`ws.tif`, `wd.tif`, etc.), which is what the namelist actually points to.
 The uniform time spacing between bands is set via `DT_METEOROLOGY` in `&INPUTS`
-(seconds); ELMFIRE linearly interpolates between bands at its internal timestep. This
+(seconds); ELMFIRE linearly interpolates between bands at its internal timestep — **only if
+`&MONTE_CARLO NUM_METEOROLOGY_TIMES` gives the band count** (next section). This
 repo's `weather_builder.py` follows the same pattern (writes multiband rasters
 directly, no CSV intermediate), and `write_namelist(dt_meteorology_s=3600.0)` writes the
 spacing — if it changes (e.g. sub-hourly weather), the raster band count has to change with
@@ -105,20 +106,12 @@ the value `write_namelist()` actually resolved to, or the two will disagree agai
 ELMFIRE's raster loader (`elmfire_io.f90`, reading `PHI0` from `PHI_FILENAME`) does
 `WHERE(PHI0 < -1.1) PHI0 = 1.0` right after reading the raster — any value more
 negative than -1.1 is treated as garbage/nodata and reset to +1.0 (unburned), no
-warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` as a
-signed-distance-in-meters field (buffer radius × cell size, e.g. -90 for a 90 m
-buffer) — unclamped, every interior "on fire" cell is erased before the simulation
-starts and the run reports `Fire area: 0.0` whatever the weather and fuel.
-
-Fix: clamp the *negative* (interior/ignited) side of the signed-distance field to a
-floor just above -1.1 (`PHI_IGNITION_FLOOR = -1.0` in `ignition_builder.py`, also used by
-`app/playground/builder.py`) before writing —
-`np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)`. Leave positive
-(unburned/outside) values as true physical distances; only the interior needs
-clamping. The vendor tutorials sidestep this entirely by initializing `phi.tif`
-uniformly to `+1.0` and igniting via `&SIMULATOR` point ignitions
-(`NUM_IGNITIONS`/`X_IGN`/`Y_IGN`/`T_IGN`) instead of a spatial phi raster — this repo
-uses the raster approach instead, so the clamp is required.
+warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` with the burning cells at
+`PHI_IGNITION_FLOOR = -1.0` (also used by `app/playground/builder.py`), just above the reset
+threshold, and the rest at `+1.0` — ELMFIRE's own convention (see "`phi.tif` is a ±1 field"
+below: a signed distance, which this repo wrote until 2026-09-29, halved the front speed). The
+vendor tutorials initialise `phi.tif` uniformly to `+1.0` and ignite via `&SIMULATOR` point
+ignitions (`NUM_IGNITIONS`/`X_IGN`/`Y_IGN`/`T_IGN`) instead; this repo uses the raster.
 
 ## Crown fire is on by default upstream
 
@@ -136,3 +129,46 @@ if `ASP` is the LANDFIRE aspect: the azimuth the slope faces, i.e. downslope. Un
 every run pushed fires **downhill** (found in RESULTADOS-CSS-BAP, loop 2: 150 m along `asp`, the
 terrain rose in 96 % of cells steeper than 20°). `tests/test_topo_aspect.py` pins the convention
 with synthetic slopes: a slope rising to the north faces south (180).
+
+## Without `NUM_METEOROLOGY_TIMES`, ELMFIRE uses weather band 0 for the whole run
+
+`&MONTE_CARLO NUM_METEOROLOGY_TIMES` defaults to **1** (`elmfire_namelists.f90`,
+`READ_MONTE_CARLO`), and the level set clamps the band index to it
+(`elmfire_level_set.f90`: `ITLO_METEOROLOGY = MIN(1 + FLOOR(T/DT_METEOROLOGY),
+NUM_METEOROLOGY_TIMES)`): with the default, every run holds the first band — no diurnal cycle,
+no wind shift, whatever the rasters carry. The vendor transient tutorials (02, 03) set it to 8.
+This repo omitted it until 2026-09-29 (AUDITORIA-FISICA.md, hallazgo 1): every benchmark window
+ran with the weather of its first hour. `write_namelist()` now writes it from `ws.tif`'s band
+count; `validate_weather_coverage()` rejects weather rasters whose band counts differ (ELMFIRE
+indexes them all with one band number). Time is absolute: band n is the weather at
+`n × DT_METEOROLOGY`, so `SIMULATION_TSTART` is measured from band 0.
+
+## `phi.tif` is a ±1 field, not a signed distance
+
+ELMFIRE's tutorials and verification cases write `phi = +1` everywhere and ignite at `-1`. Its
+level set (superbee-limited upwinding on a 2-cell tagged band) advances the front at the
+Rothermel rate only on that field. With a signed distance in metres (+30, +60, … outside, what
+`ignition_builder` wrote until 2026-09-29) the front moved at **~0.5×** the rate ELMFIRE itself
+computed (its `vs` output), in every direction, with and without wind; with the distance in cells,
+~0.85× (AUDITORIA-FISICA.md, hallazgo 2; `scripts/pruebas_fisicas.py nivel`). The spread-rate
+raster `vs` looked right the whole time — only the TOA was slow. Write `-1` inside and `+1`
+outside (`PHI_IGNITION_FLOOR`, `PHI_UNBURNED`).
+
+## ELMFIRE interpolates `wd` as a plain angle
+
+Between bands, `INTERP_WD_RASTER` (`elmfire_subs.f90`) maps each direction to a "to" angle in
+(0, 360] and interpolates it linearly: from 170° to 190° (a southerly) that is 350° → 10°, and for
+the whole hour the wind swings through north. Latent while `NUM_METEOROLOGY_TIMES` was missing;
+live once bands are interpolated. `weather_builder.wd_for_elmfire()` rewrites each pixel's series
+so consecutive "to" angles differ by ≤ 180° (values outside [0, 360) are deliberate; MODE 1 uses
+them only through sin/cos). `derive_wind` applies it, and `cadena._preparar` re-applies it after
+the knobs that re-wrap the angle. The alternative, `&SIMULATOR WX_BILINEAR_INTERPOLATION = T`,
+interpolates u/v instead, but also changes the spatial interpolation and is not used.
+
+## CC ≥ 15 % with CH = 0 means no wind at all
+
+`CALC_WIND_ADJUSTMENT_FACTOR_EVERYWHERE` (`elmfire_init.f90`) takes the sheltered WAF from
+(CC, CH); with CH = 0 the canopy branch is skipped and the fuel-bed height passed is 0, so the
+sheltered WAF is 0, and with CC ≥ 15 % (F = CC/3 ≥ 0.05) the cell uses it: WAF = 0. A `cc.tif`
+nodata (< 0) also gives WAF = 0. In the benchmark packages 0.1–2.6 % of burnable cells hit this
+(Hansen tree cover without ETH height).

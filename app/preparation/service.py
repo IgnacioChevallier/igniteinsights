@@ -262,8 +262,8 @@ async def run_preparation(
                 logger.warning("Preparation %s: %s", prep_id, msg)
                 warnings.append(msg)
 
-            # Anchor the run to the wall clock. ELMFIRE reads weather band n at
-            # TSTART + n × DT_METEOROLOGY, so with TSTART = 0 a fire igniting at 16:00
+            # Anchor the run to the wall clock. ELMFIRE reads weather band n at absolute
+            # time n × DT_METEOROLOGY, so with TSTART = 0 a fire igniting at 16:00
             # was simulated with the first forecast hour's weather — the wrong point of
             # the diurnal cycle, and with hourly bands that is a real error, not a
             # cosmetic one (PENDING_PARAMETERS §3).

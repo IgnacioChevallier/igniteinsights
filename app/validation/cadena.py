@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from app.elmfire.builder import ignition_builder, namelist_writer
+from app.elmfire.builder import ignition_builder, namelist_writer, weather_builder
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
 from app.validation import almacen, humedad, viento
@@ -161,6 +161,10 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         for nombre in ("m1.tif", "m10.tif", "m100.tif"):
             _reescribir(insumos / nombre,
                         lambda a: np.clip(a + par["humedad_muerta_delta"], 1.0, 40.0))
+
+    # Al final, después de las perillas que vuelven a envolver el ángulo (rotacion_viento,
+    # viento_atlas): ELMFIRE interpola wd por el camino corto (hallazgo 3 de la auditoría).
+    _reescribir(insumos / "wd.tif", weather_builder.wd_for_elmfire)
 
     v = caso.ventanas[n]
     kwargs = {k: val for k, val in receta.parametros.items() if k not in RASTERS_TRANSFORMADOS}
@@ -305,6 +309,12 @@ def correr(caso: Caso, receta: Receta) -> dict:
     exigir_receta_intacta(receta, caso)
     previo = cargar_manifiesto(caso.id, receta.id)
     hechas = previo["ventanas"] if previo and previo["caso_sha"] == caso.sha() else []
+    semilla_en_metros = _leer(caso.paquete()["ventanas"][0]["phi.tif"]).max() > 1
+    if len(hechas) < len(caso.ventanas) and semilla_en_metros:
+        # phi en metros: un paquete anterior a la auditoría física (hallazgo 2). Correrlo
+        # ahora mezclaría la semilla vieja con las ventanas encadenadas nuevas (±1).
+        raise ValueError(f"{caso.id} se empaquetó antes de la auditoría física: "
+                         "re-empaquetarlo como protocolo nuevo (-v4)")
     if receta.semilla == "prediccion":
         dems = {caso.paquete()["comunes"].get("dem.tif")}
         dems |= {v.get("dem.tif") for v in caso.paquete()["ventanas"] if "dem.tif" in v}

@@ -19,7 +19,7 @@ from rasterio.warp import transform as warp_transform
 
 from app.config import settings
 from app.elmfire.builder import fuels_builder, rasters
-from app.elmfire.builder.ignition_builder import PHI_IGNITION_FLOOR
+from app.elmfire.builder.ignition_builder import PHI_IGNITION_FLOOR, PHI_UNBURNED
 from app.playground.schemas import Scenario
 from app.postprocessing.wind_field import compass_point
 
@@ -160,23 +160,19 @@ def _fbfm_array(scenario: Scenario, profile: dict) -> np.ndarray:
 
 
 def _write_phi(scenario: Scenario, profile: dict, output: Path) -> Path:
-    """Signed distance to a disc at the domain centre: negative inside, positive outside.
+    """ELMFIRE's ±1 level-set field: a disc at the domain centre at -1, the rest at +1.
 
-    A disc has a closed-form signed distance, so no sweep is needed. The interior is
-    floored at PHI_IGNITION_FLOOR because ELMFIRE resets any PHI0 < -1.1 to +1.0
-    (unburned) as a nodata guard — without the floor the ignition is erased before the
-    simulation starts.
+    Not a signed distance: ELMFIRE's level set only advances the front at the Rothermel
+    rate on its own ±1 convention (see ignition_builder's module docstring).
     """
     n = profile["height"]
     cell = scenario.cellsize_m
     centre = (n - 1) / 2.0
     rows, cols = np.mgrid[0:n, 0:n]
-    dist_m = np.hypot(rows - centre, cols - centre) * cell
+    burning_mask = np.hypot(rows - centre, cols - centre) * cell < scenario.ignition_radius_m
+    phi = np.where(burning_mask, PHI_IGNITION_FLOOR, PHI_UNBURNED).astype(np.float32)
 
-    phi = (dist_m - scenario.ignition_radius_m).astype(np.float32)
-    phi = np.where(phi < 0, np.maximum(phi, PHI_IGNITION_FLOOR), phi)
-
-    burning = int((phi < 0).sum())
+    burning = int(burning_mask.sum())
     if burning == 0:
         raise ValueError(
             f"ignition_radius_m={scenario.ignition_radius_m} is smaller than half a cell "
@@ -186,7 +182,7 @@ def _write_phi(scenario: Scenario, profile: dict, output: Path) -> Path:
     out = dict(profile)
     out.update(dtype="float32", count=1, nodata=None)
     with rasterio.open(output, "w", **out) as dst:
-        dst.write(phi.astype(np.float32), 1)
+        dst.write(phi, 1)
     logger.info("Playground phi: %d burning cells at the domain centre", burning)
     return output
 

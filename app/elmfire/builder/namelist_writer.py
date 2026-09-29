@@ -15,8 +15,16 @@ import rasterio
 logger = logging.getLogger(__name__)
 
 DEFAULT_DTDUMP_S = 3600.0
-# Weather rasters whose band count is the forecast time series. ELMFIRE reads band n as
-# the weather at TSTART + n × DT_METEOROLOGY and interpolates between bands.
+# Weather rasters whose band count is the forecast time series. At absolute time T ELMFIRE
+# interpolates between bands floor(T / DT_METEOROLOGY) and the next (0-based), so band n is
+# the weather at n × DT_METEOROLOGY — T is absolute, band 0 is T = 0, not TSTART
+# (elmfire_level_set.f90: ITLO_METEOROLOGY = 1 + FLOOR(T / DT_METEOROLOGY)).
+#
+# It only does so if &MONTE_CARLO NUM_METEOROLOGY_TIMES says how many bands there are: the
+# default is 1, and with 1 ELMFIRE clamps the band index to 1 and holds the FIRST band for
+# the whole run, silently (elmfire_namelists.f90 READ_MONTE_CARLO; the vendor transient
+# tutorials 02/03 set it to 8). Until 2026-09-29 this repo never wrote it, so every run used
+# the weather of its first hour throughout (AUDITORIA-FISICA.md, hallazgo 1).
 WEATHER_RASTERS = ("ws", "wd", "m1", "m10", "m100")
 REQUIRED_NAMELISTS = (
     "INPUTS",
@@ -95,7 +103,7 @@ def validate_weather_coverage(
 ) -> list[str]:
     """Fail if the weather rasters do not span the simulation horizon; return warnings.
 
-    ELMFIRE indexes weather bands by `TSTART + n × DT_METEOROLOGY`. A raster with fewer
+    ELMFIRE reads band n as the weather at absolute time n × DT_METEOROLOGY. A raster with fewer
     bands than the run needs does not error — it silently holds the last available band,
     which freezes wind and moisture for the remainder of the simulation and removes the
     diurnal cycle that drives fire behaviour. Catch it here instead.
@@ -112,6 +120,11 @@ def validate_weather_coverage(
             continue
         with rasterio.open(path) as ds:
             bands = ds.count
+        if bands != weather_band_count(inputs_dir):
+            # ELMFIRE indexes every weather raster with the same band number.
+            raise ValueError(f"{path.name} has {bands} band(s) but ws.tif has "
+                             f"{weather_band_count(inputs_dir)}: weather rasters must share "
+                             "one time series")
         if bands == 1:
             msg = (
                 f"{path.name} tiene una sola banda: el clima permanece constante "
@@ -129,6 +142,15 @@ def validate_weather_coverage(
                 "shorten horizon_hours or re-ingest GFS with more forecast hours."
             )
     return warnings
+
+
+def weather_band_count(inputs_dir: Path) -> int:
+    """Bands in ws.tif — the NUM_METEOROLOGY_TIMES ELMFIRE needs (1 if there is no ws.tif)."""
+    path = inputs_dir / "ws.tif"
+    if not path.exists():
+        return 1
+    with rasterio.open(path) as ds:
+        return int(ds.count)
 
 
 def write_namelist(
@@ -158,10 +180,10 @@ def write_namelist(
         dtmax_s: maximum timestep in seconds
         dtdump_s: output dump interval in seconds
         dt_meteorology_s: interval between weather-raster bands in seconds
-        simulation_tstart_s: absolute simulation start time in seconds. Non-zero anchors
-            the run to the wall clock: ELMFIRE reads weather band n at
-            TSTART + n × DT_METEOROLOGY, so this is what puts the fire at the right point
-            of the diurnal cycle.
+        simulation_tstart_s: absolute simulation start time in seconds, measured from
+            weather band 0. Non-zero anchors the run to the wall clock: ELMFIRE reads band
+            n as the weather at T = n × DT_METEOROLOGY (T absolute), so a run starting at
+            TSTART begins on band floor(TSTART / DT_METEOROLOGY).
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
         crown_fire_model: 0 disables crown fire; any value > 0 enables it. Written
             explicitly because ELMFIRE enables it when the keyword is absent.
@@ -248,6 +270,10 @@ def write_namelist(
   SCRATCH                         = '/tmp/'
   MISCELLANEOUS_INPUTS_DIRECTORY  = '{inputs_str}'
   FUEL_MODEL_FILE                 = '{FUEL_MODEL_FILE}'
+/
+
+&MONTE_CARLO
+  NUM_METEOROLOGY_TIMES           = {weather_band_count(inputs_dir)}
 /
 """
     output_path.parent.mkdir(parents=True, exist_ok=True)
