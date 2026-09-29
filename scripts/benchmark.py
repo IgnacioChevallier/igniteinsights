@@ -423,8 +423,37 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
                 cortes / "t2m_hist.tif", cortes / "rh_hist.tif", dem, cortes,
                 skip_bands=retardo + desde, suffix="_retardo")
             archivos |= {r.name: almacen.guardar(r) for r in rutas}
+        estacion = caso.datos["empaquetado"].get("viento_estacion")
+        if estacion:   # diagnóstico: el viento medido, uniforme en el dominio, en vez del GFS
+            archivos |= _viento_de_estacion(estacion, v.inicio, v.horas, dem, cortes)
         salida.append(archivos)
     return salida
+
+
+def _viento_de_estacion(estacion: str, inicio: datetime, horas: int, dem: Path,
+                        cortes: Path) -> dict[str, str]:
+    """ws/wd uniformes con la serie horaria de una estación de Meteostat (10 m, km/h), bajada
+    a 20 pies con el mismo perfil logarítmico que el GFS. Las horas sin dato se interpolan."""
+    cols = "date,hour,temp,dwpt,rhum,prcp,snow,wdir,wspd,wpgt,pres,tsun,coco".split(",")
+    df = pd.read_csv(Path("data/benchmark/cache") / f"{estacion}.csv.gz", names=cols)
+    df["t"] = pd.to_datetime(df["date"]) + pd.to_timedelta(df["hour"], unit="h")
+    df = df.set_index("t").sort_index()
+    horas_ = pd.date_range(inicio.replace(tzinfo=None), periods=horas + 1, freq="h")
+    u = -(df["wspd"] * np.sin(np.radians(df["wdir"])))
+    w = -(df["wspd"] * np.cos(np.radians(df["wdir"])))
+    u, w = (x.reindex(x.index.union(horas_)).interpolate("time").reindex(horas_)
+            for x in (u, w))
+    ws_mph = np.hypot(u, w).to_numpy() / 3.6 * weather_builder.wind_height_factor() \
+        * weather_builder.MS_TO_MPH
+    wd = (np.degrees(np.arctan2(-u, -w)).to_numpy() + 360.0) % 360.0
+    with rasterio.open(dem) as ref:
+        forma = (ref.height, ref.width)
+    rutas = {}
+    for nombre, serie in (("ws.tif", ws_mph), ("wd.tif", wd)):
+        datos = np.broadcast_to(serie[:, None, None], (len(serie), *forma)).astype("float32")
+        weather_builder._write_like_reference(dem, cortes / nombre, datos)
+        rutas[nombre] = almacen.guardar(cortes / nombre)
+    return rutas
 
 
 def _atlas_viento(dem: Path, conf: dict) -> dict[str, str]:
