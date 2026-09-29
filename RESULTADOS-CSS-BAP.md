@@ -7,7 +7,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 6d, 2026-09-28 21 h)*
+*(se reescribe en cada loop — última: loop 8, 2026-09-28 22 h)*
 
 - **Receta final: `lw100-adj115-001`** (LW 100 % + ADJ 1,15; CCS-BAP anterior al fuego;
   pendiente corregida).
@@ -28,10 +28,14 @@
 - **Corriendo:** nada. El consumidor `data/benchmark/cola_run2.sh` sigue vivo, esperando líneas
   nuevas en `data/benchmark/trabajos.txt`.
 - **Hipótesis abiertas:** la supresión (el módulo `&SUPPRESSION` de ELMFIRE no está expuesto) y
-  la dirección del viento de superficie (sin corrección general con estas herramientas).
-- **Próximo paso posible:** sensibilidad de la receta final a la ignición (como en el loop 5c,
-  con ADJ 1,3), para confirmar que no es más frágil; revisar Forest → TL8 y Rem Dist Rec → GS3
-  con el director (§7.2).
+  la dirección del viento de superficie (sin corrección general con estas herramientas). El día 1
+  explosivo quedó probado como límite estructural: ni el viento de estación ni otro combustible
+  en la ignición lo reproducen (loop 8).
+- **Próximo paso:** las vías de entrada del pipeline están agotadas.
+  - Lo que sigue sale de este trabajo: exponer `&SUPPRESSION` y las pavesas en `write_namelist`,
+    y revisar Forest → TL8 y Rem Dist Rec → GS3 con el director (§7).
+  - La robustez a la ignición ya se midió: la receta final es un poco más frágil que
+    `adj-130-001` (loop 7).
 
 ## 2. Supuestos
 
@@ -746,6 +750,30 @@ repetidas con la receta final:
   Conviene decirlo así en la tesis.
 - **Reproducible:** `benchmark.py verificar los-alerces-2023/calibracion-v3 lw100-adj115-001`
   re-ejecuta las tres ventanas desde los hashes, con TOA idéntico.
+
+### Loop 8 — los dos últimos diagnósticos del día 1
+
+**El crosswalk de las plantaciones** (`diag-tl8-tu5-001`, receta final más TL8 → TU5; no
+candidata, el crosswalk no se calibra):
+
+- Epuyén sube de 0,291 a 0,344.
+- El día 1 no cambia: 25 ha a las 24 h contra 20. Ningún modelo de superficie hace 1.120 ha en 6 h.
+- El hallazgo Forest → TL8 queda cuantificado en +0,05 de Dice, pero no explica el día 1.
+
+**El viento medido en lugar del GFS** (`estacion-v2`: ws/wd uniformes con la estación
+El Bolsón, a 5 km de Las Golondrinas y 25 km de Epuyén):
+
+| Incendio | GFS | Estación |
+|---|---|---|
+| Epuyén (receta final) | 0,291 / 0,83 | 0,186 / 0,54 |
+| Las Golondrinas (base) | 0,029 | 0,020 |
+
+- En Las Golondrinas, la ráfaga del N de las 00 UTC entra (29 mph a 20 pies), pero dura una
+  hora y el resto de la tarde el viento de la estación es flojo (5–7 mph).
+- **Con el viento medido tampoco aparece el día 1.** Faltan procesos (copa, pavesas, ráfagas por
+  debajo de la hora), no un mejor viento medio.
+- Con estos dos diagnósticos se cierran todas las vías de entrada que tiene el pipeline:
+  humedad muerta, humedad viva, viento, dirección, combustible de la ignición y dosel.
 
 ## 5. Resultados
 
