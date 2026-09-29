@@ -44,7 +44,19 @@
 5. **La referencia de Rothermel del banco pesa la carga neta por subclase de tamaño**
    (g_ij, Albini 1976), como BehavePlus. Con f_ij a secas (Rothermel 1972) daba un 17 % menos
    en GR2: era mi error, no de ELMFIRE (una transcripción de su código da exactamente su `vs`).
-6. **Tolerancias del banco:** ±10 % en velocidad, ±15 % en largo/ancho, ±5° en rumbo, ±1
+6. **Espacio en disco.** A las 01:21 del 29-sep el disco llegó al 100 % (932 GB; el almacén
+   del benchmark ocupa 220 GB y creció 5,6 GB en 4 h, casi todo clima sin comprimir de los
+   paquetes v4) y Docker Desktop se cayó. Se liberó sin tocar ningún registro:
+   - `data/benchmark/trabajo/` (scratch que cada corrida recrea);
+   - los objetos huérfanos creados ese día por corridas abortadas (0,67 GB); los huérfanos
+     viejos (2,9 GB) se dejan, porque el historial de git puede referenciarlos;
+   - `data/benchmark/vistas/` comprimido en el lugar con DEFLATE, verificando igualdad de
+     datos archivo por archivo: de 14,65 a 0,27 GB.
+
+   Y en la causa: los escritores del repo (clima, `phi`, perillas de `cadena`, capas del
+   paquete, vistas) escriben GeoTIFF con DEFLATE. ELMFIRE lee los insumos con
+   `gdal_translate` (`elmfire_io.f90`), así que la compresión no cambia lo que recibe.
+7. **Tolerancias del banco:** ±10 % en velocidad, ±15 % en largo/ancho, ±5° en rumbo, ±1
    celda en posición. Son las del pedido o las que admite la discretización a 10–30 m.
 
 ## 3. Hallazgos
@@ -155,6 +167,15 @@
 | Encadenado de ventanas | `tiempo`, 1 h + 1 h contra 2 h | Cociente de áreas 1,05 |
 | Georreferencia | `georreferencia`: punto lon/lat → celda | Semilla en la celda exacta; TOA en la grilla del dem |
 | `DT_INTERPOLATE_*` | Ver hallazgo 2 | Sin efecto (idéntico de 300 a 10 s) |
+| **Fase B:** orientación de la grilla del GFS/ERA5 | Correlación de su orografía con el DEM del AOI, directa y volteada, en las 33 series de la caché | Directa 0,61–0,91 en todas; volteada N-S o E-O, menor o negativa |
+| Hora del GFS encadenado | `download_analysis_series`: banda k = inicio + k h, ciclo = hora − hora mod 6, `valid.hour` sobre un `inicio` en UTC | Todas las ventanas de los casos están en `+00:00` |
+| Conversión de ERA5 | `_era5_serie`: u = −ws·sin(wd), v = −ws·cos(wd), `timezone=GMT`, grilla centrada | Correcta |
+| Dirección del viento del modelo contra estaciones | Viento a 10 m de las series crudas en El Bolsón, Esquel y Futaleufú, días de fuego (Meteostat, > 5 km/h) | Desvío mediano −14° a +30° (nunca ~180°): sin error de convención. Velocidad: GFS 0,50–0,87× la estación, **ERA5 0,40–0,70×** |
+| Hora de FIRMS | `acq_date` + `acq_time` con `utc=True` | UTC, como publica FIRMS |
+| Alineación combustible–DEM | Planitud (≤ 2°) del agua NB8 con el mapa corrido ±3 celdas | El óptimo es sin corrimiento en los cinco incendios probados (89–95 % plana) |
+| DEM sin dato en los bordes | Celdas con `dem` −9999 (→ `slp`/`asp` −9999, que ELMFIRE trata como plano) | Epuyén 1.676 y Patriada 36.180 celdas, en el borde norte; ninguna en la cicatriz ni en lo predicho |
+| Semilla o referencia con el dominio entero | `phi` ≤ 0 o `ref_firms` en más del 50 % en los 536 insumos de todos los paquetes | Ninguno. Pero la capa "sin ignición" era −9999 y `phi <= 0` la leía como quemada: ahora es +1 |
+| Hallazgo 3 en los datos | Intervalos horarios cuyo `wd` crudo cruza la discontinuidad de ELMFIRE | 0–1,6 % del dominio en los siete de calibración (régimen del oeste); pegaría en vientos del sur |
 
 ## 4. Banco de pruebas físicas
 
@@ -195,6 +216,48 @@ dos implementaciones de la transferencia dinámica, no de los insumos; no afecta
 3. El banco con ELMFIRE real confirmó 1 y 3, y encontró el 2, que el fuente solo no mostraba:
    la velocidad calculada (`vs`) era la correcta; sólo el TOA iba lento.
 4. Correcciones en la causa, tests, skill. Protocolos `-v4` para los siete de calibración.
+
+### Loop B — insumos reales (sin ELMFIRE) y la primera corrida v4
+
+**Fase B** (tabla de sospechas descartadas, §3): la grilla y la hora del GFS/ERA5, la conversión
+de ERA5, FIRMS, la alineación del mapa de combustible con el DEM y los bordes sin dato están
+bien. Lo único nuevo es la capa "sin ignición" (−9999 leída como quemada por `phi <= 0`),
+latente: ningún paquete la tenía; corregida en la causa. Contra las estaciones, la dirección
+del viento no tiene error de convención, pero ERA5 sopla más flojo que el GFS (0,40–0,70× contra
+0,50–0,87× de la estación): la equivalencia GFS/ERA5 del supuesto §2.13 de RESULTADOS-CSS-BAP se
+midió con los bugs y hay que re-verificarla en v4.
+
+**`base-001` sobre v4, cinco incendios** (Cholila y Las Golondrinas quedaron sin correr por el
+disco lleno):
+
+1. **¿Sobre o sub-propaga, y cuándo?** Al horizonte el sesgo queda cerca de 1 sin calibrar
+   (Epuyén 1,30, Alerces 2024 1,37, Patriada 0,74, Alerces 2016 1,05), salvo Alerces 2023
+   (2,72). El día 1 sigue corto en cuatro de cinco:
+
+   | Incendio | 24 h observado (ha) | v3 `base-001` | v4 `base-001` |
+   |---|---|---|---|
+   | Alerces 2023 | 485 | 185 | **389** |
+   | Epuyén 2025 | 1.730 | 14 | 151 |
+   | Alerces 2024 | 851 | 49 | 111 |
+   | Patriada 2026 | 2.474 | 118 | 78 |
+   | Alerces 2016 | 1.241 | 102 | 83 |
+
+2. **¿Dónde?** Lo no predicho sigue al SE/S y lejos (4–7 km), ladera arriba (Epuyén 27°,
+   Alerces 2016 29°); los falsos positivos al E/NE a favor del GFS o ladera arriba al SO
+   (Epuyén). El frente real va 20–100° más al sur que el empuje del GFS, como en v3.
+3. **¿Por qué?** Dos efectos opuestos de las correcciones:
+   - el frente va al doble (hallazgo 2), en todo momento;
+   - el clima ya no queda congelado en la hora de arranque (hallazgo 1). Alerces 2023 arrancaba
+     a las 22 h ART y corría las 72 h con la noche: ahora tiene sus tardes, y el día 1 sale
+     (389 contra 485 ha). Patriada y Alerces 2016 arrancaban de tarde y corrían 24 h con la
+     tarde: ahora tienen la noche, y el día 1 v4 es menor que el v3 pese al doble de velocidad.
+
+   El déficit del día 1 que queda (8–30×) ya no es de interfaz: es de proceso (copa, pavesas,
+   ráfagas por debajo de la hora) o del viento de superficie, como concluyó RESULTADOS-CSS-BAP.
+4. **¿Tiene sentido el test?** Alerces 2023 se frenó por combate a las 54 h: sobre-propagar
+   después es la supresión que ELMFIRE no modela (límite conocido), ahora a la vista porque el
+   modelo ya no va lento.
+5. **Experimento:** ADJ 0,5 / 0,7 / 0,9 sobre los siete (en la cola; interrumpido por el disco).
 
 ## 6. Resultados
 

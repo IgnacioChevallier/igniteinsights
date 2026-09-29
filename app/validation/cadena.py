@@ -268,7 +268,7 @@ def _reescribir(ruta: Path, transformar) -> None:
     with rasterio.open(ruta) as src:
         perfil, datos = src.profile, src.read()
     ruta.unlink()
-    with rasterio.open(ruta, "w", **perfil) as dst:
+    with rasterio.open(ruta, "w", **(perfil | {"compress": "deflate"})) as dst:
         dst.write(transformar(datos).astype(perfil["dtype"]))
 
 
@@ -507,7 +507,7 @@ def _confusion(pred, ref, ya, excluido, grilla: p.Grilla, destino: Path) -> None
     codigos[excluido] = EXCLUIDO
     codigos[ya] = SEMILLA
     destino.parent.mkdir(parents=True, exist_ok=True)
-    perfil = grilla.perfil | {"dtype": "uint8", "count": 1, "nodata": None}
+    perfil = grilla.perfil | {"dtype": "uint8", "count": 1, "nodata": None, "compress": "deflate"}
     with rasterio.open(destino, "w", **perfil) as dst:
         dst.write(codigos, 1)
 
@@ -517,7 +517,7 @@ def _llegada(horas: np.ndarray, grilla: p.Grilla, destino: Path) -> None:
     dashboard lo polígonice con el mismo código que el mapa. La semilla queda afuera: el
     visor la dibuja aparte, como el perímetro de ignición."""
     segundos = np.where(np.isnan(horas), -1.0, horas * 3600.0)
-    perfil = grilla.perfil | {"dtype": "float32", "count": 1, "nodata": -1.0}
+    perfil = grilla.perfil | {"dtype": "float32", "count": 1, "nodata": -1.0, "compress": "deflate"}
     destino.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".tif", dir=destino.parent, delete=False) as tmp:
         with rasterio.open(tmp.name, "w", **perfil) as dst:

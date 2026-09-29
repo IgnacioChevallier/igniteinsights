@@ -52,7 +52,7 @@ LEGADO_COMBUSTIBLES = {"fbfm40_worldcover2021.tif": "worldcover",
 # ── empaquetado ───────────────────────────────────────────────────────────────
 
 def _guardar_array(datos: np.ndarray, grilla: p.Grilla, dtype: str, nodata=None) -> str:
-    perfil = grilla.perfil | {"dtype": dtype, "count": 1, "nodata": nodata}
+    perfil = grilla.perfil | {"dtype": dtype, "count": 1, "nodata": nodata, "compress": "deflate"}
     with tempfile.TemporaryDirectory() as tmp:
         ruta = Path(tmp) / "capa.tif"
         with rasterio.open(ruta, "w", **perfil) as dst:

@@ -67,13 +67,11 @@ def build_ignition_layer(
         height, width = ref.height, ref.width
         profile = ref.meta.copy()
 
-    profile.update(dtype="float32", count=1, nodata=-9999.0)
+    profile.update(dtype="float32", count=1, nodata=-9999.0, compress="deflate")
 
     if not fire_points:
-        logger.warning("No fire detections — writing uniform phi=-9999 (no ignition)")
-        phi = np.full((height, width), -9999.0, dtype=np.float32)
-        with rasterio.open(phi_path, "w", **profile) as dst:
-            dst.write(phi, 1)
+        logger.warning("No fire detections — writing an all-unburned phi (no ignition)")
+        _write_phi(np.zeros((height, width), dtype=bool), profile, phi_path)
         return phi_path, shp_path
 
     # Project fire points from EPSG:4326 to the reference CRS
@@ -99,12 +97,12 @@ def build_ignition_layer(
     if not fire_mask.any():
         logger.warning(
             "Ignition layer: %d detections projected but none fall within raster bounds — "
-            "writing nodata phi (no ignition)",
+            "writing an all-unburned phi (no ignition)",
             len(fire_points),
         )
-        phi_out = np.full((height, width), -9999.0, dtype=np.float32)
-        with rasterio.open(phi_path, "w", **profile) as dst:
-            dst.write(phi_out, 1)
+        # +1, not -9999: ELMFIRE would reset -9999 to +1 anyway, but every reader here
+        # takes phi <= 0 as burning and would see the whole domain on fire.
+        _write_phi(fire_mask, profile, phi_path)
         return phi_path, shp_path
 
     _write_phi(fire_mask, profile, phi_path)
@@ -135,7 +133,7 @@ def build_ignition_from_mask(
         profile = ref.meta.copy()
         if fire_mask.shape != (ref.height, ref.width):
             raise ValueError(f"mask {fire_mask.shape} does not match the reference grid")
-    profile.update(dtype="float32", count=1, nodata=-9999.0)
+    profile.update(dtype="float32", count=1, nodata=-9999.0, compress="deflate")
     _write_phi(fire_mask.astype(bool), profile, phi_path)
     return phi_path
 

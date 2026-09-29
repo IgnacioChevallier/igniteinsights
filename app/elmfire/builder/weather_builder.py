@@ -282,6 +282,8 @@ def _write_like_reference(
         raise ValueError(f"expected a (bands, height, width) array, got shape {data.shape}")
     with rasterio.open(reference_path) as ref:
         profile = ref.meta.copy()
-    profile.update(dtype="float32", count=data.shape[0], nodata=_NODATA)
+    # DEFLATE: ELMFIRE reads inputs through gdal_translate, and an uncompressed 5-day series
+    # over a benchmark domain is ~1 GB per variable (it filled the disk, AUDITORIA-FISICA §2).
+    profile.update(dtype="float32", count=data.shape[0], nodata=_NODATA, compress="deflate")
     with rasterio.open(output_path, "w", **profile) as dst:
         dst.write(data.astype(np.float32))

@@ -41,6 +41,15 @@ def test_phi_es_el_campo_mas_menos_uno_de_elmfire(tmp_path):
     assert (phi[mascara] == -1.0).all() and (phi[~mascara] == 1.0).all()
 
 
+def test_sin_ignicion_nada_arranca_quemado(tmp_path):
+    """Antes escribía -9999: ELMFIRE lo resetea a +1, pero `phi <= 0` (la regla de
+    benchmark._mascara) daba el dominio entero por quemado."""
+    _raster(tmp_path / "dem.tif", np.zeros((9, 9)))
+    phi_path, _ = ignition_builder.build_ignition_layer([], tmp_path / "dem.tif", tmp_path)
+    with rasterio.open(phi_path) as src:
+        assert (src.read(1) == 1.0).all()
+
+
 def test_el_namelist_declara_todas_las_bandas_del_clima(tmp_path):
     """Hallazgo 1: sin NUM_METEOROLOGY_TIMES, ELMFIRE usa la banda 0 toda la corrida."""
     _raster(tmp_path / "dem.tif", np.zeros((2, 2)))
