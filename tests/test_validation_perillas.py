@@ -78,3 +78,8 @@ def test_rugosidad_del_dosel():
     assert f[0] > 1.0                      # pastizal (z0 0,03) frena menos que 0,22 m
     assert abs(f[1] - 1.0) < 0.01          # 1,7 m de dosel ≈ el escalar de hoy
     assert 0.6 < f[2] < 0.8                # bosque de 20 m: z0 2,6 m, bastante menos viento
+
+
+def test_reasignar_combustible():
+    codigos = np.array([[188, 144, 188, 98]])
+    assert cadena.reasignar(codigos, {"188": 165}).tolist() == [[165, 144, 165, 98]]

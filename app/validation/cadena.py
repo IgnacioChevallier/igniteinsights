@@ -122,9 +122,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if "reasignar_combustible" in par:
         # Diagnóstico de un hallazgo del crosswalk (nunca receta candidata: el crosswalk es el
         # aporte de la tesis y no se calibra). {"188": 165} modela las plantaciones TL8 como TU5.
-        cambios = {int(k): v for k, v in par["reasignar_combustible"].items()}
         _reescribir(insumos / "fbfm40.tif",
-                    lambda a: np.select([a == k for k in cambios], list(cambios.values()), a))
+                    lambda a: reasignar(a, par["reasignar_combustible"]))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -216,6 +215,12 @@ def factor_rugosidad(ch_m: np.ndarray) -> np.ndarray:
     z0 = np.clip(0.13 * ch_m, 0.03, 0.9 * 6.096)   # el log-perfil exige z0 < 20 pies
     arriba = np.log(6.096 / z0) / np.log(10.0 / z0)
     return (arriba / wind_height_factor()).astype("float32")
+
+
+def reasignar(codigos: np.ndarray, cambios: dict) -> np.ndarray:
+    """Cambia cada código FBFM40 de `cambios` ({"188": 165}) por su reemplazo."""
+    cambios = {int(k): int(v) for k, v in cambios.items()}
+    return np.select([codigos == k for k in cambios], list(cambios.values()), codigos)
 
 
 def factor_por_grupo(codigos: np.ndarray, grupos: dict[str, float]) -> np.ndarray:
