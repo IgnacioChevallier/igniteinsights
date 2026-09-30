@@ -461,6 +461,33 @@ el valor de un día de gran incendio (RESULTADOS-CSS-BAP loop 6). Con el ADJ ya 
   interfaz corregida, la única perilla que la región pide es la humedad viva por debajo del
   umbral de grandes incendios.
 
+### Loop F — ¿la copa era un límite o un efecto del frente lento?
+
+**Hipótesis:** RESULTADOS-CSS-BAP (loop 3) descartó la copa porque con CBH × 0,25 no cambiaba
+nada (+0,004): "la superficie TL8 no alcanza la intensidad". Con el frente a la mitad
+(hallazgo 2), la intensidad superficial (∝ velocidad) también estaba a la mitad.
+
+**Experimento:** `cbh-025-001` (diagnóstico, no candidata: el dosel es infraestructura) sobre v4,
+contra `base-001` v4.
+
+| Incendio | `base-001` v4 | CBH × 0,25 | 24 h predicho (observado), ha |
+|---|---|---|---|
+| Cholila | 0,255 / 0,44 ⚠ | **0,528 / 0,90** | 279 → 655 (255) |
+| Alerces 2024 | 0,556 / 1,37 | 0,614 / 1,72 | 111 → 324 (851) |
+| Epuyén | 0,466 / 1,30 | 0,473 / 1,30 | 151 → 149 (1.730) |
+| Patriada | 0,321 / 0,74 | 0,310 / 0,83 | 78 → 79 (2.474) |
+| Alerces 2016 | 0,444 / 1,05 | 0,338 / 1,76 | 83 → 298 (1.241) |
+| Alerces 2023 h54 | 0,460 / 1,55 | 0,400 / 2,50 ⚠ | — |
+
+- **Límite reabierto:** en v4 la copa se enciende con un CBH bajo, y mueve el Dice hasta +0,27
+  (Cholila). El "la copa nunca se inicia" de v3 era en parte el frente a media velocidad.
+- **Pero no explica el día explosivo:** en Cholila acelera desde el principio (655 contra 255 ha
+  a las 24 h) y llega al área final, sin el salto de las 36–42 h. En Epuyén y Patriada no cambia
+  nada: sus igniciones caen en TL8/matorral sin dosel bajo que se encienda.
+- **Conclusión:** la estructura del dosel (el CBH derivado como 0,2–0,5 × CH) pasa a ser la
+  incertidumbre de insumos más grande que queda. No se calibra (no es un parámetro de esta
+  tesis); va al director (§7.2).
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
@@ -557,6 +584,11 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 - **Hansen es de 2000.** En El Turbio 2025, el 83 % de la cicatriz figura como bosque cerrado
   donde CCS-BAP 2017 ve el rebrote de la cicatriz de 2015 (GS3). La cobertura del dosel es 17–25
   años más vieja que los incendios de calibración.
+- **El CBH derivado decide la copa (loop F).** `canopy_builder` usa CBH = CH × (0,20 + 0,30 ×
+  CC): 5–10 m en los bosques de la región. Con CBH × 0,25, Cholila pasa de 0,255 a 0,528 y
+  Alerces 2024 de 0,556 a 0,614, pero Alerces 2016 y 2023 se pasan. Un CBH con fundamento
+  (inventario, o la relación de Cruz et al. 2003 por tipo de bosque) es lo que más movería el
+  resultado ahora.
 - **Forest → TL8 y Rem Dist Rec → GS3** (RESULTADOS-CSS-BAP §7.2) siguen igual.
 
 ### 7.3 Límites que ninguna corrección resuelve
@@ -564,8 +596,9 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 - **Supresión:** El Turbio y Epuyén 2019 sobre-propagan 5–16× también en v4. Y ahora que el
   modelo va a su velocidad, también se ve en Alerces 2023 si se lo corre más allá de las 54 h.
 - **El día 1 explosivo:** 8–30× por debajo en cuatro de siete, y la explosión de Cholila a las
-  30–42 h y la de Café. La copa casi no participa (0,1–1,7 % de las celdas con dosel superan la
-  intensidad crítica con el CBH derivado) y las pavesas están apagadas.
+  30–42 h y la de Café. Con el CBH derivado la copa casi no participa (0,1–1,7 % de las celdas
+  con dosel superan la intensidad crítica); con un CBH bajo sí, pero acelera todo el incendio,
+  no el salto (loop F). Las pavesas están apagadas.
 - **Dirección del viento de superficie:** el frente real corre 20–100° más al sur que el empuje
   del GFS, igual que en v3.
 - **Las Golondrinas:** la ráfaga nocturna del norte no está en el GFS; peor en v4 (0,010) porque
