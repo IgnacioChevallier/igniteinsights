@@ -28,6 +28,9 @@
   derivado es la incertidumbre de insumos más grande que queda (§7.2).
 - **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
   (+0,012) pero dispara a Epuyén; el atlas sigue neutro. La receta final no cambia.
+- **Documento de combustibles:** la lista de cambios pendientes sobre
+  `IGN-20B-FINAL-CROSSWALK-CCSBAP.md` está en §7.4. El paso 4 re-corrido (2026-09-30) da
+  el doble de velocidad: SH8 queda 2,7–6,5× por debajo de la quema A4, no 5–11×.
 - **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
 - **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
   sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
@@ -632,3 +635,54 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
   del GFS, igual que en v3.
 - **Las Golondrinas:** la ráfaga nocturna del norte no está en el GFS; peor en v4 (0,010) porque
   en v3 corría 24 h con la tarde congelada.
+
+### 7.4 Cambios pendientes en el documento de combustibles (`docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
+
+No se edita desde esta auditoría: la tabla es el aporte de la tesis y está en revisión del
+director. Lo que hay que cambiar después, sección por sección:
+
+- **§6.2 Paso 4 contra la quema A4 — cambian los números y una conclusión.** El script
+  (`scripts/paso4_quema_a4.py`) corre en el playground, que escribía `phi` en metros (hallazgo
+  2), y mide la velocidad con el TOA: todas las velocidades salían a ~0,5×. La llama no cambia
+  (sale de la intensidad que ELMFIRE calcula). Re-corrido el 2026-09-30 con el playground
+  corregido:
+
+  | Modelo | ROS sostenido (doc → real) | Llama | ROS ráfaga (doc → real) | Llama |
+  |---|---|---|---|---|
+  | SH8 (148) | 437 → **739 m/h** | 3,5 m | 900 → **1.785 m/h** | 5,6 m |
+  | SH4 (144) | 522 → **888 m/h** | 2,2 m | 1.201 → **2.445 m/h** | 3,7 m |
+  | GS3 (123) | 627 → **1.098 m/h** | 2,8 m | 1.394 → **2.896 m/h** | 4,5 m |
+  | SH9 (149) | 1.034 → 1.966 m/h | 7,9 m | 2.321 → 4.875 m/h | 11,8 m |
+  | SH5 (145) | 1.091 → 2.118 m/h | 5,1 m | 2.529 → 5.085 m/h | 7,4 m |
+
+  Observado: 4.800 m/h (pico bajo ráfaga), llama de 3 a 4 m.
+  - SH8 sigue por debajo, pero **2,7–6,5×**, no "5 a 11 veces".
+  - **SH4 y GS3, con ráfaga, llegan al 51–60 % de lo observado con la llama medida** (3,7 y
+    4,5 m): la lectura 1 ("ningún modelo de arbustal reproduce propagación y llama a la vez") ya
+    no vale tal cual; con ráfaga, SH4 queda cerca de hacerlo.
+  - SH9 y SH5 alcanzan la propagación observada, pero con llamas de 7 a 12 m: siguen
+    descartados por llama, como decía el documento.
+  - El "sesgo declarado de subestimar la propagación" de SH8, SH4 y GS3 (§5.4, §6.2 "Qué se
+    hace con esto", §9) sigue en pie pero es la mitad de grande. Hay que reescribirlo con estos
+    números.
+- **§6.1 Comparación de los tres mapas y harness B:** corridas con los hallazgos 1 y 2 (frente
+  a la mitad; clima de una sola banda o congelado). Re-correr `scripts/run_three_maps.py` y el
+  harness B en v4 antes de citar áreas del anillo, intensidades (FLI ∝ velocidad: se duplican),
+  IoU entre mapas y el orden WorldCover < MapBiomas < CCS-BAP.
+- **§6.3 Sensibilidad a la humedad viva:** mismo problema (el factor 2,50 entre LH/LW 30 y 120 %
+  hay que re-medirlo). Y el valor adoptado: la calibración v4 elige **LW 100 %**, no 110 % (§6
+  de este documento, loop E). El fundamento de Bianchi y Defossé no cambia: 110 % es el umbral
+  por debajo del cual ocurren los grandes incendios, así que el día de un gran incendio está
+  por debajo.
+- **§5.4 y §5.5 (ñire bajo y lenga achaparrada → SH8):** la asignación no cambia, pero hay que
+  declarar la interacción con el dosel (sospecha 6): Hansen 2000 + ETH 2020 les dan cobertura de
+  bosque cerrado (mediana 78–91 %, 13–18 m), y ELMFIRE aplica entonces el WAF de un bosque (~0,08
+  en vez del 0,46 de un matorral abierto). En Alerces 2024, dos tercios del matorral quemado es
+  ñire bajo. Para el director: ¿son combustible arbustivo expuesto al viento (sin dosel) o
+  sotobosque bajo dosel?
+- **§5.7 Rem Dist Rec → GS3:** sumar la evidencia de El Turbio 2025 (RESULTADOS-CSS-BAP §7.2)
+  y que Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz.
+- **§7 Limitaciones:** agregar la edad del dosel (Hansen 2000, 17–25 años antes de los
+  incendios) y el CBH derivado como la incertidumbre que más mueve el resultado ahora (loop F).
+- **§8 Verificación y §9 Estado:** marcar que las fechas 2026-09-16/19 son de corridas previas a
+  la auditoría física.
