@@ -119,6 +119,11 @@ def derive_cbh_cbd(
     Pixels with no meaningful canopy get cbh = cbd = 0. cbd = 0 is the control that
     matters: with no crown fuel there is no crown fire, whatever cbh says. Pixels where
     either input is nodata stay nodata, matching what cc.tif and ch.tif already do.
+
+    cc.tif is rewritten with cover 0 where the canopy is shorter than _MIN_CANOPY_HEIGHT_M.
+    ELMFIRE takes the wind reduction under a canopy from (CC, CH): with CH ≈ 0 and CC ≥ 15 %
+    it uses a sheltered factor of 0, and the cell gets no wind at all (AUDITORIA-FISICA.md,
+    hallazgo 4: Hansen cover without ETH height, 0.1–2.6 % of the burnable cells).
     """
     import rasterio
 
@@ -146,8 +151,11 @@ def derive_cbh_cbd(
     cbh_out[~known] = _NODATA
     cbd_out[~known] = _NODATA
 
+    sin_altura = known & (ch_m < _MIN_CANOPY_HEIGHT_M) & (cc_raw > 0)
+    cc_out = np.where(sin_altura, 0, cc_raw).astype(cc_raw.dtype)
+
     profile.update(dtype="int16", count=1, nodata=int(_NODATA))
-    for out_path, data in [(cbh_path, cbh_out), (cbd_path, cbd_out)]:
+    for out_path, data in [(cbh_path, cbh_out), (cbd_path, cbd_out), (cc_path, cc_out)]:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with rasterio.open(out_path, "w", **profile) as dst:
             dst.write(data, 1)

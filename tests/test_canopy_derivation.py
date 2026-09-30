@@ -76,3 +76,11 @@ def test_derivation_no_longer_depends_on_the_fuel_model(tmp_path):
     assert "fbfm40_path" not in sig.parameters
     assert not hasattr(canopy_builder, "_FBFM40_CBH")
     assert not hasattr(canopy_builder, "_FBFM40_CBD")
+
+
+def test_cover_without_height_is_not_canopy(tmp_path):
+    """Hansen cover over ETH height ~0 gave ELMFIRE a sheltered wind factor of 0: the cell had
+    no wind at all (AUDITORIA-FISICA.md, hallazgo 4). No height, no canopy, no cover."""
+    _derive(tmp_path, [[60, 60, 0]], [[0, 150, 150]])
+    with rasterio.open(tmp_path / "cc.tif") as src:
+        assert src.read(1).tolist() == [[0, 60, 0]]

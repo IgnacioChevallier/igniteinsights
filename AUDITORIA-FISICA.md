@@ -153,8 +153,11 @@
 - **Alcance.** 0,1–2,6 % de las celdas quemables de los paquetes de calibración (cobertura de
   Hansen sin altura de ETH): Epuyén 1,5 %, Patriada 1,5 %, Cholila 1,8 %, Las Golondrinas
   2,6 % dentro de la cicatriz.
-- **Sin corregir todavía**: impacto chico y la corrección toca `canopy_builder` (derivación
-  del dosel), fuera de lo que la tesis fundamenta. Queda en §7.
+- **Corregido en la causa** (loop E): `canopy_builder.derive_cbh_cbd`, que ya definía "sin
+  combustible de copa" con CH < 2 m, ahora deja también la cobertura en 0 ahí. Test
+  `test_cover_without_height_is_not_canopy`. Aplica a las preparaciones nuevas (la app); los
+  paquetes v4 conservan el dosel de su preparación, así que el efecto medido (0,1–2,6 % de las
+  celdas quemables) sigue en los números de este documento.
 
 ### Hallazgo 5 — Con la grilla de clima más alta que ancha, la franja norte lee el clima de otra fila
 
@@ -512,8 +515,9 @@ que la calibración no ve (supresión cerca de poblados) y la explosión de Caf�
   el texto no): `docs/elmfire-mapping.md`, `app/ingestion/meteorology/gfs/client.py`,
   `app/preparation/service.py`, `scripts/trim_weather_bands.py`,
   `tests/test_fuels_source_and_clock.py`.
-- **Dosel (hallazgo 4):** celdas con cobertura de Hansen ≥ 15 % y altura de ETH 0 quedan sin
-  viento. Corregirlo en `canopy_builder` (sin altura, sin dosel) con su versión de caché.
+- **Dosel (hallazgo 4):** corregido en `canopy_builder` para las preparaciones nuevas. Re-preparar
+  `data/elmfire/inputs/benchmark-*-asp3` y re-empaquetar si se quiere en el benchmark (efecto
+  chico).
 - **Grilla de clima alta (hallazgo 5):** rellenar las columnas del clima en `write_namelist`.
   Afecta sobre todo a la app (grillas del AOI de ~20 km de franja) y a `ventanas-firms`; en la
   calibración v4 el efecto medido es despreciable.
