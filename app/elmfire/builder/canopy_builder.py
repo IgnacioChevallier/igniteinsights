@@ -120,7 +120,8 @@ def derive_cbh_cbd(
     matters: with no crown fuel there is no crown fire, whatever cbh says. Pixels where
     either input is nodata stay nodata, matching what cc.tif and ch.tif already do.
 
-    cc.tif is rewritten with cover 0 where the canopy is shorter than _MIN_CANOPY_HEIGHT_M.
+    cc.tif is rewritten with cover 0 where the canopy is shorter than _MIN_CANOPY_HEIGHT_M
+    or its height is nodata.
     ELMFIRE takes the wind reduction under a canopy from (CC, CH): with CH ≈ 0 and CC ≥ 15 %
     it uses a sheltered factor of 0, and the cell gets no wind at all (AUDITORIA-FISICA.md,
     hallazgo 4: Hansen cover without ETH height, 0.1–2.6 % of the burnable cells).
@@ -151,7 +152,11 @@ def derive_cbh_cbd(
     cbh_out[~known] = _NODATA
     cbd_out[~known] = _NODATA
 
-    sin_altura = known & (ch_m < _MIN_CANOPY_HEIGHT_M) & (cc_raw > 0)
+    # ch nodata counts as no height: ELMFIRE clamps the height index to 0 (ICH =
+    # MIN(MAX(NINT(CH),0),120), elmfire_init.f90:557), so a nodata height with CC >= 15 %
+    # gives the same zero wind as CH = 0. In the benchmark preparations that is every
+    # affected cell (Hansen cover where ETH has no height), not CH < 2 m.
+    sin_altura = (ch_m < _MIN_CANOPY_HEIGHT_M) & (cc_raw > 0)
     cc_out = np.where(sin_altura, 0, cc_raw).astype(cc_raw.dtype)
 
     profile.update(dtype="int16", count=1, nodata=int(_NODATA))

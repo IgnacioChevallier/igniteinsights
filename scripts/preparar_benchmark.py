@@ -12,9 +12,18 @@ Topografía (COP30 de OpenTopography, reproyectada y con pendiente y orientació
 (Hansen + ETH, igual que `preparation/service.py`), ADJ uniforme 1 y los mapas de combustible
 del benchmark: WorldCover 2021 (también es el relleno del hueco fronterizo) y CCS-BAP 2013 y
 2017 con el mismo crosswalk.
+
+Con `--dosel-desde` arma una preparación nueva a partir de otra, re-derivando sólo el dosel con
+el `canopy_builder` actual (AUDITORIA-FISICA.md, hallazgo 4: cobertura 0 donde CH < 2 m) y con
+hardlinks para todo lo demás. Así se armaron las preparaciones de los protocolos `-v5`:
+
+    uv run python scripts/preparar_benchmark.py --dosel-desde \
+        data/elmfire/inputs/benchmark-aoi-asp3 --salida data/elmfire/inputs/benchmark-aoi-asp3-v5
 """
 import argparse
 import logging
+import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -33,12 +42,33 @@ CCSBAP = {2013: Path("datasets/CH_2013_Ver20190521_Subido202000316/cob_2013_N3_a
           2017: Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")}
 
 
+DOSEL_DERIVADO = ("cc.tif", "cbh.tif", "cbd.tif")   # lo que escribe derive_cbh_cbd
+
+
+def rehacer_dosel(desde: Path, salida: Path) -> None:
+    """Otra preparación con el dosel re-derivado: cc copiado (derive_cbh_cbd lo reescribe) y
+    cbh/cbd nuevos; el resto, hardlinks a `desde`, que no se toca."""
+    salida.mkdir(parents=True)   # nueva: nunca escribir sobre una que un paquete referencia
+    for ruta in sorted(desde.iterdir()):
+        if ruta.is_file() and ruta.name not in DOSEL_DERIVADO:
+            os.link(ruta, salida / ruta.name)
+    shutil.copyfile(desde / "cc.tif", salida / "cc.tif")
+    canopy_builder.derive_cbh_cbd(salida / "cc.tif", salida / "ch.tif", salida / "cbh.tif",
+                                  salida / "cbd.tif")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--caja", type=float, nargs=4, metavar=("O", "S", "E", "N"), required=True)
+    ap.add_argument("--caja", type=float, nargs=4, metavar=("O", "S", "E", "N"))
+    ap.add_argument("--dosel-desde", type=Path)
     ap.add_argument("--salida", type=Path, required=True)
     args = ap.parse_args()
     salida: Path = args.salida
+    if args.dosel_desde:
+        rehacer_dosel(args.dosel_desde, salida)
+        return
+    if not args.caja:
+        ap.error("--caja o --dosel-desde")
     salida.mkdir(parents=True, exist_ok=True)
 
     crudo = salida / "dem_cop30_raw.tif"
