@@ -520,21 +520,53 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 
 ## 7. Para corregir afuera
 
-- **Todos los números de `RESULTADOS-CSS-BAP.md`, `RESULTADOS.md` e `IGN-26-VALIDACION.md`**
-  salen de corridas con los hallazgos 1 y 2: clima congelado en la primera hora de cada
-  ventana y frente a la mitad de la velocidad calculada. Las comparaciones entre recetas o entre
-  mapas de combustible bajo esas condiciones no se trasladan a v4 sin re-correrlas.
-  - Los veredictos que dependen de la velocidad (ADJ 1,3, LW 100 %, "el día 1 queda 10–50×
-    por debajo") hay que rehacerlos.
-  - Los que comparan insumos sin correr ELMFIRE (H1 y H3 del loop 0–1: m1 de estaciones contra
-    GFS, Fosberg, ERA5) siguen valiendo.
-- **Documentos con la redacción "banda n en TSTART + n × DT"** (el código hacía lo correcto,
-  el texto no): `docs/elmfire-mapping.md`, `app/ingestion/meteorology/gfs/client.py`,
-  `app/preparation/service.py`, `scripts/trim_weather_bands.py`,
-  `tests/test_fuels_source_and_clock.py`.
-- **Dosel (hallazgo 4):** corregido en `canopy_builder` para las preparaciones nuevas. Re-preparar
-  `data/elmfire/inputs/benchmark-*-asp3` y re-empaquetar si se quiere en el benchmark (efecto
-  chico).
-- **Grilla de clima alta (hallazgo 5):** rellenar las columnas del clima en `write_namelist`.
-  Afecta sobre todo a la app (grillas del AOI de ~20 km de franja) y a `ventanas-firms`; en la
-  calibración v4 el efecto medido es despreciable.
+### 7.1 Documentos con números afectados por los bugs
+
+- **`RESULTADOS-CSS-BAP.md`, `RESULTADOS.md` e `IGN-26-VALIDACION.md`:** todas sus corridas
+  tienen los hallazgos 1 y 2 (clima congelado en la primera hora de cada ventana y frente a la
+  mitad de la velocidad calculada). Lo que hay que rehacer o re-leer:
+  - la receta (ADJ 1,15 + LW 100 %) y el ADJ 1,3: con la interfaz corregida sobra el ADJ; la
+    receta es LW 100 % (§6);
+  - "el día 1 queda 10–50× por debajo": ahora 8–30× en cuatro de siete, y Alerces 2023 lo
+    reproduce (389 contra 485 ha);
+  - "la ignición (±500 m / ±2 h) mueve el Dice ±0,1–0,2": ahora bastante menos (Epuyén de 0,37
+    a 0,50 con la receta final, contra 0,08–0,50);
+  - la equivalencia GFS/ERA5 (§2.13): ERA5 propaga ~20 % menos; la receta no cambia (loop D);
+  - las comparaciones entre mapas de combustible de `RESULTADOS.md` §4–§8 y los harness A y B
+    de IGN-26: hay que re-correrlas en v4 antes de citar sus órdenes.
+  - Siguen valiendo los análisis que comparan insumos sin correr ELMFIRE (m1 de estaciones
+    contra GFS, Fosberg, ERA5 contra estaciones).
+- **Redacción "banda n en TSTART + n × DT"** (el código hacía lo correcto): ya corregida en
+  `docs/elmfire-mapping.md`, `app/ingestion/meteorology/gfs/client.py`,
+  `app/preparation/service.py`, `scripts/trim_weather_bands.py` (que además calculaba mal las
+  bandas con TSTART > 0) y `tests/test_fuels_source_and_clock.py`.
+- **Grilla de clima alta (hallazgo 5):** rellenar las columnas del clima. Afecta sobre todo a la
+  app y a `ventanas-firms`; en la calibración v4 el efecto medido es despreciable.
+- **Dosel (hallazgo 4):** corregido para las preparaciones nuevas; re-preparar
+  `data/elmfire/inputs/benchmark-*-asp3` si se quiere en el benchmark (efecto chico).
+
+### 7.2 Para el director (combustible y dosel)
+
+- **Matorral con dosel de bosque (sospecha 6).** Ñire bajo, lenga baja/achaparrada y parte del
+  arbustal nativo se asignan a SH (matorral abierto), pero Hansen 2000 + ETH 2020 les dan
+  cobertura de bosque cerrado (mediana 78–91 %, 13–18 m). ELMFIRE combina los dos y les aplica
+  el WAF de un bosque (~0,08 en vez de 0,46). En Alerces 2024, dos tercios del matorral quemado
+  es ñire bajo. Hay que decidir, para esas clases, si son un combustible arbustivo expuesto al
+  viento (sin dosel) o un sotobosque bajo dosel (modelo TU). El diagnóstico `dosel-coherente-001`
+  mide el efecto: +0,10 en Patriada, +0,06 en Alerces 2024, −0,12 en Alerces 2016.
+- **Hansen es de 2000.** En El Turbio 2025, el 83 % de la cicatriz figura como bosque cerrado
+  donde CCS-BAP 2017 ve el rebrote de la cicatriz de 2015 (GS3). La cobertura del dosel es 17–25
+  años más vieja que los incendios de calibración.
+- **Forest → TL8 y Rem Dist Rec → GS3** (RESULTADOS-CSS-BAP §7.2) siguen igual.
+
+### 7.3 Límites que ninguna corrección resuelve
+
+- **Supresión:** El Turbio y Epuyén 2019 sobre-propagan 5–16× también en v4. Y ahora que el
+  modelo va a su velocidad, también se ve en Alerces 2023 si se lo corre más allá de las 54 h.
+- **El día 1 explosivo:** 8–30× por debajo en cuatro de siete, y la explosión de Cholila a las
+  30–42 h y la de Café. La copa casi no participa (0,1–1,7 % de las celdas con dosel superan la
+  intensidad crítica con el CBH derivado) y las pavesas están apagadas.
+- **Dirección del viento de superficie:** el frente real corre 20–100° más al sur que el empuje
+  del GFS, igual que en v3.
+- **Las Golondrinas:** la ráfaga nocturna del norte no está en el GFS; peor en v4 (0,010) porque
+  en v3 corría 24 h con la tarde congelada.
