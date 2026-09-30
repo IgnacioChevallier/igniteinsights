@@ -6,28 +6,26 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop D, 2026-09-29 22:50)*
+*(se reescribe en cada loop — última: loop E, 2026-09-29 23:55)*
 
-- **Mejor receta: `adj-110-001`** (ADJ 1,1, LW 110 %, CCS-BAP anterior al fuego) sobre los
-  protocolos v4, con Alerces 2023 a 54 h.
-  - Calibración (7): media 0,373, mediana 0,430, **cero alarmas** sin el caso límite. Es la única
-    receta que cumple la restricción. Validación cruzada: la elige en 6 de 7 pliegues (fuera de
-    muestra 0,374 / 0,430).
-  - Robustez a la ignición (21 corridas): 0,458 / 0,479, 3 alarmas al borde (≤ 2,09); `base-001`
-    0,437 / 0,444, 0 alarmas. En v3 las recetas calibradas daban 0,395–0,398 con 5–7 alarmas.
-  - Prueba (4, no usados para elegir): 0,204 / 0,203 (`base-001` 0,209 / 0,191).
+- **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
+  protocolos v4, con Alerces 2023 a 54 h. Sin ADJ: la única perilla es la humedad viva.
+  - Calibración (7): media **0,381**, mediana **0,452**, cero alarmas sin el caso límite.
+    Validación cruzada: la elige en 7 de 7 pliegues (fuera de muestra 0,381 / 0,452).
+  - Robustez a la ignición (21 corridas): 0,460 / 0,480; gana a base en 17 de 21; 3 alarmas al
+    borde. En v3 las recetas calibradas daban 0,395–0,398 con 5–7 alarmas.
+  - Prueba (4): 0,213 / 0,220 (v3 final: 0,212 / 0,211).
+  - Contra v3: `base-001` 0,312 / 0,340 y `lw100-adj115-001` 0,372 / 0,411.
 - **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros:
-  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), la capa "sin ignición" leída como
-  quemada, y el disco (GeoTIFF sin comprimir). **Confirmados sin corregir:** 4 (WAF 0 con CH 0;
-  chico) y 5 (grilla de clima alta: lo encontró otra sesión; despreciable en la calibración v4,
-  grande en `ventanas-firms` y en la app; la corrección, rellenar las columnas del clima, está
-  pendiente y la tiene esa sesión).
-- **Sospechas medidas, no adoptadas:** 6 (dosel incoherente con el combustible: redistribuye
-  velocidad, media igual) y ERA5 homogeneizado ×1,3 (control exacto, pero no mejora el objetivo:
-  la receta no depende de la fuente).
-- **Corriendo:** `lw-100-001` (LW 100 %, ADJ 1) sobre los siete.
-- **Próximo paso:** con LW 100 %, decidir si LW suma con la física corregida; después cerrar §6 y
-  §7 con los números finales y el dosel/hallazgo 4 para el director.
+  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura: sin
+  viento; para las preparaciones nuevas), la capa "sin ignición" leída como quemada, y los
+  GeoTIFF sin comprimir que llenaron el disco. **Confirmado sin corregir:** 5 (grilla de clima
+  alta; lo encontró y lo tiene otra sesión; despreciable en la calibración v4).
+- **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6) y ERA5 ×1,3.
+- **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
+- **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
+  sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
+  con una prueba física que muestre que hacen falta antes de exponer keywords.
 
 ## 2. Supuestos
 
@@ -391,8 +389,8 @@ disco lleno):
   | `adj-130-001` v3 (RESULTADOS-CSS-BAP loop 7) | 0,398 | 0,454 | 5 de 21 |
   | `lw100-adj115-001` v3 | 0,395 | 0,440 | 7 de 21 |
 
-  - **La mejora de ADJ 1,1 sobrevive:** gana en 15 de 21 (todas en Alerces 2023, 6 de 7 en
-    Epuyén; Alerces 2016 prefiere base en 5 de 7). Las tres alarmas son de Alerces 2023 al borde
+  - **La mejora de ADJ 1,1 sobrevive:** gana en 14 de 21 (6 de 7 en Alerces 2023, con un
+    empate; 6 de 7 en Epuyén; Alerces 2016 prefiere base en 5 de 7). Las tres alarmas son de Alerces 2023 al borde
     (≤ 2,09): ADJ 1,1 es el extremo superior del intervalo factible.
   - **El modelo corregido es mucho menos frágil a la ignición:** en Epuyén el Dice va de 0,27 a
     0,56 (v3: de 0,08 a 0,50). Con el frente a la mitad, los primeros cientos de metros decidían
@@ -445,7 +443,23 @@ el valor de un día de gran incendio (RESULTADOS-CSS-BAP loop 6). Con el ADJ ya 
 - **El intervalo sin alarmas es ~[97; 110] %**, casi el mismo que en v3 ([95; 110]): el LW
   que pide la región no dependía de los bugs. Lo que sí dependía de ellos era el ADJ extra de
   la receta v3 (1,15), que ahora sobra.
-- **Candidata: `lw-100-001`.** Falta su robustez a la ignición y la prueba (en la cola).
+- **Robustez a la ignición** (las mismas 21 corridas perturbadas):
+
+  | Receta | Media | Mediana | Alarmas | Gana a base |
+  |---|---|---|---|---|
+  | `base-001` | 0,437 | 0,444 | 0 | — |
+  | `adj-110-001` | 0,458 | 0,479 | 3 (2,01–2,09) | 14 de 21 |
+  | **`lw-100-001`** | **0,460** | **0,480** | 3 (2,02, 2,02 y 2,38) | **17 de 21** |
+
+  Las alarmas son de Alerces 2023 (N 500, −2 h) y Epuyén (S 500: cae sobre el arbustal, el
+  caso que ya era el extremo en v3), todas cerca del borde.
+- **Prueba** (no usados para elegir): `lw-100-001` 0,213 / 0,220, `base-001` 0,209 / 0,191,
+  `adj-110-001` 0,204 / 0,203. Alerces 2015, el único del régimen calibrado, pasa de 0,255 a
+  0,297 (sesgo 1,50). Los otros tres siguen fuera de alcance por la misma razón que en v3.
+- **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego). Gana en
+  calibración, validación cruzada (7 de 7), robustez y prueba. **No necesita ADJ**: con la
+  interfaz corregida, la única perilla que la región pide es la humedad viva por debajo del
+  umbral de grandes incendios.
 
 ## 6. Resultados
 
