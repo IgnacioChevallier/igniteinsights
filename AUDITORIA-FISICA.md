@@ -6,24 +6,27 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop G, 2026-09-30 00:50)*
+*(se reescribe en cada loop — última: loop I, 2026-09-30 20:10)*
 
 - **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
-  protocolos v4, con Alerces 2023 a 54 h. Sin ADJ: la única perilla es la humedad viva.
-  - Calibración (7): media **0,381**, mediana **0,452**, cero alarmas sin el caso límite.
-    Validación cruzada: la elige en 7 de 7 pliegues (fuera de muestra 0,381 / 0,452).
+  protocolos **v5** (v4 + hallazgos 4 y 5), con Alerces 2023 a 54 h. Sin ADJ: la única perilla
+  es la humedad viva. `benchmarks/particion.json` apunta a v5.
+  - Calibración (7): media **0,381**, mediana **0,451**, cero alarmas sin el caso límite (v4:
+    0,381 / 0,452). Validación cruzada: 7 de 7 pliegues (fuera de muestra 0,381 / 0,451).
   - Robustez a la ignición (21 corridas): 0,460 / 0,480; gana a base en 17 de 21; 3 alarmas al
     borde. En v3 las recetas calibradas daban 0,395–0,398 con 5–7 alarmas.
-  - Prueba (4): 0,213 / 0,220 (v3 final: 0,212 / 0,211).
+  - Prueba (4): 0,213 / 0,220, igual en v4 y v5 (v3 final: 0,212 / 0,211).
+  - La robustez a la ignición y los loops C–G se midieron sobre v4; v5 no cambia ningún
+    incendio en más de 0,001 (loop I).
   - Contra v3: `base-001` 0,312 / 0,340 y `lw100-adj115-001` 0,372 / 0,411.
 - **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros:
-  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura: sin
-  viento; para las preparaciones nuevas), la capa "sin ignición" leída como quemada, y los
-  GeoTIFF sin comprimir que llenaron el disco, y 5 (grilla de clima alta: `write_namelist`
-  rellena el clima al este; loop H).
+  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura, ahora
+  también con CH sin dato, que era casi todo el efecto: loop I), 5 (grilla de clima alta:
+  `write_namelist` rellena el clima al este; loop H), la capa "sin ignición" leída como quemada
+  y los GeoTIFF sin comprimir que llenaron el disco. Los cinco están en el benchmark desde v5.
 - **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6) y ERA5 ×1,3.
 - **Reproducible:** `verificar` de `lw-100-001` en Alerces 2023 h54 y Epuyén: TOA idéntico en
-  las 7 ventanas.
+  las 7 ventanas; en v5, las cuatro iteraciones marcadas `sucio`: TOA idéntico en 14 ventanas.
 - **La copa (loop F):** en v4 se enciende con un CBH bajo (Cholila 0,255 → 0,528); el CBH
   derivado es la incertidumbre de insumos más grande que queda (§7.2).
 - **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
@@ -162,9 +165,19 @@
   2,6 % dentro de la cicatriz.
 - **Corregido en la causa** (loop E): `canopy_builder.derive_cbh_cbd`, que ya definía "sin
   combustible de copa" con CH < 2 m, ahora deja también la cobertura en 0 ahí. Test
-  `test_cover_without_height_is_not_canopy`. Aplica a las preparaciones nuevas (la app); los
-  paquetes v4 conservan el dosel de su preparación, así que el efecto medido (0,1–2,6 % de las
-  celdas quemables) sigue en los números de este documento.
+  `test_cover_without_height_is_not_canopy`.
+- **La corrección del loop E no alcanzaba (loop I).** En las preparaciones del benchmark casi
+  todas las celdas afectadas tienen CH **sin dato** (−9999), no CH < 2 m: `derive_cbh_cbd` las
+  dejaba afuera (`known`). ELMFIRE acota el índice de altura a 0
+  (`ICH = MIN(MAX(NINT(CH),0),120)`, `elmfire_init.f90:557`), así que un CH sin dato con CC ≥ 15 %
+  da el mismo WAF 0. En `benchmark-aoi-asp3`, de 86.694 celdas con CC ≥ 15 % y sin altura,
+  82.889 son CH sin dato; con la corrección del loop E sólo cambiaban 3.805. Ahora la cobertura
+  va a 0 también ahí (mismo test, con un CH −9999). cbh y cbd no cambian (siguen sin dato, y la
+  copa exige CBD > 0,001, `elmfire_spread_rate.f90:161`).
+- **En el benchmark desde v5** (loop I). Celdas quemables de cada paquete que en v4 quedaban sin
+  viento: Alerces 2023 0,27 %, Epuyén 2025 1,55 %, Alerces 2024 0,17 %, Patriada 1,52 %, Las
+  Golondrinas 1,13 %, Alerces 2016 0,46 %, Cholila 1,89 %, El Turbio 0,59 %, Café 0,89 %,
+  Epuyén 2019 0,57 %, Alerces 2015 0,29 %. Efecto en el Dice: ≤ 0,001 (§5, loop I).
 
 ### Hallazgo 5 — Con la grilla de clima más alta que ancha, la franja norte lee el clima de otra fila (corregido)
 
@@ -565,6 +578,58 @@ relleno reproducido recortando el clima después del namelist), más `simetria`,
 el benchmark cambia los insumos de los casos altos, así que entra con un protocolo nuevo (v5,
 loop I) junto con el dosel del hallazgo 4.
 
+### Loop I — protocolos v5: los hallazgos 4 y 5 en el benchmark
+
+**Hipótesis:** los dos hallazgos que faltaban en el benchmark (dosel sin altura, grilla de clima
+alta) casi no mueven la calibración: el primero toca 0,2–1,9 % de las celdas quemables y el
+segundo una franja donde el clima de 0,25° apenas cambia (§3). Si mueven la velocidad, hay que
+re-barrer LW antes de sostener `lw-100-001`.
+
+**Experimento:**
+- Preparaciones nuevas, sin tocar las viejas (los paquetes v4 las referencian):
+  `scripts/preparar_benchmark.py --dosel-desde data/elmfire/inputs/benchmark-aoi-asp3 --salida
+  data/elmfire/inputs/benchmark-aoi-asp3-v5`, y lo mismo con `benchmark-2026-09-28-asp3`.
+  Hardlinks de todo salvo cc/cbh/cbd; cc copiado y re-derivado con `derive_cbh_cbd`. cbh y cbd
+  salen idénticos a los viejos; sólo cambia cc.
+- Al armarlas apareció que la corrección del loop E no cubría el CH sin dato (§3, hallazgo 4):
+  corregido en `canopy_builder` antes de armar las preparaciones.
+- Once casos v5 (siete de calibración, cuatro de prueba; `calibracion-v5-h54` en Alerces 2023,
+  `calibracion-v5s` en Café), copia de los v4 con la preparación nueva y una nota de versión.
+  Contra el paquete v4, cambia sólo `cc.tif`; el clima re-empaquetado tiene otros bytes pero datos
+  idénticos (comparado banda a banda en Alerces 2023).
+- `base-001` y `lw-100-001` sobre los once, por la cola.
+
+**Resultado** (Dice / sesgo; entre paréntesis, v4):
+
+| Incendio | `base-001` v5 | `lw-100-001` v5 |
+|---|---|---|
+| Alerces 2023 (h54) | 0,461 / 1,55 (0,460 / 1,55) | 0,496 / 1,83 (0,495 / 1,82) |
+| Epuyén 2025 | 0,466 / 1,30 (igual) | 0,500 / 1,75 (igual) |
+| Alerces 2024 | 0,555 / 1,37 (0,556 / 1,37) | 0,562 / 1,54 (0,563 / 1,54) |
+| Patriada 2026 | 0,321 / 0,74 (igual) | 0,368 / 0,90 (0,368 / 0,91) |
+| Las Golondrinas (límite) | 0,010 / 0,02 ⚠ (igual) | 0,012 / 0,02 ⚠ (igual) |
+| Alerces 2016 | 0,444 / 1,05 (igual) | 0,451 / 1,33 (0,452 / 1,33) |
+| Cholila 2015 | 0,255 / 0,44 ⚠ (igual) | 0,280 / 0,55 (igual) |
+| **Calibración, media / mediana** | **0,359 / 0,444** (igual) | **0,381 / 0,451** (0,381 / 0,452) |
+| Alarmas sin el límite | 1 (1) | **0** (0) |
+| El Turbio 2025 | 0,333 / 4,97 ⚠ | 0,296 / 5,73 ⚠ (0,297 / 5,71) |
+| Café 2025 (v5s) | 0,128 / 0,26 ⚠ | 0,144 / 0,29 ⚠ (igual) |
+| Epuyén 2019 | 0,122 / 15,0 ⚠ | 0,114 / 16,5 ⚠ (igual) |
+| Alerces 2015 | 0,255 / 0,96 | 0,298 / 1,49 (0,297 / 1,50) |
+| **Prueba, media / mediana** | 0,210 / 0,191 (0,209 / 0,191) | **0,213 / 0,220** (igual) |
+
+- Validación cruzada: `lw-100-001` en 7 de 7 pliegues, fuera de muestra 0,381 / 0,451.
+- Sin alarmas nuevas: no hizo falta re-barrer LW.
+- Cuatro iteraciones (Alerces 2023 y Epuyén 2025, las dos recetas) quedaron con ventanas
+  marcadas `sucio`: mientras corrían había sin commitear scripts del documento de combustibles
+  (`corregir_preparacion_legado.py` y los que re-corren §6.1 y §6.3), que el benchmark no importa
+  (commit `44f298d`). `verificar` con el árbol limpio: TOA idéntico en las 14 ventanas.
+
+**Conclusión:** los hallazgos 4 y 5 no mueven el benchmark (≤ 0,001 por incendio, que es lo que
+anticipaba el §3). La receta final sigue siendo `lw-100-001`, ahora sobre v5, y
+`benchmarks/particion.json` apunta a v5. Los dos arreglos importan en la app (franja de ~20 km en
+el AOI) y en `ventanas-firms`, no en la calibración.
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
@@ -648,8 +713,8 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
   re-leer: `puerto-patriada-2026/ventanas-firms` (harness A de IGN-26; la mitad del fuego simulado
   estaba en la franja) y el punto 6 de `RESULTADOS.md`, que ya había que rehacer por los
   hallazgos 1 y 2. En la calibración v4 el efecto medido es despreciable.
-- **Dosel (hallazgo 4):** corregido para las preparaciones nuevas; re-preparar
-  `data/elmfire/inputs/benchmark-*-asp3` si se quiere en el benchmark (efecto chico).
+- **Dosel (hallazgo 4):** corregido (también con CH sin dato) y en el benchmark desde los
+  protocolos v5 (loop I); efecto ≤ 0,001 en el Dice.
 
 ### 7.2 Para el director (combustible y dosel)
 
