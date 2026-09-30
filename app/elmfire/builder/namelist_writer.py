@@ -10,6 +10,7 @@ import math
 import re
 from pathlib import Path
 
+import numpy as np
 import rasterio
 
 logger = logging.getLogger(__name__)
@@ -153,6 +154,49 @@ def weather_band_count(inputs_dir: Path) -> int:
         return int(ds.count)
 
 
+def pad_weather_columns(inputs_dir: Path) -> None:
+    """Pad the weather rasters east with their last column until NCOLS >= NROWS.
+
+    ELMFIRE 2025.0212 maps each fuel cell to a weather cell in MAP_FINE_TO_COARSE and clamps
+    the weather ROW with the weather grid's NCOLS instead of NROWS (elmfire_subs.f90:296-297).
+    Rows count from the south (the reader flips them, elmfire_io.f90:1265), so on a
+    weather grid taller than wide every fuel row with IY > NCOLS reads weather row NCOLS: the
+    northern strip gets the weather of another latitude (AUDITORIA-FISICA.md, hallazgo 5).
+
+    Each raster's shape comes from its own header (READ_BSQ_HDR_HEADER, elmfire_io.f90:1242)
+    and the mapping only uses the weather grid's lower-left corner and cell size
+    (elmfire_subs.f90:293-297). Adding columns to the east moves neither, so every fuel cell
+    keeps its weather cell and the extra columns are never read (ICOL <= the fuel grid's own
+    columns). Padding is the whole fix, with no ELMFIRE change and no new keyword.
+
+    Done here because write_namelist is the one step every path runs last before ELMFIRE
+    (the API, preparation, the benchmark's cadena._preparar after its knobs, the physics
+    bench and the harness scripts), like wd_for_elmfire but without two call sites. It uses
+    each raster's own shape, so a weather grid coarser than the fuel grid is padded in its
+    own cells. A no-op on grids at least as wide as tall, so re-writing the namelist on the
+    same inputs is safe. Band by band, to keep memory at one band of the AOI grid.
+    """
+    for name in WEATHER_RASTERS:
+        path = inputs_dir / f"{name}.tif"
+        if not path.exists():
+            continue
+        with rasterio.open(path) as src:
+            if src.width >= src.height:
+                continue
+            extra = src.height - src.width
+            profile = src.profile | {"width": src.height, "compress": "deflate",
+                                     "predictor": 3 if src.dtypes[0].startswith("float") else 2}
+            # A new file then a rename: inputs can be read-only hardlinks into the benchmark
+            # store (cadena), which must never be written through.
+            tmp = path.with_name(f".{name}.padded.tif")
+            with rasterio.open(tmp, "w", **profile) as dst:
+                for band in range(1, src.count + 1):
+                    dst.write(np.pad(src.read(band), ((0, 0), (0, extra)), mode="edge"), band)
+        tmp.replace(path)
+        logger.info("Padded %s east by %d columns (ELMFIRE clamps weather rows by NCOLS)",
+                    path.name, extra)
+
+
 def write_namelist(
     inputs_dir: Path,
     outputs_dir: Path,
@@ -208,6 +252,7 @@ def write_namelist(
     outputs_str = _fortran_path(outputs_dir)
 
     weather_warnings = validate_weather_coverage(inputs_dir, tstop_s, dt_meteorology_s)
+    pad_weather_columns(inputs_dir)
 
     dem_path = inputs_dir / "dem.tif"
     utm_west, utm_south, cell_size = _read_domain(dem_path)

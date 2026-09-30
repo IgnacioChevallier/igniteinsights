@@ -19,8 +19,8 @@
 - **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros:
   frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura: sin
   viento; para las preparaciones nuevas), la capa "sin ignición" leída como quemada, y los
-  GeoTIFF sin comprimir que llenaron el disco. **Confirmado sin corregir:** 5 (grilla de clima
-  alta; lo encontró y lo tiene otra sesión; despreciable en la calibración v4).
+  GeoTIFF sin comprimir que llenaron el disco, y 5 (grilla de clima alta: `write_namelist`
+  rellena el clima al este; loop H).
 - **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6) y ERA5 ×1,3.
 - **Reproducible:** `verificar` de `lw-100-001` en Alerces 2023 h54 y Epuyén: TOA idéntico en
   las 7 ventanas.
@@ -166,7 +166,7 @@
   paquetes v4 conservan el dosel de su preparación, así que el efecto medido (0,1–2,6 % de las
   celdas quemables) sigue en los números de este documento.
 
-### Hallazgo 5 — Con la grilla de clima más alta que ancha, la franja norte lee el clima de otra fila
+### Hallazgo 5 — Con la grilla de clima más alta que ancha, la franja norte lee el clima de otra fila (corregido)
 
 - **Evidencia en el fuente.** `MAP_FINE_TO_COARSE` (`elmfire_subs.f90:296-297`) acota la fila del
   clima con `COARSE%NCOLS` en vez de `NROWS`. Las filas se cuentan desde el sur (el lector las
@@ -203,11 +203,32 @@
     Δwd hasta 180° y Δm1 hasta 17 pp. Sostiene el punto 6 de `RESULTADOS.md` (la receta no se
     transfiere a Patriada), que ya estaba por rehacerse por los hallazgos 1 y 2.
   - `cicatriz-12h`: 17,7 % de la cicatriz en la franja, pero el fuego simulado nunca entró.
-- **Sin corregir todavía.** El arreglo es del lado del repo y en un solo lugar: `write_namelist`
-  (por donde pasan la API, `cadena`, el banco y los harness) rellena al este las columnas de los
-  rásters de clima hasta `NCOLS ≥ NROWS` (`np.pad`, `mode="edge"`); las columnas extra nunca se
-  leen. Cambia lo que recibe ELMFIRE, así que en el benchmark es un protocolo nuevo, y no se
-  aplica con la cola v4 corriendo. Trampa en el skill.
+- **Corregido en la causa** (loop H): `namelist_writer.pad_weather_columns`, que llama
+  `write_namelist` (el último paso antes de ELMFIRE en la API, la preparación, `cadena._preparar`
+  después de las perillas, el banco y los harness), rellena al este `ws`, `wd`, `m1`, `m10` y
+  `m100` con su última columna hasta `NCOLS ≥ NROWS`, banda por banda y en un archivo nuevo (los
+  insumos de `cadena` son hardlinks de sólo lectura al almacén). Verificado en el fuente antes de
+  implementarlo:
+  - cada ráster se lee con su propio encabezado (`READ_BSQ_RASTER` → `READ_BSQ_HDR_HEADER`,
+    `elmfire_io.f90:1242`), así que el clima puede tener otra forma que el combustible;
+    `WX_NCOLS`/`WX_NROWS` salen de `ws` (`elmfire_init.f90:188-189`) y los cinco se rellenan igual;
+  - `MAP_FINE_TO_COARSE` (`elmfire_subs.f90:293-297`) usa sólo la esquina inferior izquierda y la
+    celda del clima: rellenar al este no las mueve, cada celda del combustible sigue leyendo su
+    celda de clima y las columnas extra nunca se leen (`ICOL` ≤ columnas del combustible);
+    `WX_ICOL_FROM_ANALYSIS_IX` (`:868`) acota con `WS%NCOLS`, que sólo crece;
+  - del lado del repo, `_read_domain` y `_read_srs` leen el `dem`; `validate_weather_coverage` y
+    `weather_band_count`, sólo bandas; el runner no mira formas. El único lector posterior es el
+    respaldo de `/simulations/{id}/wind` cuando no hay `wind-field.json` (la preparación lo
+    escribe antes del namelist): ahí el campo se extendería al este.
+  - Usa la forma de cada ráster, así que un clima más grueso que el combustible se rellena en
+    sus propias celdas; en grillas anchas no hace nada (re-escribir el namelist es inocuo).
+
+  Tests: `test_grilla_alta_el_clima_se_rellena_hasta_ser_cuadrado` (con `MAP_FINE_TO_COARSE`
+  transcrito) y `test_grilla_ancha_el_clima_no_se_toca`. Banco: `grilla` da 879 m en la franja
+  con la corrección y 0 m con el clima recortado a mano; `simetria`, `viento` y `tiempo` sin
+  cambios. Cambia lo que recibe ELMFIRE en los casos altos: en el benchmark entra con los
+  protocolos `-v5` (loop I). Consecuencia: el `ws`/`wd` que una corrida deja en sus insumos puede
+  ser más ancho que el `dem`; para comparar celda a celda, recortarlo al ancho del `dem`.
 
 ### Sospechas descartadas (con el experimento que las descartó)
 
@@ -255,7 +276,7 @@ de Albini y Baughman y la elipse de Anderson (1983), dentro del script.
 | `dosel` | WAF bajo dosel; CC con CH 0; activación de copa | ±10 %; > 1,5× | 1,05 contra 1,05; WAF 0 (**hallazgo 4**); 9,75× |
 | `tiempo` | Bandas, TSTART, `wd` 170/190, cadena | ver arriba | Anterior: 0 m (**hallazgo 1**); crudo: 173° (**hallazgo 3**); corregidos: OK; cadena 1,05 |
 | `georreferencia` | Punto → celda; grilla del TOA | ±0,5 celda | Exacto |
-| `grilla` | Dominio 81 × 161 con viento en una mitad: ignición al sur, en la franja norte y en la franja con el clima rellenado | > 500 m al este | 879 m; **0 m** (**hallazgo 5**); 879 m |
+| `grilla` | Dominio 81 × 161 con viento en una mitad: ignición al sur, en la franja norte sin el relleno y con el relleno de `write_namelist` | > 500 m al este (sin relleno: < 100) | 879 m; **0 m** (**hallazgo 5**); 879 m (corregido) |
 
 GS2 con LH 60 %: ELMFIRE funde la herbácea curada en la clase 1-h (una clase con SAV
 ponderada), mi referencia la deja como clase muerta aparte. Coinciden con curado total (LH 30 %,
@@ -520,6 +541,30 @@ de WindNinja era neutro. Sobre la receta final v4, ¿cambian?
 - **La receta final no cambia.** La dirección del viento de superficie sigue siendo un límite,
   ahora con un efecto medible (+0,01–0,04 por incendio) que antes el frente lento escondía.
 
+### Loop H — el hallazgo 5 corregido en la causa
+
+**Hipótesis:** el acotamiento de filas de `MAP_FINE_TO_COARSE` se evita del lado del repo, sin
+tocar ELMFIRE, rellenando al este los rásters de clima hasta que sean al menos tan anchos como
+altos, porque ELMFIRE acepta clima de otra forma que el combustible y lo mapea por coordenadas.
+
+**Experimento:** primero el fuente (§3, hallazgo 5: encabezado propio por ráster, mapeo por la
+esquina inferior izquierda y la celda, `WX_*` con la forma de `ws`), después las validaciones del
+repo y del runner (ninguna compara la forma del clima con la del `dem`). Implementado en
+`write_namelist` (`pad_weather_columns`) y medido con ELMFIRE real en `pruebas_fisicas.py`:
+`grilla` (el banco de la otra sesión, ahora con la corrección de `write_namelist` y el caso sin
+relleno reproducido recortando el clima después del namelist), más `simetria`, `viento` y `tiempo`.
+
+**Resultado:**
+- `grilla`: control al sur 879 m (3.479 celdas); franja norte sin relleno **0 m** (60 celdas, el
+  círculo sin viento); franja norte con la corrección 879 m (3.475 celdas, clima 161 × 161).
+- `simetria`, `viento` y `tiempo`: los mismos números que antes (10,74 y 28,46 m/min a 10 y
+  20 mph; L/A 1,30 y 2,03; 1.063 m con `NUM_METEOROLOGY_TIMES`; `wd_for_elmfire` 822 m a 360°). Las
+  dos "fallas" de `tiempo` son las reproducciones de los hallazgos 1 y 3, como siempre.
+
+**Conclusión:** corregido en un solo lugar para la app, el benchmark, el banco y los harness. En
+el benchmark cambia los insumos de los casos altos, así que entra con un protocolo nuevo (v5,
+loop I) junto con el dosel del hallazgo 4.
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
@@ -599,8 +644,10 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
   `docs/elmfire-mapping.md`, `app/ingestion/meteorology/gfs/client.py`,
   `app/preparation/service.py`, `scripts/trim_weather_bands.py` (que además calculaba mal las
   bandas con TSTART > 0) y `tests/test_fuels_source_and_clock.py`.
-- **Grilla de clima alta (hallazgo 5):** rellenar las columnas del clima. Afecta sobre todo a la
-  app y a `ventanas-firms`; en la calibración v4 el efecto medido es despreciable.
+- **Grilla de clima alta (hallazgo 5):** corregido en `write_namelist` (loop H). Lo que hay que
+  re-leer: `puerto-patriada-2026/ventanas-firms` (harness A de IGN-26; la mitad del fuego simulado
+  estaba en la franja) y el punto 6 de `RESULTADOS.md`, que ya había que rehacer por los
+  hallazgos 1 y 2. En la calibración v4 el efecto medido es despreciable.
 - **Dosel (hallazgo 4):** corregido para las preparaciones nuevas; re-preparar
   `data/elmfire/inputs/benchmark-*-asp3` si se quiere en el benchmark (efecto chico).
 

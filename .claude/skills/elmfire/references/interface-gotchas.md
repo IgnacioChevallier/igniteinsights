@@ -171,4 +171,36 @@ interpolates u/v instead, but also changes the spatial interpolation and is not 
 (CC, CH); with CH = 0 the canopy branch is skipped and the fuel-bed height passed is 0, so the
 sheltered WAF is 0, and with CC ≥ 15 % (F = CC/3 ≥ 0.05) the cell uses it: WAF = 0. A `cc.tif`
 nodata (< 0) also gives WAF = 0. In the benchmark packages 0.1–2.6 % of burnable cells hit this
-(Hansen tree cover without ETH height).
+(Hansen tree cover without ETH height). `canopy_builder.derive_cbh_cbd` now zeroes the cover where
+CH < 2 m (its own "no crown fuel" threshold).
+
+## Weather rows are clamped by the weather grid's column count
+
+`MAP_FINE_TO_COARSE` (`elmfire_subs.f90:296-297`) maps each fuel cell to a weather cell and
+clamps the **row** with `COARSE%NCOLS` instead of `NROWS`. Rows count from the south (the
+raster reader flips them), so when the weather grid is taller than wide, every fuel row with
+`IY > NCOLS` (the northern `NROWS − NCOLS` rows) reads weather row `NCOLS`. All weather reads go
+through `IROW_ANALYSIS_F2C` (spread, spotting, moisture interpolation), and the later
+`WX_IROW_FROM_ANALYSIS_IY` re-clamp with `NROWS` comes too late. Confirmed with real ELMFIRE
+(`pruebas_fisicas.py grilla`): 81 × 161 domain, 20 mph only in the northern strip, fire there
+moves 0 m (60 cells, calm circle); same fire in the south, or with the weather rasters padded
+east to 161 columns, moves 879 m.
+
+- ELMFIRE accepts weather rasters with a different shape than the fuel grid (same corner and
+  cell size, extra columns to the east are never read), so padding the weather columns
+  (`np.pad(..., mode="edge")`) to `NCOLS ≥ NROWS` is a repo-side fix that needs no ELMFIRE change.
+- **Fixed in the repo (2026-09-30):** `namelist_writer.pad_weather_columns()`, called by
+  `write_namelist()` (the last step before ELMFIRE on every path: API, preparation,
+  `cadena._preparar` after its knobs, the physics bench, the harness scripts), pads `ws`, `wd`,
+  `m1`, `m10`, `m100` east with their last column until NCOLS ≥ NROWS, band by band, writing a
+  new file (inputs can be read-only hardlinks into the benchmark store). It uses each raster's
+  own shape, so a coarser weather grid is padded in its own cells; a no-op on wide grids. Each
+  raster's shape comes from its own header (`READ_BSQ_HDR_HEADER`, `elmfire_io.f90:1242`) and the
+  mapping uses only the weather grid's lower-left corner and cell size, which east padding does
+  not move. Consequence: the `ws`/`wd` a run leaves in its inputs directory can be wider than
+  `dem.tif` — crop to the dem's width before comparing cell by cell. Tests:
+  `test_grilla_alta_el_clima_se_rellena_hasta_ser_cuadrado`; `pruebas_fisicas.py grilla`
+  (`franja-norte` 879 m with the fix, `franja-norte-sin-relleno` 0 m).
+- The same file has a second bug on the opt-in bilinear path: `GET_BILINEAR_INTERPOLATE_COEFFS`
+  sets `J2 = MAX(MIN(J2 + 1, NROW_WX), 1)` with `J2` uninitialized (should be `J1 + 1`). Another
+  reason not to turn on `WX_BILINEAR_INTERPOLATION`.

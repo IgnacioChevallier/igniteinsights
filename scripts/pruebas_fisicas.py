@@ -165,34 +165,36 @@ def anderson_lb(u_ef_ft_min: float) -> float:
 
 # ── dominio, corrida y medidas ──────────────────────────────────────────────────────
 
-def _grilla(n: int, celda: float) -> dict:
-    return {"driver": "GTiff", "height": n, "width": n, "crs": CRS,
+def _grilla(n: int, celda: float, filas: int | None = None) -> dict:
+    return {"driver": "GTiff", "height": filas or n, "width": n, "crs": CRS,
             "transform": from_origin(ORIGEN[0], ORIGEN[1], celda, celda)}
 
 
 def _escribir(perfil: dict, ruta: Path, valor, dtype: str, bandas: int | None = None) -> None:
-    n = perfil["height"]
+    alto, ancho = perfil["height"], perfil["width"]
     datos = np.asarray(valor, dtype="float64")
     if datos.ndim == 0:
-        datos = np.full((1, n, n), float(datos))
+        datos = np.full((1, alto, ancho), float(datos))
     elif datos.ndim == 1:                   # una serie: una banda uniforme por valor
-        datos = np.broadcast_to(datos[:, None, None], (len(datos), n, n))
+        datos = np.broadcast_to(datos[:, None, None], (len(datos), alto, ancho))
     elif datos.ndim == 2:
         datos = datos[None]
     with rasterio.open(ruta, "w", **perfil, count=datos.shape[0], dtype=dtype) as dst:
         dst.write(datos.astype(dtype))
 
 
-def dominio(nombre: str, *, n: int = 121, celda: float = 30.0, fbfm: int = 102,
+def dominio(nombre: str, *, n: int = 121, filas: int | None = None, celda: float = 30.0,
+            fbfm: int = 102,
             dem=1000.0, slp=None, asp=None, cc=0, ch=0, cbh=0, cbd=0,
             ws=0.0, wd=270.0, m1=6.0, m10=8.0, m100=10.0, adj=1.0,
             ignicion: np.ndarray | None = None, radio_m: float = 45.0) -> Path:
     """Arma insumos sintéticos. `ws`… aceptan escalar, serie (una banda por hora) o
-    array. Sin `slp`/`asp` explícitos se derivan del `dem` con raster_aligner."""
+    array. Sin `slp`/`asp` explícitos se derivan del `dem` con raster_aligner. `n` son las
+    columnas; `filas`, si difiere, hace el dominio rectangular."""
     insumos = RAIZ / nombre / "insumos"
     shutil.rmtree(insumos.parent, ignore_errors=True)
     insumos.mkdir(parents=True)
-    perfil = _grilla(n, celda)
+    perfil = _grilla(n, celda, filas)
     _escribir(perfil, insumos / "dem.tif", dem, "int16")
     if slp is None:
         _derive_slope_aspect(insumos / "dem.tif", insumos / "slp.tif", insumos / "asp.tif", celda)
@@ -209,9 +211,8 @@ def dominio(nombre: str, *, n: int = 121, celda: float = 30.0, fbfm: int = 102,
         _escribir(perfil, insumos / f"{nombre_}.tif", valor, "float32")
     _escribir(perfil, insumos / "adj.tif", adj, "float32")
     if ignicion is None:
-        filas, cols = np.mgrid[0:n, 0:n]
-        c = (n - 1) / 2
-        ignicion = np.hypot(filas - c, cols - c) * celda <= radio_m
+        ff, cc = np.mgrid[0:perfil["height"], 0:n]
+        ignicion = np.hypot(ff - (perfil["height"] - 1) / 2, cc - (n - 1) / 2) * celda <= radio_m
     ignition_builder.build_ignition_from_mask(ignicion, insumos / "dem.tif", insumos)
     shutil.copy2(fuels_builder.FUEL_MODEL_TABLE, insumos / "fuel_models.csv")
     return insumos
@@ -234,7 +235,8 @@ def phi_anterior(insumos: Path) -> None:
         dst.write(phi, 1)
 
 
-def correr(insumos: Path, horas: int, *, namelist_anterior: bool = False, **kw) -> np.ndarray:
+def correr(insumos: Path, horas: int, *, namelist_anterior: bool = False,
+           clima_sin_rellenar: bool = False, **kw) -> np.ndarray:
     """Corre ELMFIRE y devuelve el TOA (s, absoluto; ≤ 0 = no quemó)."""
     salidas = insumos.parent / "salidas"
     shutil.rmtree(salidas, ignore_errors=True)
@@ -242,6 +244,14 @@ def correr(insumos: Path, horas: int, *, namelist_anterior: bool = False, **kw) 
     nl = insumos / "elmfire.data"
     namelist_writer.write_namelist(insumos.resolve(), salidas.resolve(), simulation_hours=horas,
                                    output_path=nl, **kw)
+    if clima_sin_rellenar:   # antes del hallazgo 5: el clima con la forma del combustible
+        with rasterio.open(insumos / "dem.tif") as src:
+            ancho = src.width
+        for var in namelist_writer.WEATHER_RASTERS:
+            with rasterio.open(insumos / f"{var}.tif") as src:
+                datos, perfil = src.read()[:, :, :ancho], src.profile | {"width": ancho}
+            with rasterio.open(insumos / f"{var}.tif", "w", **perfil) as dst:
+                dst.write(datos)
     texto = nl.read_text()
     if namelist_anterior:   # el namelist de antes del hallazgo 1: sin &MONTE_CARLO
         texto = texto[:texto.index("\n&MONTE_CARLO")] + "\n"
@@ -603,11 +613,44 @@ def prueba_georreferencia() -> None:
              "≤ 1", _r(desvio), desvio <= 1)
 
 
+def prueba_grilla() -> None:
+    """Grilla de clima más alta que ancha. MAP_FINE_TO_COARSE (elmfire_subs.f90) acota la
+    fila del clima con NCOLS en vez de NROWS: las filas con IY > NCOLS (contadas desde el
+    sur) leerían el clima de la fila NCOLS. Dominio de 81 columnas × 161 filas; viento de
+    20 mph del oeste sólo en una mitad, calma en la otra. La franja norte (IY 82…161) es la
+    que el acotamiento mandaría a la fila 81, que ya es la calma del sur.
+    write_namelist rellena el clima al este hasta NCOLS = NROWS (hallazgo 5, corregido);
+    `sin-relleno` lo recorta después para reproducir el bug."""
+    n, filas, celda, col = 81, 161, 30.0, 20
+    franja = filas - n                          # filas (desde arriba) con IY > NCOLS
+    norte = np.zeros((filas, n))
+    norte[:franja] = 20.0
+    ff, cc = np.mgrid[0:filas, 0:n]
+    casos = (("control-sur", 20.0 - norte, franja + n // 2, False),
+             ("franja-norte-sin-relleno", norte, franja // 2, True),
+             ("franja-norte", norte, franja // 2, False))
+    for nombre, ws, fila, sin_relleno in casos:
+        insumos = dominio(f"grilla-{nombre}", n=n, filas=filas, ws=ws, wd=270.0,
+                          ignicion=np.hypot(ff - fila, cc - col) * celda <= 45.0, **HUMEDAD)
+        toa = correr(insumos, 2, clima_sin_rellenar=sin_relleno)
+        with rasterio.open(insumos / "ws.tif") as src:
+            forma_clima = f"clima {src.width}×{src.height}"
+        quemado_f, quemado_c = np.nonzero(toa > 0)
+        este = float((quemado_c.mean() - col) * celda) if len(quemado_c) else 0.0
+        sur = float((quemado_f.mean() - fila) * celda) if len(quemado_f) else 0.0
+        esperado, ok = ("< 100 (bug reproducido)", este < 100) if sin_relleno else ("> 500",
+                                                                                   este > 500)
+        chequear("grilla", f"{nombre}: desplazamiento al este con viento del oeste (m)",
+                 esperado, _r(este, 0), ok,
+                 f"(norte-sur {-sur:.0f} m, IY de la ignición {filas - fila}, {forma_clima}, "
+                 f"{len(quemado_c)} celdas)")
+
+
 PRUEBAS: dict[str, Callable[[], None]] = {
     "simetria": prueba_simetria, "nivel": prueba_nivel, "viento": prueba_viento,
     "pendiente": prueba_pendiente,
     "humedad": prueba_humedad, "combustible": prueba_combustible, "dosel": prueba_dosel,
-    "tiempo": prueba_tiempo, "georreferencia": prueba_georreferencia,
+    "tiempo": prueba_tiempo, "georreferencia": prueba_georreferencia, "grilla": prueba_grilla,
 }
 
 

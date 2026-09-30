@@ -101,3 +101,54 @@ def test_wd_for_elmfire_es_idempotente():
     serie = np.array([170.0, 190.0, 200.0, 350.0, 20.0])[:, None, None]
     una = wd_for_elmfire(serie)
     assert np.allclose(wd_for_elmfire(una), una)
+
+
+def _fila_que_lee_elmfire(filas_finas: int, clima_ancho: int) -> np.ndarray:
+    """MAP_FINE_TO_COARSE de elmfire_subs.f90:296-297, transcrito para la misma celda: la
+    fila (contada desde el sur) se acota con NCOLS del clima. Devuelve, por fila fina (desde
+    el norte, como numpy), la fila del clima que ELMFIRE lee (también desde el norte)."""
+    iy = filas_finas - np.arange(filas_finas)          # IY de cada fila, desde el sur
+    irow = np.minimum(np.maximum(iy, 1), clima_ancho)  # el bug: COARSE%NCOLS, no NROWS
+    return filas_finas - irow
+
+
+def test_grilla_alta_el_clima_se_rellena_hasta_ser_cuadrado(tmp_path):
+    """Hallazgo 5: con la grilla de clima más alta que ancha, la franja norte leía el clima
+    de la fila NCOLS. write_namelist rellena al este y cada fila vuelve a leer la suya."""
+    filas, cols = 7, 3
+    _raster(tmp_path / "dem.tif", np.zeros((filas, cols)))
+    clima = np.arange(2 * filas * cols, dtype="float32").reshape(2, filas, cols)
+    for nombre in namelist_writer.WEATHER_RASTERS:
+        _raster(tmp_path / f"{nombre}.tif", clima)
+    assert (_fila_que_lee_elmfire(filas, cols) != np.arange(filas)).sum() == filas - cols
+    # En cadena los insumos son hardlinks de sólo lectura al almacén: no se escribe a través.
+    objeto = tmp_path / "objeto-del-almacen"
+    objeto.hardlink_to(tmp_path / "ws.tif")
+    objeto.chmod(0o444)
+
+    for _ in range(2):   # re-escribir el namelist sobre los mismos insumos no cambia nada
+        namelist_writer.write_namelist(tmp_path, tmp_path / "out", simulation_hours=1,
+                                       output_path=tmp_path / "elmfire.data")
+    for nombre in namelist_writer.WEATHER_RASTERS:
+        with rasterio.open(tmp_path / f"{nombre}.tif") as src, \
+                rasterio.open(tmp_path / "dem.tif") as dem:
+            datos = src.read()
+            assert src.shape == (filas, filas)
+            # misma esquina y celda: ELMFIRE mapea igual cada celda del combustible
+            assert (src.bounds.left, src.bounds.bottom) == (dem.bounds.left, dem.bounds.bottom)
+            assert src.res == dem.res
+        assert np.array_equal(datos[:, :, :cols], clima)
+        assert np.array_equal(datos[:, :, cols:], np.repeat(clima[:, :, -1:], filas - cols, 2))
+    assert np.array_equal(_fila_que_lee_elmfire(filas, filas), np.arange(filas))
+    with rasterio.open(objeto) as src:
+        assert src.shape == (filas, cols)
+
+
+def test_grilla_ancha_el_clima_no_se_toca(tmp_path):
+    _raster(tmp_path / "dem.tif", np.zeros((3, 5)))
+    for nombre in namelist_writer.WEATHER_RASTERS:
+        _raster(tmp_path / f"{nombre}.tif", np.ones((2, 3, 5)))
+    antes = (tmp_path / "ws.tif").stat().st_mtime_ns
+    namelist_writer.write_namelist(tmp_path, tmp_path / "out", simulation_hours=1,
+                                   output_path=tmp_path / "elmfire.data")
+    assert (tmp_path / "ws.tif").stat().st_mtime_ns == antes
