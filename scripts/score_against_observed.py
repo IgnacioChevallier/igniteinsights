@@ -140,7 +140,9 @@ def main() -> None:
     print("\n=== Estratificado por pct_quemado del tile ===")
     print(f"{'banda':>12s}{'tiles':>7s}{'IoU':>8s}{'recall':>9s}{'precisión':>11s}")
     for lo, hi in BANDAS:
-        elegidos = [f for f in filas if lo <= float(f["pct_quemado"]) < hi]
+        # Los runs nuevos de mask-dataset-gen lo llaman pct_quemado_valido (también en %).
+        elegidos = [f for f in filas
+                    if lo <= float(f.get("pct_quemado") or f["pct_quemado_valido"]) < hi]
         if not elegidos:
             continue
         mascara = np.zeros_like(cobertura)
