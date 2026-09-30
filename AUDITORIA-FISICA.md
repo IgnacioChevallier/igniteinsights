@@ -6,23 +6,28 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop C en curso, 2026-09-29 18:40)*
+*(se reescribe en cada loop — última: loop D, 2026-09-29 22:50)*
 
-- **Tres bugs de interfaz confirmados con ELMFIRE real y corregidos** (§3, hallazgos 1–3):
-  clima congelado en la banda 0, frente a ~0,5× por el `phi` en metros, `wd` interpolado como
-  ángulo plano. Más dos menores (4: WAF 0 con CH 0; la capa "sin ignición" leída como quemada).
-- **Sospecha abierta (6): dosel incoherente con el combustible.** En el matorral quemado (ñire
-  bajo, lenga baja, arbustal nativo) Hansen 2000 + ETH 2020 dicen bosque cerrado y ELMFIRE le da
-  el WAF de bosque (~0,08 en vez de 0,46). Diagnóstico `dosel-coherente-001` en la cola.
-- **`base-001` sobre v4, siete incendios:** media 0,361, mediana 0,444, 2 alarmas sin el caso
-  límite (Alerces 2023 2,72; Cholila 0,44). La receta vigente `lw100-adj115-001` en v4: 0,375 /
-  0,397 con 2 alarmas (Alerces 2023 4,17; Epuyén 2,33) — **ya no está calibrada**.
-- **Corriendo** (consumidor `cola_run2.sh`, ahora con guarda de disco de 20 GB): barrido ADJ
-  0,5/0,7/0,9 en los siete, después `dosel-coherente-001` y `base-001` en ERA5 v4 (Alerces 2023,
-  Epuyén) para re-verificar la equivalencia GFS/ERA5. Empaquetando Café v4s y los ERA5 v4.
-- **Particion:** `benchmarks/particion.json` apunta a los protocolos v4.
-- **Próximo paso:** con el barrido, el intervalo factible de ADJ (y LW) sobre v4; decidir con la
-  función objetivo; sensibilidad a la ignición de la receta nueva; prueba al final.
+- **Mejor receta: `adj-110-001`** (ADJ 1,1, LW 110 %, CCS-BAP anterior al fuego) sobre los
+  protocolos v4, con Alerces 2023 a 54 h.
+  - Calibración (7): media 0,373, mediana 0,430, **cero alarmas** sin el caso límite. Es la única
+    receta que cumple la restricción. Validación cruzada: la elige en 6 de 7 pliegues (fuera de
+    muestra 0,374 / 0,430).
+  - Robustez a la ignición (21 corridas): 0,458 / 0,479, 3 alarmas al borde (≤ 2,09); `base-001`
+    0,437 / 0,444, 0 alarmas. En v3 las recetas calibradas daban 0,395–0,398 con 5–7 alarmas.
+  - Prueba (4, no usados para elegir): 0,204 / 0,203 (`base-001` 0,209 / 0,191).
+- **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros:
+  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), la capa "sin ignición" leída como
+  quemada, y el disco (GeoTIFF sin comprimir). **Confirmados sin corregir:** 4 (WAF 0 con CH 0;
+  chico) y 5 (grilla de clima alta: lo encontró otra sesión; despreciable en la calibración v4,
+  grande en `ventanas-firms` y en la app; la corrección, rellenar las columnas del clima, está
+  pendiente y la tiene esa sesión).
+- **Sospechas medidas, no adoptadas:** 6 (dosel incoherente con el combustible: redistribuye
+  velocidad, media igual) y ERA5 homogeneizado ×1,3 (control exacto, pero no mejora el objetivo:
+  la receta no depende de la fuente).
+- **Corriendo:** `lw-100-001` (LW 100 %, ADJ 1) sobre los siete.
+- **Próximo paso:** con LW 100 %, decidir si LW suma con la física corregida; después cerrar §6 y
+  §7 con los números finales y el dosel/hallazgo 4 para el director.
 
 ## 2. Supuestos
 
@@ -390,6 +395,28 @@ disco lleno):
     0,56 (v3: de 0,08 a 0,50). Con el frente a la mitad, los primeros cientos de metros decidían
     todo; ahora el fuego sale de la trampa del combustible de la ignición.
 - **Pendiente:** los cuatro de prueba (en la cola) y la homogeneización de ERA5 (loop D).
+
+### Loop D — ERA5 homogeneizado al GFS
+
+**Hipótesis:** los dos incendios de calibración con ERA5 (Alerces 2016, Cholila) sub-propagan por
+el viento de ERA5, un ~30 % más flojo que el GFS (loop C).
+
+**Experimento:** protocolos `calibracion-era5-v4w`, con el viento multiplicado por 1,3 al
+empaquetar (`factor_viento_fuente`, declarado en el caso). Control: Alerces 2023 y Epuyén ERA5
+v4w dan idéntico a la receta `viento-130-001` sobre v4 (0,484 / 2,64 y 0,455 / 1,30).
+
+| Receta | Alerces 2016 v4 → v4w | Cholila v4 → v4w |
+|---|---|---|
+| `base-001` | 0,444 / 1,05 → 0,392 / 1,28 | 0,255 / 0,44 ⚠ → 0,260 / 0,44 ⚠ |
+| `adj-110-001` | 0,430 / 1,31 → 0,388 / 1,55 | 0,283 / 0,53 → 0,298 / 0,55 |
+| `adj-120-001` | 0,414 / 1,60 → 0,381 / 1,81 | 0,312 / 0,63 → 0,333 / 0,65 |
+
+**Conclusión:** homogeneizar ERA5 no mejora el objetivo. Alerces 2016 ya llegaba a su área y se
+acelera sin necesitarlo; a Cholila no le falta viento medio sino la explosión de las 30–42 h
+(+3.200 ha a 10 km al E/NE), la misma firma del día explosivo del resto. Con v4w, ADJ 1,1 sigue
+siendo la única receta sin alarmas (media 0,369, mediana 0,388): **la receta no depende de la
+fuente del clima**. Se mantiene v4 (ERA5 sin tocar) en la partición y v4w queda como
+sensibilidad.
 
 ## 6. Resultados
 
