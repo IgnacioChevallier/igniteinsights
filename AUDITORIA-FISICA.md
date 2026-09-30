@@ -469,39 +469,41 @@ auditoría. Alerces 2023: v3 a 72 h; v4 a 54 h (loop C), con la cifra a 72 h ent
 
 **Calibración** (se usaron para elegir):
 
-| Incendio | Clima | v3 `base-001` | v3 `lw100-adj115-001` | v4 `base-001` | **v4 `adj-110-001`** | v4 `lw100-adj115-001` |
-|---|---|---|---|---|---|---|
-| Alerces 2023 | GFS | 0,457 / 0,95 | 0,522 / 1,61 | 0,460 / 1,55 (0,477 / 2,72 ⚠) | **0,490 / 1,84** (0,445 / 3,38 ⚠) | 0,487 / 2,47 ⚠ |
-| Epuyén 2025 | GFS | 0,160 / 0,44 ⚠ | 0,291 / 0,83 | 0,466 / 1,30 | **0,498 / 1,60** | 0,521 / 2,33 ⚠ |
-| Alerces 2024 | GFS | 0,522 / 0,53 | 0,555 / 1,02 | 0,556 / 1,37 | **0,561 / 1,55** | 0,571 / 1,88 |
-| Patriada 2026 | GFS | 0,340 / 0,69 | 0,454 / 1,14 | 0,321 / 0,74 | **0,335 / 0,83** | 0,397 / 1,18 |
-| Las Golondrinas 2021 (límite) | GFS | 0,029 / 0,05 ⚠ | 0,047 / 0,06 ⚠ | 0,010 / 0,02 ⚠ | 0,013 / 0,02 ⚠ | 0,014 / 0,02 ⚠ |
-| Alerces 2016 | ERA5 | 0,433 / 0,99 | 0,411 / 1,95 | 0,444 / 1,05 | **0,430 / 1,31** | 0,405 / 1,83 |
-| Cholila 2015 | ERA5 | 0,244 / 0,44 ⚠ | 0,324 / 0,66 | 0,255 / 0,44 ⚠ | **0,283 / 0,53** | 0,331 / 0,69 |
-| **Media / mediana** | | 0,312 / 0,340 | 0,372 / 0,411 | 0,359 / 0,444 | **0,373 / 0,430** | 0,389 / 0,405 |
-| **Alarmas (sin el límite)** | | 2 | 0 | 1 | **0** | 2 |
+| Incendio | Clima | v3 `base-001` | v3 `lw100-adj115-001` | v4 `base-001` | v4 `adj-110-001` | **v4 `lw-100-001`** | v4 `lw100-adj115-001` |
+|---|---|---|---|---|---|---|---|
+| Alerces 2023 | GFS | 0,457 / 0,95 | 0,522 / 1,61 | 0,460 / 1,55 (0,477 / 2,72 ⚠) | 0,490 / 1,84 (0,445 / 3,38 ⚠) | **0,495 / 1,82** | 0,487 / 2,47 ⚠ |
+| Epuyén 2025 | GFS | 0,160 / 0,44 ⚠ | 0,291 / 0,83 | 0,466 / 1,30 | 0,498 / 1,60 | **0,500 / 1,75** | 0,521 / 2,33 ⚠ |
+| Alerces 2024 | GFS | 0,522 / 0,53 | 0,555 / 1,02 | 0,556 / 1,37 | 0,561 / 1,55 | **0,563 / 1,54** | 0,571 / 1,88 |
+| Patriada 2026 | GFS | 0,340 / 0,69 | 0,454 / 1,14 | 0,321 / 0,74 | 0,335 / 0,83 | **0,368 / 0,91** | 0,397 / 1,18 |
+| Las Golondrinas 2021 (límite) | GFS | 0,029 / 0,05 ⚠ | 0,047 / 0,06 ⚠ | 0,010 / 0,02 ⚠ | 0,013 / 0,02 ⚠ | 0,012 / 0,02 ⚠ | 0,014 / 0,02 ⚠ |
+| Alerces 2016 | ERA5 | 0,433 / 0,99 | 0,411 / 1,95 | 0,444 / 1,05 | 0,430 / 1,31 | **0,452 / 1,33** | 0,405 / 1,83 |
+| Cholila 2015 | ERA5 | 0,244 / 0,44 ⚠ | 0,324 / 0,66 | 0,255 / 0,44 ⚠ | 0,283 / 0,53 | **0,280 / 0,55** | 0,331 / 0,69 |
+| **Media / mediana** | | 0,312 / 0,340 | 0,372 / 0,411 | 0,359 / 0,444 | 0,373 / 0,430 | **0,381 / 0,452** | 0,389 / 0,405 |
+| **Alarmas (sin el límite)** | | 2 | 0 | 1 | 0 | **0** | 2 |
 
 **Prueba** (no se usaron para elegir):
 
-| Incendio | Clima | v3 `base-001` | v3 `lw100-adj115-001` | v4 `base-001` | **v4 `adj-110-001`** |
-|---|---|---|---|---|---|
-| El Turbio 2025 | GFS | 0,356 / 4,55 ⚠ | 0,256 / 6,75 ⚠ | 0,333 / 4,96 ⚠ | 0,291 / 5,85 ⚠ |
-| Puerto Café 2025 (`v4s`) | GFS | 0,126 / 0,23 ⚠ | 0,167 / 0,32 ⚠ | 0,128 / 0,25 ⚠ | 0,146 / 0,29 ⚠ |
-| Epuyén 2019 | ERA5 | 0,129 / 13,7 ⚠ | 0,112 / 16,8 ⚠ | 0,122 / 15,0 ⚠ | 0,118 / 15,8 ⚠ |
-| Alerces 2015 | ERA5 | 0,195 / 0,40 ⚠ | 0,312 / 1,38 | 0,255 / 0,96 | 0,260 / 1,26 |
-| **Media / mediana** | | 0,202 / 0,162 | 0,212 / 0,211 | 0,209 / 0,191 | 0,204 / 0,203 |
+| Incendio | Clima | v3 `base-001` | v3 `lw100-adj115-001` | v4 `base-001` | v4 `adj-110-001` | **v4 `lw-100-001`** |
+|---|---|---|---|---|---|---|
+| El Turbio 2025 | GFS | 0,356 / 4,55 ⚠ | 0,256 / 6,75 ⚠ | 0,333 / 4,96 ⚠ | 0,291 / 5,85 ⚠ | **0,297 / 5,71 ⚠** |
+| Puerto Café 2025 (`v4s`) | GFS | 0,126 / 0,23 ⚠ | 0,167 / 0,32 ⚠ | 0,128 / 0,25 ⚠ | 0,146 / 0,29 ⚠ | **0,144 / 0,29 ⚠** |
+| Epuyén 2019 | ERA5 | 0,129 / 13,7 ⚠ | 0,112 / 16,8 ⚠ | 0,122 / 15,0 ⚠ | 0,118 / 15,8 ⚠ | **0,114 / 16,5 ⚠** |
+| Alerces 2015 | ERA5 | 0,195 / 0,40 ⚠ | 0,312 / 1,38 | 0,255 / 0,96 | 0,260 / 1,26 | **0,297 / 1,50** |
+| **Media / mediana** | | 0,202 / 0,162 | 0,212 / 0,211 | 0,209 / 0,191 | 0,204 / 0,203 | **0,213 / 0,220** |
 
-**La receta nueva contra las de referencia.** `adj-110-001` sobre v4 sube el Dice medio de
-calibración de 0,312 (`base-001` v3) a 0,373, sin alarmas, lo mismo que `lw100-adj115-001` v3
-(0,372), pero:
+**La receta nueva contra las de referencia.** `lw-100-001` sobre v4 sube el Dice de
+calibración de 0,312 / 0,340 (`base-001` v3) a 0,381 / 0,452, sin alarmas, y supera a la receta
+v3 (`lw100-adj115-001`, 0,372 / 0,411):
 
 - con un modelo que avanza a la velocidad de Rothermel y con el clima hora a hora;
-- con un ADJ modesto (1,1) y LW en su valor de base, en vez de ADJ 1,15–1,3 más LW 100 %;
-- mucho más robusto a la ignición (0,458 contra 0,395–0,398 en las 21 corridas perturbadas, y
-  3 alarmas al borde contra 5–7).
+- **sin ADJ**: la receta v3 necesitaba ADJ 1,15 además de LW 100 %, y ese ADJ compensaba los
+  bugs;
+- mucho más robusta a la ignición: 0,460 contra 0,395–0,398 en las 21 corridas perturbadas, con
+  3 alarmas al borde contra 5–7.
 
-En prueba no cambia nada (0,204 contra 0,212): la transferencia la limitan los dos regímenes
-que la calibración no ve (supresión cerca de poblados) y la explosión de Café.
+En prueba casi no cambia (0,213 contra 0,212): la transferencia la limitan los dos regímenes que
+la calibración no ve (supresión cerca de poblados) y la explosión de Café. Alerces 2015, el único
+de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 
 **Qué cambio movió cuánto y por qué** (media de calibración salvo donde se dice):
 
@@ -509,6 +511,7 @@ que la calibración no ve (supresión cerca de poblados) y la explosión de Caf�
 |---|---|---|
 | Hallazgos 1 + 2 (clima hora a hora, `phi` ±1), `base-001` v3 → v4 | +0,05 de media, +0,10 de mediana; Epuyén +0,31 | El frente avanza a la velocidad calculada, y cada ventana tiene su ciclo diurno en vez de la hora de arranque congelada |
 | Horizonte de Alerces 2023 a 54 h (regla §2.9) | sesgo base 2,72 → 1,55 | El área FIRMS deja de crecer a las 54 h; las 18 h siguientes eran fuego sin supresión |
+| LW 110 → 100 % (ADJ 1) | **+0,022 de media, +0,008 de mediana**; Cholila sale de la alarma | Acelera sólo donde hay carga viva (SH, TU): Patriada, Alerces 2016, Cholila; casi no mueve a Alerces 2023 (TU/TL) |
 | ADJ 1,0 → 1,1 | +0,014; Cholila sale de la alarma | Único ADJ uniforme sin alarmas: ~[1,05; 1,15], entre Cholila (lento) y Alerces 2023 (combatido) |
 | LW 110 → 100 % + ADJ 1,15 (la receta v3) | +0,016 de media, pero dos alarmas | Con la física corregida acelera de más a Epuyén y Alerces 2023 |
 | Dosel coherente (sospecha 6) | ±0 de media; +0,10 Patriada, −0,12 Alerces 2016 | Redistribuye velocidad hacia el matorral con dosel de Hansen |
