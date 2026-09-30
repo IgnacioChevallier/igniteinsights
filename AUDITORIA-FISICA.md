@@ -6,7 +6,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop I, 2026-09-30 20:10)*
+*(se reescribe en cada loop — última: loop J, 2026-09-30 20:25)*
 
 - **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
   protocolos **v5** (v4 + hallazgos 4 y 5), con Alerces 2023 a 54 h. Sin ADJ: la única perilla
@@ -32,8 +32,11 @@
 - **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
   (+0,012) pero dispara a Epuyén; el atlas sigue neutro. La receta final no cambia.
 - **Documento de combustibles:** la lista de cambios pendientes sobre
-  `IGN-20B-FINAL-CROSSWALK-CCSBAP.md` está en §7.4. El paso 4 re-corrido (2026-09-30) da
-  el doble de velocidad: SH8 queda 2,7–6,5× por debajo de la quema A4, no 5–11×.
+  `IGN-20B-FINAL-CROSSWALK-CCSBAP.md` está en §7.4, con §6.1, §6.2 y §6.3 re-corridos. Paso 4:
+  SH8 queda 2,7–6,5× por debajo de la quema A4, no 5–11×. Tres mapas: el orden se sostiene
+  (anillo 3.892 / 7.268 / 9.262 ha; harness B IoU 0,010 / 0,035 / 0,046, contra otra referencia
+  porque la del documento ya no existe), pero las intensidades bajan. Humedad viva: factor 2,53
+  (doc 2,50).
 - **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
 - **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
   sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
@@ -630,6 +633,36 @@ anticipaba el §3). La receta final sigue siendo `lw-100-001`, ahora sobre v5, y
 `benchmarks/particion.json` apunta a v5. Los dos arreglos importan en la app (franja de ~20 km en
 el AOI) y en `ventanas-firms`, no en la calibración.
 
+### Loop J — re-medir el documento de combustibles (§6.1 y §6.3)
+
+**Hipótesis:** las comparaciones entre mapas y el barrido de humedad viva del documento de
+combustibles corrieron con los hallazgos 1–5; corregidas, el frente va al doble y las áreas y las
+intensidades crecen, pero el orden entre mapas debería sostenerse.
+
+**Experimento:**
+- Qué quedaba para reproducir: las corridas viejas siguen en `data/elmfire/{inputs,outputs}/`
+  (`cmp_b5_*`, `cmp_aoi_*`, `lfmc_*`), y `compare_fuel_map_runs.py` sobre `cmp_b5_*` reproduce
+  la tabla del documento al dígito. Pero los mapas de `data/static/fuel_maps` se regeneraron sobre
+  la caja del benchmark (4.333 × 2.591; ya no coinciden con ninguna de las dos grillas), y las
+  máscaras del harness B se borraron de `mask-dataset-gen`.
+- `scripts/corregir_preparacion_legado.py` re-arma una corrida vieja con la interfaz corregida
+  (semilla ±1, `wd` por el camino corto, dosel re-derivado, namelist de `write_namelist` con el
+  TSTART, TSTOP, LH y LW del viejo, clima rellenado). `run_three_maps.py --mapas` toma los
+  `fbfm40` de las corridas viejas; `sweep_live_moisture.py --base --sufijo`, otra base;
+  `score_against_observed.py` lee la columna nueva de `mask-dataset-gen`.
+- Corridas, con la cola vacía: tres mapas en la grilla reducida (LW 110 y LW 100), el barrido de
+  cuatro humedades y los tres mapas en el AOI; puntuación del AOI, viejas y corregidas, contra
+  `baseline-002`.
+
+**Resultado:** §7.4. En corto: el orden WorldCover < MapBiomas < CCS-BAP se sostiene en el
+anillo (2,4× en vez de 3,2×) y en el IoU del harness B (0,010 / 0,035 / 0,046); el factor de la
+humedad viva se sostiene (2,53). No se cumple que las intensidades se dupliquen: bajan, porque la
+corrida ya no se queda con la hora más seca y ventosa. En el AOI el anillo corregido es la mitad
+del viejo por la misma razón (la corrida atraviesa la noche).
+
+**Conclusión:** las conclusiones cualitativas del documento sobreviven. Hay que reemplazar
+todas sus cifras de §6.1 y §6.3, y decir que la referencia del harness B cambió.
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
@@ -777,15 +810,71 @@ director. Lo que hay que cambiar después, sección por sección:
   - El "sesgo declarado de subestimar la propagación" de SH8, SH4 y GS3 (§5.4, §6.2 "Qué se
     hace con esto", §9) sigue en pie pero es la mitad de grande. Hay que reescribirlo con estos
     números.
-- **§6.1 Comparación de los tres mapas y harness B:** corridas con los hallazgos 1 y 2 (frente
-  a la mitad; clima de una sola banda o congelado). Re-correr `scripts/run_three_maps.py` y el
-  harness B en v4 antes de citar áreas del anillo, intensidades (FLI ∝ velocidad: se duplican),
-  IoU entre mapas y el orden WorldCover < MapBiomas < CCS-BAP.
-- **§6.3 Sensibilidad a la humedad viva:** mismo problema (el factor 2,50 entre LH/LW 30 y 120 %
-  hay que re-medirlo). Y el valor adoptado: la calibración v4 elige **LW 100 %**, no 110 % (§6
-  de este documento, loop E). El fundamento de Bianchi y Defossé no cambia: 110 % es el umbral
-  por debajo del cual ocurren los grandes incendios, así que el día de un gran incendio está
-  por debajo.
+- **§6.1 Comparación de los tres mapas y harness B — re-corridos (loop J, 2026-09-30).** Las
+  corridas del documento tenían los hallazgos 1–5: además del frente a la mitad, **las 12 h
+  corrían con el clima de la banda 0 congelado**. Re-corridas sobre los mismos insumos (misma
+  semilla, los mismos tres `fbfm40` de cada corrida vieja) con la interfaz corregida
+  (`scripts/corregir_preparacion_legado.py`, loop J). Cambian los números y parte de la lectura.
+  - **Comparación preliminar** (grilla reducida 1.414 × 1.526, semilla 8.095 ha, LH 30 / LW 110):
+
+    | Mapa | Anillo (doc → corregido) | FLI mediana (doc → corregido) | FLI p90 |
+    |---|---|---|---|
+    | WorldCover 2021 | 2.342 → **3.892 ha** | 96,1 → 32,1 kW/m | 333 → 263 |
+    | MapBiomas 2024 | 5.849 → **7.268 ha** (+87 %) | 311,1 → 261,5 kW/m | 1.267 → 1.112 |
+    | CCS-BAP 2017 | 7.576 → **9.262 ha** (+138 %) | 317,0 → 234,8 kW/m | 1.309 → 1.028 |
+
+    IoU entre mapas: WC–MB 0,245 → 0,302; WC–CCS 0,269 → 0,344; MB–CCS 0,599 → 0,574. Qué quema
+    CCS-BAP casi no cambia (SH8 30 %, TL6 18 %, TU5 17 %, GR3 11 %, SH4 10 %, TU3 10 %).
+    Con **LW 100 %** (el valor calibrado): 3.892 / 8.095 / 10.113 ha, IoU 0,304 / 0,328 / 0,594.
+    - El orden WorldCover < MapBiomas < CCS-BAP se sostiene; la diferencia se achica de 3,2× a
+      2,4× (2,6× con LW 100 %).
+    - **"FLI ∝ velocidad: se duplican" no se cumplió:** las intensidades bajan. El anillo crece
+      menos de 2× y la intensidad baja porque el clima ahora cambia hora a hora: la banda 0 era
+      la más seca (m1 medio 5,1 %) y ventosa (5,3 mph); a las 12 h, m1 11,9 % y 1,7 mph.
+  - **Harness B** (AOI 2.563 × 3.222, semilla 17.747 ha, TSTART 6.360 s, 12 h). **No se
+    reproduce la referencia del documento:** las 196 máscaras con la ventana pre de
+    noviembre-diciembre de 2023 ya no están (`dataset/mascaras` y `metadata.csv` salieron de `mask-dataset-gen` en su migración a un dataset por incendio, `c3f67db`–`5318c24`). Se
+    puntuó contra `puerto-patriada-2026/runs/baseline-002` (mismo algoritmo dNBR ≥ 0,30 y las
+    mismas 196 celdas, pre 2025-11-01 → 2026-01-04; 66.916 ha observadas en la cobertura), las
+    corridas viejas y las corregidas:
+
+    | Mapa | IoU (doc / viejas contra baseline-002 / **corregidas**) | Recall | Precisión | Anillo (viejas → corregidas) |
+    |---|---|---|---|---|
+    | WorldCover | 0,036 / 0,035 / **0,010** | 0,043 / 0,043 / **0,010** | 0,182 / 0,157 / **0,205** | 16.343 → 2.804 ha |
+    | MapBiomas | 0,045 / 0,051 / **0,035** | 0,048 / 0,055 / **0,036** | 0,412 / 0,406 / **0,443** | 7.724 → 4.613 ha |
+    | CCS-BAP | 0,067 / 0,069 / **0,046** | 0,082 / 0,088 / **0,052** | 0,267 / 0,247 / **0,286** | 22.604 → 10.563 ha |
+
+    Estrato 70–100 % (11 tiles), corregidas: WC 0,010, MB 0,034, **CCS 0,056** (viejas contra
+    baseline-002: 0,044 / 0,051 / 0,099; doc: 0,047 / 0,051 / 0,101).
+    - **El orden de IoU se sostiene** (CCS-BAP > MapBiomas > WorldCover) y MapBiomas sigue con la
+      mayor precisión. Los valores bajan porque el anillo es la mitad: la corrida vieja tenía
+      12 h de la tarde de la ignición (banda 0: 9,1 mph, m1 11,3 %); la corregida atraviesa la
+      noche (2,4 mph, m1 23 % a las 12 h). El "anclaje temporal corregido" (TSTART 6.360 s) que
+      cita el documento no tenía efecto en las corridas viejas: ELMFIRE usaba igual la banda 0.
+    - La preparación vieja (`cmp_aoi_*`) tenía 13 bandas por `trim_weather_bands.py` (§7.1) y
+      la corrida necesita 14: el clima corregido sale de la preparación original de 25 bandas
+      (`c27d2561…`), recortado a 14; las bandas 1–13 son idénticas.
+    - Los anillos de WorldCover y MapBiomas cambian de orden entre sí (16.343 > 7.724 en las
+      viejas; 2.804 < 4.613 corregidas): el baseline "rápido" de la corrida vieja era el GR2 con
+      la tarde congelada.
+- **§6.3 Sensibilidad a la humedad viva — re-corrida (loop J).** Misma base corregida, CCS-BAP,
+  12 h:
+
+  | LH/LW | Anillo (doc → corregido) | vs 60 % | FLI mediana (doc → corregido) |
+  |---|---|---|---|
+  | 30 % | 11.293 → **14.120 ha** | +7 % | 512,0 → 391 kW/m |
+  | 60 % | 10.537 → **13.241 ha** | — | 484,9 → 367 kW/m |
+  | 90 % | 7.472 → **8.930 ha** | −33 % | 327,5 → 245 kW/m |
+  | 120 % | 4.513 → **5.575 ha** | −58 % | 220,5 → 154 kW/m |
+
+  - El factor entre 30 y 120 % **se sostiene: 2,53** en superficie (doc 2,50) y 2,54 en
+    intensidad mediana (doc 2,3). La humedad viva sigue siendo un driver de primer orden.
+  - "La fila de 60 % reproduce la corrida vieja de §6.1" ya no aplica: esa corrida no se
+    re-corrió con LH/LW 60 %.
+  - Y el valor adoptado: la calibración elige **LW 100 %**, no 110 % (§6 de este documento, loop
+    E; se sostiene en v5, loop I). El fundamento de Bianchi y Defossé no cambia: 110 % es el
+    umbral por debajo del cual ocurren los grandes incendios, así que el día de un gran incendio
+    está por debajo.
 - **§5.4 y §5.5 (ñire bajo y lenga achaparrada → SH8):** la asignación no cambia, pero hay que
   declarar la interacción con el dosel (sospecha 6): Hansen 2000 + ETH 2020 les dan cobertura de
   bosque cerrado (mediana 78–91 %, 13–18 m), y ELMFIRE aplica entonces el WAF de un bosque (~0,08
