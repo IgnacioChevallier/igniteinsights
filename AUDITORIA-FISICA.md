@@ -6,7 +6,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop E, 2026-09-29 23:55)*
+*(se reescribe en cada loop — última: loop G en curso, 2026-09-30 00:30)*
 
 - **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
   protocolos v4, con Alerces 2023 a 54 h. Sin ADJ: la única perilla es la humedad viva.
@@ -22,7 +22,12 @@
   GeoTIFF sin comprimir que llenaron el disco. **Confirmado sin corregir:** 5 (grilla de clima
   alta; lo encontró y lo tiene otra sesión; despreciable en la calibración v4).
 - **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6) y ERA5 ×1,3.
-- **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
+- **Reproducible:** `verificar` de `lw-100-001` en Alerces 2023 h54 y Epuyén: TOA idéntico en
+  las 7 ventanas.
+- **La copa (loop F):** en v4 se enciende con un CBH bajo (Cholila 0,255 → 0,528); el CBH
+  derivado es la incertidumbre de insumos más grande que queda (§7.2).
+- **Corriendo (loop G):** la dirección del viento sobre la receta final (rotación de 30° y el
+  atlas de WindNinja), que en v3 no movían nada con el modelo a media velocidad.
 - **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
   sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
   con una prueba física que muestre que hacen falta antes de exponer keywords.
