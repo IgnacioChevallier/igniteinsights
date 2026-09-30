@@ -6,7 +6,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop G en curso, 2026-09-30 00:30)*
+*(se reescribe en cada loop — última: loop G, 2026-09-30 00:50)*
 
 - **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
   protocolos v4, con Alerces 2023 a 54 h. Sin ADJ: la única perilla es la humedad viva.
@@ -26,8 +26,9 @@
   las 7 ventanas.
 - **La copa (loop F):** en v4 se enciende con un CBH bajo (Cholila 0,255 → 0,528); el CBH
   derivado es la incertidumbre de insumos más grande que queda (§7.2).
-- **Corriendo (loop G):** la dirección del viento sobre la receta final (rotación de 30° y el
-  atlas de WindNinja), que en v3 no movían nada con el modelo a media velocidad.
+- **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
+  (+0,012) pero dispara a Epuyén; el atlas sigue neutro. La receta final no cambia.
+- **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
 - **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
   sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
   con una prueba física que muestre que hacen falta antes de exponer keywords.
@@ -492,6 +493,29 @@ contra `base-001` v4.
 - **Conclusión:** la estructura del dosel (el CBH derivado como 0,2–0,5 × CH) pasa a ser la
   incertidumbre de insumos más grande que queda. No se calibra (no es un parámetro de esta
   tesis); va al director (§7.2).
+
+### Loop G — la dirección del viento con el modelo a su velocidad
+
+**Hipótesis:** RESULTADOS-CSS-BAP (loop 2) vio que "la dirección pesa sólo cuando el modelo
+avanza a la velocidad correcta", y en v3 no avanzaba: la rotación empírica daba +0,002 y el atlas
+de WindNinja era neutro. Sobre la receta final v4, ¿cambian?
+
+| Receta | A23 h54 | Epuyén | A24 | Patriada | A16 | Cholila | Media / mediana | Alarmas |
+|---|---|---|---|---|---|---|---|---|
+| `lw-100-001` | 0,495 / 1,82 | 0,500 / 1,75 | 0,563 / 1,54 | 0,368 / 0,91 | 0,452 / 1,33 | 0,280 / 0,55 | 0,381 / 0,452 | 0 |
+| + rotación 30° | 0,526 / 1,73 | 0,544 / 2,09 ⚠ | 0,571 / 1,51 | 0,352 / 0,90 | 0,473 / 1,29 | 0,269 / 0,54 | 0,393 / 0,473 | 1 |
+| + atlas de WindNinja | 0,496 / 1,82 | 0,480 / 1,73 | 0,559 / 1,53 | 0,347 / 0,89 | 0,508 / 1,08 | 0,262 / 0,51 | 0,380 / 0,480 | 0 |
+
+- **La rotación ahora sí suma** (+0,012 de media, +0,021 de mediana; en v3 +0,002), como
+  anticipaba RESULTADOS-CSS-BAP: gana donde el fuego corre al sur (los valles de Los Alerces,
+  Epuyén) y pierde donde fue al NE (Patriada, Cholila). Pero hace pasar a Epuyén a 2,09 y es una
+  corrección empírica del insumo, no física.
+- **El atlas sigue neutro en media** (0,380) y ayuda en terreno empinado (Alerces 2016 +0,056),
+  igual que en v3.
+- **Validación cruzada** con las 11 recetas: `lw-100-001` en 4 de 7 pliegues, el atlas en 2,
+  la rotación en 1 (con alarma); fuera de muestra 0,382 / 0,452, lo mismo que la receta sola.
+- **La receta final no cambia.** La dirección del viento de superficie sigue siendo un límite,
+  ahora con un efecto medible (+0,01–0,04 por incendio) que antes el frente lento escondía.
 
 ## 6. Resultados
 
