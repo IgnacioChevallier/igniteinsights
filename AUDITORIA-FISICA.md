@@ -364,8 +364,32 @@ disco lleno):
   déficit de ERA5 es de velocidad del viento, y el factor coincide con el cociente GFS/ERA5
   medido contra las estaciones (mediana 1,26). Próximo loop: homogeneizar ERA5 al GFS como
   corrección del insumo (protocolo nuevo), no como perilla de receta.
-- **Pendiente para aceptar la receta:** robustez a la ignición (±500 m, ±2 h en Alerces 2023
-  h54, Epuyén y Alerces 2016) y los cuatro de prueba. En la cola.
+- **Robustez a la ignición** (±500 m, ±2 h; protocolos `-ign-*` sobre v4, Alerces 2023 con
+  h54): 21 corridas por receta.
+
+  | Incendio · receta | Documentada | N 500 | S 500 | E 500 | O 500 | −2 h | +2 h |
+  |---|---|---|---|---|---|---|---|
+  | Alerces 2023 · base | 0,460 / 1,55 | 0,410 / 1,68 | 0,542 / 1,49 | 0,438 / 1,62 | 0,404 / 1,47 | 0,473 / 1,70 | 0,457 / 1,55 |
+  | Alerces 2023 · ADJ 1,1 | 0,490 / 1,84 | 0,423 / 2,09 ⚠ | 0,542 / 1,80 | 0,455 / 2,04 ⚠ | 0,431 / 1,72 | 0,490 / 2,01 ⚠ | 0,480 / 1,81 |
+  | Epuyén · base | 0,466 / 1,30 | 0,268 / 0,78 | 0,558 / 1,69 | 0,390 / 0,85 | 0,421 / 1,07 | 0,468 / 1,31 | 0,443 / 1,20 |
+  | Epuyén · ADJ 1,1 | 0,498 / 1,60 | 0,360 / 1,07 | 0,549 / 1,91 | 0,441 / 1,09 | 0,490 / 1,51 | 0,501 / 1,57 | 0,500 / 1,57 |
+  | Alerces 2016 · base | 0,444 / 1,05 | 0,366 / 1,02 | 0,483 / 0,92 | 0,241 / 1,47 | 0,559 / 0,76 | 0,441 / 1,05 | 0,446 / 1,02 |
+  | Alerces 2016 · ADJ 1,1 | 0,430 / 1,31 | 0,391 / 1,29 | 0,479 / 1,15 | 0,266 / 1,65 | 0,528 / 0,99 | 0,429 / 1,34 | 0,444 / 1,25 |
+
+  | Receta | Media | Mediana | Alarmas |
+  |---|---|---|---|
+  | `base-001` v4 | 0,437 | 0,444 | 0 de 21 |
+  | **`adj-110-001` v4** | **0,458** | **0,479** | 3 de 21 (Alerces 2023, 2,01–2,09) |
+  | `adj-130-001` v3 (RESULTADOS-CSS-BAP loop 7) | 0,398 | 0,454 | 5 de 21 |
+  | `lw100-adj115-001` v3 | 0,395 | 0,440 | 7 de 21 |
+
+  - **La mejora de ADJ 1,1 sobrevive:** gana en 15 de 21 (todas en Alerces 2023, 6 de 7 en
+    Epuyén; Alerces 2016 prefiere base en 5 de 7). Las tres alarmas son de Alerces 2023 al borde
+    (≤ 2,09): ADJ 1,1 es el extremo superior del intervalo factible.
+  - **El modelo corregido es mucho menos frágil a la ignición:** en Epuyén el Dice va de 0,27 a
+    0,56 (v3: de 0,08 a 0,50). Con el frente a la mitad, los primeros cientos de metros decidían
+    todo; ahora el fuego sale de la trampa del combustible de la ignición.
+- **Pendiente:** los cuatro de prueba (en la cola) y la homogeneización de ERA5 (loop D).
 
 ## 6. Resultados
 

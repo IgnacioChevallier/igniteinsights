@@ -283,7 +283,8 @@ def _reescribir(ruta: Path, transformar) -> None:
     with rasterio.open(ruta) as src:
         perfil, datos = src.profile, src.read()
     ruta.unlink()
-    with rasterio.open(ruta, "w", **(perfil | {"compress": "deflate"})) as dst:
+    comprimir = {"compress": "deflate", "predictor": 3 if perfil["dtype"].startswith("float") else 2}
+    with rasterio.open(ruta, "w", **(perfil | comprimir)) as dst:
         dst.write(transformar(datos).astype(perfil["dtype"]))
 
 

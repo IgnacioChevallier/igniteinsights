@@ -404,6 +404,12 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
             with rasterio.open(cortes / f"{var}.tif", "w", **perfil) as dst:
                 dst.write(datos)
         weather_builder.derive_wind(cortes / "u10.tif", cortes / "v10.tif", dem, cortes)
+        factor = caso.datos["empaquetado"].get("factor_viento_fuente")
+        if factor:   # homogeneiza la fuente (ERA5 → GFS), AUDITORIA-FISICA loop D
+            with rasterio.open(cortes / "ws.tif") as src:
+                perfil, ws = src.profile, src.read()
+            with rasterio.open(cortes / "ws.tif", "w", **perfil) as dst:
+                dst.write((ws * float(factor)).astype(perfil["dtype"]))
         weather_builder.derive_moisture(cortes / "t2m.tif", cortes / "rh.tif", dem, cortes)
         archivos = {n_: almacen.guardar(cortes / n_)
                     for n_ in ("ws.tif", "wd.tif", "m1.tif", "m10.tif", "m100.tif")}
