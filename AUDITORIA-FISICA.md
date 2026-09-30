@@ -418,6 +418,32 @@ siendo la única receta sin alarmas (media 0,369, mediana 0,388): **la receta no
 fuente del clima**. Se mantiene v4 (ERA5 sin tocar) en la partición y v4w queda como
 sensibilidad.
 
+### Loop E — LW con la física corregida
+
+**Hipótesis:** LW 110 % es el umbral húmedo de grandes incendios de Bianchi y Defossé (2015), no
+el valor de un día de gran incendio (RESULTADOS-CSS-BAP loop 6). Con el ADJ ya cerca de 1, LW
+—la perilla con criterio regional— puede hacer el trabajo del ADJ.
+
+| Receta | A23 h54 | Epuyén | A24 | Patriada | A16 | Cholila | Media / mediana | Alarmas |
+|---|---|---|---|---|---|---|---|---|
+| `adj-110-001` | 0,490 / 1,84 | 0,498 / 1,60 | 0,561 / 1,55 | 0,335 / 0,83 | 0,430 / 1,31 | 0,283 / 0,53 | 0,373 / 0,430 | 0 |
+| **LW 100 % (`lw-100-001`)** | 0,495 / 1,82 | 0,500 / 1,75 | 0,563 / 1,54 | 0,368 / 0,91 | 0,452 / 1,33 | 0,280 / 0,55 | **0,381 / 0,452** | **0** |
+| LW 95 % | 0,502 / 2,03 ⚠ | 0,511 / 2,03 ⚠ | 0,566 / 1,65 | 0,394 / 1,02 | 0,443 / 1,50 | 0,298 / 0,60 | 0,389 / 0,443 | 2 |
+| LW 90 % | 0,493 / 2,26 ⚠ | 0,518 / 2,42 ⚠ | 0,584 / 1,77 | 0,422 / 1,18 | 0,424 / 1,79 | 0,315 / 0,66 | 0,395 / 0,424 | 2 |
+
+(Las Golondrinas, el caso límite, 0,012–0,013 en todas; cuenta en la media.)
+
+- **`lw-100-001` gana a ADJ 1,1** en media (0,381 contra 0,373), mediana (0,452 contra 0,430) y
+  forma (0,359 contra 0,352), sin alarmas. La validación cruzada la elige en **7 de 7**
+  pliegues; fuera de muestra, 0,381 / 0,452.
+- **Por qué LW y no ADJ:** LW actúa sólo donde hay carga viva (SH, TU): acelera Patriada (+0,033)
+  y Alerces 2016 (+0,022) sin empujar a Alerces 2023 más allá (1,82 contra 1,84), que es
+  sobre todo TU/TL. ADJ acelera todo por igual.
+- **El intervalo sin alarmas es ~[97; 110] %**, casi el mismo que en v3 ([95; 110]): el LW
+  que pide la región no dependía de los bugs. Lo que sí dependía de ellos era el ADJ extra de
+  la receta v3 (1,15), que ahora sobra.
+- **Candidata: `lw-100-001`.** Falta su robustez a la ignición y la prueba (en la cola).
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
