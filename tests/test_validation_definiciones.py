@@ -45,6 +45,9 @@ def test_sin_anterior_la_fuga_se_declara():
     assert r.factores(_caso(2016))["fuga_temporal"] is True
     assert r.anio_combustible(_caso(2023)) == 2021
     assert "fuga_temporal" not in r.factores(_caso(2023))
+    ultimo = _receta(combustible=combustible | {"sin_anterior": "ultimo_publicado"})
+    assert ultimo.anio_combustible(_caso(2016)) == 2021
+    assert ultimo.anio_combustible(_caso(2021)) == 2020
 
 
 def test_prediccion_exige_ventanas_contiguas():
