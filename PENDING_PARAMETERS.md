@@ -55,6 +55,11 @@ a citation attached. Tracked as IGN-20/21/22.
 
 ### 1.2 🔴 Fuel moisture time-lag offsets
 
+> Al 2026-09-30 (`RESULTADOS-CSS-BAP.md` §6): contra las estaciones, el m1 de Nelson con el GFS
+> crudo ya es el de las tardes de fuego (5,5–9,1 % contra 5,9–6,6 %); el delta uniforme de −6 no
+> tiene soporte. Los desfases de m10/m100 resultaron insensibles, y el modelo de retardo
+> (`derive_moisture_timelag`) existe para el benchmark. Queda abierto sólo el criterio de m10/m100.
+
 `weather_builder.derive_moisture` · `m10 = emc + 2`, `m100 = emc + 5`
 
 No physical basis. Time-lag classes damp toward a running mean; they are not a fixed
@@ -65,7 +70,13 @@ Related and equally unaddressed: `m1` is raw equilibrium moisture (median **11.1
 where an afternoon burning period sits at **4–8%**. There is no diurnal, solar-exposure
 or slope/aspect correction anywhere. This depresses spread across the whole domain.
 
-### 1.3 🔴 `adj.tif` = 1.0 uniform
+### 1.3 ✅ `adj.tif` = 1.0 uniform — **calibrado: se queda en 1**
+
+> Al 2026-09-30: calibrado contra 7 incendios sobre el benchmark `-v5`, con la interfaz de
+> ELMFIRE corregida (`AUDITORIA-FISICA.md`, loops C y E). **ADJ = 1:** la receta final
+> (`lw-100-001`) no lo necesita, y el intervalo de ADJ uniforme sin alarmas es ~[1,05; 1,15]. El
+> 1,3 de la calibración anterior compensaba los errores de interfaz. ADJ por grupo de
+> combustible: no identificable con siete incendios.
 
 `app/preparation/service.py` · `_write_uniform_raster(..., 1.0)`
 
@@ -85,7 +96,13 @@ wind speed. Defensible and now derived rather than hardcoded, but **not measured
 Alerces**. **Criterion needed:** effective aerodynamic roughness for the AOI's canopy,
 or a roughness raster derived from `ch.tif` instead of one scalar.
 
-### 1.5 ✅ Canopy CBH/CBD lookup by fuel model — **resuelto (Etapa A, A4)**
+### 1.5 🟡 Canopy CBH/CBD lookup by fuel model — **resuelto el lookup, reabierta la derivación**
+
+> Al 2026-09-30 (`AUDITORIA-FISICA.md`, loop F): el CBH derivado de `cc`/`ch` (0,20–0,50 × CH,
+> 5–10 m) hace que la copa casi nunca se encienda. Con el CBH × 0,25 se enciende y el Dice de
+> Cholila pasa de 0,255 a 0,528, pero otros incendios se pasan. Es el insumo que más mueve el
+> resultado hoy. **Criterion needed:** CBH con fundamento por tipo de bosque
+> (`DECISIONES-DIRECTOR.md` §2).
 
 > Al 2026-09-15: `_FBFM40_CBH` y `_FBFM40_CBD` ya no existen. `canopy_builder.py`
 > deriva el dosel de datos reales. Se conserva la entrada por trazabilidad.
@@ -120,7 +137,13 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 
 ---
 
-### 1.6 ✅ Humedad del combustible vivo — **resuelto (Etapa B, B5)**
+### 1.6 ✅ Humedad del combustible vivo — **resuelto (Etapa B, B5); calibrado en 100 %**
+
+> Al 2026-09-30: la calibración sobre el benchmark `-v5` elige **LW = 100 %** (intervalo sin
+> alarmas ~[97; 110] %), porque 110 % es el umbral por debajo del cual ocurren los grandes
+> incendios según Bianchi & Defossé, no el valor de un día de gran incendio
+> (`AUDITORIA-FISICA.md`, loop E). El default de la app (`DEFAULT_LW_MOISTURE_PCT`) sigue en
+> 110 %: pasarlo a 100 % es una decisión pendiente.
 
 > Al 2026-09-16: `LW = 110 %`, medido por Bianchi & Defossé (2015) para la temporada de fuego
 > en la Patagonia andina. `LH = 30 %` **no** viene del paper, que no mide herbáceas: es la
@@ -136,17 +159,17 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 
 | Parameter | Value | Basis | Notes |
 |---|---|---|---|
-| `dt_s` (`SIMULATION_DT`) | 30 s | 🔴 | Minimum timestep. Never varied. |
-| `dtmax_s` (`SIMULATION_DTMAX`) | 300 s | 🔴 | Maximum timestep. Never varied. |
+| `dt_s` (`SIMULATION_DT`) | 30 s | ✅ | Convergido (2026-09-28): con el paso a la mitad el Dice cambia < 0,005. Con `phi` ±1 el frente avanza a la velocidad calculada (`scripts/pruebas_fisicas.py nivel`). |
+| `dtmax_s` (`SIMULATION_DTMAX`) | 300 s | ✅ | Ídem. |
 | `dtdump_s` (`DTDUMP`) | 3600 s | 🟢 | Hourly isochrones — a product decision, and it matches `DT_METEOROLOGY`. |
 | `dt_meteorology_s` | 3600 s | 🟢 | Matches GFS hourly output. Must change together with the raster band count. |
-| `simulation_tstart_s` | derivado | ✅ | **Resuelto 2026-09-15.** `preparation/service.py` lo calcula como el desfase entre la primera banda de meteorología y la hora de ignición, así que la corrida arranca en el punto correcto del ciclo diurno. Si la ignición es anterior a la banda 0, cae a 0 y lo registra como warning. |
+| `NUM_METEOROLOGY_TIMES` (`&MONTE_CARLO`) | bandas de `ws.tif` | ✅ | **2026-09-29.** Sin él ELMFIRE usa la banda 0 del clima toda la corrida (`AUDITORIA-FISICA.md`, hallazgo 1). |
+| `simulation_tstart_s` | derivado | ✅ | **Resuelto 2026-09-15.** *(Sin efecto hasta el 2026-09-29: sin `NUM_METEOROLOGY_TIMES`, ELMFIRE usaba igual la banda 0.)* `preparation/service.py` lo calcula como el desfase entre la primera banda de meteorología y la hora de ignición, así que la corrida arranca en el punto correcto del ciclo diurno. Si la ignición es anterior a la banda 0, cae a 0 y lo registra como warning. |
 | `horizon_hours` (default) | 12 | 🔴 | API default. No basis. |
 | `CROWN_FIRE_MODEL` | **1** | ✅ | **Resuelto 2026-09-15.** Se escribe explícito en `&SIMULATOR` con el valor que ya se venía usando (activado). Antes estaba activo porque ELMFIRE lo prende cuando la clave falta, que no es lo mismo que haberlo decidido. |
 | `MODE` | 1 | ⚫ | Transient spread. The only mode this repo supports. |
 
-**Criterion needed** for `dt_s`/`dtmax_s`: a convergence check — halve them and confirm
-the isochrones don't move. If they do, the timestep is doing physics.
+~~**Criterion needed** for `dt_s`/`dtmax_s`: a convergence check.~~ Hecho (ver la tabla).
 
 ---
 

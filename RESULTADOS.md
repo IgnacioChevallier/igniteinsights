@@ -8,6 +8,15 @@
 > Todo es reproducible: `scripts/build_fuel_maps.py`, `scripts/run_three_maps.py`,
 > `scripts/harness_a.py`, `scripts/score_against_observed.py`.
 
+> **Nota del 2026-09-30 (auditoría física, `AUDITORIA-FISICA.md`).** Todas las corridas de este
+> documento tienen dos errores de interfaz con ELMFIRE, ya corregidos: el clima quedaba fijo en
+> la primera banda durante toda la corrida (las de 12 h corrían con la tarde de la ignición) y el
+> frente avanzaba a la mitad de la velocidad calculada. Las de §4–§8 además son anteriores a la
+> corrección de la orientación del terreno. Los números de §2 (distribución de los mapas) no
+> dependen de eso. La comparación de §4 y §6.1 del documento de combustibles está re-medida en
+> §10; el harness A (§5) no se re-corrió. La comparación de los tres mapas sobre el benchmark
+> de 11 incendios se rehace en `COMPARACION-MAPAS-V5.md`.
+
 ## 1. Qué se comparó y por qué
 
 La pregunta de la tesis es si un insumo de cobertura que discrimina especie y estructura
@@ -331,6 +340,44 @@ crónicas, CCS-BAP gana, y las recetas calibradas responden: *humedad −6* pasa
   velocidad insuficiente a favor del viento, con la pendiente dominando donde el viento es débil.
   La convención de dirección está verificada de punta a punta: con `wd = 0` el playground avanza
   al sur.
+
+## 10. Re-medición con la interfaz corregida (2026-09-30)
+
+Las mismas corridas de §4 y de la comparación preliminar, sobre los mismos insumos (misma
+semilla, los mismos `fbfm40`), con los cinco errores de interfaz corregidos
+(`scripts/corregir_preparacion_legado.py`; detalle en `AUDITORIA-FISICA.md`, loop J, y §7.4).
+
+**Comparación preliminar** (grilla reducida, semilla 8.095 ha, 12 h, LH 30 % / LW 110 %):
+
+| Mapa | Anillo (antes → corregido) | FLI mediana (antes → corregido) |
+|---|---|---|
+| WorldCover 2021 | 2.342 → **3.892 ha** | 96,1 → 32,1 kW/m |
+| MapBiomas 2024 | 5.849 → **7.268 ha** | 311,1 → 261,5 kW/m |
+| CCS-BAP 2017 | 7.576 → **9.262 ha** | 317,0 → 234,8 kW/m |
+
+IoU entre mapas: WorldCover–MapBiomas 0,302, WorldCover–CCS-BAP 0,344, MapBiomas–CCS-BAP 0,574.
+El orden WorldCover < MapBiomas < CCS-BAP se sostiene y la diferencia se achica de 3,2× a 2,4×.
+Las intensidades bajan porque el clima ahora cambia hora a hora: la primera banda era la más seca
+y ventosa de las 12 h.
+
+**Harness B** (§4). La referencia original (las 196 máscaras con la ventana pre de nov–dic 2023)
+ya no existe en `mask-dataset-gen`; se puntuó contra `puerto-patriada-2026/runs/baseline-002`
+(mismo algoritmo dNBR ≥ 0,30, las mismas 196 celdas, ventana pre nov 2025–ene 2026):
+
+| Mapa | IoU (§4 / corridas viejas contra baseline-002 / **corregidas**) | Recall corregido | Precisión corregida |
+|---|---|---|---|
+| WorldCover 2021 | 0,036 / 0,035 / **0,010** | 0,010 | 0,205 |
+| MapBiomas 2024 | 0,045 / 0,051 / **0,035** | 0,036 | **0,443** |
+| CCS-BAP 2017 | 0,067 / 0,069 / **0,046** | **0,052** | 0,286 |
+
+Estrato 70–100 % (11 tiles), corregidas: 0,010 / 0,034 / **0,056**. **El orden de IoU se
+sostiene** (CCS-BAP > MapBiomas > WorldCover) y MapBiomas sigue con la mejor precisión. Los
+valores bajan porque el anillo corregido es la mitad: la corrida vieja tenía 12 h de la tarde de
+la ignición; la corregida atraviesa la noche. El anclaje de `SIMULATION_TSTART` de §3 no tenía
+efecto en las corridas viejas.
+
+**No re-corrido:** el harness A (§5) y el benchmark de dos incendios de §8, que se reemplaza por
+la comparación sobre el benchmark v5 (`COMPARACION-MAPAS-V5.md`).
 
 ## 9. Cómo reproducir
 

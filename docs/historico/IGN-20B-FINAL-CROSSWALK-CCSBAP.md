@@ -4,6 +4,15 @@
 >
 > La tabla completa está en §4, su fundamento en §5 y sus limitaciones y sensibilidades en §7. Las referencias a otros archivos identifican procedencia; el argumento necesario para decidir está incluido acá.
 >
+> **Actualización del 2026-09-30 (auditoría física, `AUDITORIA-FISICA.md`).** Las simulaciones de
+> §6.1–§6.3 tenían dos errores de interfaz con ELMFIRE, ya corregidos: el clima quedaba fijo en su
+> primera hora durante toda la corrida y el frente avanzaba a la mitad de la velocidad calculada.
+> §6.1, §6.2 y §6.3 están re-medidos con la interfaz corregida, con las cifras anteriores al lado.
+> **La tabla de correspondencia (§4) no cambia.** Cambian una conclusión del paso 4 (el sesgo del
+> arbustal es la mitad de grande) y el valor de humedad viva adoptado (100 %). Además se agregan la
+> interacción del ñire bajo y la lenga achaparrada con el dosel (§5.4) y dos limitaciones del
+> dosel (§7). Las decisiones abiertas están resumidas en `DECISIONES-DIRECTOR.md`.
+>
 > Área de interés: Parque Nacional Los Alerces y entorno. −72,05 / −42,90 / −71,15 / −42,05 (EPSG:4326) · 699.000 ha · grilla EPSG:32719, 30 m.
 
 ---
@@ -272,6 +281,15 @@ Traslado a declarar: es otra latitud y un bosque subalpino con araucaria, ausent
 **Procedencia.** Carga: medida (PT-37, Tabla 2), corroborada por una segunda fuente. `mex`:
 bibliográfico. Elección final del modelo: juicio del autor sobre carga, sujeto al paso 4.
 
+**Interacción con el dosel (2026-09-30).** SH8 es un modelo de matorral con el lecho expuesto
+al viento. Pero dentro de las cicatrices del benchmark, las capas de dosel (cobertura de Hansen
+2000, altura de ETH 2020) asignan a esta clase cobertura de bosque cerrado: mediana 78–91 %, a
+13–18 m. ELMFIRE combina las dos cosas y le aplica la reducción de viento de un bosque (factor
+~0,08 en vez del 0,46 de un matorral abierto). En Alerces 2024, dos tercios del matorral quemado
+es ñire bajo, y el 92 % tiene cobertura de Hansen de 50 % o más. Vale lo mismo para la lenga
+achaparrada (§5.5) y parte del arbustal nativo (§5.6). Hay que decidir si la clase es combustible
+arbustivo expuesto (sin dosel) o sotobosque bajo dosel (familia TU): `DECISIONES-DIRECTOR.md` §1.
+
 ### 5.5 · OFL Le — Lenga achaparrada → **148 (SH8)** · 8,71 % del AOI
 
 Lenga de porte achaparrado en el límite altitudinal: densa, baja, con mucho material muerto en
@@ -310,6 +328,12 @@ A2 mide 0,82 t/ha de fino = **0,0168 lb/ft²**; GS3 tiene 1 h de 0,01377. GS3 es
 **Alternativa evaluada y descartada como principal:** SB2 (202), de la familia
 *slash-blowdown*, que representaría el material muerto en pie inmediatamente después del
 fuego. Se descarta porque describe el estado a los dos años, no a los once. **Sensibilidad S3.**
+
+**Evidencia del benchmark (2026-09-30).** En El Turbio 2025 el incendio volvió a quemar el
+remanente de la cicatriz de 2015: ardió lento (latente, diez días hasta 2.000 ha, combatido), y el
+modelo lo recorre como GS3 con cinco veces el área observada (82 % de la cicatriz es GS3). Además,
+Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz. La asignación describe un
+disturbio de dos años mejor que uno de diez (`DECISIONES-DIRECTOR.md` §4).
 
 ### 5.8 · OT Herb-Subarb — Estepa → **103 (GR3)** · 15,02 %, con excepción
 
@@ -469,6 +493,30 @@ simulación que no existió. **Lo comparable es el orden entre mapas, no la magn
 
 
 
+**Re-medición con la interfaz corregida (2026-09-30).** Las mismas corridas, sobre los mismos
+insumos (misma semilla, los mismos tres mapas), con los errores de interfaz corregidos
+(`scripts/corregir_preparacion_legado.py`; `AUDITORIA-FISICA.md`, loop J):
+
+| Mapa | Anillo a 12 h (antes → corregido) | FLI mediana (antes → corregido) |
+| --- | --- | --- |
+| WorldCover 2021 | 2.342 → **3.892 ha** | 96,1 → 32,1 kW/m |
+| MapBiomas 2024 | 5.849 → **7.268 ha** | 311,1 → 261,5 kW/m |
+| CCS-BAP 2017 | 7.576 → **9.262 ha** | 317,0 → 234,8 kW/m |
+
+- IoU entre mapas: WorldCover–MapBiomas 0,302, WorldCover–CCS-BAP 0,344, MapBiomas–CCS-BAP
+  0,574. Lo que quema CCS-BAP casi no cambia (SH8 30 %, TL6 18 %, TU5 17 %).
+- **El orden se sostiene** y la diferencia con el baseline se achica de 3,2× a 2,4×. Las
+  intensidades bajan, no suben: la corrida vieja mantenía las 12 h en la primera hora, la más
+  seca y ventosa.
+- **Harness B.** La referencia de arriba (las 196 máscaras con la ventana pre de nov–dic 2023) ya
+  no existe en `mask-dataset-gen`. Contra `puerto-patriada-2026/runs/baseline-002` (mismo
+  algoritmo y celdas, ventana pre nov 2025–ene 2026), las corridas corregidas dan IoU **0,010 /
+  0,035 / 0,046** (WorldCover / MapBiomas / CCS-BAP; en el estrato 70–100 %: 0,010 / 0,034 /
+  0,056). **El orden de IoU se sostiene** y MapBiomas sigue con la mejor precisión (0,443). Los
+  valores bajan porque el anillo corregido es la mitad: la corrida atraviesa la noche.
+- La comparación sobre un benchmark de 11 incendios, con la interfaz corregida, está en
+  `COMPARACION-MAPAS-V5.md`.
+
 ### 6.2 · Paso 4 contra la quema experimental de la PT-37 (2026-09-16)
 
 Scott & Burgan cierran su procedimiento con un filtro de rechazo: elegido un modelo, hay que mirar su comportamiento predicho y descartarlo si contradice lo observado. Hasta acá ese paso se aplicó con la escala adjetiva publicada, que está medida en un escenario de referencia (D2L2) que no es el nuestro. La PT-37 §3.3-3.4 da algo mejor: una **quema experimental con meteorología medida**, en el mismo ecotono y sobre el modelo A4.
@@ -477,23 +525,29 @@ Scott & Burgan cierran su procedimiento con un filtro de rechazo: elegido un mod
 51 km/h. **Observado:** el frente recorrió 40 m en 30 s, o sea 4.800 m/h y llama de 3 a 4 m. Esos 80 m/min son el pico bajo ráfaga y no un promedio horario, así que cada candidato se corre en las dos condiciones y el resultado se lee como horquilla. Longitud de llama por Byram (1959), `L = 0,0775 · I^0,46`.
 
 
-| Modelo              | ROS sostenido        | Llama     | ROS ráfaga           | Llama  | Veredicto                |
-| ------------------- | -------------------- | --------- | -------------------- | ------ | ------------------------ |
-| **SH8** (148)       | 437 m/h · alta       | **3,1 m** | 900 m/h · alta       | 5,7 m  | llama sí, propagación no |
-| SH4 (144)           | 522 m/h · alta       | 2,1 m     | 1.201 m/h · muy alta | 3,8 m  | llama sí, propagación no |
-| GS3 (123)           | 627 m/h · alta       | 2,4 m     | 1.394 m/h · muy alta | 4,7 m  | llama sí, propagación no |
-| SH9 (149)           | 1.034 m/h · muy alta | 7,5 m     | 2.321 m/h · muy alta | 12,8 m | llama muy por encima     |
-| SH5 (145) · control | 1.091 m/h · muy alta | 4,9 m     | 2.529 m/h · muy alta | 8,0 m  | llama por encima         |
+**Actualizado el 2026-09-30.** La corrida del 2026-09-16 tenía el frente a la mitad de la
+velocidad calculada (el campo de ignición del playground, `AUDITORIA-FISICA.md` hallazgo 2).
+La longitud de llama sale de la intensidad que calcula ELMFIRE y casi no cambia. Re-corrido con
+la interfaz corregida (entre paréntesis, la cifra anterior):
+
+| Modelo              | ROS sostenido          | Llama | ROS ráfaga               | Llama  | Veredicto                                   |
+| ------------------- | ---------------------- | ----- | ------------------------ | ------ | ------------------------------------------- |
+| **SH8** (148)       | 739 m/h (437)          | 3,5 m | 1.785 m/h (900)          | 5,6 m  | llama sí, propagación no (2,7–6,5× abajo)    |
+| SH4 (144)           | 888 m/h (522)          | 2,2 m | 2.445 m/h (1.201)        | 3,7 m  | llama sí; con ráfaga, 51 % de lo observado  |
+| GS3 (123)           | 1.098 m/h (627)        | 2,8 m | 2.896 m/h (1.394)        | 4,5 m  | llama sí; con ráfaga, 60 % de lo observado  |
+| SH9 (149)           | 1.966 m/h (1.034)      | 7,9 m | 4.875 m/h (2.321)        | 11,8 m | propagación sí, llama muy por encima        |
+| SH5 (145) · control | 2.118 m/h (1.091)      | 5,1 m | 5.085 m/h (2.529)        | 7,4 m  | propagación sí, llama por encima            |
 
 
 Reproducir: `uv run python scripts/paso4_quema_a4.py`.
 
 Lecturas:
 
-1. **Ningún modelo de arbustal de SB40 reproduce propagación y llama a la vez.** SH8 clava la
-  llama —3,1 m contra 3 a 4 m medidos— y queda entre 5 y 11 veces por debajo en propagación.
-   Los dos que alcanzan el orden de la propagación observada lo hacen con llamas de 7,5 a
-   12,8 m, dos a tres veces lo medido.
+1. **Ningún modelo de arbustal de SB40 reproduce del todo propagación y llama a la vez, pero SH4
+  y GS3 se acercan con ráfaga.** SH8 clava la llama —3,5 m contra 3 a 4 m medidos— y queda
+   entre 2,7 y 6,5 veces por debajo en propagación (antes de la corrección: 5 a 11). SH4 y GS3,
+   con ráfaga, llegan al 51–60 % de la propagación observada con la llama medida. Los dos que
+   alcanzan la propagación observada lo hacen con llamas de 7 a 12 m, dos a tres veces lo medido.
 2. **SH9 queda descartado por segunda vez**, ahora por comportamiento y no sólo por carga
   (§5.4): su llama duplica largamente lo observado en las dos condiciones.
 3. **SH5, la familia del baseline, sigue rechazado.** Propaga más, pero con llama de 4,9 a
@@ -501,7 +555,7 @@ Lecturas:
 4. SH4 y GS3 caen en el mismo régimen que SH8, lo que es coherente: las tres asignaciones se
   eligieron por carga fina medida y las tres heredan el mismo sesgo.
 
-**Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje, así que **el resultado no invalida ninguna asignación**: muestra que el techo dejó de ser el insumo y pasó a ser el sistema de modelos. Las asignaciones se mantienen **con el sesgo declarado: subestiman la velocidad de propagación en arbustal**. Es el argumento directo a
+**Qué se hace con esto.** El paso 4 rechaza un modelo cuando su comportamiento contradice lo observado *y existe una alternativa mejor*. Acá todas las alternativas fallan en el mismo eje, así que **el resultado no invalida ninguna asignación**: muestra que el techo dejó de ser el insumo y pasó a ser el sistema de modelos. Las asignaciones se mantienen **con el sesgo declarado: subestiman la velocidad de propagación en arbustal** — con la interfaz corregida, un sesgo de la mitad del que se estimó el 2026-09-16. Es el argumento directo a
 favor de la `ETAPA-C` y de la sensibilidad S5.
 
 **Salvedades.** Es **una sola quema, un solo sitio, 2011**. La comparación corre con los parámetros propios de SB40, no con las cargas de la PT-37 —eso es S5—, sobre terreno plano y con ignición puntual, sin la continuidad de combustible que la quema tenía medida.
@@ -512,19 +566,21 @@ Barrido uniforme de `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` sobre el mapa 
 12 h, con todo lo demás congelado. Se puntúa sólo el anillo de crecimiento.
 
 
-| LH/LW | Anillo a 12 h | vs 60 % | FLI mediana |
-| ----- | ------------- | ------- | ----------- |
-| 30 %  | 11.293 ha     | +7 %    | 512,0 kW/m  |
-| 60 %  | 10.537 ha     | —       | 484,9 kW/m  |
-| 90 %  | 7.472 ha      | −29 %   | 327,5 kW/m  |
-| 120 % | 4.513 ha      | −57 %   | 220,5 kW/m  |
+| LH/LW | Anillo a 12 h (antes → corregido) | vs 60 % (corregido) | FLI mediana (antes → corregido) |
+| ----- | --------------------------------- | ------------------- | ------------------------------- |
+| 30 %  | 11.293 → 14.120 ha                | +7 %                | 512,0 → 391 kW/m                |
+| 60 %  | 10.537 → 13.241 ha                | —                   | 484,9 → 367 kW/m                |
+| 90 %  | 7.472 → 8.930 ha                  | −33 %               | 327,5 → 245 kW/m                |
+| 120 % | 4.513 → 5.575 ha                  | −58 %               | 220,5 → 154 kW/m                |
+
+*Re-medida el 2026-09-30 con la interfaz corregida (`AUDITORIA-FISICA.md`, loop J).*
 
 
 Reproducir: `uv run python scripts/sweep_live_moisture.py`.
 
-**Factor 2,50 en superficie entre 30 % y 120 %**, y factor 2,3 en intensidad mediana. Con el baseline el escalar era inocuo, porque TL3 no tiene carga viva; con CCS-BAP los modelos SH, GS y TU son mayoría y el escalar **pasa a ser driver de primer orden**. Ésa es la razón por la que tenía que fijarse con evidencia y convenciones explícitas antes de citar cualquier número: la fila de 60 % reproduce exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
+**Factor 2,53 en superficie entre 30 % y 120 %** (2,50 antes de la corrección), y 2,54 en intensidad mediana. Con el baseline el escalar era inocuo, porque TL3 no tiene carga viva; con CCS-BAP los modelos SH, GS y TU son mayoría y el escalar **pasa a ser driver de primer orden**. Ésa es la razón por la que tenía que fijarse con evidencia y convenciones explícitas antes de citar cualquier número: la fila de 60 % reproduce exactamente la corrida vieja de §6.1 (10.537 ha), la que quedó superada.
 
-**Fundamento de los valores adoptados** (Bianchi & Defossé, 2015; desarrollo en `ETAPA-B-INSUMO-PATAGONICO.md` §B5). En temporada de fuego, el contenido de humedad foliar vivo medido es de **110–220 %** para ñire, ciprés, laura y radal; la caña colihue no supera **110 %**. Se adopta **`LW = 110 %`**, el extremo seco de la banda, como condición más propensa al fuego dentro de esa evidencia. No es un promedio ni una medición del día simulado; la banda completa queda como incertidumbre. Lenga, coihue y alerce no fueron medidos y heredan ese valor por analogía.
+**Fundamento de los valores adoptados** (Bianchi & Defossé, 2015; desarrollo en `ETAPA-B-INSUMO-PATAGONICO.md` §B5). En temporada de fuego, el contenido de humedad foliar vivo medido es de **110–220 %** para ñire, ciprés, laura y radal; la caña colihue no supera **110 %**. Se adoptó **`LW = 110 %`**, el extremo seco de la banda, como condición más propensa al fuego dentro de esa evidencia. **Actualización del 2026-09-30:** la calibración contra siete incendios, con la interfaz corregida, elige **100 %** (intervalo sin sobre-propagación: 97–110 %). Es coherente con la misma fuente: Bianchi & Defossé ubican en 110 % el umbral por debajo del cual ocurren los grandes incendios, así que el día de un gran incendio está por debajo. No es un promedio ni una medición del día simulado; la banda completa queda como incertidumbre. Lenga, coihue y alerce no fueron medidos y heredan ese valor por analogía.
 
 **`LH = 30 %` no sale de una medición de herbáceas de ese artículo.** Representa pasto completamente curado, según el umbral de transferencia dinámica de Scott & Burgan (2005, pp. 4, 6-7). Es una convención de modelado declarada.
 
@@ -567,6 +623,16 @@ fenología sería la mejora, y no está en alcance.
    **propuesta original** y debe presentarse y evaluarse como tal. Es también la razón por la
    que cada asignación lleva ficha con su procedencia (§5) y por la que el §7 declara
    sensibilidades en vez de dar la tabla por cerrada.
+10. **El dosel viene de otras fuentes y puede contradecir al combustible** (2026-09-30). La
+   cobertura (Hansen) es del año 2000 y la altura (ETH) de 2020: 15 a 26 años antes de los
+   incendios del benchmark en el primer caso. Donde CCS-BAP ve matorral (ñire bajo, lenga
+   achaparrada, parte del arbustal nativo), el dosel suele ver bosque cerrado, y ELMFIRE le quita
+   el viento al matorral (§5.4). Donde hubo fuegos después de 2000, ve un bosque que ya no está
+   (§5.7).
+11. **La altura de base de copa es derivada, no medida** (2026-09-30). Se calcula como 0,20–0,50
+   de la altura del dosel (5 a 10 m en la región), y con esos valores el fuego de copas casi
+   nunca se enciende. Con una base de copa baja sí se enciende, y es el insumo que más mueve el
+   resultado del benchmark (`AUDITORIA-FISICA.md`, loop F; `DECISIONES-DIRECTOR.md` §2).
 
 
 
@@ -655,6 +721,8 @@ Las métricas del harness B se escriben en `data/validation/harness_b/feb2026_12
 | Paso 4 sobre la quema de la PT-37      | **hecho** 2026-09-16 (§6.2)         |
 | Sensibilidad de la humedad viva (§6.3) | 2026-09-16                          |
 | Validación contra lo observado         | **ejecutada, alcance parcial** · 2026-09-19 (§6.1, harness B) |
+| Re-medición con la interfaz corregida  | 2026-09-30 (§6.1-§6.3; `AUDITORIA-FISICA.md`) |
+| Comparación sobre el benchmark de 11 incendios | en curso (`COMPARACION-MAPAS-V5.md`) |
 | Revisión del director                  | **pendiente**                       |
 
 
@@ -667,8 +735,17 @@ Puntos que requieren decisión explícita:
 
 **Lo que el paso 4 agregó a la decisión.** No cambia ninguno de los cuatro puntos en
 discusión, pero sí cambia lo que se les puede pedir: ningún modelo de arbustal de SB40
-reproduce a la vez propagación y llama observadas (§6.2), así que las asignaciones de arbustal
-—SH8, SH4 y GS3— se aprueban **con el sesgo declarado de subestimar la propagación**. Levantar
+reproduce del todo a la vez propagación y llama observadas (§6.2), así que las asignaciones de
+arbustal —SH8, SH4 y GS3— se aprueban **con el sesgo declarado de subestimar la propagación**
+(con la interfaz corregida, la mitad del estimado originalmente: SH8 2,7–6,5× por debajo, SH4 y
+GS3 al 51–60 % con ráfaga).
+
+**Puntos agregados el 2026-09-30** (detalle en `DECISIONES-DIRECTOR.md`):
+
+5. **Ñire bajo, lenga achaparrada y arbustal nativo con dosel de bosque** (§5.4): ¿sin dosel, o
+   sotobosque bajo dosel (familia TU)?
+6. **La altura de base de copa derivada** (§7, limitación 11).
+7. **`LW` en 100 %** (§6.3), el valor calibrado. Levantar
 ese techo es `ETAPA-C`, no este crosswalk.
 
 ## 10. Fuentes

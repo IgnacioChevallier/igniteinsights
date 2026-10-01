@@ -31,8 +31,10 @@
   derivado es la incertidumbre de insumos más grande que queda (§7.2).
 - **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
   (+0,012) pero dispara a Epuyén; el atlas sigue neutro. La receta final no cambia.
-- **Documento de combustibles:** la lista de cambios pendientes sobre
-  `IGN-20B-FINAL-CROSSWALK-CCSBAP.md` está en §7.4, con §6.1, §6.2 y §6.3 re-corridos. Paso 4:
+- **Documentos actualizados (2026-09-30):** `RESULTADOS-CSS-BAP.md`, `RESULTADOS.md`, `IGN-26`,
+  `PENDING_PARAMETERS.md` y el documento de combustibles (§7.1, §7.4). Decisiones para el
+  director: `DECISIONES-DIRECTOR.md`.
+- **Documento de combustibles:** §6.1, §6.2 y §6.3 re-corridos (§7.4). Paso 4:
   SH8 queda 2,7–6,5× por debajo de la quema A4, no 5–11×. Tres mapas: el orden se sostiene
   (anillo 3.892 / 7.268 / 9.262 ha; harness B IoU 0,010 / 0,035 / 0,046, contra otra referencia
   porque la del documento ya no existe), pero las intensidades bajan. Humedad viva: factor 2,53
@@ -724,6 +726,12 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 
 ### 7.1 Documentos con números afectados por los bugs
 
+**Aplicado el 2026-09-30:** `RESULTADOS-CSS-BAP.md`, `RESULTADOS.md`, `IGN-26-VALIDACION.md`,
+`PENDING_PARAMETERS.md` y `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` llevan una nota al
+principio y los números corregidos al lado de los anteriores; las secciones de estado y los
+veredictos están actualizados. Las bitácoras se conservan como registro. Lo que sigue es la lista
+original.
+
 - **`RESULTADOS-CSS-BAP.md`, `RESULTADOS.md` e `IGN-26-VALIDACION.md`:** todas sus corridas
   tienen los hallazgos 1 y 2 (clima congelado en la primera hora de cada ventana y frente a la
   mitad de la velocidad calculada). Lo que hay que rehacer o re-leer:
@@ -766,7 +774,9 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
   Alerces 2024 de 0,556 a 0,614, pero Alerces 2016 y 2023 se pasan. Un CBH con fundamento
   (inventario, o la relación de Cruz et al. 2003 por tipo de bosque) es lo que más movería el
   resultado ahora.
-- **Forest → TL8 y Rem Dist Rec → GS3** (RESULTADOS-CSS-BAP §7.2) siguen igual.
+- **Forest → TL8** ya casi no pesa con la interfaz corregida: TU5 en vez de TL8 lleva a Epuyén de
+  0,500 a 0,503 (`diag-lw100-tl8-tu5-001` sobre v5; en v3 era +0,05). Lo que decide el día 1 en
+  la plantación es la copa. **Rem Dist Rec → GS3** sigue igual (RESULTADOS-CSS-BAP §7.2).
 
 ### 7.3 Límites que ninguna corrección resuelve
 
@@ -783,8 +793,9 @@ de prueba en el régimen calibrado, mejora de 0,195 (v3 base) a 0,297.
 
 ### 7.4 Cambios pendientes en el documento de combustibles (`docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
 
-No se edita desde esta auditoría: la tabla es el aporte de la tesis y está en revisión del
-director. Lo que hay que cambiar después, sección por sección:
+**Aplicado el 2026-09-30** en el documento (nota al principio; §5.4, §5.7, §6.1–§6.3, §7 y §9),
+a pedido del autor. La tabla de correspondencia (§4) no se tocó. Lista original, sección por
+sección:
 
 - **§6.2 Paso 4 contra la quema A4 — cambian los números y una conclusión.** El script
   (`scripts/paso4_quema_a4.py`) corre en el playground, que escribía `phi` en metros (hallazgo

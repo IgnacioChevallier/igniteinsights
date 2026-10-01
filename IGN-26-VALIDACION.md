@@ -18,6 +18,13 @@
 > con esos números. Bloquea: `ETAPA-A §A7` (congelar el baseline) y `ETAPA-B §B6`
 > (comparación de mapas de combustible contra el perímetro observado).
 
+> **Nota del 2026-09-30 (auditoría física, `AUDITORIA-FISICA.md`).** Los resultados de los harness
+> A y B (§Resultado del harness A, §Resultado) y las corridas del benchmark anteriores a los
+> protocolos `-v4` tienen dos errores de interfaz con ELMFIRE, ya corregidos: el clima quedaba fijo
+> en la primera banda durante toda la corrida y el frente avanzaba a la mitad de la velocidad
+> calculada. El diseño de validación (§12) no cambia. El harness B re-medido está en
+> `RESULTADOS.md` §10; la comparación de mapas sobre el benchmark, en `COMPARACION-MAPAS-V5.md`.
+
 ## Benchmark reproducible (2026-09-26)
 
 Los dos harness se reemplazan por un benchmark donde **cada corrida es un estado inmutable**
@@ -71,6 +78,18 @@ ciclo 18z y 25 bandas. Como mask-dataset-gen retiró `legacy-v1` (commit 5318c24
 pasó a `baseline-002`, con una ventana pre más cercana al incendio (nov-2025 a ene-2026) y sin filtro de evento
 (`event-filter-001` terminó en `failed`). Los números nuevos de ese caso no son comparables con
 los publicados.
+
+*(2026-09-30)* Con el error de interfaz 1 de la auditoría física, esas bandas faltantes no
+llegaban a pesar: ELMFIRE usaba la primera banda durante toda la corrida, así que las 13 bandas
+nunca se leían. Por la misma razón, el anclaje de `SIMULATION_TSTART` no tenía efecto en esas
+corridas.
+
+**Estado del benchmark (2026-09-30).** Protocolos vigentes `-v5`
+(`benchmarks/particion.json`): 7 incendios de calibración y 4 de prueba, con los cinco errores de
+interfaz corregidos (`-v4`: clima hora a hora, `phi` ±1 y dirección del viento; `-v5`: además,
+dosel sin altura y grilla de clima alta). Receta vigente `lw-100-001` (LW 100 %, sin ADJ):
+calibración 0,381 / 0,451, prueba 0,213 / 0,220. Las convenciones de la interfaz se verifican con
+ELMFIRE real en `scripts/pruebas_fisicas.py` (fuera de `make check`).
 
 **Casos históricos (2026-09-27).** El empaquetador `firms_gfs` arma un caso de un incendio pasado
 con:

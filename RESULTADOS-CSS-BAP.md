@@ -5,37 +5,40 @@
 > Todo lo de este documento es reproducible con `scripts/benchmark.py` y los casos y recetas de
 > `benchmarks/`.
 
+
+> **Superado por la auditoría física (`AUDITORIA-FISICA.md`, 2026-09-29/30).** Todas las
+> corridas de este documento (protocolos sin sufijo, `-v2` y `-v3`) tienen dos errores de
+> interfaz con ELMFIRE que la auditoría encontró y corrigió: el clima quedaba fijo en la primera
+> hora de cada ventana y el frente avanzaba a la mitad de la velocidad calculada. La receta
+> vigente es **`lw-100-001`** (LW 100 %, sin ADJ) sobre los protocolos `-v5`: 0,381 / 0,451 en
+> calibración, sin alarmas. La bitácora (§4) y las tablas (§5) se conservan como registro; los
+> veredictos de §1, §6 y §7 están actualizados.
+
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop 9, 2026-09-28 23 h)*
+*(última: 2026-09-30, tras la auditoría física)*
 
-- **Receta final: `lw100-adj115-001`** (LW 100 % + ADJ 1,15; CCS-BAP anterior al fuego;
-  pendiente corregida).
-  - Calibración (siete incendios): Dice medio 0,372 y mediana 0,411, contra 0,312 / 0,340 de
-    base. Cero alarmas en los seis alcanzables.
-  - Prueba (cuatro incendios, no usados para elegir): 0,212 contra 0,202 de base.
-  - Tablas en §5; veredictos por parámetro en §6.
-- **Lo que se entendió:**
-  1. La orientación del terreno estaba invertida en todo el repo; corregirla es la mejora más
-     grande.
-  2. El m1 del GFS ya es el de las estaciones: el −6 no tiene soporte.
-  3. La calibración mueve el reloj, no la forma.
-  4. El día 1 explosivo (10–50× por debajo) no es de viento medio ni de humedad: faltan copa,
-     pavesas y ráfagas.
-  5. La velocidad que pide cada incendio varía ~5× según el régimen: la supresión manda en los
-     combatidos cerca de poblados.
-  6. La ignición (±500 m / ±2 h) pesa más que cualquier perilla.
-- **Corriendo:** nada. El consumidor `data/benchmark/cola_run2.sh` sigue vivo, esperando líneas
-  nuevas en `data/benchmark/trabajos.txt`.
-- **Hipótesis abiertas:** la supresión (el módulo `&SUPPRESSION` de ELMFIRE no está expuesto) y
-  la dirección del viento de superficie (sin corrección general con estas herramientas). El día 1
-  explosivo quedó probado como límite estructural: ni el viento de estación ni otro combustible
-  en la ignición lo reproducen (loop 8).
-- **Próximo paso:** las vías de entrada del pipeline están agotadas.
-  - Lo que sigue sale de este trabajo: exponer `&SUPPRESSION` y las pavesas en `write_namelist`,
-    y revisar Forest → TL8 y Rem Dist Rec → GS3 con el director (§7).
-  - La robustez a la ignición ya se midió: la receta final es un poco más frágil que
-    `adj-130-001` (loop 7).
+- **Receta vigente: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
+  protocolos `-v5` (`benchmarks/particion.json`), con Alerces 2023 a 54 h.
+  - Calibración (7): media **0,381**, mediana **0,451**, cero alarmas sin el caso límite. La
+    validación cruzada la elige en 7 de 7 pliegues.
+  - Robustez a la ignición (21 corridas perturbadas): 0,460 / 0,480, 3 alarmas al borde.
+  - Prueba (4): 0,213 / 0,220.
+  - El detalle, la bitácora y la comparación con las cifras de este documento están en
+    `AUDITORIA-FISICA.md` §1, §5 y §6.
+- **Qué cambió respecto de lo que sigue en este documento:**
+  1. La receta `lw100-adj115-001` (LW 100 % + ADJ 1,15) compensaba en parte los errores de
+     interfaz: con ellos corregidos, el ADJ sobra.
+  2. El día 1 ya no queda 10–50× por debajo en todos: Alerces 2023 lo reproduce (389 contra 485
+     ha) y en los demás queda 8–30× por debajo.
+  3. La ignición pesa menos: Epuyén va de 0,37 a 0,50 con ±500 m / ±2 h (antes, de 0,08 a 0,50).
+  4. La copa no es imposible: con una base de copa baja se enciende (Cholila pasa de 0,26 a
+     0,53). "El CBH no es lo que frena la copa" (§6) quedó refutado.
+  5. ERA5 no es intercambiable con el GFS: propaga ~20 % menos (§2.13).
+- **Siguen valiendo:** la conclusión sobre la humedad muerta (el −6 no tiene soporte), los
+  análisis de insumos contra estaciones, el bug de la orientación del terreno y los límites de
+  supresión, viento de superficie y día explosivo.
+- **Decisiones para el director:** `DECISIONES-DIRECTOR.md`.
 
 ## 2. Supuestos
 
@@ -92,7 +95,7 @@ Decisiones tomadas sin poder consultar, con su justificación.
     - El GFS de 0,25° no tiene ese evento: 8,5 mph del ONO.
     - Ninguna receta pasa de sesgo 0,07: `base-001` quema 450 de 10.623 ha en 24 h.
     - Se sigue reportando en las tablas y cuenta en la media y la mediana.
-13. **ERA5 es intercambiable con el GFS para este modelo.** En los mismos incendios da el mismo
+13. **ERA5 es intercambiable con el GFS para este modelo.** *(Refutado con la interfaz corregida: ERA5 propaga ~20 % menos que el GFS en los mismos incendios porque sopla más flojo; la receta no cambia. `AUDITORIA-FISICA.md`, loops C y D.)* En los mismos incendios da el mismo
     Dice: Alerces 2023, 0,424 contra 0,425; Epuyén 2025, 0,118 contra 0,128. Los incendios viejos
     se corren con ERA5 y la misma receta, pero se resumen aparte: `objetivo … era5`.
 14. **Cambios ajenos en `app/` durante el loop 6.** Desde el 28-sep a la tarde hay cambios sin
@@ -855,20 +858,21 @@ centro de lo que pide cada incendio.
 
 ## 6. Parámetros
 
-Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá. 
+Veredictos por entrada de `PENDING_PARAMETERS.md`. **Actualizados el 2026-09-30 con la auditoría física**: donde el veredicto cambió, se indica el anterior.
 
 | Entrada | Veredicto | Evidencia |
 |---|---|---|
 | §1.2 humedad muerta, m1 | **Con criterio: se queda Nelson con el GFS crudo; el delta uniforme no tiene soporte.** | Estaciones (El Bolsón, Esquel, Futaleufú) dan m1 de 5,9–6,6 % en las tardes de fuego; el GFS, 5,5–9,1 %. Las tablas de Fosberg (BehavePlus, llevadas al hemisferio sur) dan lo mismo o más húmedo que Nelson. `fosberg-001` y `altura-001` cambian el Dice en ±0,01. El −6 (m1 ≈ 1 %) es un acelerador que suple el fuego de copas y el viento de valle que faltan (§4, loop 2). |
 | §1.2 humedad muerta, m10/m100 (+2/+5) | **Insensible.** | `humedad-m1-m6-001` (−6 sólo en m1) da 2/3 del efecto del −6 completo. El modelo de retardo baja m100 a ~11 % sin cambiar el resultado (`RESULTADOS.md` §8). |
-| §1.3 ADJ | **Calibrado contra 6 incendios: 1,3 uniforme (intervalo sin alarmas [1,1; 1,3]).** Por grupo de combustible: **no identificable**. | Cada incendio pide entre 1,00 y 1,53 para llegar a sesgo 1 (media geométrica 1,26). 1,3 es el máximo sin alarmas y da +20 % de Dice (GFS) sobre 1,0. El ADJ por grupo (SH ×1,5–2,5, TU ×1,3) no sigue a la composición de las cicatrices: Alerces 2016 (52 % SH) no pide nada y Epuyén (54 % SH) pide 1,5. |
+| §1.3 ADJ | **ADJ = 1 (sin ajuste).** Con la interfaz corregida, el intervalo de ADJ sin alarmas es ~[1,05; 1,15] y la receta final (LW 100 %) no lo necesita (`AUDITORIA-FISICA.md`, loops C y E). *Antes: 1,3 uniforme, calibrado con los errores de interfaz, que compensaba.* Por grupo de combustible: **no identificable**. | Cada incendio pide entre 1,00 y 1,53 para llegar a sesgo 1 (media geométrica 1,26). 1,3 es el máximo sin alarmas y da +20 % de Dice (GFS) sobre 1,0. El ADJ por grupo (SH ×1,5–2,5, TU ×1,3) no sigue a la composición de las cicatrices: Alerces 2016 (52 % SH) no pide nada y Epuyén (54 % SH) pide 1,5. |
 | §1.4 rugosidad z0 | **Se queda el escalar 0,22 m; el ráster de dosel duplica el WAF.** | z0 = 0,13 × altura del dosel baja el área de Alerces 2023 un 12 % (0,442 contra 0,457), porque reduce el viento bajo el bosque, donde ELMFIRE ya aplica su propio factor de reducción por dosel. En pastizal y matorral sube el viento apenas ~5 %. |
-| §3 `dt_s` / `dtmax_s` | **Convergido: 30 s / 300 s quedan justificados.** | Con el paso a la mitad (15 s / 150 s), el Dice cambia +0,004 (Alerces 2023), +0,002 (Epuyén) y +0,003 (Alerces 2016), y el sesgo menos del 3 %. |
+| §3 `dt_s` / `dtmax_s` | **Convergido: 30 s / 300 s quedan justificados.** | Con el paso a la mitad (15 s / 150 s), el Dice cambia +0,004 (Alerces 2023), +0,002 (Epuyén) y +0,003 (Alerces 2016), y el sesgo menos del 3 %. *Nota de la auditoría:* con el `phi` en metros el frente sí dependía del paso (5,7 → 7,4 m/min con 1/10 s); con `phi` ±1 avanza a la velocidad calculada con 30/300 s (10,74 contra 10,66 m/min). |
 | §2 reconstrucción de perímetro | **Fuera de alcance de esta calibración.** | La semilla es puntual; los parámetros de §2 sólo pesan con semilla observada (harness A). |
-| §1.6 humedad viva LW (hoy «resuelto» en 110 %) | **Reabrir: 110 % es el umbral de grandes incendios de Bianchi y Defossé (2015), no el valor de un día de gran incendio. Calibrado contra 7 incendios junto con ADJ: LW 100 % + ADJ 1,15.** | Con LW 90–95 %, los incendios dominados por arbustal alcanzan su área (Epuyén: 0,160 → 0,331) y la mediana de calibración sube de 0,340 a 0,45. Alerces 2016, que ya llega con base, limita el valor: con LW 90 % pasa a sesgo 2,14. El intervalo sin alarmas es [95; 110] %. LW no rescata el día 1: acelera desde el día 2, ya en el arbustal. |
+| §1.6 humedad viva LW (hoy «resuelto» en 110 %) | **LW = 100 %, sin ADJ.** 110 % es el umbral de grandes incendios de Bianchi y Defossé (2015), no el valor de un día de gran incendio. Con la interfaz corregida, el intervalo sin alarmas es ~[97; 110] % y 100 % es la receta final (`AUDITORIA-FISICA.md`, loop E). *Antes: LW 100 % + ADJ 1,15.* | Con LW 90–95 %, los incendios dominados por arbustal alcanzan su área (Epuyén: 0,160 → 0,331) y la mediana de calibración sube de 0,340 a 0,45. Alerces 2016, que ya llega con base, limita el valor: con LW 90 % pasa a sesgo 2,14. El intervalo sin alarmas es [95; 110] %. LW no rescata el día 1: acelera desde el día 2, ya en el arbustal. |
 | (nuevo) orientación del terreno | **Bug corregido** (`raster_aligner` v3). | Ver §4, loop 2. Con la pendiente bien, `base-001` pasa de 0,425 a 0,457 en Alerces 2023 y de 0,301 a 0,433 en Alerces 2016. |
-| (nuevo) viento de superficie | **La dirección del GFS está sesgada ~+43° en la región, sin corrección general con estas herramientas.** | WindNinja (conservación de masa) es neutro en promedio: +7 puntos en Alerces 2016, −2 en Alerces 2023 y Patriada. La canalización por presión y la rotación empírica tampoco mejoran el objetivo (§4, loop 4). |
-| (nuevo) dosel CBH | **El CBH no es lo que frena la copa.** | Con el CBH ×0,25, la copa sigue sin iniciarse: la superficie TL8 no da la intensidad (§4, loop 3). |
+| (nuevo) viento de superficie | **La dirección del GFS está sesgada ~+43° en la región, sin corrección general con estas herramientas.** *Con la interfaz corregida, la rotación empírica de 30° suma +0,012 pero hace pasar a Epuyén de sesgo 2 (`AUDITORIA-FISICA.md`, loop G).* | WindNinja (conservación de masa) es neutro en promedio: +7 puntos en Alerces 2016, −2 en Alerces 2023 y Patriada. La canalización por presión y la rotación empírica tampoco mejoran el objetivo (§4, loop 4). |
+| (nuevo) dosel CBH | **Refutado: el CBH derivado sí frena la copa.** *Antes: «el CBH no es lo que frena la copa».* | Con el frente a la mitad, la intensidad superficial también estaba a la mitad. Con la interfaz corregida y el CBH ×0,25, la copa se enciende: Cholila 0,255 → 0,528, Alerces 2024 0,556 → 0,614; Alerces 2016 y 2023 se pasan (`AUDITORIA-FISICA.md`, loop F). Es el insumo que más mueve el resultado; va al director (`DECISIONES-DIRECTOR.md` §2). |
+| (nuevo) interfaz con ELMFIRE | **Cinco errores corregidos** (`AUDITORIA-FISICA.md` §3): clima fijo en la primera hora de cada ventana, frente a la mitad por el `phi` en metros, dirección del viento interpolada como ángulo plano, cobertura sin altura sin viento y grilla de clima alta. | Todo este documento corrió con los dos primeros. Protocolos corregidos: `-v4` (1–3) y `-v5` (1–5). |
 
 ## 7. Para corregir afuera
 
@@ -906,6 +910,11 @@ Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá.
 
 ### 7.3 Límites que ningún parámetro resuelve
 
+*(2026-09-30)* Con la interfaz corregida estos límites siguen, con otras magnitudes: el día 1
+queda 8–30× por debajo en cuatro de siete (Alerces 2023 ya lo reproduce); la ignición pesa
+menos; la copa sí puede encenderse con un CBH bajo. Versión actual en `AUDITORIA-FISICA.md`
+§7.3.
+
 - **Supresión.** Los incendios combatidos con éxito cerca de poblados y rutas (Epuyén 2019,
   El Turbio) sobre-propagan 4–14× sin que ninguna receta lo cambie. Los de calibración, en zonas
   de acceso difícil, sub-propagan.
@@ -934,3 +943,6 @@ Veredictos por entrada de `PENDING_PARAMETERS.md`, para trasladar allá.
     con `raster_aligner` v3.
   - En particular, la frase de §8.4 "el modelo además quema ladera arriba hacia el oeste" se
     explica por el viento, no por la pendiente.
+- *(2026-09-30)* Además de la orientación, todas esas corridas tienen los errores de interfaz 1 y
+  2 de la auditoría física. Esos documentos ya llevan una nota al principio, y la comparación de
+  los tres mapas se rehace sobre el benchmark v5 (`COMPARACION-MAPAS-V5.md`).
