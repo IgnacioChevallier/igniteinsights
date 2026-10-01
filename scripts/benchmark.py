@@ -565,8 +565,28 @@ def _firms_gfs(caso: d.Caso) -> dict:
             "origen": origen | {"preparacion": str(prep), "firms_detecciones": len(df)}}
 
 
+def _ampliar_mapas(caso: d.Caso) -> dict:
+    """El paquete de otro caso, byte a byte, más mapas de combustible: lo único que cambia
+    entre las iteraciones de dos mapas es `fbfm40` (COMPARACION-MAPAS-V5.md)."""
+    datos = caso.datos["empaquetado"]
+    base = d.Caso.cargar(datos["base"]).paquete()
+    with rasterio.open(almacen.abrir(base["comunes"]["dem.tif"])) as dem:
+        grilla = (dem.shape, dem.transform, dem.crs)
+    nuevos = {}
+    for nombre, ruta in datos["mapas"].items():
+        recorte, _ = _recortar(Path(ruta), tuple(caso.datos["caja_wgs84"]))
+        with rasterio.open(recorte) as src:
+            if (src.shape, src.transform, src.crs) != grilla:
+                raise ValueError(f"{ruta} no está en la grilla del dem de {datos['base']}")
+        nuevos[nombre] = almacen.guardar(recorte)
+        if nombre in base["comunes"] and base["comunes"][nombre] != nuevos[nombre]:
+            raise ValueError(f"{nombre} difiere del de {datos['base']}")
+    return {"comunes": base["comunes"] | nuevos, "ventanas": base["ventanas"],
+            "origen": base["origen"] | {"base": datos["base"], "mapas": datos["mapas"]}}
+
+
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
-                  "firms_gfs": _firms_gfs}
+                  "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas}
 
 
 def empaquetar(caso: d.Caso) -> None:

@@ -119,11 +119,17 @@ class Receta:
 
     def anio_combustible(self, caso: Caso) -> int:
         """Resuelve el año y aplica la regla de fuga: el mapa tiene que ser anterior al
-        incendio, o ya ve la cicatriz que se quiere predecir."""
+        incendio, o ya ve la cicatriz que se quiere predecir.
+
+        La única excepción es declarada: `"sin_anterior": "primero_publicado"` toma el primer
+        año publicado cuando no hay ninguno anterior (WorldCover empieza en 2020), y la
+        iteración queda marcada con `fuga_temporal` en sus factores."""
         fuente, anio = self.combustible["fuente"], self.combustible["anio"]
         publicados = ANIOS_COMBUSTIBLE[fuente]
         if anio == "anterior_al_fuego":
             previos = [a for a in publicados if a < caso.anio_fuego]
+            if not previos and self.combustible.get("sin_anterior") == "primero_publicado":
+                return min(publicados)
             if not previos:
                 raise ValueError(f"{fuente}: ningún año publicado antes de {caso.anio_fuego}")
             return max(previos)
@@ -152,8 +158,10 @@ class Receta:
 
     def factores(self, caso: Caso) -> dict:
         """Lo declarado, ya resuelto contra el caso: lo que se compara entre recetas."""
-        return {"combustible": f"{self.combustible['fuente']}{self.anio_combustible(caso)}",
-                "semilla": self.semilla, **self.parametros}
+        anio = self.anio_combustible(caso)
+        fuga = {"fuga_temporal": True} if anio >= caso.anio_fuego else {}
+        return {"combustible": f"{self.combustible['fuente']}{anio}",
+                "semilla": self.semilla, **fuga, **self.parametros}
 
     @classmethod
     def cargar(cls, receta_id: str) -> "Receta":

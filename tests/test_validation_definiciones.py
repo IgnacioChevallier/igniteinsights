@@ -36,6 +36,17 @@ def test_anterior_al_fuego_resuelve_por_incendio():
     assert _receta().anio_combustible(_caso(2023)) == 2017
 
 
+def test_sin_anterior_la_fuga_se_declara():
+    combustible = {"fuente": "worldcover", "anio": "anterior_al_fuego"}
+    with pytest.raises(ValueError, match="ningún año"):
+        _receta(combustible=combustible).anio_combustible(_caso(2016))
+    r = _receta(combustible=combustible | {"sin_anterior": "primero_publicado"})
+    assert r.anio_combustible(_caso(2016)) == 2020
+    assert r.factores(_caso(2016))["fuga_temporal"] is True
+    assert r.anio_combustible(_caso(2023)) == 2021
+    assert "fuga_temporal" not in r.factores(_caso(2023))
+
+
 def test_prediccion_exige_ventanas_contiguas():
     with pytest.raises(ValueError, match="contiguas"):
         _receta().validar(_caso(contiguo=False))
