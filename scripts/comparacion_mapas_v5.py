@@ -59,6 +59,10 @@ def _arranco(manifiesto: dict) -> bool:
     return any(n.startswith("time_of_arrival") for n in manifiesto["ventanas"][0]["salidas"])
 
 
+def _ha(v: float) -> str:
+    return f"{v:,.0f}".replace(",", ".")
+
+
 def metricas(caso_id: str, recetas: dict) -> dict:
     salida = {}
     for mapa, receta in recetas.items():
@@ -92,18 +96,16 @@ def metricas(caso_id: str, recetas: dict) -> dict:
 
 def donde(caso_id: str, recetas: dict) -> dict:
     """Por grupo de CCS-BAP: ha observadas en la cicatriz y ha acertadas / sobrantes de cada
-    mapa en la última ventana; y la fracción de la cicatriz donde cada mapa es igual a
-    WorldCover (ahí no se puede diferenciar del baseline)."""
+    mapa en la última ventana."""
     caso = d.Caso.cargar(caso_id)
     comunes = caso.paquete()["comunes"]
     mapas = {n.removeprefix("fbfm40_").removesuffix(".tif"): cadena._leer(s)
              for n, s in comunes.items() if n.startswith("fbfm40_")}
     ccs = next(v for k, v in mapas.items() if k.startswith("ccsbap"))
-    wc = next(v for k, v in mapas.items() if k.startswith("worldcover"))
     grupo = np.full(ccs.shape, "", dtype="<U2")
     for g, (a, b) in GRUPOS.items():
         grupo[(ccs >= a) & (ccs <= b)] = g
-    salida: dict = {"grupos": {}, "igual_a_wc": {}}
+    salida: dict = {"grupos": {}}
     confusiones = {}
     for mapa, receta in recetas.items():
         manifiesto = d.cargar_manifiesto(caso_id, receta)
@@ -116,18 +118,43 @@ def donde(caso_id: str, recetas: dict) -> dict:
     una = next(iter(confusiones.values()))
     # Lo observado (cicatriz fuera de la semilla y de la exclusión) es igual en los tres.
     obs = (una == cadena.ACIERTO) | (una == cadena.OBS_SIN_PREDECIR)
-    for mapa, receta in recetas.items():
-        manifiesto = d.cargar_manifiesto(caso_id, receta)
-        assert manifiesto, f"{caso_id} sin {receta}"
+    for mapa in recetas:
         conf = confusiones.get(mapa, np.where(obs, cadena.OBS_SIN_PREDECIR, cadena.NADA))
-        propio = next(v for k, v in mapas.items()
-                      if k == manifiesto["factores"]["combustible"])
-        salida["igual_a_wc"][mapa] = float((propio[obs] == wc[obs]).mean()) if obs.any() else None
         for g in GRUPOS:
             en = grupo == g
             fila = salida["grupos"].setdefault(g, {"obs_ha": float((obs & en).sum() * ha)})
             fila[mapa] = {"tp_ha": float(((conf == cadena.ACIERTO) & en).sum() * ha),
                           "fp_ha": float(((conf == cadena.PREDICHO_SIN_OBS) & en).sum() * ha)}
+    return salida
+
+
+def _dilatar(m: np.ndarray, r: int) -> np.ndarray:
+    """Dilatación cuadrada de radio r celdas, separable con sumas acumuladas."""
+    x = m.astype(np.int64)
+    for eje in (0, 1):
+        c = np.cumsum(np.pad(x, [(r + 1, r) if e == eje else (0, 0) for e in (0, 1)]), axis=eje)
+        x = np.take(c, range(2 * r + 1, c.shape[eje]), axis=eje) - np.take(
+            c, range(0, c.shape[eje] - 2 * r - 1), axis=eje)
+    return x > 0
+
+
+def fuga(caso_id: str) -> dict:
+    """¿El mapa ve la cicatriz? Fracción de pastizal (GR) y de no combustible (NB) dentro de
+    la cicatriz y en un anillo de 2 km alrededor. Un mapa posterior al fuego que la ve pone
+    mucho más GR/NB adentro que afuera; uno anterior, más o menos lo mismo."""
+    caso = d.Caso.cargar(caso_id)
+    comunes = caso.paquete()["comunes"]
+    cic = cadena._leer(comunes["cicatriz.tif"]).astype(bool)
+    excl = cadena._leer(comunes["excluido.tif"]).astype(bool)
+    anillo = _dilatar(cic, 67) & ~cic & ~excl
+    dentro = cic & ~excl
+    salida = {}
+    for n, sha in comunes.items():
+        if n.startswith("fbfm40_"):
+            f = cadena._leer(sha)
+            gr_nb = (f >= 91) & (f <= 109)
+            salida[n.removeprefix("fbfm40_").removesuffix(".tif")] = (
+                float(gr_nb[dentro].mean()), float(gr_nb[anillo].mean()))
     return salida
 
 
@@ -200,35 +227,44 @@ def main() -> None:
     for f in completos:
         print(f"| {f['base'].split('/')[0]} | " + " | ".join(
             f"{_f(f['m'][m]['d1_firms'])} / {_f(f['m'][m]['d1_sesgo_firms'], 2)} / "
-            f"{f['m'][m]['d1_cicatriz_ha']:,.0f} ha".replace(",", ".") for m in recetas) + " |")
+            f"{_ha(f['m'][m]['d1_cicatriz_ha'])} ha" for m in recetas) + " |")
     for otro in [m for m in recetas if m != "CCS-BAP"]:
         difs = [f["m"]["CCS-BAP"]["d1_firms"] - f["m"][otro]["d1_firms"] for f in sin_limite]
         g, p_, e, pv = signos(difs)
         print(f"\nDía 1, CCS-BAP contra {otro} (sin el límite): gana {g}, pierde {p_}, "
               f"empata {e}, p = {_f(pv)}, Δ media {_f(mean(difs))}")
 
-    print("\n### Dónde: por grupo de CCS-BAP dentro de la cicatriz (última ventana, ha)\n")
-    total: dict = {}
-    print("| Incendio | % cicatriz igual a WorldCover (" + ", ".join(recetas) + ") |")
-    print("|---|---|")
-    for f in completos:
-        dd = donde(f["id"], recetas)
-        print(f"| {f['base'].split('/')[0]} | " + " / ".join(
-            _f(100 * dd["igual_a_wc"][m], 0) for m in recetas) + " |")
-        for g, fila in dd["grupos"].items():
-            t = total.setdefault(g, {"obs_ha": 0.0})
-            t["obs_ha"] += fila["obs_ha"]
-            for m in recetas:
-                for k in ("tp_ha", "fp_ha"):
-                    t.setdefault(m, {"tp_ha": 0.0, "fp_ha": 0.0})[k] += fila[m][k]
-    print("\nSuma de los incendios con los tres mapas (aciertos / sobrantes en ha):\n")
-    print("| Grupo CCS-BAP | Observado | " + " | ".join(recetas) + " |")
+    print("\n### ¿Cada mapa ve la cicatriz? % de GR + NB dentro / en el anillo de 2 km\n")
+    print("| Incendio | Año del fuego | " + " | ".join(recetas) + " |")
     print("|---|---|" + "---|" * len(recetas))
-    for g, t in total.items():
-        print(f"| {g} | {t['obs_ha']:,.0f} | ".replace(",", ".") + " | ".join(
-            f"{t[m]['tp_ha']:,.0f} / {t[m]['fp_ha']:,.0f}".replace(",", ".")
-            for m in recetas) + " |")
+    for f in filas:
+        fu = fuga(f["id"])
+        celdas = []
+        for prefijo in ("ccsbap", "worldcover", "mapbiomas"):
+            k = next(k for k in fu if k.startswith(prefijo))
+            celdas.append(f"{_f(100 * fu[k][0], 0)} / {_f(100 * fu[k][1], 0)} ({k[len(prefijo):]})")
+        anio = d.Caso.cargar(f["id"]).anio_fuego
+        print(f"| {f['base'].split('/')[0]} | {anio} | " + " | ".join(celdas) + " |")
 
+    print("\n### Dónde: por grupo de CCS-BAP dentro de la cicatriz (última ventana)\n")
+    for titulo, sel in (("Sin fuga temporal (2021+, sin el límite)",
+                         [f for f in sin_limite if not f["m"]["WorldCover"]["fuga"]]),
+                        ("Con fuga temporal (2015-2019)",
+                         [f for f in sin_limite if f["m"]["WorldCover"]["fuga"]])):
+        total: dict = {}
+        for f in sel:
+            for g, fila in donde(f["id"], recetas)["grupos"].items():
+                t = total.setdefault(g, {"obs_ha": 0.0})
+                t["obs_ha"] += fila["obs_ha"]
+                for m in recetas:
+                    for k in ("tp_ha", "fp_ha"):
+                        t.setdefault(m, {"tp_ha": 0.0, "fp_ha": 0.0})[k] += fila[m][k]
+        print(f"\n{titulo}: aciertos / sobrantes en ha\n")
+        print("| Grupo CCS-BAP | Observado | " + " | ".join(recetas) + " |")
+        print("|---|---|" + "---|" * len(recetas))
+        for g, t in total.items():
+            print(f"| {g} | {_ha(t['obs_ha'])} | " + " | ".join(
+                f"{_ha(t[m]['tp_ha'])} / {_ha(t[m]['fp_ha'])}" for m in recetas) + " |")
 
 if __name__ == "__main__":
     main()
