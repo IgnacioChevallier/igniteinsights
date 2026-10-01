@@ -142,8 +142,9 @@ validation harness exists, and it directly bounds the uncertainty on every resul
 > Al 2026-09-30: la calibración sobre el benchmark `-v5` elige **LW = 100 %** (intervalo sin
 > alarmas ~[97; 110] %), porque 110 % es el umbral por debajo del cual ocurren los grandes
 > incendios según Bianchi & Defossé, no el valor de un día de gran incendio
-> (`AUDITORIA-FISICA.md`, loop E). El default de la app (`DEFAULT_LW_MOISTURE_PCT`) sigue en
-> 110 %: pasarlo a 100 % es una decisión pendiente.
+> (`AUDITORIA-FISICA.md`, loop E). El default de la app (`DEFAULT_LW_MOISTURE_PCT`) pasó a
+> **100 %** el mismo día. El benchmark fija su base en 110 % (`cadena.HUMEDAD_VIVA_BASE`), para
+> que `base-001` siga siendo la misma receta.
 
 > Al 2026-09-16: `LW = 110 %`, medido por Bianchi & Defossé (2015) para la temporada de fuego
 > en la Patagonia andina. `LH = 30 %` **no** viene del paper, que no mide herbáceas: es la

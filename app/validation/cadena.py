@@ -176,7 +176,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     _reescribir(insumos / "wd.tif", weather_builder.wd_for_elmfire)
 
     v = caso.ventanas[n]
-    kwargs = {k: val for k, val in receta.parametros.items() if k not in RASTERS_TRANSFORMADOS}
+    kwargs = HUMEDAD_VIVA_BASE | {k: val for k, val in receta.parametros.items()
+                                  if k not in RASTERS_TRANSFORMADOS}
     namelist_writer.write_namelist(
         insumos.resolve(), salidas.resolve(), simulation_hours=v.horas,
         output_path=insumos / "elmfire.data", simulation_tstart_s=v.tstart_s, **kwargs,
@@ -189,6 +190,10 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     return {nombre: almacen.guardar(insumos / nombre) for nombre in sorted(nombres)}
 
 
+# La humedad viva de base del benchmark (la de base-001: LH 30 %, LW 110 %), fija acá y no
+# heredada del default de la app: así una receta sin LW sigue siendo la misma receta aunque la
+# app cambie su default (pasó a LW 100 % el 2026-09-30, la receta calibrada).
+HUMEDAD_VIVA_BASE = {"lh_moisture_pct": 30.0, "lw_moisture_pct": 110.0}
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",

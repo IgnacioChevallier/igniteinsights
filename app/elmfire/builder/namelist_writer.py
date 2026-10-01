@@ -66,9 +66,12 @@ DEFAULT_CROWN_FIRE_MODEL = 1
 # y por lo tanto la más seca— a 2 m de altura.
 #
 # LW: ñire, ciprés, laura y radal se mueven entre 110 y 220 % durante la temporada; la caña
-# colihue nunca supera 110 %. Se toma **110 %, el extremo seco de la banda medida**, que es
-# la condición más propensa al fuego y donde además cae la caña. Lenga, coihue y alerce no
-# fueron medidos: heredan el valor por analogía con el ñire, y eso se declara.
+# colihue nunca supera 110 %. Bianchi & Defossé ubican en 110 % el UMBRAL por debajo del cual
+# ocurren los grandes incendios, así que el día de un gran incendio está por debajo. Se toma
+# **100 %**, el valor calibrado contra siete incendios con la interfaz de ELMFIRE corregida
+# (AUDITORIA-FISICA.md, loop E: intervalo sin sobre-propagación ~[97; 110] %; hasta el
+# 2026-09-30 era 110 %, el borde húmedo). Lenga, coihue y alerce no fueron medidos: heredan el
+# valor por analogía con el ñire, y eso se declara.
 # LH: no hay medición de herbáceas. 30 % representa el pasto **completamente curado** del
 # verano tardío, que es el umbral de transferencia dinámica de Scott & Burgan. Es una
 # convención de modelado declarada, no un dato.
@@ -76,7 +79,7 @@ DEFAULT_CROWN_FIRE_MODEL = 1
 # El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
 # Su efecto está cuantificado en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §6.3.
 DEFAULT_LH_MOISTURE_PCT = 30.0
-DEFAULT_LW_MOISTURE_PCT = 110.0
+DEFAULT_LW_MOISTURE_PCT = 100.0
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:

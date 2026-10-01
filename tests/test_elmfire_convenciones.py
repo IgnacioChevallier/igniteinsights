@@ -152,3 +152,11 @@ def test_grilla_ancha_el_clima_no_se_toca(tmp_path):
     namelist_writer.write_namelist(tmp_path, tmp_path / "out", simulation_hours=1,
                                    output_path=tmp_path / "elmfire.data")
     assert (tmp_path / "ws.tif").stat().st_mtime_ns == antes
+
+
+def test_la_base_del_benchmark_no_hereda_el_lw_de_la_app():
+    """base-001 es LW 110 %; la app pasó a 100 % (receta calibrada). Una receta sin LW no puede
+    cambiar de significado porque cambie el default de la app."""
+    from app.validation import cadena
+    assert cadena.HUMEDAD_VIVA_BASE == {"lh_moisture_pct": 30.0, "lw_moisture_pct": 110.0}
+    assert namelist_writer.DEFAULT_LW_MOISTURE_PCT == 100.0
