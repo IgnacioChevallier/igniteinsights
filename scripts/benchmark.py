@@ -914,6 +914,8 @@ def analizar(caso: d.Caso, receta: d.Receta) -> dict:
         u = -(ws * np.sin(np.radians(wd)))
         w = -(ws * np.cos(np.radians(wd)))
         def media(sel):
+            if not sel.any():   # una ventana corta (p. ej. las 6 h finales de h54) sin tarde
+                return {"mph": None, "desde_grados": None}
             uu, ww = u[sel].mean(), w[sel].mean()
             return {"mph": round(float(ws[sel].mean()), 1),
                     "desde_grados": round(float((np.degrees(np.arctan2(-uu, -ww))) % 360))}

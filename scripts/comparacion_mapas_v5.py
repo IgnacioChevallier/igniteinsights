@@ -55,10 +55,24 @@ def _f(v, nd=3) -> str:
     return "—" if v is None else f"{v:.{nd}f}".replace(".", ",")
 
 
+def _arranco(manifiesto: dict) -> bool:
+    return any(n.startswith("time_of_arrival") for n in manifiesto["ventanas"][0]["salidas"])
+
+
 def metricas(caso_id: str, recetas: dict) -> dict:
     salida = {}
     for mapa, receta in recetas.items():
         m = d.cargar_metricas(caso_id, receta)
+        manifiesto = d.cargar_manifiesto(caso_id, receta)
+        if not m and manifiesto and not _arranco(manifiesto):
+            # La semilla cae entera en combustible que no quema: ELMFIRE no deja TOA y
+            # `correr` aborta. Lo predicho es nada: Dice 0, sesgo 0.
+            salida[mapa] = {"dice": 0.0, "sesgo": 0.0, "alarma": True, "forma": 0.0,
+                            "t": None, "alcanzada": False, "no_arranca": True,
+                            "fuga": manifiesto["factores"].get("fuga_temporal", False),
+                            "combustible": manifiesto["factores"]["combustible"],
+                            "d1_firms": 0.0, "d1_sesgo_firms": 0.0, "d1_cicatriz_ha": 0.0}
+            continue
         if not m:
             continue
         pr, v0 = m["principal"], m["ventanas"][0]
@@ -90,15 +104,22 @@ def donde(caso_id: str, recetas: dict) -> dict:
     for g, (a, b) in GRUPOS.items():
         grupo[(ccs >= a) & (ccs <= b)] = g
     salida: dict = {"grupos": {}, "igual_a_wc": {}}
+    confusiones = {}
     for mapa, receta in recetas.items():
         manifiesto = d.cargar_manifiesto(caso_id, receta)
-        if not manifiesto:
-            continue
-        n = len(manifiesto["ventanas"]) - 1
-        with rasterio.open(cadena.VISTAS / caso_id / receta / f"v{n}" / "confusion.tif") as src:
-            conf = src.read(1)
-        ha = abs(src.transform.a) ** 2 / 1e4
-        obs = (conf == cadena.ACIERTO) | (conf == cadena.OBS_SIN_PREDECIR)
+        n = len(manifiesto["ventanas"]) - 1 if manifiesto else 0
+        ruta = cadena.VISTAS / caso_id / receta / f"v{n}" / "confusion.tif"
+        if ruta.exists():
+            with rasterio.open(ruta) as src:
+                confusiones[mapa] = src.read(1)
+            ha = abs(src.transform.a) ** 2 / 1e4
+    una = next(iter(confusiones.values()))
+    # Lo observado (cicatriz fuera de la semilla y de la exclusión) es igual en los tres.
+    obs = (una == cadena.ACIERTO) | (una == cadena.OBS_SIN_PREDECIR)
+    for mapa, receta in recetas.items():
+        manifiesto = d.cargar_manifiesto(caso_id, receta)
+        assert manifiesto, f"{caso_id} sin {receta}"
+        conf = confusiones.get(mapa, np.where(obs, cadena.OBS_SIN_PREDECIR, cadena.NADA))
         propio = next(v for k, v in mapas.items()
                       if k == manifiesto["factores"]["combustible"])
         salida["igual_a_wc"][mapa] = float((propio[obs] == wc[obs]).mean()) if obs.any() else None
