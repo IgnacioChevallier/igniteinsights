@@ -16,7 +16,9 @@ caso límite):
   pone el bosque en TL3, que casi no propaga: en cinco de los seis sub-predice 12 a 50 veces el
   área (sesgo 0,02–0,08). En los 4 incendios de 2015–2019 sólo hay un WorldCover posterior al
   fuego, que **ve la cicatriz** como pastizal o suelo desnudo (§6): ahí gana 1, pierde 2 y empata
-  1. Con los 10: 6 / 2 / 2, Δ mediana +0,20, p = 0,29.
+  1. Con los 10: 6 / 2 / 2, Δ mediana +0,20, p = 0,29. Con WorldCover 2021 en esos cuatro
+  (§6.1) el baseline los gana todos: un mapa que ve la cicatriz como pastizal acierta dónde
+  quema. Por eso la comparación válida son los seis 2021+.
 - **Contra MapBiomas: empate.** 4 / 5 / 1, Δ media +0,012, Δ mediana −0,015, p = 1. La
   diferencia cambia de signo con el período: en los 6 incendios 2021+ (GFS) CCS-BAP gana 4,
   pierde 1 y empata 1 (Δ media +0,059: 0,394 contra 0,335); en los 4 de 2015–2019 (ERA5) pierde
@@ -286,6 +288,33 @@ cicatriz y en un anillo de 2 km alrededor. Un mapa anterior al fuego pone menos 
 - Por eso **las victorias de WorldCover en 2015–2019 no cuentan como evidencia contra CCS-BAP**, y
   la comparación limpia con el baseline son los seis incendios 2021+.
 
+### 6.1 ¿Y con WorldCover 2021? (sensibilidad)
+
+¿El resultado de 2015–2019 depende del producto 2020 (v100)? Protocolos `-v5mw`: el paquete v5m
+de los cuatro incendios, por hash, más WorldCover 2021 (v200, el mismo producto que en los 2021+ y
+que la app). Receta `lw-100-worldcover2021-001` (`"sin_anterior": "ultimo_publicado"`, también con
+la fuga declarada). Dice / sesgo / forma; día 1 contra FIRMS:
+
+| Incendio | WorldCover 2020 | **WorldCover 2021** | CCS-BAP | MapBiomas | GR / NB en la cicatriz (2020 → 2021) |
+|---|---|---|---|---|---|
+| Alerces 2016 | 0,581 / 2,12 / 0,640 | **0,600** / 2,24 / 0,633 | 0,451 | 0,512 | 88 / 7 → 93 / 0 % |
+| Cholila 2015 | 0 (no arranca) | **0,506** / 0,83 / 0,506 | 0,280 | 0,307 | 84 / 12 → 93 / 1 % |
+| Epuyén 2019 | 0,114 / 16,5 / 0,390 | 0,128 / 14,6 / 0,357 | 0,114 | **0,207** | 85 / 0 → 53 / 0 % |
+| Alerces 2015 | 0,504 / 2,68 / 0,411 | **0,470** / 2,77 / 0,399 | 0,298 | 0,347 | 78 / 2 → 72 / 0 % |
+
+- Con WorldCover 2021, **el baseline le gana a CCS-BAP en los cuatro incendios con fuga** (y a
+  MapBiomas en tres). Cholila deja de ser un "no arranca" y pasa a 0,506, el mejor de los tres
+  mapas.
+- La causa es la misma en los dos años: WorldCover mapea **72–93 % de las cicatrices de 2015–2016
+  como pastizal** (el rebrote), y el GR2 propaga rápido justo donde está lo que hay que acertar.
+  Antes del fuego, ahí había bosque y matorral: CCS-BAP 2013 pone 1–2 % de GR/NB en esas
+  cicatrices, y MapBiomas del año anterior 12–14 %.
+- No es evidencia a favor de WorldCover sino la medida de la fuga: **un mapa que ve la cicatriz
+  gana**. Confirma que la comparación válida con el baseline son los seis incendios 2021+, donde
+  WorldCover 2021 es anterior al fuego y pierde cinco de seis.
+- Con WorldCover 2021 en los incendios con fuga, el conteo de los 10 contra el baseline pasa de
+  6 / 2 / 2 a 5 / 4 / 1. Ese número mezcla la comparación limpia con la fuga y no debería citarse.
+
 ## 7. Sensibilidad: la base sin calibrar (LW 110 %)
 
 `base-001`, `fuels-worldcover-002` y `fuels-mapbiomas-001`: LW 110 %, el valor de la literatura
@@ -385,6 +414,7 @@ uv run python scripts/build_fuel_maps.py --mapbiomas-years 2022 2023 2024
 uv run python scripts/benchmark.py empaquetar <incendio>/<protocolo-v5m>
 #   <incendio>/<protocolo-v5m> lw-100-001 lw-100-worldcover-001 lw-100-mapbiomas-001
 #   <incendio>/<protocolo-v5m> base-001 fuels-worldcover-002 fuels-mapbiomas-001
+#   <incendio>/calibracion-era5-v5mw lw-100-worldcover2021-001   (§6.1, los cuatro ERA5)
 uv run python scripts/benchmark.py analizar <incendio>/<protocolo-v5m> <recetas …>
 uv run python scripts/comparacion_mapas_v5.py --recetas final
 uv run python scripts/comparacion_mapas_v5.py --recetas base
