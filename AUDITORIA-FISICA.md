@@ -6,7 +6,7 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop J, 2026-09-30 20:25)*
+*(se reescribe en cada loop — última: loop K, 2026-10-01)*
 
 - **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
   protocolos **v5** (v4 + hallazgos 4 y 5), con Alerces 2023 a 54 h. Sin ADJ: la única perilla
@@ -39,6 +39,12 @@
   (anillo 3.892 / 7.268 / 9.262 ha; harness B IoU 0,010 / 0,035 / 0,046, contra otra referencia
   porque la del documento ya no existe), pero las intensidades bajan. Humedad viva: factor 2,53
   (doc 2,50).
+- **Alerces 2015, por qué sube a la montaña (loop K, diagnóstico del caso de prueba):** no es
+  un bug. Con ERA5 del ESE a 3–5 mph y WAF de bosque ~0,08 en toda la franja, la pendiente es
+  lo único que empuja, y empuja al OSO. Ninguna variante (dosel coherente, atlas, rotación de 30°
+  o de 60°, humedad por altura, ignición en la primera pasada VIIRS, montaña sin combustible)
+  quema el N; para que la costa empuje al N harían falta ≥ 17 mph del SSE a 20 pies. Lo que sí
+  se agrega al documento de combustibles: la "Estepa" altoandina → GR3 (§7.4).
 - **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
 - **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
   sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
@@ -272,6 +278,7 @@
 | Alineación combustible–DEM | Planitud (≤ 2°) del agua NB8 con el mapa corrido ±3 celdas | El óptimo es sin corrimiento en los cinco incendios probados (89–95 % plana) |
 | DEM sin dato en los bordes | Celdas con `dem` −9999 (→ `slp`/`asp` −9999, que ELMFIRE trata como plano) | Epuyén 1.676 y Patriada 36.180 celdas, en el borde norte; ninguna en la cicatriz ni en lo predicho |
 | Semilla o referencia con el dominio entero | `phi` ≤ 0 o `ref_firms` en más del 50 % en los 536 insumos de todos los paquetes | Ninguno. Pero la capa "sin ignición" era −9999 y `phi <= 0` la leía como quemada: ahora es +1 |
+| Alerces 2015 sube a la montaña por un error de insumos o de convención (loop K) | v2 contra v5; WAF de ELMFIRE transcrito por celda; φs/φw con la Rothermel del banco; asp contra el lago; ERA5 crudo contra Esquel; ocho variantes en ELMFIRE | Mismo dibujo con y sin los bugs. asp mira al lago y el empuje va a ASP − 180; ERA5 sin error de dirección (+15° contra Esquel). Lo explica la física con viento flojo del ESE bajo dosel, no un bug |
 | Hallazgo 3 en los datos | Intervalos horarios cuyo `wd` crudo cruza la discontinuidad de ELMFIRE | 0–1,6 % del dominio en los siete de calibración (régimen del oeste); pegaría en vientos del sur |
 
 ## 4. Banco de pruebas físicas
@@ -665,6 +672,114 @@ del viejo por la misma razón (la corrida atraviesa la noche).
 **Conclusión:** las conclusiones cualitativas del documento sobreviven. Hay que reemplazar
 todas sus cifras de §6.1 y §6.3, y decir que la referencia del harness B cambió.
 
+### Loop K — caso Los Alerces 2015: por qué el modelo sube a la montaña
+
+**Pregunta.** En Alerces 2015 (caso de **prueba**, ERA5, CCS-BAP 2013) el modelo quema al O/SO,
+ladera arriba sobre el Cordón Situación, y el fuego real corrió ~6 km al N por la ladera baja de
+la costa oeste del Futalaufquen. ¿Bug de insumos o de convención, límite de los datos o
+problema del test? **Sólo diagnóstico:** nada de este loop elige ni ajusta la receta.
+
+**1. No es un efecto de los bugs.** La captura que motivó la pregunta (`calibracion-era5-v2`,
+`lw100-adj115-001`) tiene los hallazgos 1–5, pero v5 da el mismo dibujo (`analizar`, última
+ventana):
+
+| Iteración | Dice / sesgo | Falso positivo (ha; O / SO / S) | No predicho (ha; al N) |
+|---|---|---|---|
+| v2 `lw100-adj115-001` | 0,312 / 1,38 | 1.156; 360 / 244 / 200 | 721; 599 |
+| v5 `base-001` | 0,255 / 0,96 | 818; 240 / 210 / 155 | 860; 641 |
+| v5 `lw-100-001` | 0,298 / 1,49 | 1.284; 443 / 258 / 232 | 721; 592 |
+
+El falso positivo está a 974–1.349 m (cuartiles) con 29° de pendiente; lo no predicho, a
+707–1.000 m, 4 km al N. La ignición está a 841 m, en el extremo sur de la franja entre el lago
+(al E) y la montaña (al O).
+
+**2. Hipótesis, una por una.**
+
+- **H1, combustible en la montaña: contribuye al exceso, no a la dirección.** Falso positivo de
+  `lw-100-001` por clase de CCS-BAP 2013: bosque de lenga (TF Le → TL6) 342 ha a 1.174 m;
+  lenga achaparrada y baja (OFL Le → SH8) 378 ha a 1.250–1.383 m; "Estepa" (OT Herb-Subarb →
+  GR3) 158 ha a 1.484 m; coihue (→ TU5) 129 ha; matorral mixto (→ SH4) 113 ha. El cinturón de
+  lenga es el 56 % del falso positivo.
+  - **No hay roca ni nieve quemable:** sobre 1.500 m el dominio es Erial → NB9 (1.527 ha) y
+    Hielo-Nieve → NB92 (322 ha), más 117 ha de GR3; el fuego simulado llega a 1.500–1.700 m en
+    65 ha.
+  - **La "Estepa" de altura sí es una asignación dudosa:** el crosswalk (§5.8) manda Estepa
+    (coirón) → GR3, pero en el Cordón Situación CCS-BAP 2013 llama Estepa a vegetación
+    altoandina rala entre roca y nieve (el 73 % del GR3 del caso está sobre 1.300 m). Sin dosel
+    (WAF 0,42 contra 0,08 del bosque), el GR3 hace de autopista: con `diag-lw100-gr3-nb-001`
+    (GR3 → NB9) el falso positivo baja de 1.284 a 907 ha (al O, de 443 a 146) y el Dice sube de
+    0,298 a 0,342. Va a §7.4 como hallazgo; el crosswalk no se toca.
+  - **Cota superior:** con `diag-lw100-lenga-nb-001` (TL6 y SH8 no quemables) el fuego se queda
+    en 674 ha (Dice 0,323, sesgo 0,59) y **lo no predicho al N sigue igual (596 ha)**. Sacar
+    combustible de la montaña frena la subida, pero no manda el fuego al N.
+- **H2, viento bajo dosel: no hay costa protegida y montaña expuesta.** El WAF de ELMFIRE
+  (`CALC_WIND_ADJUSTMENT_FACTOR_EVERYWHERE`, `elmfire_init.f90:523`, transcrito con
+  `pruebas_fisicas.waf_con_dosel`) da una mediana de 0,083 en la costa no predicha, 0,090 en el
+  falso positivo y 0,081 en el acierto. Sólo el GR3 y el SH8 alto del falso positivo están
+  expuestos (p90 0,42). `dosel-coherente-001` sobre v5: 0,308 / 1,57 (base 0,255 / 0,96), pero
+  porque quema más; el falso positivo crece a 1.344 ha (453 al O) y lo no predicho al N no cambia
+  (590 ha). Más viento sobre el SH empuja más al O.
+- **H3, viento de ERA5: es la causa, y es un límite de datos.** ERA5 en la ignición sopla del
+  ESE (95–123° las 24 h del día 1; 4,3–5,3 mph a 20 pies de tarde, 1,7–3,8 de noche); todo el
+  dominio cae en una celda (5,2–5,4 mph en la banda de las 17 ART). Esquel (87803, 40 km al E):
+  viento del NE/E (50–70°) y del SE (110–140°) los tres días, 22 °C y HR 26–31 % de tarde, un
+  régimen del este débil y anticiclónico. ERA5 en la celda de Esquel: 0,55× la estación y +15°
+  de desvío mediano (Fase B: 0,40–0,70×). **Ni ERA5 ni la estación tienen una sola hora del
+  sector S (135–225°) en las 72 h.**
+  - El empuje del ESE (hacia 285°) suma con la pendiente: las laderas de la franja miran al ENE
+    (asp mediano 72–80°), así que cuesta arriba es el OSO. Con 3–5 mph y WAF 0,08 la pendiente
+    domina en el 90–93 % de las celdas (φs mediano 3,4 en la costa y 6,4 en el falso positivo,
+    contra φw 0,6–0,7). En la franja que ardió hacia el N, la suma empuja al O±45° en el 88 % de
+    las celdas y al NNO±45° en el 4 %.
+  - **Qué viento haría falta:** para que la costa empuje a 343°±45° con el WAF de ELMFIRE, del
+    SSE (165°) 16,8 mph a 20 pies (mediana, 99 % de las celdas), del SE (135°) 27 mph (78 %);
+    sin dosel, 4 y 8 mph. Del ESE no lo logra ninguna velocidad (6 %).
+  - **Las correcciones del viento no lo ven.** WindNinja (protocolo `calibracion-era5-v5a`: v5 byte
+    a byte más el atlas, 16 direcciones a 90 m) lleva el ESE de 105° a 114° en la costa y lo
+    frena a 0,69×: conservación de masa sin circulación térmica, no encauza al S.
+    `lw100-atlas-001` 0,286 / 1,50; `lw100-rot030-001` 0,316 / 1,50; `rotacion-060-001` (viento
+    del SSE, el eje del lago) 0,271 / 0,91 contra base 0,255 / 0,96. En las tres, lo no predicho
+    al N queda en 590–641 ha: a 3–5 mph bajo dosel, ni con la dirección del valle el viento le
+    gana a la pendiente.
+- **H4, pendiente con viento flojo: física correcta, no un error.** Las laderas de la franja
+  miran al lago (ENE); ELMFIRE empuja a ASP − 180 (OSO). `tests/test_topo_aspect.py` pasa, y la
+  prueba `pendiente` del banco ya daba la subida exacta en las cuatro orientaciones (§3).
+- **H5, el test: está bien.** El N ardió dentro de las 72 h, y casi todo en las primeras 12 h:
+  - 18:53 UTC (2 h 53 después de la ignición supuesta): 8 píxeles a ≤ 1 km;
+  - 04:36 UTC del 24: 3,8 km al N. Son ~2,9 km de noche (~300 m/h);
+  - 05:58 UTC del 25: 6,3 km.
+
+  A las 18 h la cicatriz alcanzada mide 852 ha y el modelo lleva 80 (`lw-100-001`): el día
+  explosivo, ~10× (§7.3). La montaña O/SO está dentro de la cobertura y no excluida, y no ardió:
+  hay una sola detección al O/SO de la ignición en 72 h, y 31 ha de cicatriz al S. Sobre el
+  combate, las crónicas sólo dicen que los medios aéreos cargaban agua en el lago entre la
+  cabecera sur y Punta Mattos desde el día 1 y que la prioridad era proteger viviendas. No se
+  puede separar cuánto frenó, pero el combate no explica una carrera nocturna de 300 m/h al N.
+- **H6, ignición: no es la causa.** Las primeras detecciones caen 692 m al NE (56°) del punto
+  de mask-dataset-gen y 110 m más abajo, ladera abajo contra el empuje del modelo. Con la semilla
+  ahí (`calibracion-era5-v5-ign-viirs1`, `lw-100-001`): 0,315 / 1,47, forma 0,334 (contra 0,281).
+  El falso positivo se corre al E/SE, hacia la cabecera del lago, y lo no predicho al N/NO sigue
+  en 701 ha. No se corrió ±2 h: el viento es del ESE todo el día, así que la hora no cambia la
+  dirección.
+
+**3. Conclusión.** **No hay bug.** El modelo sube a la montaña porque, con el viento que tiene
+(ERA5 del ESE a 3–5 mph, más flojo que la estación y sin componente S en ninguna hora) y un WAF
+de bosque de ~0,08 en toda la franja, la pendiente es lo único que empuja, y empuja al OSO. Nada
+de lo que el modelo recibe manda el fuego al N. La carrera real al N, de noche y bordeando el lago
+a ~300 m/h, pide un viento local del S de ≥ 17 mph a 20 pies bajo el dosel (sin dosel, ≥ 4 mph)
+o un proceso que la corrida no tiene (copa en ciprés/coihue, pavesas). Es el límite de la
+dirección del viento de superficie (§7.3), en su caso extremo: un régimen del este con
+circulación local que ni ERA5, ni WindNinja, ni la rotación empírica representan. Dos insumos
+agravan el exceso montaña arriba sin explicar la dirección:
+- la "Estepa" altoandina → GR3 (§7.4);
+- la humedad muerta uniforme en altura: m1 5,1 % de 500 a 1.500 m (una celda de ERA5).
+  `altura-001` (T llevada al DEM) apenas la mueve: 0,276 / 0,99 contra 0,255 / 0,96, con el
+  falso positivo de 818 a 817 ha.
+
+Recetas nuevas, sólo diagnóstico: `diag-lw100-gr3-nb-001`, `diag-lw100-lenga-nb-001`. Protocolos
+nuevos: `calibracion-era5-v5a` (atlas) y `calibracion-era5-v5-ign-viirs1`. No hay corrección que
+re-evaluar sobre los 7 de calibración.
+
 ## 6. Resultados
 
 Dice / sesgo al horizonte contra la cicatriz (truncada al horizonte, salvo Las Golondrinas).
@@ -777,6 +892,15 @@ original.
 - **Forest → TL8** ya casi no pesa con la interfaz corregida: TU5 en vez de TL8 lleva a Epuyén de
   0,500 a 0,503 (`diag-lw100-tl8-tu5-001` sobre v5; en v3 era +0,05). Lo que decide el día 1 en
   la plantación es la copa. **Rem Dist Rec → GS3** sigue igual (RESULTADOS-CSS-BAP §7.2).
+- **La "Estepa" sobre el límite del bosque (loop K).** CCS-BAP llama `OT Herb-Subarb Estepa`
+  también a la vegetación altoandina rala entre roca y nieve. El crosswalk la manda a GR3 como
+  la estepa de coirón, y sin dosel el fuego simulado la cruza rápido. En Alerces 2015 (prueba),
+  GR3 → NB9 baja el falso positivo de 1.284 a 907 ha. ¿Separar la estepa altoandina (por altura o
+  por el límite del bosque) con un modelo más ralo o no quemable?
+- **Humedad muerta sin gradiente de altura.** Con ERA5 a 0,25° (y GFS) el m1 es el mismo a 500
+  y a 1.500 m. `altura-001` lo corrige por temperatura y casi no cambia nada. En Los Alerces el
+  cinturón de lenga no ardió y el modelo lo quema tan seco como la costa. Dato que haría falta:
+  humedad de combustibles por altura (o estaciones de montaña).
 
 ### 7.3 Límites que ninguna corrección resuelve
 
@@ -787,7 +911,10 @@ original.
   con dosel superan la intensidad crítica); con un CBH bajo sí, pero acelera todo el incendio,
   no el salto (loop F). Las pavesas están apagadas.
 - **Dirección del viento de superficie:** el frente real corre 20–100° más al sur que el empuje
-  del GFS, igual que en v3.
+  del GFS, igual que en v3. El caso extremo es Alerces 2015 (loop K): régimen del este débil,
+  carrera nocturna al N bordeando el lago. Bajo dosel (WAF ~0,08) harían falta ≥ 17 mph del SSE a
+  20 pies para que el viento le gane a la pendiente, y ni ERA5, ni Esquel, ni WindNinja tienen
+  viento del S.
 - **Las Golondrinas:** la ráfaga nocturna del norte no está en el GFS; peor en v4 (0,010) porque
   en v3 corría 24 h con la tarde congelada.
 
@@ -892,6 +1019,13 @@ sección:
   en vez del 0,46 de un matorral abierto). En Alerces 2024, dos tercios del matorral quemado es
   ñire bajo. Para el director: ¿son combustible arbustivo expuesto al viento (sin dosel) o
   sotobosque bajo dosel?
+- **§5.8 OT Herb-Subarb Estepa → GR3 (loop K, pendiente; no aplicado):** declarar que la clase
+  incluye vegetación altoandina sobre el límite del bosque, no sólo estepa de coirón. En el caso
+  Alerces 2015 (Cordón Situación) los polígonos de Estepa están a 1.484 m de mediana, el 73 % del
+  GR3 del caso está sobre 1.300 m, y es el 12 % del falso positivo de `lw-100-001` (158 de
+  1.284 ha). Cuantificado con `reasignar_combustible` (`diag-lw100-gr3-nb-001`, GR3 → NB9): falso
+  positivo 1.284 → 907 ha, Dice 0,298 → 0,342. Es un caso de prueba, así que la cifra describe el
+  efecto, no fija una corrección; la asignación no cambia sin decisión del director (§7.2).
 - **§5.7 Rem Dist Rec → GS3:** sumar la evidencia de El Turbio 2025 (RESULTADOS-CSS-BAP §7.2)
   y que Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz.
 - **§7 Limitaciones:** agregar la edad del dosel (Hansen 2000, 17–25 años antes de los
