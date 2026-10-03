@@ -975,17 +975,17 @@ def tabla(caso: d.Caso) -> None:
             filas.append(json.loads(ruta.read_text()))
     print(f"{caso.id}: {len(filas)} recetas")
     print(f"{'receta':28s}{'dice':>8s}{'ref':>5s}{'sesgo':>8s}{'forma':>8s}{'t*':>6s}"
-          f"{'recall F':>10s}{'prec. F':>9s}  factores")
+          f"{'iou':>7s}{'prec.':>7s}{'recall':>7s}  factores")
     for m in filas:
-        pr = m["principal"] or {}
-        ag = (m["agregado_firms"] or {}).get("incremento", {})
+        pr = cadena.principal_completa(m) or {}
         alarma = " ⚠" if pr.get("alarma_sesgo") else ""
         ref = {"cicatriz": "C", "firms": "F"}.get(pr.get("referencia"), "")
         ai = pr.get("area_igualada") or {}
         hora = f"{ai['hora']:.0f}" + ("" if ai.get("alcanzada") else "+") if ai.get("hora") else "—"
         print(f"{m['receta']:28s}{_fmt(pr.get('dice')):>8s}{ref:>5s}"
               f"{_fmt(pr.get('sesgo_area')):>8s}{_fmt(ai.get('dice')):>8s}{hora:>6s}"
-              f"{_fmt(ag.get('recall')):>10s}{_fmt(ag.get('precision')):>9s}  "
+              f"{_fmt(pr.get('iou')):>7s}{_fmt(pr.get('precision')):>7s}"
+              f"{_fmt(pr.get('recall')):>7s}  "
               f"{m['factores']}{alarma}")
 
 
@@ -1031,13 +1031,14 @@ def _filas(casos: list[str]) -> dict[str, dict[str, dict]]:
         raiz = d.ruta_iteracion(caso_id, "")
         for ruta in sorted(raiz.glob("*/metricas.json")) if raiz.exists() else []:
             m = json.loads(ruta.read_text())
-            pr = m.get("principal") or {}
+            pr = cadena.principal_completa(m) or {}
             if pr.get("referencia") != "cicatriz":
                 continue
             ai = pr.get("area_igualada") or {}
             t = ai.get("hora") if ai.get("alcanzada") else None
             filas.setdefault(m["receta"], {})[caso_id] = {
-                "dice": pr["dice"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
+                "dice": pr["dice"], "iou": pr["iou"], "precision": pr["precision"],
+                "recall": pr["recall"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
                 "forma": ai.get("dice"), "dt": abs(t - horizonte) if t is not None else horizonte}
     return filas
 
@@ -1089,7 +1090,8 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
     cortos = [c.split("/")[0].replace("los-alerces", "alerces").replace("puerto-", "")[:13]
               for c in casos]
     print(f"{'receta':24s}{'n':>2s}{'media':>7s}{'mediana':>8s}{'alarm':>6s}{'forma':>7s}"
-          f"{'|Δt*|':>7s}  " + "  ".join(f"{c:>13s}" for c in cortos))
+          f"{'|Δt*|':>7s}{'iou':>6s}{'prec':>6s}{'rec':>6s}  "
+          + "  ".join(f"{c:>13s}" for c in cortos))
     orden = sorted(filas.items(), key=lambda kv: (-len(kv[1]),
                                                   -np.mean([v["dice"] for v in kv[1].values()])))
     for receta, f in orden:
@@ -1098,8 +1100,10 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
                            if c in f else f"{'—':>13s}" for c in casos)
         print(f"{receta:24s}{len(v):2d}{np.mean([x['dice'] for x in v]):7.3f}"
               f"{np.median([x['dice'] for x in v]):8.3f}{sum(x['alarma'] for x in v):6d}"
-              f"{np.mean([x['forma'] or 0 for x in v]):7.3f}{np.mean([x['dt'] for x in v]):7.1f}  "
-              + celdas)
+              f"{np.mean([x['forma'] or 0 for x in v]):7.3f}{np.mean([x['dt'] for x in v]):7.1f}"
+              + "".join(f"{np.mean([x[k] for x in v]):6.3f}"
+                        for k in ("iou", "precision", "recall"))
+              + "  " + celdas)
 
 
 def comparar(a_id: str, b_id: str) -> dict:

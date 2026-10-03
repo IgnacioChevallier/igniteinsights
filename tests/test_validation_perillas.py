@@ -119,3 +119,14 @@ def test_variante_crosswalk_solo_la_clase_y_su_codigo_y_la_altura():
 def test_variante_hereda_los_anios_del_producto():
     from app.validation import definiciones
     assert definiciones.anios_publicados("ccsbap-l1") == definiciones.ANIOS_COMBUSTIBLE["ccsbap"]
+
+
+def test_principal_completa_lee_iou_precision_y_recall_de_la_ventana():
+    vieja = {"principal": {"referencia": "cicatriz", "ventana": 1, "dice": 0.5,
+                           "sesgo_area": 1.0, "alarma_sesgo": False},
+             "ventanas": [{}, {"cicatriz": {"acumulado": {
+                 "dice": 0.5, "iou": 1 / 3, "precision": 0.5, "recall": 0.5,
+                 "tp": 10, "fp": 10, "fn": 10}}}]}
+    pr = cadena.principal_completa(vieja)
+    assert (pr["iou"], pr["precision"], pr["recall"], pr["tp"]) == (1 / 3, 0.5, 0.5, 10)
+    assert pr["dice"] == 0.5 and pr["ventana"] == 1

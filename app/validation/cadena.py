@@ -516,6 +516,23 @@ def puntuar(caso: Caso, receta: Receta) -> dict:
     return metricas
 
 
+# Lo que la principal copia de la confusión al horizonte (o del agregado FIRMS).
+METRICAS_PRINCIPALES = ("dice", "iou", "precision", "recall", "tp", "fp", "fn")
+
+
+def principal_completa(metricas: dict) -> dict | None:
+    """La principal con IoU, precisión, recall y tp/fp/fn. Las iteraciones puntuadas antes de
+    que la principal los copiara los tienen igual en su ventana (o en el agregado FIRMS)."""
+    pr = metricas.get("principal")
+    if not pr or all(k in pr for k in METRICAS_PRINCIPALES):
+        return pr
+    if pr["referencia"] == "cicatriz":
+        m = metricas["ventanas"][pr["ventana"]]["cicatriz"]["acumulado"]
+    else:
+        m = metricas["agregado_firms"]["incremento"]
+    return {**{k: m.get(k) for k in METRICAS_PRINCIPALES}, **pr}
+
+
 def _principal(filas: list[dict], semilla: str, agregado: dict | None) -> dict | None:
     """Dice de la última ventana contra la cicatriz, si la cadena corre sola.
 
@@ -527,11 +544,13 @@ def _principal(filas: list[dict], semilla: str, agregado: dict | None) -> dict |
     ultima = filas[-1]
     if semilla == "prediccion" and "cicatriz" in ultima:
         m = ultima["cicatriz"]["acumulado"]
-        return {"referencia": "cicatriz", "ventana": ultima["n"], "dice": m["dice"],
+        return {"referencia": "cicatriz", "ventana": ultima["n"],
+                **{k: m[k] for k in METRICAS_PRINCIPALES},
                 "sesgo_area": m["sesgo_area"], "alarma_sesgo": m["alarma_sesgo"]}
     if agregado and "incremento" in agregado:
         m = agregado["incremento"]
-        return {"referencia": "firms", "ventana": None, "dice": m["dice"],
+        return {"referencia": "firms", "ventana": None,
+                **{k: m[k] for k in METRICAS_PRINCIPALES},
                 "sesgo_area": None, "alarma_sesgo": False}
     return None
 
