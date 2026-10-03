@@ -133,6 +133,18 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             sin_dosel = no_forestal(src.read(1))
         for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
             _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
+    if "sin_dosel" in par or "cbh_por_combustible" in par:
+        with rasterio.open(insumos / "fbfm40.tif") as src:
+            codigos = src.read(1)
+    if "sin_dosel" in par:
+        # DECISIONES-DIRECTOR §1 (c): el dosel se ignora sólo en las clases declaradas.
+        sin = en_codigos(codigos, par["sin_dosel"])
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            _reescribir(insumos / nombre, lambda a: np.where(sin, 0, a))
+    if "cbh_por_combustible" in par:
+        # DECISIONES-DIRECTOR §2: CBH por tipo de bosque en vez de CH × (0,2 + 0,3 CC).
+        _reescribir(insumos / "cbh.tif",
+                    lambda a: cbh_por_combustible(codigos, a, par["cbh_por_combustible"]))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -198,7 +210,8 @@ HUMEDAD_VIVA_BASE = {"lh_moisture_pct": 30.0, "lw_moisture_pct": 110.0}
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
-                         "reasignar_combustible", "dosel_coherente"}
+                         "reasignar_combustible", "dosel_coherente", "sin_dosel",
+                         "cbh_por_combustible"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
@@ -239,6 +252,29 @@ def no_forestal(codigos: np.ndarray) -> np.ndarray:
     """Celdas con combustible de pastizal, pastizal-arbustal o arbustal (GR, GS, SH): los
     grupos de Scott y Burgan sin dosel arbóreo."""
     return (codigos >= GRUPOS_COMBUSTIBLE["GR"][0]) & (codigos <= GRUPOS_COMBUSTIBLE["SH"][1])
+
+
+def en_codigos(codigos: np.ndarray, claves) -> np.ndarray:
+    """Celdas cuyo código FBFM40 está en `claves`: códigos ("148") o grupos ("SH")."""
+    m = np.zeros(codigos.shape, dtype=bool)
+    for clave in claves:
+        if clave in GRUPOS_COMBUSTIBLE:
+            desde, hasta = GRUPOS_COMBUSTIBLE[clave]
+            m |= (codigos >= desde) & (codigos <= hasta)
+        else:
+            m |= codigos == int(clave)
+    return m
+
+
+def cbh_por_combustible(codigos: np.ndarray, cbh: np.ndarray, tabla: dict) -> np.ndarray:
+    """CBH (10 × m, la codificación de ELMFIRE) por código o grupo FBFM40, sólo donde ya hay
+    copa (cbh > 0); un código pisa a su grupo. El resto queda como lo derivó canopy_builder."""
+    salida = cbh.copy()
+    hay_copa = cbh > 0
+    for clave in sorted(tabla, key=lambda k: k in GRUPOS_COMBUSTIBLE, reverse=True):
+        m = hay_copa & en_codigos(codigos, [clave])
+        salida[m] = round(tabla[clave] * 10)
+    return salida
 
 
 def reasignar(codigos: np.ndarray, cambios: dict) -> np.ndarray:

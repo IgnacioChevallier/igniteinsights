@@ -88,3 +88,16 @@ def test_reasignar_combustible():
 def test_dosel_coherente_solo_en_combustibles_no_forestales():
     codigos = np.array([[102, 123, 144, 165, 188, 98]])
     assert cadena.no_forestal(codigos).tolist() == [[True, True, True, False, False, False]]
+
+
+def test_sin_dosel_por_codigo_o_grupo():
+    codigos = np.array([[102, 144, 148, 165, 188]])
+    assert cadena.en_codigos(codigos, ["148"]).tolist() == [[False, False, True, False, False]]
+    assert cadena.en_codigos(codigos, ["SH", "188"]).tolist() == [[False, True, True, False, True]]
+
+
+def test_cbh_por_combustible_solo_donde_hay_copa_y_el_codigo_pisa_al_grupo():
+    codigos = np.array([[165, 165, 188, 186, 144]])
+    cbh = np.array([[60, 0, 80, 70, -9999]], dtype=np.int16)
+    salida = cadena.cbh_por_combustible(codigos, cbh, {"TU": 1.5, "TL": 4.0, "188": 2.0})
+    assert salida.tolist() == [[15, 0, 20, 40, -9999]]
