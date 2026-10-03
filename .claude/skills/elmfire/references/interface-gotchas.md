@@ -204,3 +204,24 @@ east to 161 columns, moves 879 m.
 - The same file has a second bug on the opt-in bilinear path: `GET_BILINEAR_INTERPOLATE_COEFFS`
   sets `J2 = MAX(MIN(J2 + 1, NROW_WX), 1)` with `J2` uninitialized (should be `J1 + 1`). Another
   reason not to turn on `WX_BILINEAR_INTERPOLATION`.
+
+## &SPOTTING: every spotting parameter is drawn between its _MIN/_LO and _MAX/_HI, even in a single run
+
+- `ENABLE_SPOTTING` (default `.FALSE.`) makes `NUM_PARAMETERS_SPOTTING = 8`
+  (`elmfire_namelists.f90`, `READ_SPOTTING`), so `NUM_MONTE_CARLO_VARIABLES > 0` and the main loop
+  draws `COEFFS` with `RANDOM_NUMBER` and calls `SET_SPOTTING_PARAMETERS` for **every** case,
+  including our one-case MODE 1 runs (`elmfire.f90` ~l. 568–574). `SET_SPOTTING_PARAMETERS`
+  (`elmfire_spotting.f90`) then overwrites `MEAN_SPOTTING_DIST`, `NORMALIZED_SPOTTING_DIST_VARIANCE`,
+  `SPOT_WS_EXP`, `SPOT_FLIN_EXP`, `NEMBERS_MAX`, `GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT`,
+  `CROWN_FIRE_SPOTTING_PERCENT` and `PIGN` with `X_MIN + r·(X_MAX − X_MIN)` (`_LO`/`_HI` for the
+  exponents and `NEMBERS_MAX`). Setting only the plain keyword does nothing; the defaults of the
+  ranges (`MEAN_SPOTTING_DIST_MIN/MAX = 0`) win.
+- The repo writes `_MIN = _MAX` (and the plain keyword) so the value is declared, not drawn:
+  `namelist_writer.SPOTTING_HINDCAST`, the centre of each range of the vendor hindcast template
+  (`/opt/elmfire/runs/hindcasts/templates/hindcast/elmfire.data`). The draw is still made, with the
+  fixed `SEED = 2024` (`RANDOMIZE_RANDOM_SEED = .FALSE.`), and the spotting events themselves use
+  `RANDOM_NUMBER` during the run: deterministic for a given input, but chaotic.
+- `NEMBERS_*` are INTEGER in the source: write `1`, not `1.0`.
+- `CROWN_FIRE_MODEL` is only ever tested as `> 0` in 2025.0212: the template's `2` behaves as `1`.
+- Off unless `write_namelist(spotting=...)` is given (`{}` = the hindcast values); keys outside
+  `SPOTTING_HINDCAST` are rejected.

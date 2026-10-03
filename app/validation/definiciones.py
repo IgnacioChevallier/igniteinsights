@@ -38,7 +38,7 @@ PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
               "humedad_m1_delta", "modelo_humedad", "rotacion_viento", "z0_desde_dosel",
               "aspecto_mas_180", "cbh_factor", "viento_atlas", "reasignar_combustible",
               "dosel_coherente", "sin_dosel", "cbh_por_combustible", "cbd_por_combustible",
-              "dosel_sin_perdida_previa"}
+              "dosel_sin_perdida_previa", "spotting"}
 MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
 

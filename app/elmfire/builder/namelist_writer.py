@@ -60,6 +60,76 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # explícito con el valor que ya se venía usando: activado.
 DEFAULT_CROWN_FIRE_MODEL = 1
 
+# Pavesas (&SPOTTING, elmfire_spotting.f90). Apagadas por defecto en ELMFIRE y acá. Los
+# valores son los de la plantilla de hindcast del proveedor
+# (/opt/elmfire/runs/hindcasts/templates/hindcast/elmfire.data), con un detalle: ELMFIRE
+# sortea cada parámetro entre su _MIN/_LO y su _MAX/_HI en SET_SPOTTING_PARAMETERS, también en
+# una corrida única (elmfire.f90, con la semilla fija SEED = 2024), así que acá _MIN = _MAX =
+# el centro del rango de la plantilla y el valor queda declarado, no sorteado.
+SPOTTING_HINDCAST: dict[str, float | bool | str] = {
+    "ENABLE_SPOTTING": True,
+    "ENABLE_SURFACE_FIRE_SPOTTING": True,
+    "CRITICAL_SPOTTING_FIRELINE_INTENSITY": 1000.0,
+    "SPOTTING_DISTRIBUTION_TYPE": "LOGNORMAL",
+    "MEAN_SPOTTING_DIST": 10.0,
+    "NORMALIZED_SPOTTING_DIST_VARIANCE": 425.0,
+    "SPOT_WS_EXP": 0.55,
+    "SPOT_FLIN_EXP": 0.3,
+    "NEMBERS_MIN": 1.0,
+    "NEMBERS_MAX": 1.0,
+    "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT": 0.065,
+    "CROWN_FIRE_SPOTTING_PERCENT": 0.65,
+    "PIGN": 100.0,
+}
+# Cada parámetro sorteado y los nombres de sus extremos en el fuente.
+_SPOTTING_RANGOS = {
+    "MEAN_SPOTTING_DIST": ("MEAN_SPOTTING_DIST_MIN", "MEAN_SPOTTING_DIST_MAX"),
+    "NORMALIZED_SPOTTING_DIST_VARIANCE": ("NORMALIZED_SPOTTING_DIST_VARIANCE_MIN",
+                                          "NORMALIZED_SPOTTING_DIST_VARIANCE_MAX"),
+    "SPOT_WS_EXP": ("SPOT_WS_EXP_LO", "SPOT_WS_EXP_HI"),
+    "SPOT_FLIN_EXP": ("SPOT_FLIN_EXP_LO", "SPOT_FLIN_EXP_HI"),
+    "NEMBERS_MAX": ("NEMBERS_MAX_LO", "NEMBERS_MAX_HI"),
+    "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT": ("GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT_MIN",
+                                             "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT_MAX"),
+    "CROWN_FIRE_SPOTTING_PERCENT": ("CROWN_FIRE_SPOTTING_PERCENT_MIN",
+                                    "CROWN_FIRE_SPOTTING_PERCENT_MAX"),
+    "PIGN": ("PIGN_MIN", "PIGN_MAX"),
+}
+_SPOTTING_FIJOS = {"ENABLE_SPOTTING", "ENABLE_SURFACE_FIRE_SPOTTING",
+                   "CRITICAL_SPOTTING_FIRELINE_INTENSITY", "SPOTTING_DISTRIBUTION_TYPE",
+                   "NEMBERS_MIN"}
+
+
+def spotting_group(cambios: dict | None) -> str:
+    """El grupo &SPOTTING: la plantilla de hindcast con `cambios` encima (mismas claves)."""
+    if cambios is None:
+        return ""
+    desconocidas = set(cambios) - set(SPOTTING_HINDCAST)
+    if desconocidas:
+        raise ValueError(f"keywords de &SPOTTING no soportados: {sorted(desconocidas)}")
+    valores = SPOTTING_HINDCAST | cambios
+
+    def fortran(v: float | bool | str) -> str:
+        if isinstance(v, bool):
+            return ".TRUE." if v else ".FALSE."
+        if isinstance(v, str):
+            return f"'{v}'"
+        if isinstance(v, int):   # NEMBERS_*: enteros en el fuente, un real no se lee
+            return str(v)
+        return f"{float(v)}"
+
+    lineas = []
+    for clave, v in valores.items():
+        if clave in _SPOTTING_RANGOS:
+            nombres = (clave, *_SPOTTING_RANGOS[clave]) if clave != "NEMBERS_MAX" else \
+                _SPOTTING_RANGOS[clave]
+            if clave == "NEMBERS_MAX":
+                v = int(v)
+            lineas += [f"  {n:<42s}= {fortran(v)}" for n in nombres]
+        elif clave in _SPOTTING_FIJOS:
+            lineas.append(f"  {clave:<42s}= {fortran(int(v) if clave == 'NEMBERS_MIN' else v)}")
+    return "\n&SPOTTING\n" + "\n".join(lineas) + "\n/\n"
+
 # Humedad del combustible vivo, de Bianchi & Defossé (2015), IJWF 24(3):340, que mide LFMC
 # en las especies de la Patagonia andina cada 10-15 días durante la temporada de fuego
 # (mediados de noviembre a principios de abril), en hojas de la cara norte —la más expuesta
@@ -214,6 +284,7 @@ def write_namelist(
     crown_fire_model: int = DEFAULT_CROWN_FIRE_MODEL,
     lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
     lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
+    spotting: dict | None = None,
 ) -> tuple[Path, float, list[str]]:
     """
     Write elmfire.data to output_path.
@@ -234,6 +305,8 @@ def write_namelist(
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
         crown_fire_model: 0 disables crown fire; any value > 0 enables it. Written
             explicitly because ELMFIRE enables it when the keyword is absent.
+        spotting: None leaves &SPOTTING out (spotting off, ELMFIRE's default); a dict writes
+            SPOTTING_HINDCAST with those keys overridden ({} = the vendor hindcast values).
 
     Returns:
         Tuple of (namelist path, resolved dump interval in seconds, weather warnings).
@@ -323,7 +396,7 @@ def write_namelist(
 &MONTE_CARLO
   NUM_METEOROLOGY_TIMES           = {weather_band_count(inputs_dir)}
 /
-"""
+{spotting_group(spotting)}"""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     validate_namelist(namelist)
     output_path.write_text(namelist, encoding="utf-8", newline="\n")
