@@ -264,10 +264,13 @@ aéreo en copa y altura media de 4,83 m. La carga 1 h de SH8 es 0,09412 lb/ft²,
 entre los modelos de arbustal de clima húmedo. **Se descarta SH9 (149)** por carga 1 h de
 0,20661, casi el doble de lo medido, y **SH5 (145)**, la familia del baseline, por `mex = 15 %`.
 
-**Paso 4 · Contraste con comportamiento observado.** Ejecutado (§6.2). SH8 reproduce la
-longitud de llama observada —3,1 m contra los 3 a 4 m medidos— pero **subestima la
-propagación**: 437 m/h con viento sostenido y 900 m/h bajo ráfaga, contra 4.800 m/h
-observados. Ningún modelo de arbustal de SB40 reproduce las dos variables a la vez. La
+**Paso 4 · Contraste con comportamiento observado.** Ejecutado (§6.2), re-corrido con la
+interfaz corregida (`AUDITORIA-FISICA.md` §7.4). SH8 reproduce la longitud de llama
+observada —3,5 m contra los 3 a 4 m medidos— pero **subestima la propagación**: 739 m/h con
+viento sostenido y 1.785 m/h bajo ráfaga, contra 4.800 m/h observados (2,7–6,5× por debajo;
+antes de la corrección se leía 437 y 900 m/h, 5–11×). SH4 y GS3 con ráfaga llegan al
+51–60 % de lo observado con la llama medida, así que el "ningún modelo de arbustal
+reproduce las dos variables a la vez" de la versión anterior ya no vale tal cual. La
 asignación se mantiene, porque es la que ajusta la llama y la carga fina medida, **y se
 declara que subestima la velocidad de propagación**.
 

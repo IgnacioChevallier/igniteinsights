@@ -1,0 +1,64 @@
+{
+  "descripcion": "Variantes del crosswalk (DECISIONES-DIRECTOR.md, loop L): el paquete de `los-alerces-2024/calibracion-v5` byte a byte más tres mapas de CCS-BAP con clases reasignadas por scripts/variante_crosswalk.py (data/static/fuel_maps/variantes/<variante>/cambios.json): `ccsbap-lach3` lenga achaparrada (OFL Le) → SH3; `ccsbap-alto` Estepa sobre 1.300 m → NB9; `ccsbap-rem2` remanente de disturbio reciente → GS2. Lo que sigue es la descripción del caso base. Bahía Rosales / Arroyo Centinela, PN Los Alerces. Ignición intencional el jueves 25-ene-2024 a las 22:30 ART; 120 h (tope): el incendio siguió activo 27 días y a los 5 días el área FIRMS es ~50 % de la final, así que la cicatriz se trunca a lo detectado hasta el horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio. Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v3: v2 más el atlas de viento de WindNinja (16 direcciones a 90 m) para la perilla `viento_atlas`. Versión v4 (AUDITORIA-FISICA.md): v3 con las correcciones de la auditoría física: phi.tif en la convención ±1 de ELMFIRE (con la distancia en metros el frente avanzaba a ~0,5× la velocidad calculada), &MONTE_CARLO NUM_METEOROLOGY_TIMES (sin él ELMFIRE usaba la banda 0 del clima toda la ventana) y wd reescrito para que ELMFIRE lo interpole por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-aoi-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-aoi-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila).",
+  "anio_fuego": 2024,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.61425,
+    "lat": -42.80381,
+    "hora": "2024-01-26T01:00:00+00:00",
+    "fuente": "Hora: SPMF Chubut / Ahora Comarca (25-ene-2024, 'alrededor de las 22:30 horas'), redondeada a la hora anterior porque el clima horario arranca en punto. Lugar: 'población de Lucas Rosales – Arroyo Centinela' (argentina.gob.ar, persona buscada; ahoracomarca.com.ar). El trazado OSM del Río Centinela pasa por -42.8035/-71.6211, donde caen las 3 primeras detecciones VIIRS (26-ene 05:09 UTC).",
+    "ajuste": "La semilla de mask-dataset-gen (-42.8036/-71.5939) está en la cicatriz pero a 1.015 m, a media ladera, 1 km al sur del arroyo y 1,3 km de las primeras detecciones; un asentamiento ('población') está en el valle. El punto del arroyo junto a las primeras detecciones cae 481 m fuera de la cicatriz (634 m). Se toma la celda de la cicatriz a más de 90 m del borde más cercana a él: 571 m, 721 m de altura, TU5, en la primera pasada VIIRS."
+  },
+  "ventanas": [
+    {
+      "t0": "2024-01-26T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2024-01-27T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2024-01-28T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2024-01-29T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2024-01-30T01:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.689,
+    -42.995,
+    -71.362,
+    -42.725
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2024/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "ampliar_mapas",
+    "base": "los-alerces-2024/calibracion-v5",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3-v5",
+    "mapas": {
+      "fbfm40_ccsbap-lach32017.tif": "data/static/fuel_maps/variantes/lach3/fbfm40_ccsbap2017_aoi.tif",
+      "fbfm40_ccsbap-alto2017.tif": "data/static/fuel_maps/variantes/alto/fbfm40_ccsbap2017_aoi.tif",
+      "fbfm40_ccsbap-rem22017.tif": "data/static/fuel_maps/variantes/rem2/fbfm40_ccsbap2017_aoi.tif"
+    }
+  }
+}
