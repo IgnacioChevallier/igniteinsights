@@ -9,6 +9,10 @@ preparación y entran a un protocolo `-v5x*` con el empaquetador `ampliar_mapas`
 `ccsbap-<nombre>` (DECISIONES-DIRECTOR.md).
 
     uv run python scripts/variante_crosswalk.py l1 '[{"clase": "OFL|Le", "a": 143}]'
+
+"El código del crosswalk vigente" es el de este checkout: las variantes del loop L (x1-x3) se
+armaron con el crosswalk anterior a su adopción (Estepa → GR3, remanente → GS3), que desde los
+protocolos -v6 ya trae esos cambios.
 """
 import argparse
 import json

@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     # contenedor del runner y de la API tienen montado.
     ccsbap_vector_path: str = "/app/data/raw/ccsbap/ccsbap_2017_aoi.gpkg"
     mapbiomas_raster_path: str = "/app/data/raw/mapbiomas/mapbiomas_2024_aoi.tif"
+    # Hansen GFC v1.13 lossyear (40S_080W, una tesela cubre el AOI): sin dosel donde hubo pérdida
+    # antes del año de la simulación (DECISIONES-DIRECTOR.md §3). Si falta, se sigue sin ella.
+    hansen_lossyear_path: str = (
+        "/app/data/raw/hansen/Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif"
+    )
     aoi_crs_processing: str = "EPSG:32719"
     aoi_crs_output: str = "EPSG:4326"
 

@@ -68,14 +68,33 @@ def test_nodata_propagates(tmp_path):
     assert cbh[0, 1] == _NODATA and cbd[0, 1] == _NODATA
 
 
-def test_derivation_no_longer_depends_on_the_fuel_model(tmp_path):
-    """Regression: adding an FBFM code used to blank out cbh/cbd. It cannot any more."""
-    import inspect
+def test_forest_type_sets_cbh_and_an_unknown_code_keeps_the_derived_value(tmp_path):
+    """Regression: an FBFM lookup used to blank out cbh/cbd for codes missing from it. The
+    forest-type table only overrides where there is canopy; anything else stays derived."""
+    cc_p = _raster(tmp_path / "cc.tif", [[80, 80, 80, 80, 0]])
+    ch_p = _raster(tmp_path / "ch.tif", [[200, 200, 200, 200, 200]])
+    fuel_p = _raster(tmp_path / "fbfm40.tif", [[165, 188, 186, 147, 165]])
+    canopy_builder.derive_cbh_cbd(cc_p, ch_p, tmp_path / "cbh.tif", tmp_path / "cbd.tif",
+                                  fuel_path=fuel_p)
+    with rasterio.open(tmp_path / "cbh.tif") as a, rasterio.open(tmp_path / "cbd.tif") as b:
+        cbh, cbd = a.read(1).tolist()[0], b.read(1).tolist()[0]
+    assert cbh[:3] == [15, 15, 60]          # TU5 1,5 m, TL8 1,5 m, TL6 6 m
+    assert cbh[3] == round(20 * (0.2 + 0.3 * 0.8) * 10)   # SH7: derivado
+    assert cbh[4] == 0 and cbd[4] == 0      # sin copa, sin tabla
+    assert cbd[1] == 16                     # pino 0,16 kg/m³
 
-    sig = inspect.signature(canopy_builder.derive_cbh_cbd)
-    assert "fbfm40_path" not in sig.parameters
-    assert not hasattr(canopy_builder, "_FBFM40_CBH")
-    assert not hasattr(canopy_builder, "_FBFM40_CBD")
+
+def test_hansen_loss_before_the_fire_year_removes_the_canopy(tmp_path):
+    cc_p = _raster(tmp_path / "cc.tif", [[80, 80, 80, 80]])
+    ch_p = _raster(tmp_path / "ch.tif", [[150, 150, 150, 150]])
+    ly_p = _raster(tmp_path / "ly.tif", [[0, 15, 24, 25]])
+    canopy_builder.derive_cbh_cbd(cc_p, ch_p, tmp_path / "cbh.tif", tmp_path / "cbd.tif",
+                                  lossyear_path=ly_p, fire_year=2025)
+    with rasterio.open(cc_p) as a, rasterio.open(ch_p) as b, \
+            rasterio.open(tmp_path / "cbd.tif") as c:
+        assert a.read(1).tolist() == [[80, 0, 0, 80]]   # 2025: el propio incendio, no
+        assert b.read(1).tolist() == [[150, 0, 0, 150]]
+        assert [v > 0 for v in c.read(1).tolist()[0]] == [True, False, False, True]
 
 
 def test_cover_without_height_is_not_canopy(tmp_path):

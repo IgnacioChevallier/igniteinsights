@@ -19,6 +19,9 @@ hardlinks para todo lo demás. Así se armaron las preparaciones de los protocol
 
     uv run python scripts/preparar_benchmark.py --dosel-desde \
         data/elmfire/inputs/benchmark-aoi-asp3 --salida data/elmfire/inputs/benchmark-aoi-asp3-v5
+
+Con `--combustible-desde`, lo mismo con los mapas de CCS-BAP rehechos con el crosswalk actual
+(protocolos `-v6`; el dosel por tipo de bosque y año se deriva al empaquetar cada caso).
 """
 import argparse
 import logging
@@ -57,15 +60,35 @@ def rehacer_dosel(desde: Path, salida: Path) -> None:
                                   salida / "cbd.tif")
 
 
+def rehacer_combustible(desde: Path, salida: Path, relleno: Path | None) -> None:
+    """Otra preparación con los mapas de CCS-BAP rehechos con el crosswalk actual (protocolos
+    -v6, DECISIONES-DIRECTOR.md); el resto, hardlinks a `desde`. El relleno del hueco fronterizo
+    es el WorldCover 2021 de `desde` salvo que se pase otro (la preparación del AOI no lo tiene:
+    data/static/fuel_maps/fbfm40_worldcover.tif)."""
+    salida.mkdir(parents=True)
+    for ruta in sorted(desde.iterdir()):
+        if ruta.is_file() and not ruta.name.startswith("fbfm40_ccsbap"):
+            os.link(ruta, salida / ruta.name)
+    relleno = relleno or desde / "fbfm40_worldcover2021.tif"
+    for anio, shp in CCSBAP.items():
+        fb.ccsbap_to_fbfm40(shp, salida / "dem.tif", salida / f"fbfm40_ccsbap{anio}.tif",
+                            fill_path=relleno)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--caja", type=float, nargs=4, metavar=("O", "S", "E", "N"))
     ap.add_argument("--dosel-desde", type=Path)
+    ap.add_argument("--combustible-desde", type=Path)
+    ap.add_argument("--relleno", type=Path)
     ap.add_argument("--salida", type=Path, required=True)
     args = ap.parse_args()
     salida: Path = args.salida
     if args.dosel_desde:
         rehacer_dosel(args.dosel_desde, salida)
+        return
+    if args.combustible_desde:
+        rehacer_combustible(args.combustible_desde, salida, args.relleno)
         return
     if not args.caja:
         ap.error("--caja o --dosel-desde")

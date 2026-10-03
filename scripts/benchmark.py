@@ -31,6 +31,7 @@ from shapely.geometry import Point, mapping
 os.environ.setdefault("ELMFIRE_RUNNER_URL", "http://localhost:8001")
 
 from app.elmfire.builder import (  # noqa: E402
+    canopy_builder,
     fuels_builder,
     ignition_builder,
     perimeter_reconstruction,
@@ -513,8 +514,21 @@ def _firms_gfs(caso: d.Caso) -> dict:
     for nombre in ESTATICOS_PREP:
         recortes[nombre], _ = _recortar(prep / nombre, caja)
         comunes[nombre] = almacen.guardar(recortes[nombre])
+    mapas = {}
     for nombre, ruta in datos["empaquetado"]["mapas"].items():
-        comunes[nombre] = almacen.guardar(_recortar(Path(ruta), caja)[0])
+        mapas[nombre], _ = _recortar(Path(ruta), caja)
+        comunes[nombre] = almacen.guardar(mapas[nombre])
+    if "dosel_por_combustible" in datos["empaquetado"]:
+        # DECISIONES-DIRECTOR §2 y §3 (protocolos -v6): el CBH del tipo de bosque del mapa del
+        # caso y sin dosel donde Hansen vio pérdida antes del año del incendio. Depende del
+        # mapa y del año, así que se deriva por caso y no en la preparación.
+        dosel = datos["empaquetado"]["dosel_por_combustible"]
+        canopy_builder.derive_cbh_cbd(
+            recortes["cc.tif"], recortes["ch.tif"], recortes["cbh.tif"], recortes["cbd.tif"],
+            mapas[dosel["mapa"]], _recortar(Path(dosel["perdida_hansen"]), caja)[0],
+            caso.anio_fuego)
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            comunes[nombre] = almacen.guardar(recortes[nombre])
     comunes["fuel_models.csv"] = almacen.guardar(fuels_builder.FUEL_MODEL_TABLE)
     dem = recortes["dem.tif"]
     grilla = p.Grilla(dem)

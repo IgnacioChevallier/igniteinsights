@@ -327,14 +327,31 @@ async def run_preparation(
         if not ch_asset:
             logger.warning("No canopy_ch asset — run ingestion with include_canopy=true")
 
-    # cbh + cbd: derived from the measured canopy rasters, not from the fuel model code
+    # cbh + cbd: derived from the measured canopy rasters, with the CBH of the forest type
+    # (the fuel map stands in for the CCS-BAP class) and no canopy where Hansen saw loss before
+    # the simulation year (DECISIONES-DIRECTOR.md §2 and §3).
     if "cc.tif" in generated and "ch.tif" in generated:
+        lossyear = None
+        lossyear_raw = _resolve(settings.hansen_lossyear_path)
+        if lossyear_raw.exists() and reference is not None:
+            lossyear = await asyncio.to_thread(
+                canopy_builder.reproject_canopy,
+                lossyear_raw, reference, static_dir / "hansen_lossyear.tif", 1.0, "nearest",
+            )
+        else:
+            msg = (f"Sin Hansen lossyear en {lossyear_raw}: el dosel queda el de 2000 también "
+                   "sobre los incendios posteriores")
+            logger.warning("Preparation %s: %s", prep_id, msg)
+            warnings.append(msg)
         await asyncio.to_thread(
             canopy_builder.derive_cbh_cbd,
             inputs_dir / "cc.tif",
             inputs_dir / "ch.tif",
             inputs_dir / "cbh.tif",
             inputs_dir / "cbd.tif",
+            inputs_dir / "fbfm40.tif" if "fbfm40.tif" in generated else None,
+            lossyear,
+            (gfs_at or fires_until or datetime.now(UTC)).year,
         )
         generated.extend(["cbh.tif", "cbd.tif"])
     else:
