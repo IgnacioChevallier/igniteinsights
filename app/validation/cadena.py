@@ -198,6 +198,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if par.get("viento_diurno"):
         # AUDITORIA-FISICA loop M: el viento de cada hora con los flujos de ladera de WindNinja
         # (empaquetador `viento_diurno`), en lugar del GFS/ERA5 uniforme o del atlas.
+        # "direccion": sólo la dirección; la velocidad sigue siendo la del GFS/ERA5.
         if not {"wn_u.tif", "wn_v.tif"} <= set(archivos):
             raise FileNotFoundError(f"{caso.id} no empaquetó el viento diurno (protocolo -d)")
         dem = insumos / "dem.tif"
@@ -207,7 +208,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             if src.count != este.shape[0]:
                 raise ValueError(f"el viento diurno trae {este.shape[0]} horas y la ventana "
                                  f"{src.count}")
-        _reescribir(insumos / "ws.tif", lambda a: np.hypot(este, norte))
+        if par["viento_diurno"] != "direccion":
+            _reescribir(insumos / "ws.tif", lambda a: np.hypot(este, norte))
         _reescribir(insumos / "wd.tif",
                     lambda a: (np.degrees(np.arctan2(-este, -norte)) + 360.0) % 360.0)
     if par.get("z0_desde_dosel"):
