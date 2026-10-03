@@ -599,8 +599,42 @@ def _ampliar_mapas(caso: d.Caso) -> dict:
             "origen": base["origen"] | {"base": datos["base"], "mapas": datos["mapas"]}}
 
 
+def _viento_diurno(caso: d.Caso) -> dict:
+    """El paquete de otro caso, byte a byte, más el viento de cada hora de cada ventana con los
+    flujos de ladera diurnos de WindNinja (`wn_u.tif`, `wn_v.tif`; AUDITORIA-FISICA loop M).
+    La entrada de cada hora es el viento medio del dominio (ws/wd del paquete, a 20 pies) y la
+    temperatura media del clima crudo."""
+    from app.validation import viento
+
+    datos = caso.datos["empaquetado"]
+    base = d.Caso.cargar(datos["base"]).paquete()
+    dem = almacen.abrir(base["comunes"]["dem.tif"])
+    ventanas = []
+    for n, (v, archivos) in enumerate(zip(caso.ventanas, base["ventanas"], strict=True)):
+        with rasterio.open(almacen.abrir(archivos["ws.tif"])) as a, \
+                rasterio.open(almacen.abrir(archivos["wd.tif"])) as b, \
+                rasterio.open(almacen.abrir(archivos["t2m_gfs.tif"])) as t:
+            ws, wd, t2m = a.read(), np.radians(b.read()), t.read()
+        este = (-ws * np.sin(wd)).mean(axis=(1, 2))
+        norte = (-ws * np.cos(wd)).mean(axis=(1, 2))
+        desde = (np.degrees(np.arctan2(-este, -norte)) + 360.0) % 360.0
+        horas = [v.inicio + timedelta(hours=k) for k in range(ws.shape[0])]
+        print(f"  ventana {n}: WindNinja diurno, {len(horas)} horas …", flush=True)
+        u, w, perfil = viento.diurno(
+            dem, Path("data/benchmark/trabajo/windninja-diurno") / caso.id / f"v{n}",
+            np.hypot(este, norte), desde, np.nanmean(t2m, axis=(1, 2)) - 273.15, horas,
+            float(datos.get("resolucion_m", 90)), datos.get("vegetacion", "brush"))
+        with tempfile.TemporaryDirectory() as tmp:
+            ru, rv = viento.guardar(u, w, perfil, Path(tmp))
+            ventanas.append(archivos | {"wn_u.tif": almacen.guardar(ru),
+                                        "wn_v.tif": almacen.guardar(rv)})
+    return {"comunes": base["comunes"], "ventanas": ventanas,
+            "origen": base["origen"] | {"base": datos["base"], "viento_diurno": viento.IMAGEN}}
+
+
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
-                  "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas}
+                  "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas,
+                  "viento_diurno": _viento_diurno}
 
 
 def empaquetar(caso: d.Caso) -> None:

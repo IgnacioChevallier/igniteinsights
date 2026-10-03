@@ -11,9 +11,13 @@ el atlas entre las dos direcciones vecinas.
 - `atlas(dem, …)` corre WindNinja en Docker (`tools/windninja`) y devuelve, por dirección,
   las componentes (u, v) del viento a 20 pies por unidad de viento a 10 m.
 - `aplicar(velocidad_10m, direccion, u, v)` es la interpolación, sin I/O.
+- `diurno(dem, …)` corre WindNinja una vez por hora con los flujos de ladera diurnos
+  (AUDITORIA-FISICA.md, loop M), que el atlas no puede representar.
 """
 import subprocess
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import rasterio
@@ -23,6 +27,7 @@ from rasterio.warp import reproject
 IMAGEN = "windninja-cli:3.12.2"
 DIRECCIONES = 16
 VELOCIDAD_MPH = 10.0   # la del cálculo; se divide para volver a "por unidad"
+ZONA = ZoneInfo("America/Argentina/Buenos_Aires")   # UTC−3 todo el año desde 2009
 
 
 def aplicar(velocidad_10m: np.ndarray, direccion: np.ndarray,
@@ -58,22 +63,69 @@ def atlas(dem: Path, trabajo: Path, resolucion_m: float = 90.0, vegetacion: str 
     u, v, perfil = [], [], None
     for k in range(direcciones):
         d = k * 360.0 / direcciones
-        salida = trabajo / f"d{k:02d}"
-        salida.mkdir(exist_ok=True)
-        (salida / "wn.cfg").write_text(f"""num_threads = 2
+        rapidez, desde, perfil = _correr(dem, trabajo, f"d{k:02d}", resolucion_m, vegetacion,
+                                         f"input_speed = {VELOCIDAD_MPH}\n"
+                                         f"input_direction = {d}\n"
+                                         "input_wind_height = 10.0\n"
+                                         "units_input_wind_height = m\n")
+        rapidez = rapidez / VELOCIDAD_MPH
+        u.append(-rapidez * np.sin(np.radians(desde)))
+        v.append(-rapidez * np.cos(np.radians(desde)))
+    assert perfil is not None   # direcciones >= 1
+    return np.stack(u).astype("float32"), np.stack(v).astype("float32"), perfil
+
+
+def diurno(dem: Path, trabajo: Path, velocidad_mph: np.ndarray, direccion: np.ndarray,
+           temperatura_c: np.ndarray, horas: list[datetime], resolucion_m: float = 90.0,
+           vegetacion: str = "brush") -> tuple[np.ndarray, np.ndarray, dict]:
+    """El viento a 20 pies de cada hora con los flujos de ladera diurnos de WindNinja.
+
+    Una corrida por hora con el viento del dominio (`velocidad_mph` a 20 pies y `direccion`,
+    por hora) y la temperatura del aire: los flujos térmicos dependen de la hora solar y no son
+    lineales en el viento de entrada (el atlas no sirve), así que no hay atajo. Cielo
+    despejado. Devuelve (u, v, perfil) en la malla de WindNinja, en mph, una banda por hora.
+    """
+    trabajo.mkdir(parents=True, exist_ok=True)
+    (trabajo / "dem.tif").write_bytes(Path(dem).read_bytes())
+    u, v, perfil = [], [], None
+    for k, hora in enumerate(horas):
+        local = hora.astimezone(ZONA)
+        rapidez, desde, perfil = _correr(dem, trabajo, f"h{k:03d}", resolucion_m, vegetacion,
+                                         f"input_speed = {velocidad_mph[k]:.3f}\n"
+                                         f"input_direction = {direccion[k] % 360.0:.1f}\n"
+                                         "input_wind_height = 20.0\n"
+                                         "units_input_wind_height = ft\n"
+                                         "diurnal_winds = true\n"
+                                         f"year = {local.year}\nmonth = {local.month}\n"
+                                         f"day = {local.day}\nhour = {local.hour}\n"
+                                         f"minute = {local.minute}\n"
+                                         f"time_zone = {ZONA.key}\n"
+                                         f"uni_air_temp = {temperatura_c[k]:.1f}\n"
+                                         "air_temp_units = C\n"
+                                         "uni_cloud_cover = 0\n"
+                                         "cloud_cover_units = percent\n")
+        u.append(-rapidez * np.sin(np.radians(desde)))
+        v.append(-rapidez * np.cos(np.radians(desde)))
+    assert perfil is not None   # horas no vacía
+    return np.stack(u).astype("float32"), np.stack(v).astype("float32"), perfil
+
+
+def _correr(dem: Path, trabajo: Path, nombre: str, resolucion_m: float, vegetacion: str,
+            entrada: str) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Una corrida de WindNinja sobre `trabajo/dem.tif`: (velocidad en mph, dirección de
+    origen, perfil) a 20 pies, en su malla. `entrada` son las líneas del viento inicial."""
+    salida = trabajo / nombre
+    salida.mkdir(exist_ok=True)
+    (salida / "wn.cfg").write_text(f"""num_threads = 2
 elevation_file = /data/dem.tif
 initialization_method = domainAverageInitialization
-input_speed = {VELOCIDAD_MPH}
 input_speed_units = mph
-input_direction = {d}
-input_wind_height = 10.0
-units_input_wind_height = m
-output_wind_height = 20.0
+{entrada}output_wind_height = 20.0
 units_output_wind_height = ft
 vegetation = {vegetacion}
 mesh_resolution = {resolucion_m}
 units_mesh_resolution = m
-output_path = /data/d{k:02d}
+output_path = /data/{nombre}
 write_ascii_output = true
 ascii_out_resolution = {resolucion_m}
 units_ascii_out_resolution = m
@@ -81,19 +133,14 @@ write_goog_output = false
 write_shapefile_output = false
 write_farsite_atm = false
 """)
-        r = subprocess.run(["docker", "run", "--rm", "-v", f"{trabajo.resolve()}:/data", IMAGEN,
-                            f"/data/d{k:02d}/wn.cfg"], capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(f"WindNinja falló en {d}°: {r.stderr[-2000:]}")
-        vel = next(salida.glob("*_vel.asc"))
-        ang = next(salida.glob("*_ang.asc"))
-        with rasterio.open(vel) as a, rasterio.open(ang) as b, rasterio.open(dem) as ref:
-            rapidez, desde = a.read(1) / VELOCIDAD_MPH, b.read(1)
-            perfil = perfil or (a.profile | {"crs": ref.crs})
-        u.append(-rapidez * np.sin(np.radians(desde)))
-        v.append(-rapidez * np.cos(np.radians(desde)))
-    assert perfil is not None   # direcciones >= 1
-    return np.stack(u).astype("float32"), np.stack(v).astype("float32"), perfil
+    r = subprocess.run(["docker", "run", "--rm", "-v", f"{trabajo.resolve()}:/data", IMAGEN,
+                        f"/data/{nombre}/wn.cfg"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"WindNinja falló en {nombre}: {r.stderr[-2000:]}")
+    vel = next(salida.glob("*_vel.asc"))
+    ang = next(salida.glob("*_ang.asc"))
+    with rasterio.open(vel) as a, rasterio.open(ang) as b, rasterio.open(dem) as ref:
+        return a.read(1), b.read(1), a.profile | {"crs": ref.crs}
 
 
 def guardar(u: np.ndarray, v: np.ndarray, perfil: dict, destino: Path) -> tuple[Path, Path]:

@@ -195,6 +195,21 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             raise FileNotFoundError(f"{caso.id} no empaquetó el atlas de viento: definir "
                                     "`viento_atlas` en el caso")
         _viento_del_atlas(archivos, insumos)
+    if par.get("viento_diurno"):
+        # AUDITORIA-FISICA loop M: el viento de cada hora con los flujos de ladera de WindNinja
+        # (empaquetador `viento_diurno`), en lugar del GFS/ERA5 uniforme o del atlas.
+        if not {"wn_u.tif", "wn_v.tif"} <= set(archivos):
+            raise FileNotFoundError(f"{caso.id} no empaquetó el viento diurno (protocolo -d)")
+        dem = insumos / "dem.tif"
+        este = viento.a_la_grilla(almacen.abrir(archivos["wn_u.tif"]), dem)
+        norte = viento.a_la_grilla(almacen.abrir(archivos["wn_v.tif"]), dem)
+        with rasterio.open(insumos / "ws.tif") as src:
+            if src.count != este.shape[0]:
+                raise ValueError(f"el viento diurno trae {este.shape[0]} horas y la ventana "
+                                 f"{src.count}")
+        _reescribir(insumos / "ws.tif", lambda a: np.hypot(este, norte))
+        _reescribir(insumos / "wd.tif",
+                    lambda a: (np.degrees(np.arctan2(-este, -norte)) + 360.0) % 360.0)
     if par.get("z0_desde_dosel"):
         with rasterio.open(insumos / "ch.tif") as src:
             ch_m = np.where(src.read(1) > 0, src.read(1) / 10.0, 0.0)   # 10 × m (LANDFIRE)
@@ -239,7 +254,8 @@ RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_d
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
                          "reasignar_combustible", "dosel_coherente", "sin_dosel",
                          "cbh_por_combustible", "cbd_por_combustible",
-                         "dosel_sin_perdida_previa", "combustible_perdida_reciente"}
+                         "dosel_sin_perdida_previa", "combustible_perdida_reciente",
+                         "viento_diurno"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
