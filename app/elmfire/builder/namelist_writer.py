@@ -100,6 +100,16 @@ _SPOTTING_FIJOS = {"ENABLE_SPOTTING", "ENABLE_SURFACE_FIRE_SPOTTING",
                    "NEMBERS_MIN"}
 
 
+def _fortran(v: float | bool | str) -> str:
+    if isinstance(v, bool):
+        return ".TRUE." if v else ".FALSE."
+    if isinstance(v, str):
+        return f"'{v}'"
+    if isinstance(v, int):   # NEMBERS_*: enteros en el fuente, un real no se lee
+        return str(v)
+    return f"{float(v)}"
+
+
 def spotting_group(cambios: dict | None) -> str:
     """El grupo &SPOTTING: la plantilla de hindcast con `cambios` encima (mismas claves)."""
     if cambios is None:
@@ -108,16 +118,6 @@ def spotting_group(cambios: dict | None) -> str:
     if desconocidas:
         raise ValueError(f"keywords de &SPOTTING no soportados: {sorted(desconocidas)}")
     valores = SPOTTING_HINDCAST | cambios
-
-    def fortran(v: float | bool | str) -> str:
-        if isinstance(v, bool):
-            return ".TRUE." if v else ".FALSE."
-        if isinstance(v, str):
-            return f"'{v}'"
-        if isinstance(v, int):   # NEMBERS_*: enteros en el fuente, un real no se lee
-            return str(v)
-        return f"{float(v)}"
-
     lineas = []
     for clave, v in valores.items():
         if clave in _SPOTTING_RANGOS:
@@ -125,10 +125,41 @@ def spotting_group(cambios: dict | None) -> str:
                 _SPOTTING_RANGOS[clave]
             if clave == "NEMBERS_MAX":
                 v = int(v)
-            lineas += [f"  {n:<42s}= {fortran(v)}" for n in nombres]
+            lineas += [f"  {n:<42s}= {_fortran(v)}" for n in nombres]
         elif clave in _SPOTTING_FIJOS:
-            lineas.append(f"  {clave:<42s}= {fortran(int(v) if clave == 'NEMBERS_MIN' else v)}")
+            lineas.append(f"  {clave:<42s}= {_fortran(int(v) if clave == 'NEMBERS_MIN' else v)}")
     return "\n&SPOTTING\n" + "\n".join(lineas) + "\n/\n"
+
+
+# Supresión (&SUPPRESSION, READ_SUPPRESSION en elmfire_namelists.f90; elmfire_suppression.f90).
+# Apagada por defecto en ELMFIRE y acá. Los valores son los de la plantilla de pronóstico de
+# incendios activos con supresión del proveedor
+# (/opt/elmfire/runs/forecasts/templates/active_fires-suppressed/elmfire.data): sólo el ataque
+# ampliado. Cada DT_EXTENDED_ATTACK s la contención objetivo sube
+# MAX_CONTAINMENT_PER_DAY × (1 − crecimiento / AREA_NO_CONTAINMENT_CHANGE) %/día (crecimiento
+# en acres/día) y ELMFIRE anula la propagación de los sectores más lentos del perímetro hasta
+# alcanzarla. El ataque inicial no se usa: sortea si el fuego se contiene (RANDOM_NUMBER).
+SUPPRESSION_EXTENDED: dict[str, float | bool] = {
+    "ENABLE_INITIAL_ATTACK": False,
+    "ENABLE_EXTENDED_ATTACK": True,
+    "USE_SDI": False,
+    "DT_EXTENDED_ATTACK": 1800.0,
+    "MAX_CONTAINMENT_PER_DAY": 120.0,
+    "AREA_NO_CONTAINMENT_CHANGE": 15000.0,
+}
+
+
+def suppression_group(cambios: dict | None) -> str:
+    """El grupo &SUPPRESSION: la plantilla del proveedor con `cambios` encima (mismas claves)."""
+    if cambios is None:
+        return ""
+    desconocidas = set(cambios) - set(SUPPRESSION_EXTENDED)
+    if desconocidas:
+        raise ValueError(f"keywords de &SUPPRESSION no soportados: {sorted(desconocidas)}")
+    lineas = [f"  {clave:<42s}= {_fortran(v)}"
+              for clave, v in (SUPPRESSION_EXTENDED | cambios).items()]
+    return "\n&SUPPRESSION\n" + "\n".join(lineas) + "\n/\n"
+
 
 # Humedad del combustible vivo, de Bianchi & Defossé (2015), IJWF 24(3):340, que mide LFMC
 # en las especies de la Patagonia andina cada 10-15 días durante la temporada de fuego
@@ -285,6 +316,7 @@ def write_namelist(
     lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
     lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
     spotting: dict | None = None,
+    suppression: dict | None = None,
 ) -> tuple[Path, float, list[str]]:
     """
     Write elmfire.data to output_path.
@@ -307,6 +339,8 @@ def write_namelist(
             explicitly because ELMFIRE enables it when the keyword is absent.
         spotting: None leaves &SPOTTING out (spotting off, ELMFIRE's default); a dict writes
             SPOTTING_HINDCAST with those keys overridden ({} = the vendor hindcast values).
+        suppression: None leaves &SUPPRESSION out (no suppression, ELMFIRE's default); a dict
+            writes SUPPRESSION_EXTENDED with those keys overridden ({} = the vendor template).
 
     Returns:
         Tuple of (namelist path, resolved dump interval in seconds, weather warnings).
@@ -396,7 +430,7 @@ def write_namelist(
 &MONTE_CARLO
   NUM_METEOROLOGY_TIMES           = {weather_band_count(inputs_dir)}
 /
-{spotting_group(spotting)}"""
+{spotting_group(spotting)}{suppression_group(suppression)}"""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     validate_namelist(namelist)
     output_path.write_text(namelist, encoding="utf-8", newline="\n")

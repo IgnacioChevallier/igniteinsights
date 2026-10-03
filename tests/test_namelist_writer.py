@@ -121,3 +121,19 @@ def test_spotting_rechaza_keywords_inventados():
     from app.elmfire.builder.namelist_writer import spotting_group
     with pytest.raises(ValueError):
         spotting_group({"EMBER_MAGIC": 1.0})
+
+
+def test_supresion_ausente_por_defecto_y_plantilla_del_proveedor_si_se_pide():
+    import pytest
+
+    from app.elmfire.builder.namelist_writer import suppression_group
+    assert suppression_group(None) == ""
+    g = suppression_group({"MAX_CONTAINMENT_PER_DAY": 60.0})
+    linea = {ln.split("=")[0].strip(): ln.split("=")[1].strip()
+             for ln in g.splitlines() if "=" in ln}
+    assert linea["ENABLE_EXTENDED_ATTACK"] == ".TRUE."
+    assert linea["ENABLE_INITIAL_ATTACK"] == ".FALSE."
+    assert linea["MAX_CONTAINMENT_PER_DAY"] == "60.0"
+    assert linea["AREA_NO_CONTAINMENT_CHANGE"] == "15000.0"
+    with pytest.raises(ValueError):
+        suppression_group({"CREWS": 3})

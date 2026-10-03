@@ -646,11 +646,42 @@ def prueba_grilla() -> None:
                  f"{len(quemado_c)} celdas)")
 
 
+def prueba_supresion() -> None:
+    """&SUPPRESSION (ataque ampliado, plantilla del proveedor): viento del oeste en GR2, 3 h.
+    Con contención 0 %/día el quemado es el mismo que sin supresión (el grupo se lee y no
+    frena nada; el TOA se corre hasta un paso porque el ataque ampliado llama a UNTAG_CELLS
+    cada DT_EXTENDED_ATTACK); con contención, menos área, la cola y los flancos frenados
+    primero (los sectores más lentos) y la cabeza casi intacta."""
+    kw = {"ws": 5.0, "wd": 270.0, **HUMEDAD}
+    sin = correr(dominio("supresion-sin", n=201, **kw), 3)
+    cero = correr(dominio("supresion-cero", n=201, **kw), 3,
+                  suppression={"MAX_CONTAINMENT_PER_DAY": 0.0})
+    mismo = np.array_equal(sin > 0, cero > 0)
+    corrimiento = float(np.abs(sin - cero)[(sin > 0) & (cero > 0)].max())
+    chequear("supresion", "contención 0 %/día: mismo quemado, TOA corrido < 300 s",
+             "mismo / < 300", f"{'mismo' if mismo else 'distinto'} / {corrimiento:.0f}",
+             mismo and corrimiento < 300)
+    fo_sin = forma(sin, 30.0)
+    cola_sin = ros_rayo(sin, 270.0, 30.0, r_min=60.0)
+    for nombre, cambios in (("proveedor", {}), ("fuerte", {"MAX_CONTAINMENT_PER_DAY": 480.0})):
+        con = correr(dominio(f"supresion-{nombre}", n=201, **kw), 3, suppression=cambios)
+        fo = forma(con, 30.0)
+        chequear("supresion", f"{nombre}: área (ha) menor que sin supresión",
+                 f"< {_r(fo_sin['area_ha'], 0)}", _r(fo["area_ha"], 0),
+                 fo["area_ha"] < fo_sin["area_ha"])
+        chequear("supresion", f"{nombre}: cabeza (m/min) casi intacta", _r(fo_sin["ros_cabeza"]),
+                 _r(fo["ros_cabeza"]), dentro(fo["ros_cabeza"], fo_sin["ros_cabeza"], 0.15))
+        cola = ros_rayo(con, 270.0, 30.0, r_min=60.0)
+        chequear("supresion", f"{nombre}: la cola (m/min) no avanza más que sin supresión",
+                 f"<= {_r(cola_sin)}", _r(cola), cola <= cola_sin + 1e-6)
+
+
 PRUEBAS: dict[str, Callable[[], None]] = {
     "simetria": prueba_simetria, "nivel": prueba_nivel, "viento": prueba_viento,
     "pendiente": prueba_pendiente,
     "humedad": prueba_humedad, "combustible": prueba_combustible, "dosel": prueba_dosel,
     "tiempo": prueba_tiempo, "georreferencia": prueba_georreferencia, "grilla": prueba_grilla,
+    "supresion": prueba_supresion,
 }
 
 

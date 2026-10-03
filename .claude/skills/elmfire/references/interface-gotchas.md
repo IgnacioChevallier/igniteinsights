@@ -225,3 +225,24 @@ east to 161 columns, moves 879 m.
 - `CROWN_FIRE_MODEL` is only ever tested as `> 0` in 2025.0212: the template's `2` behaves as `1`.
 - Off unless `write_namelist(spotting=...)` is given (`{}` = the hindcast values); keys outside
   `SPOTTING_HINDCAST` are rejected.
+
+## &SUPPRESSION: extended attack only, per run, and it perturbs the front even at 0 %/day
+
+- `READ_SUPPRESSION` (`elmfire_namelists.f90`) reads `ENABLE_INITIAL_ATTACK`,
+  `ENABLE_EXTENDED_ATTACK`, `DT_EXTENDED_ATTACK` (s), `MAX_CONTAINMENT_PER_DAY` (%/day),
+  `AREA_NO_CONTAINMENT_CHANGE` (**acres/day**), `B_SDI`, `SDI_FACTOR`, `USE_SDI`,
+  `USE_SDI_LOG_FUNCTION`; all off by default. The repo writes the vendor template
+  (`/opt/elmfire/runs/forecasts/templates/active_fires-suppressed/elmfire.data`:
+  extended attack, 1800 s, 120 %/day, 15000 acres/day) via `write_namelist(suppression=...)`;
+  keys outside `namelist_writer.SUPPRESSION_EXTENDED` are rejected.
+- Extended attack (`elmfire_level_set.f90` ~l. 1069): every `DT_EXTENDED_ATTACK` the target
+  containment grows by `MAX_CONTAINMENT_PER_DAY × (1 − growth / AREA_NO_CONTAINMENT_CHANGE)`
+  %/day, and `CONTAINMENT` (`elmfire_suppression.f90`) sets `SUPPRESSION_ADJUSTMENT_FACTOR = 0`
+  on the tagged cells of the **slowest** 1° sectors around the centroid until the target is met
+  (head last). Growth above `AREA_NO_CONTAINMENT_CHANGE` makes the target shrink.
+- The state lives in `SUPP(0:1000)` and is reset at the start of every case: in the benchmark
+  chain each window starts uncontained again.
+- The extended-attack step also calls `UNTAG_CELLS`, so even `MAX_CONTAINMENT_PER_DAY = 0`
+  shifts some TOA by up to one timestep (same burned cells): `pruebas_fisicas.py supresion`.
+- Initial attack draws containment with `RANDOM_NUMBER` (probability from size and intensity):
+  not used.
