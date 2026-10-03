@@ -10,7 +10,7 @@ from app.config import settings
 from app.db import repository
 from app.ingestion.coverage import covers_aoi
 
-from .client import download_eth_ch, download_hansen_cc
+from .client import download_eth_ch, download_hansen_cc, download_hansen_lossyear
 from .errors import CanopyError
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,15 @@ async def run_canopy_ingestion(session: AsyncSession) -> uuid.UUID:
 
     try:
         await session.refresh(run)
+
+        # Hansen lossyear is optional for the preparation (it warns and keeps the 2000
+        # canopy), so a failed download here does not fail the cc/ch ingestion.
+        lossyear = Path(settings.hansen_lossyear_path)
+        if not lossyear.exists():
+            try:
+                await asyncio.to_thread(download_hansen_lossyear, lossyear)
+            except CanopyError as exc:
+                logger.warning("Hansen lossyear not downloaded: %s", exc)
 
         date_str = datetime.now(UTC).strftime("%Y-%m-%d")
         canopy_dir = Path(settings.static_data_dir) / "canopy" / date_str
