@@ -51,6 +51,7 @@ def reproject_canopy(
     reference_path: Path,
     output_path: Path,
     scale_factor: float = 1.0,
+    resampling: str = "bilinear",
 ) -> Path:
     """
     Reproject a raw canopy raster (Hansen CC or ETH CH) to the reference grid.
@@ -58,6 +59,8 @@ def reproject_canopy(
     Output dtype is Int16 with nodata=-9999.
     scale_factor=10.0 converts ETH CH meters → 10×meters (ELMFIRE encoding).
     cc.tif: scale_factor=1.0 (Hansen percent 0–100 passes through as-is).
+    resampling="nearest" for categorical layers (Hansen lossyear: bilinear would invent
+    years between neighbours).
     """
     import rasterio
     from rasterio.enums import Resampling
@@ -80,7 +83,7 @@ def reproject_canopy(
             src_crs=src.crs,
             dst_transform=dst_transform,
             dst_crs=dst_crs,
-            resampling=Resampling.bilinear,
+            resampling=Resampling[resampling],
             src_nodata=src_nodata,
             dst_nodata=float(_NODATA),
         )

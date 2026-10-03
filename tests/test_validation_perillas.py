@@ -133,3 +133,9 @@ def test_principal_completa_lee_iou_precision_y_recall_de_la_ventana():
     pr = cadena.principal_completa(vieja)
     assert (pr["iou"], pr["precision"], pr["recall"], pr["tp"]) == (1 / 3, 0.5, 0.5, 10)
     assert pr["dice"] == 0.5 and pr["ventana"] == 1
+
+
+def test_perdida_previa_excluye_el_anio_del_incendio():
+    ly = np.array([[0, 14, 15, 24, 25]])
+    assert cadena.perdida_previa(ly, 2025).tolist() == [[False, True, True, True, False]]
+    assert cadena.perdida_previa(ly, 2015).tolist() == [[False, True, False, False, False]]
