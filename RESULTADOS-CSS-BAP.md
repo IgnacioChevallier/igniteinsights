@@ -27,7 +27,9 @@
     / 0,451). IoU 0,297, precisión 0,448, recall 0,504.
   - Prueba (4): 0,191 / 0,167, 2 alarmas (v5: 0,213 / 0,220, 3). Baja sólo El Turbio, que deja de
     sobre-propagar.
-  - Robustez a la ignición sobre v6: `AUDITORIA-FISICA.md`, loop L.
+  - Robustez a la ignición sobre v6 (21 corridas ±500 m / ±2 h): 0,461 / 0,497, 2 alarmas (v4:
+    0,460 / 0,480, 3); v6 gana en 12 de 21, todas las de Alerces 2023, y pierde en Alerces 2016
+    (`AUDITORIA-FISICA.md`, loop L).
   - El detalle, la bitácora y la comparación con las cifras de este documento están en
     `AUDITORIA-FISICA.md` §1, §5 y §6.
 - **Qué cambió respecto de lo que sigue en este documento:**

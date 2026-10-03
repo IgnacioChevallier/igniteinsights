@@ -19,7 +19,9 @@
   - Prueba (4): 0,191 / 0,167, 2 alarmas (v5: 0,213 / 0,220, 3 alarmas). Mejoran Café, Epuyén 2019 y
     Alerces 2015; El Turbio baja (0,296 → 0,122) porque deja de sobre-propagar (5,73 → 1,08).
   - Costo: Alerces 2016 (0,451 → 0,389): la copa del bosque con caña lo acelera.
-  - Robustez a la ignición sobre v6: ver loop L.
+  - Robustez a la ignición sobre v6 (21 corridas ±500 m / ±2 h en Alerces 2023, Epuyén 2025 y
+    Alerces 2016): 0,461 / 0,497, 2 alarmas (v4: 0,460 / 0,480, 3); v6 gana en 12 de 21. Mejora
+    Alerces 2023 en las 7, empata Epuyén y baja Alerces 2016 en 6 de 7 (el costo ya conocido).
 - **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros: frente
   a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura), 5 (grilla de clima
   alta), la capa "sin ignición" leída como quemada y los GeoTIFF sin comprimir. En el benchmark desde
@@ -850,6 +852,19 @@ sólo al final.
   dos.
 - Corridas `sucio`: `los-alerces-2023/calibracion-v5-h54 lw100-sin-dosel-sh4-001` corrió con
   cambios sin commitear que no la afectan (`anios_publicados`); receta descartada.
+- **Robustez a la ignición sobre v6** (`lw-100-001`; ±500 m al N/S/E/O y ±2 h, protocolos
+  `*-v6*-ign-*` contra los mismos `-ign-*` de v4; con la ignición original, 7 por incendio):
+
+  | Incendio | v4: media / mediana / mín–máx | v6: media / mediana / mín–máx | v6 gana | Alarmas v4 → v6 |
+  |---|---|---|---|---|
+  | Alerces 2023 (h54) | 0,475 / 0,493 / 0,427–0,535 | 0,512 / 0,521 / 0,463–0,543 | 7 de 7 | 2 → 1 (−2 h, 2,05) |
+  | Epuyén 2025 | 0,468 / 0,492 / 0,372–0,500 | 0,465 / 0,498 / 0,345–0,517 | 4 de 7 | 1 → 1 (S 500, 2,04) |
+  | Alerces 2016 | 0,435 / 0,452 / 0,267–0,530 | 0,406 / 0,389 / 0,247–0,549 | 1 de 7 | 0 → 0 |
+  | **Las 21** | **0,460 / 0,480**, 3 alarmas | **0,461 / 0,497**, 2 alarmas | 12 de 21 | |
+
+  IoU 0,300 → 0,303, precisión 0,377 → 0,380, recall 0,605 → 0,603. La receta no depende más de
+  la ignición que antes: el rango de Epuyén (0,35–0,52) y de Alerces 2023 (0,46–0,54) se mantiene,
+  y Alerces 2016 es el único que pierde, en casi todas las variantes (sesgo medio 1,35 → 1,56).
 
 ## 6. Resultados
 
