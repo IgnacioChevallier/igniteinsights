@@ -991,6 +991,11 @@ original.
 
 ### 7.4 Cambios pendientes en el documento de combustibles (`docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
 
+**Aplicado el 2026-10-03 (loop L)**, a pedido del autor ("nosotros somos el director"): la tabla
+de §4 cambia en dos clases (Estepa → GR2 y sobre 1.300 m → NB9; remanente → SH3), con nota al
+principio, §5.7, §5.8 (incluida la desviación de `mex = 15 %` de GR2 respecto de la regla de
+`mex ≥ 25 %`) y la limitación 11 (CBH de literatura). También el paso 4 de §5.4 (739 / 1.785 m/h).
+
 **Aplicado el 2026-09-30** en el documento (nota al principio; §5.4, §5.7, §6.1–§6.3, §7 y §9),
 a pedido del autor. La tabla de correspondencia (§4) no se tocó. Lista original, sección por
 sección:
