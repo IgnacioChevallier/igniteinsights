@@ -6,49 +6,35 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop K, 2026-10-01)*
+*(se reescribe en cada loop — última: loop L, 2026-10-03)*
 
-- **Receta final: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
-  protocolos **v5** (v4 + hallazgos 4 y 5), con Alerces 2023 a 54 h. Sin ADJ: la única perilla
-  es la humedad viva. `benchmarks/particion.json` apunta a v5.
-  - Calibración (7): media **0,381**, mediana **0,451**, cero alarmas sin el caso límite (v4:
-    0,381 / 0,452). Validación cruzada: 7 de 7 pliegues (fuera de muestra 0,381 / 0,451).
-  - Robustez a la ignición (21 corridas): 0,460 / 0,480; gana a base en 17 de 21; 3 alarmas al
-    borde. En v3 las recetas calibradas daban 0,395–0,398 con 5–7 alarmas.
-  - Prueba (4): 0,213 / 0,220, igual en v4 y v5 (v3 final: 0,212 / 0,211).
-  - La robustez a la ignición y los loops C–G se midieron sobre v4; v5 no cambia ningún
-    incendio en más de 0,001 (loop I).
-  - Contra v3: `base-001` 0,312 / 0,340 y `lw100-adj115-001` 0,372 / 0,411.
-- **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros:
-  frente a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura, ahora
-  también con CH sin dato, que era casi todo el efecto: loop I), 5 (grilla de clima alta:
-  `write_namelist` rellena el clima al este; loop H), la capa "sin ignición" leída como quemada
-  y los GeoTIFF sin comprimir que llenaron el disco. Los cinco están en el benchmark desde v5.
-- **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6) y ERA5 ×1,3.
-- **Reproducible:** `verificar` de `lw-100-001` en Alerces 2023 h54 y Epuyén: TOA idéntico en
-  las 7 ventanas; en v5, las cuatro iteraciones marcadas `sucio`: TOA idéntico en 14 ventanas.
-- **La copa (loop F):** en v4 se enciende con un CBH bajo (Cholila 0,255 → 0,528); el CBH
-  derivado es la incertidumbre de insumos más grande que queda (§7.2).
-- **La dirección (loop G):** con el modelo a su velocidad, la rotación empírica ahora suma
-  (+0,012) pero dispara a Epuyén; el atlas sigue neutro. La receta final no cambia.
-- **Documentos actualizados (2026-09-30):** `RESULTADOS-CSS-BAP.md`, `RESULTADOS.md`, `IGN-26`,
-  `PENDING_PARAMETERS.md` y el documento de combustibles (§7.1, §7.4). Decisiones para el
-  director: `DECISIONES-DIRECTOR.md`.
-- **Documento de combustibles:** §6.1, §6.2 y §6.3 re-corridos (§7.4). Paso 4:
-  SH8 queda 2,7–6,5× por debajo de la quema A4, no 5–11×. Tres mapas: el orden se sostiene
-  (anillo 3.892 / 7.268 / 9.262 ha; harness B IoU 0,010 / 0,035 / 0,046, contra otra referencia
-  porque la del documento ya no existe), pero las intensidades bajan. Humedad viva: factor 2,53
-  (doc 2,50).
-- **Alerces 2015, por qué sube a la montaña (loop K, diagnóstico del caso de prueba):** no es
-  un bug. Con ERA5 del ESE a 3–5 mph y WAF de bosque ~0,08 en toda la franja, la pendiente es
-  lo único que empuja, y empuja al OSO. Ninguna variante (dosel coherente, atlas, rotación de 30°
-  o de 60°, humedad por altura, ignición en la primera pasada VIIRS, montaña sin combustible)
-  quema el N; para que la costa empuje al N harían falta ≥ 17 mph del SSE a 20 pies. Lo que sí
-  se agrega al documento de combustibles: la "Estepa" altoandina → GR3 (§7.4).
-- **Corriendo:** nada. El consumidor `cola_run2.sh` sigue vivo, con guarda de disco.
-- **Próximo paso:** los límites que quedan (día 1 explosivo, supresión) no son de interfaz. Si
-  sigue el trabajo: la copa (el CBH derivado la hace imposible en plantaciones) y las pavesas,
-  con una prueba física que muestre que hacen falta antes de exponer keywords.
+- **Receta final: `lw-100-001` sobre los protocolos v6** (LW 100 %, ADJ 1, CCS-BAP anterior al
+  fuego), con el crosswalk y el dosel del loop L ya en los builders: Estepa → GR2 y sobre 1.300 m →
+  NB9, remanente → SH3, CBH por tipo de bosque de literatura, CBD 0,16 en pino y sin dosel en la
+  pérdida previa de Hansen. `benchmarks/particion.json` apunta a v6. Las decisiones y su
+  fundamento: `DECISIONES-DIRECTOR.md`.
+  - Calibración (7): media **0,439**, mediana **0,501**, sin alarmas fuera del caso límite (v5:
+    0,381 / 0,451). IoU 0,297, precisión 0,448, recall 0,504.
+  - Validación cruzada sobre las 28 recetas del loop: 0,424 / 0,501 fuera de muestra.
+  - Prueba (4): 0,191 / 0,167, 2 alarmas (v5: 0,213 / 0,220, 3 alarmas). Mejoran Café, Epuyén 2019 y
+    Alerces 2015; El Turbio baja (0,296 → 0,122) porque deja de sobre-propagar (5,73 → 1,08).
+  - Costo: Alerces 2016 (0,451 → 0,389): la copa del bosque con caña lo acelera.
+  - Robustez a la ignición sobre v6: ver loop L.
+- **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros: frente
+  a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura), 5 (grilla de clima
+  alta), la capa "sin ignición" leída como quemada y los GeoTIFF sin comprimir. En el benchmark desde
+  v5. El loop L no encontró bugs nuevos: cambió insumos.
+- **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6, también por clase), ERA5
+  × 1,3, pavesas (plantilla de hindcast: inactivas; fuertes: alarmas), lenga achaparrada → SH3,
+  LW 95 / 105 %, combustible de quema de 0–2 años.
+- **Métricas:** la principal guarda Dice, IoU, precisión, recall y tp/fp/fn; `tabla` y `objetivo`
+  las muestran, también para las iteraciones viejas (las leen de su ventana).
+- **Límites que quedan:** el día explosivo (Epuyén 2025: 167 ha a las 24 h contra 1.730, ni con la
+  copa medida del pino), la supresión (El Turbio, Epuyén 2019), la dirección del viento de superficie
+  (Alerces 2015, loop K) y Las Golondrinas.
+- **Próximo paso:** si sigue el trabajo, el viento de superficie en valles (el error de dirección
+  es lo que más queda en los incendios de terreno empinado) y un CBH medido para coihue y ciprés con
+  caña, el valor más incierto de la tabla y el que más mueve (Cholila contra Alerces 2016).
 
 ## 2. Supuestos
 
@@ -779,6 +765,91 @@ agravan el exceso montaña arriba sin explicar la dirección:
 Recetas nuevas, sólo diagnóstico: `diag-lw100-gr3-nb-001`, `diag-lw100-lenga-nb-001`. Protocolos
 nuevos: `calibracion-era5-v5a` (atlas) y `calibracion-era5-v5-ign-viirs1`. No hay corrección que
 re-evaluar sobre los 7 de calibración.
+
+### Loop L — las decisiones del director, tomadas por el benchmark
+
+**Pregunta.** `DECISIONES-DIRECTOR.md` dejó siete decisiones de dominio abiertas. Con el pedido de
+tomarlas nosotros y quedarnos con lo que más mejore el acierto, ¿cuánto sube la calibración?
+
+**Cómo.** Todo sobre la receta final (`lw-100-001`) y los siete de calibración. La prueba se miró
+sólo al final.
+- **Perillas nuevas en `cadena`** (transformaciones de rásters, sin keywords):
+  - `sin_dosel` y `cbh_por_combustible` / `cbd_por_combustible`;
+  - `dosel_sin_perdida_previa` y `combustible_perdida_reciente`, con Hansen GFC v1.13 `lossyear`
+    (`scripts/perdida_hansen.py`).
+- **Variantes del crosswalk** (`scripts/variante_crosswalk.py`): reetiquetan clases de CCS-BAP sobre
+  los mapas v5. Entran por protocolos `-x1`, `-x2` y `-x3`, copias byte a byte de v5 con mapas o
+  capas agregadas (`ampliar_mapas`).
+- **Dos agentes de investigación:** uno para el CBH de literatura y otro para la antigüedad del
+  dosel y el rebrote post-fuego. Sus conclusiones y fuentes están en `DECISIONES-DIRECTOR.md`.
+- **Pavesas:** `write_namelist(spotting=...)` escribe `&SPOTTING` con la plantilla de hindcast del
+  proveedor. ELMFIRE sortea cada parámetro entre su `_MIN` y su `_MAX` aun en una corrida única, así
+  que se escriben iguales (trampa en el skill).
+- Métricas: `principal` guarda ahora Dice, IoU, precisión, recall y tp/fp/fn; `tabla` y `objetivo`
+  los muestran también para las iteraciones viejas.
+
+**Resultado, por palanca** (media / mediana del Dice en calibración; alarmas sin el caso límite):
+
+| Palanca | Mejor variante | Media / mediana | Alarmas | Adoptada |
+|---|---|---|---|---|
+| Base (`lw-100-001` v5) | — | 0,381 / 0,451 | 0 | — |
+| Dosel en el matorral (§1) | sin dosel en SH4 | 0,385 / 0,452 | 1 | no |
+| CBH uniforme (§2) | × 0,5 | 0,399 / 0,439 | 0 | no |
+| **CBH de literatura (§2, §5)** | por tipo de bosque | **0,414 / 0,495** | 1 (2,03) | sí |
+| **Estepa sobre 1.300 m → NB9** | — | 0,390 / 0,447 | 0 | sí |
+| Estepa (GR3) → GR1 / GR2 | — | 0,381 / 0,459 · 0,379 / 0,457 | 0 | sí, GR2, por la alarma |
+| Lenga achaparrada → SH3 | — | 0,373 / 0,448 | 1 | no (Cholila 0,213) |
+| **Remanente → SH3 + pérdida previa (§3, §4)** | — | **0,398 / 0,493** | 0 | sí |
+| Pavesas | 10 % copa / 1 % superficie, CBH × 0,5 | 0,415 / 0,468 | 2 | no |
+| Combustible de quema de 0–2 años | NB9 / GR1 | +0,000 | 0 | no |
+| LW 95 / 105 % (con todo) | — | 0,444 / 0,524 · 0,431 / 0,485 | 1 · 0 | no |
+| **Todo junto** | `lw100-lit-altoremsh3-perd-gr2-001` | **0,440 / 0,501** | **0** | — |
+
+- La validación cruzada entre las 28 recetas completas elige la combinación en 5 de 7 pliegues;
+  fuera de muestra, 0,424 / 0,501.
+- **Las pavesas de la plantilla de hindcast no encienden ni un foco** (TOA idéntico byte a byte en
+  Alerces 2016). Fuertes (10 % / 1 %), Cholila sube de 0,425 a 0,514, pero Alerces 2023 y Epuyén se
+  pasan. El CBH de literatura logra lo mismo en Cholila (0,508) sin pavesas.
+- **El dosel en el matorral se mantiene:** con el WAF de bosque esos matorrales propagan a lo que
+  piden los incendios; sin él, se pasan.
+
+**En la causa (protocolos v6).**
+- `fuels_builder`: Estepa → GR2, y sobre 1.300 m (DEM de referencia) → NB9; remanente → SH3.
+- `canopy_builder.derive_cbh_cbd`: CBH por tipo de bosque y CBD del pino (con el `fbfm40`), y sin
+  dosel en la pérdida de Hansen anterior al año del incendio.
+- La preparación de la app usa los dos (`settings.hansen_lossyear_path`).
+- En el benchmark: `preparar_benchmark.py --combustible-desde` rehace los mapas, y el empaquetador
+  deriva el dosel por caso (`dosel_por_combustible`).
+- Contra v5, el paquete v6 cambia sólo cc, ch, cbh, cbd y el mapa; las ventanas son idénticas. Los
+  mapas v6 difieren del efectivo de `-x3` en 0,07–0,09 % de las celdas (bordes de polígono).
+- **`lw-100-001` sobre v6 reproduce la receta: 0,439 / 0,501, sin alarmas** (ningún incendio a más
+  de 0,004). `benchmarks/particion.json` apunta a v6.
+
+| Incendio | `lw-100-001` v5 | `lw-100-001` v6 | `base-001` v6 |
+|---|---|---|---|
+| Alerces 2023 (h54) | 0,496 / 1,83 | 0,528 / 1,86 | 0,488 / 1,59 |
+| Epuyén 2025 | 0,500 / 1,75 | 0,501 / 1,41 | 0,469 / 1,14 |
+| Alerces 2024 | 0,562 / 1,54 | 0,635 / 1,35 | 0,619 / 1,17 |
+| Patriada 2026 | 0,368 / 0,90 | 0,496 / 0,70 | 0,424 / 0,51 |
+| Las Golondrinas (límite) | 0,012 / 0,02 | 0,012 / 0,02 | 0,011 / 0,02 |
+| Alerces 2016 | 0,451 / 1,33 | 0,389 / 1,69 | 0,421 / 1,11 |
+| Cholila 2015 | 0,280 / 0,55 | 0,513 / 0,87 | 0,459 / 0,69 |
+| **Calibración** | 0,381 / 0,451 | **0,439 / 0,501** | 0,413 / 0,459 |
+| IoU / precisión / recall | 0,249 / 0,386 / 0,458 | 0,297 / 0,448 / 0,504 | 0,274 / 0,468 / 0,423 |
+| El Turbio 2025 (prueba) | 0,296 / 5,73 ⚠ | 0,122 / 1,08 | 0,111 / 0,94 |
+| Puerto Café 2025 (prueba) | 0,144 / 0,29 ⚠ | 0,207 / 0,30 ⚠ | 0,201 / 0,27 ⚠ |
+| Epuyén 2019 (prueba) | 0,114 / 16,5 ⚠ | 0,128 / 14,6 ⚠ | 0,154 / 11,7 ⚠ |
+| Alerces 2015 (prueba) | 0,298 / 1,49 | 0,309 / 1,48 | 0,249 / 1,05 |
+| **Prueba** | 0,213 / 0,220 (3 alarmas) | 0,191 / 0,167 (2) | 0,179 / 0,178 (2) |
+
+- **La prueba baja de media por El Turbio**, que antes "acertaba" con 5,7× el área. Con el
+  remanente lento y sin el dosel de 2000 el área es la correcta (1,08), pero el lugar no: ardió
+  latente y combatido diez días, el límite de supresión. Los otros tres mejoran.
+- **Alerces 2016 es el costo:** la copa del bosque con caña (TU5 a 1,5 m) lo acelera (sesgo 1,33 →
+  1,69). Con TU5 a 2,5 m vuelve a 0,427, pero Cholila cae a 0,313: no hay un valor que sirva a los
+  dos.
+- Corridas `sucio`: `los-alerces-2023/calibracion-v5-h54 lw100-sin-dosel-sh4-001` corrió con
+  cambios sin commitear que no la afectan (`anios_publicados`); receta descartada.
 
 ## 6. Resultados
 

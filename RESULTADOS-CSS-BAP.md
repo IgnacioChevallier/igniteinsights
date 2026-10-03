@@ -16,14 +16,18 @@
 
 ## 1. Estado actual
 
-*(última: 2026-09-30, tras la auditoría física)*
+*(última: 2026-10-03, tras el loop L de `AUDITORIA-FISICA.md`)*
 
 - **Receta vigente: `lw-100-001`** (LW 100 %, ADJ 1, CCS-BAP anterior al fuego) sobre los
-  protocolos `-v5` (`benchmarks/particion.json`), con Alerces 2023 a 54 h.
-  - Calibración (7): media **0,381**, mediana **0,451**, cero alarmas sin el caso límite. La
-    validación cruzada la elige en 7 de 7 pliegues.
-  - Robustez a la ignición (21 corridas perturbadas): 0,460 / 0,480, 3 alarmas al borde.
-  - Prueba (4): 0,213 / 0,220.
+  protocolos `-v6` (`benchmarks/particion.json`), con Alerces 2023 a 54 h. Los insumos v6 traen las
+  decisiones del loop L (`DECISIONES-DIRECTOR.md`): Estepa → GR2 y sobre 1.300 m → NB9, remanente
+  de disturbio → SH3, CBH por tipo de bosque de literatura, CBD 0,16 en pino y sin dosel donde Hansen
+  ve pérdida antes del incendio.
+  - Calibración (7): media **0,439**, mediana **0,501**, cero alarmas sin el caso límite (v5: 0,381
+    / 0,451). IoU 0,297, precisión 0,448, recall 0,504.
+  - Prueba (4): 0,191 / 0,167, 2 alarmas (v5: 0,213 / 0,220, 3). Baja sólo El Turbio, que deja de
+    sobre-propagar.
+  - Robustez a la ignición sobre v6: `AUDITORIA-FISICA.md`, loop L.
   - El detalle, la bitácora y la comparación con las cifras de este documento están en
     `AUDITORIA-FISICA.md` §1, §5 y §6.
 - **Qué cambió respecto de lo que sigue en este documento:**
@@ -33,7 +37,8 @@
      ha) y en los demás queda 8–30× por debajo.
   3. La ignición pesa menos: Epuyén va de 0,37 a 0,50 con ±500 m / ±2 h (antes, de 0,08 a 0,50).
   4. La copa no es imposible: con una base de copa baja se enciende (Cholila pasa de 0,26 a
-     0,53). "El CBH no es lo que frena la copa" (§6) quedó refutado.
+     0,53). "El CBH no es lo que frena la copa" (§6) quedó refutado. Desde v6 el CBH sale de la
+     literatura por tipo de bosque y Cholila queda en 0,513.
   5. ERA5 no es intercambiable con el GFS: propaga ~20 % menos (§2.13).
 - **Siguen valiendo:** la conclusión sobre la humedad muerta (el −6 no tiene soporte), los
   análisis de insumos contra estaciones, el bug de la orientación del terreno y los límites de

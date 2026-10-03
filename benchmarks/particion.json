@@ -1,29 +1,29 @@
 {
-  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida). `limites`: casos fuera del alcance de cualquier receta (RESULTADOS-CSS-BAP §2.12), exentos de la restricción de alarmas. Desde el loop 5, calibración sobre -v3 (v2 + atlas de viento; base-001 da idéntico a v2). Desde la auditoría física (AUDITORIA-FISICA.md), protocolos -v4: los tres bugs de interfaz corregidos (NUM_METEOROLOGY_TIMES, phi ±1, wd por el camino corto); los v2/v3 corrieron con el clima de la primera hora y el frente a la mitad de su velocidad. Alerces 2023 con horizonte de 54 h (v4-h54): el área FIRMS deja de crecer ahí y la regla del horizonte corta ahí (AUDITORIA-FISICA loop C); 72 h redondeaba a ventanas de 24 h. Desde el loop I de la auditoría, protocolos -v5: v4 con el dosel re-derivado (hallazgo 4, cobertura 0 donde el CH de ETH es < 2 m o no tiene dato) y el clima rellenado al este en write_namelist (hallazgo 5, franja norte de las grillas altas); Alerces 2023 en v5-h54.",
+  "descripcion": "Partición fijada antes del primer barrido (RESULTADOS-CSS-BAP §3.2). Prueba no se usa para elegir nada hasta el final. GFS y ERA5 no se mezclan en un mismo resumen. Desde el loop 2, protocolos v2 (orientación del terreno corregida). `limites`: casos fuera del alcance de cualquier receta (RESULTADOS-CSS-BAP §2.12), exentos de la restricción de alarmas. Desde el loop 5, calibración sobre -v3 (v2 + atlas de viento; base-001 da idéntico a v2). Desde la auditoría física (AUDITORIA-FISICA.md), protocolos -v4: los tres bugs de interfaz corregidos (NUM_METEOROLOGY_TIMES, phi ±1, wd por el camino corto); los v2/v3 corrieron con el clima de la primera hora y el frente a la mitad de su velocidad. Alerces 2023 con horizonte de 54 h (v4-h54): el área FIRMS deja de crecer ahí y la regla del horizonte corta ahí (AUDITORIA-FISICA loop C); 72 h redondeaba a ventanas de 24 h. Desde el loop I de la auditoría, protocolos -v5: v4 con el dosel re-derivado (hallazgo 4, cobertura 0 donde el CH de ETH es < 2 m o no tiene dato) y el clima rellenado al este en write_namelist (hallazgo 5, franja norte de las grillas altas); Alerces 2023 en v5-h54. Desde el loop L (DECISIONES-DIRECTOR.md), protocolos -v6: v5 con el crosswalk y el dosel adoptados en la causa (Estepa → GR2 y sobre 1.300 m → NB9, remanente → SH3, CBH por tipo de bosque de literatura, CBD 0,16 en pino, sin dosel en la pérdida previa de Hansen); Alerces 2023 en v6-h54.",
   "calibracion": {
     "gfs": [
-      "los-alerces-2023/calibracion-v5-h54",
-      "epuyen-2025/calibracion-v5",
-      "los-alerces-2024/calibracion-v5",
-      "puerto-patriada-2026/calibracion-v5",
-      "las-golondrinas-2021/calibracion-v5"
+      "los-alerces-2023/calibracion-v6-h54",
+      "epuyen-2025/calibracion-v6",
+      "los-alerces-2024/calibracion-v6",
+      "puerto-patriada-2026/calibracion-v6",
+      "las-golondrinas-2021/calibracion-v6"
     ],
     "era5": [
-      "los-alerces-2016/calibracion-era5-v5",
-      "cholila-2015/calibracion-era5-v5"
+      "los-alerces-2016/calibracion-era5-v6",
+      "cholila-2015/calibracion-era5-v6"
     ]
   },
   "prueba": {
     "gfs": [
-      "el-turbio-2025/calibracion-v5",
-      "puerto-cafe-2025/calibracion-v5s"
+      "el-turbio-2025/calibracion-v6",
+      "puerto-cafe-2025/calibracion-v6s"
     ],
     "era5": [
-      "epuyen-2019/calibracion-era5-v5",
-      "los-alerces-2015/calibracion-era5-v5"
+      "epuyen-2019/calibracion-era5-v6",
+      "los-alerces-2015/calibracion-era5-v6"
     ]
   },
   "limites": [
-    "las-golondrinas-2021/calibracion-v5"
+    "las-golondrinas-2021/calibracion-v6"
   ]
 }

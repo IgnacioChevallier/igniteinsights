@@ -65,7 +65,26 @@ registro completo está en `AUDITORIA-FISICA.md`, loop L.
   achaparrada → SH3 (Cholila se cae a 0,213), las pavesas (suben Cholila pero hacen pasar a
   Alerces 2023 y Epuyén), LW 95 o 105 %, CBH de TU a 2,5 m, el combustible de la quema de 0–2
   años.
-- **Prueba:** ver la decisión 7 y `AUDITORIA-FISICA.md`, loop L.
+- **En la causa:** el crosswalk y el dosel ya están en `fuels_builder` y `canopy_builder` (y en la
+  preparación de la app). Los protocolos `-v6` los traen como insumos, y `lw-100-001` sobre v6 da
+  0,439 / 0,501 sin alarmas: reproduce la receta. `benchmarks/particion.json` apunta a v6.
+- **Prueba** (cuatro incendios que no se usaron para elegir):
+
+  | Incendio | `lw-100-001` v5 | `lw-100-001` v6 |
+  |---|---|---|
+  | El Turbio 2025 | 0,296 / 5,73 ⚠ | 0,122 / 1,08 |
+  | Puerto Café 2025 | 0,144 / 0,29 ⚠ | 0,207 / 0,30 ⚠ |
+  | Epuyén 2019 | 0,114 / 16,5 ⚠ | 0,128 / 14,6 ⚠ |
+  | Alerces 2015 | 0,298 / 1,49 | 0,309 / 1,48 |
+  | Media / mediana | 0,213 / 0,220 (3 alarmas) | 0,191 / 0,167 (2 alarmas) |
+
+  Mejoran tres de cuatro y desaparece una alarma. La media baja sólo por El Turbio, que antes
+  "acertaba" quemando 5,7× el área (ver la decisión 4).
+- **Alternativa equivalente:** el resto de la Estepa → GR1 en vez de GR2 empata en calibración
+  (0,439 / 0,507 contra 0,440 / 0,501) y rinde más en prueba (0,209 contra 0,193, porque frena a
+  Epuyén 2019, un incendio de estepa: sesgo 14,6 → 9,2). Elegirla por eso sería usar la prueba para
+  decidir; queda anotada. A favor tiene un argumento físico propio: la estepa de coirón es rala,
+  más cerca de GR1 que de GR2.
 - **Costo:** Alerces 2016 baja 0,06. Es el único que empeora; la copa en el bosque con caña lo
   acelera (sesgo 1,33 → 1,69).
 
