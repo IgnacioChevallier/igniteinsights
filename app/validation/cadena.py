@@ -133,7 +133,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             sin_dosel = no_forestal(src.read(1))
         for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
             _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
-    if "sin_dosel" in par or "cbh_por_combustible" in par:
+    if {"sin_dosel", "cbh_por_combustible", "cbd_por_combustible"} & set(par):
         with rasterio.open(insumos / "fbfm40.tif") as src:
             codigos = src.read(1)
     if "sin_dosel" in par:
@@ -144,7 +144,12 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     if "cbh_por_combustible" in par:
         # DECISIONES-DIRECTOR §2: CBH por tipo de bosque en vez de CH × (0,2 + 0,3 CC).
         _reescribir(insumos / "cbh.tif",
-                    lambda a: cbh_por_combustible(codigos, a, par["cbh_por_combustible"]))
+                    lambda a: por_combustible(codigos, a, par["cbh_por_combustible"], 10))
+    if "cbd_por_combustible" in par:
+        # Ídem para la densidad de copa (p. ej. 0,16 kg/m³ medido en pino, Paritsis et al.
+        # 2018); 0 apaga la copa de esa clase sin tocar el viento bajo dosel.
+        _reescribir(insumos / "cbd.tif",
+                    lambda a: por_combustible(codigos, a, par["cbd_por_combustible"], 100))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -211,7 +216,7 @@ RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_d
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
                          "reasignar_combustible", "dosel_coherente", "sin_dosel",
-                         "cbh_por_combustible"}
+                         "cbh_por_combustible", "cbd_por_combustible"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
@@ -266,14 +271,16 @@ def en_codigos(codigos: np.ndarray, claves) -> np.ndarray:
     return m
 
 
-def cbh_por_combustible(codigos: np.ndarray, cbh: np.ndarray, tabla: dict) -> np.ndarray:
-    """CBH (10 × m, la codificación de ELMFIRE) por código o grupo FBFM40, sólo donde ya hay
-    copa (cbh > 0); un código pisa a su grupo. El resto queda como lo derivó canopy_builder."""
-    salida = cbh.copy()
-    hay_copa = cbh > 0
+def por_combustible(codigos: np.ndarray, capa: np.ndarray, tabla: dict,
+                    escala: float) -> np.ndarray:
+    """Valor por código o grupo FBFM40 (en unidades físicas; `escala` es la codificación de
+    ELMFIRE: 10 para cbh en m, 100 para cbd en kg/m³), sólo donde ya hay copa (capa > 0); un
+    código pisa a su grupo. El resto queda como lo derivó canopy_builder."""
+    salida = capa.copy()
+    hay_copa = capa > 0
     for clave in sorted(tabla, key=lambda k: k in GRUPOS_COMBUSTIBLE, reverse=True):
         m = hay_copa & en_codigos(codigos, [clave])
-        salida[m] = round(tabla[clave] * 10)
+        salida[m] = round(tabla[clave] * escala)
     return salida
 
 

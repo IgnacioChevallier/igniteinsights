@@ -99,8 +99,11 @@ def test_sin_dosel_por_codigo_o_grupo():
 def test_cbh_por_combustible_solo_donde_hay_copa_y_el_codigo_pisa_al_grupo():
     codigos = np.array([[165, 165, 188, 186, 144]])
     cbh = np.array([[60, 0, 80, 70, -9999]], dtype=np.int16)
-    salida = cadena.cbh_por_combustible(codigos, cbh, {"TU": 1.5, "TL": 4.0, "188": 2.0})
+    salida = cadena.por_combustible(codigos, cbh, {"TU": 1.5, "TL": 4.0, "188": 2.0}, 10)
     assert salida.tolist() == [[15, 0, 20, 40, -9999]]
+    cbd = np.array([[5, 0, 7, 4, 3]], dtype=np.int16)
+    assert cadena.por_combustible(codigos, cbd, {"188": 0.16, "SH": 0}, 100).tolist() == [
+        [5, 0, 16, 4, 0]]
 
 
 def test_variante_crosswalk_solo_la_clase_y_su_codigo_y_la_altura():
