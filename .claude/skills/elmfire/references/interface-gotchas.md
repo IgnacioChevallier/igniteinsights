@@ -246,3 +246,14 @@ east to 161 columns, moves 879 m.
   shifts some TOA by up to one timestep (same burned cells): `pruebas_fisicas.py supresion`.
 - Initial attack draws containment with `RANDOM_NUMBER` (probability from size and intensity):
   not used.
+
+## A fire that goes out before SIMULATION_TSTOP leaves no rasters
+
+- When `LIST_TAGGED%NUM_NODES <= 2` (no active front: burned out, or fully contained by
+  &SUPPRESSION) the level-set loop sets `T = TSTOP + 1` and `IDUMPCOUNT = NDUMPS + 1`
+  (`elmfire_level_set.f90` ~l. 1032), and `MAIN_DUMP_ROUTINE` returns at once when
+  `IDUMPCOUNT > NDUMPS` (`elmfire_io.f90`): no `time_of_arrival`, `vs` or `flin`, only
+  `fire_size_stats.csv` (with `Containfrac 1.000` and the stop hour). The benchmark chain then
+  fails with "la corrida no dejó time_of_arrival".
+- With the vendor suppression template (120 %/day) a 24-h window can reach full containment, so
+  the benchmark uses rates below 100 %/day (each window restarts at 0 %).
