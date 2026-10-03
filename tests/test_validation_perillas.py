@@ -139,3 +139,6 @@ def test_perdida_previa_excluye_el_anio_del_incendio():
     ly = np.array([[0, 14, 15, 24, 25]])
     assert cadena.perdida_previa(ly, 2025).tolist() == [[False, True, True, True, False]]
     assert cadena.perdida_previa(ly, 2015).tolist() == [[False, True, False, False, False]]
+    # sólo los dos años anteriores (2023 y 2024) para un incendio de 2025
+    assert cadena.perdida_previa(ly, 2025, desde=2023).tolist() == [
+        [False, False, False, True, False]]

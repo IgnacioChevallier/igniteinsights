@@ -38,7 +38,7 @@ PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
               "humedad_m1_delta", "modelo_humedad", "rotacion_viento", "z0_desde_dosel",
               "aspecto_mas_180", "cbh_factor", "viento_atlas", "reasignar_combustible",
               "dosel_coherente", "sin_dosel", "cbh_por_combustible", "cbd_por_combustible",
-              "dosel_sin_perdida_previa", "spotting"}
+              "dosel_sin_perdida_previa", "spotting", "combustible_perdida_reciente"}
 MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
 
@@ -229,6 +229,7 @@ _INSUMOS_POR_FACTOR = {
     "cbh_por_combustible": {"cbh.tif"},
     "cbd_por_combustible": {"cbd.tif"},
     "dosel_sin_perdida_previa": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
+    "combustible_perdida_reciente": {"fbfm40.tif"},
     "sin_dosel": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
     "dosel_coherente": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
     "viento_atlas": {"ws.tif", "wd.tif"},

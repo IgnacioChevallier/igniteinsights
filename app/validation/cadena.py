@@ -133,6 +133,18 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             sin_dosel = no_forestal(src.read(1))
         for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
             _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
+    if "combustible_perdida_reciente" in par:
+        # DECISIONES-DIRECTOR §3: una quema de 0-1 año es ceniza, fustes en pie y rebrote
+        # incipiente (Tiribelli et al. 2019; LANDFIRE FDist): casi no se reenciende, pero el
+        # mapa (2013/2017) todavía le da el combustible del bosque. {"anios": n, "codigo": c}
+        # pone c donde Hansen marca pérdida en los n años antes del incendio.
+        if "lossyear.tif" not in archivos:
+            raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -x2)")
+        cfg = par["combustible_perdida_reciente"]
+        with rasterio.open(almacen.abrir(archivos["lossyear.tif"])) as src:
+            reciente = perdida_previa(src.read(1), caso.anio_fuego,
+                                      desde=caso.anio_fuego - cfg["anios"])
+        _reescribir(insumos / "fbfm40.tif", lambda a: np.where(reciente, cfg["codigo"], a))
     if par.get("dosel_sin_perdida_previa"):
         # DECISIONES-DIRECTOR §3: el dosel es Hansen 2000 + ETH 2020 y los dos siguen viendo
         # bosque en las quemas de 2015 (fustes en pie). Sin dosel donde Hansen lossyear marca
@@ -227,7 +239,7 @@ RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_d
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
                          "reasignar_combustible", "dosel_coherente", "sin_dosel",
                          "cbh_por_combustible", "cbd_por_combustible",
-                         "dosel_sin_perdida_previa"}
+                         "dosel_sin_perdida_previa", "combustible_perdida_reciente"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
@@ -270,10 +282,10 @@ def no_forestal(codigos: np.ndarray) -> np.ndarray:
     return (codigos >= GRUPOS_COMBUSTIBLE["GR"][0]) & (codigos <= GRUPOS_COMBUSTIBLE["SH"][1])
 
 
-def perdida_previa(lossyear: np.ndarray, anio_fuego: int) -> np.ndarray:
-    """Hansen GFC lossyear (0 = sin pérdida, n = 2000 + n) con pérdida antes del año del
-    incendio."""
-    return (lossyear >= 1) & (lossyear <= anio_fuego - 1 - 2000)
+def perdida_previa(lossyear: np.ndarray, anio_fuego: int, desde: int = 2001) -> np.ndarray:
+    """Hansen GFC lossyear (0 = sin pérdida, n = 2000 + n) con pérdida entre `desde` y el año
+    anterior al incendio."""
+    return (lossyear >= max(desde - 2000, 1)) & (lossyear <= anio_fuego - 1 - 2000)
 
 
 def en_codigos(codigos: np.ndarray, claves) -> np.ndarray:
