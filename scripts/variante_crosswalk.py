@@ -56,7 +56,8 @@ def construir(nombre: str, cambios: list[dict]) -> list[Path]:
                 raise ValueError(f"{dem_path} no está en la grilla de {base}")
         g = gdfs[anio].to_crs(perfil["crs"])
         g["clave"] = g.Ley_N1 + "|" + g.Ley_N2 + "|" + g.Ley_N3
-        g["codigo"] = [fb.ccsbap_fuel_code(a, b, c) for a, b, c in zip(g.Ley_N1, g.Ley_N2, g.Ley_N3)]
+        g["codigo"] = [fb.ccsbap_fuel_code(a, b, c)
+                       for a, b, c in zip(g.Ley_N1, g.Ley_N2, g.Ley_N3)]
         for cambio in cambios:
             sel = g[g.clave.str.startswith(cambio["clase"] + "|") | (g.clave == cambio["clase"])]
             if sel.empty:
