@@ -201,8 +201,8 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         if not {"wn_u.tif", "wn_v.tif"} <= set(archivos):
             raise FileNotFoundError(f"{caso.id} no empaquetó el viento diurno (protocolo -d)")
         dem = insumos / "dem.tif"
-        este = viento.a_la_grilla(almacen.abrir(archivos["wn_u.tif"]), dem)
-        norte = viento.a_la_grilla(almacen.abrir(archivos["wn_v.tif"]), dem)
+        este = viento.a_la_grilla(almacen.abrir(archivos["wn_u.tif"]), dem, rellenar=True)
+        norte = viento.a_la_grilla(almacen.abrir(archivos["wn_v.tif"]), dem, rellenar=True)
         with rasterio.open(insumos / "ws.tif") as src:
             if src.count != este.shape[0]:
                 raise ValueError(f"el viento diurno trae {este.shape[0]} horas y la ventana "

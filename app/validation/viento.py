@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
+from rasterio.fill import fillnodata
 from rasterio.warp import reproject
 
 IMAGEN = "windninja-cli:3.12.2"
@@ -156,14 +157,21 @@ def guardar(u: np.ndarray, v: np.ndarray, perfil: dict, destino: Path) -> tuple[
     return rutas[0], rutas[1]
 
 
-def a_la_grilla(ruta: Path, referencia: Path) -> np.ndarray:
-    """Un atlas guardado, llevado a la grilla de la corrida (bilineal)."""
+def a_la_grilla(ruta: Path, referencia: Path, rellenar: bool = False) -> np.ndarray:
+    """Un atlas guardado, llevado a la grilla de la corrida (bilineal).
+
+    La malla de WindNinja (múltiplo de su resolución) puede quedar una columna o fila corta
+    del DEM: sin `rellenar` esas celdas quedan en 0 (como corrió el atlas); con `rellenar`
+    toman el valor de la celda cubierta más cercana."""
     with rasterio.open(referencia) as ref:
         forma, transform, crs = (ref.height, ref.width), ref.transform, ref.crs
     with rasterio.open(ruta) as src:
-        salida = np.empty((src.count, *forma), dtype="float32")
+        salida = np.full((src.count, *forma), np.nan if rellenar else 0.0, dtype="float32")
         for b in range(src.count):
             reproject(rasterio.band(src, b + 1), salida[b], src_transform=src.transform,
                       src_crs=src.crs, dst_transform=transform, dst_crs=crs,
-                      resampling=Resampling.bilinear)
+                      resampling=Resampling.bilinear, dst_nodata=np.nan if rellenar else None)
+    if rellenar:
+        for banda in salida:
+            banda[:] = fillnodata(np.nan_to_num(banda), mask=np.isfinite(banda))
     return salida
