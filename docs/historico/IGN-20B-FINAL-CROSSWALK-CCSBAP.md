@@ -13,6 +13,13 @@
 > interacción del ñire bajo y la lenga achaparrada con el dosel (§5.4) y dos limitaciones del
 > dosel (§7). Las decisiones abiertas están resumidas en `DECISIONES-DIRECTOR.md`.
 >
+> **Actualización del 2026-10-03 (loop L, `DECISIONES-DIRECTOR.md` y `AUDITORIA-FISICA.md`).**
+> La tabla de §4 cambia en dos clases, medido sobre los siete incendios de calibración:
+> **Estepa → GR2** (era GR3) y **sobre 1.300 m → NB9** (vegetación altoandina, §5.8), y **remanente
+> de disturbio reciente → SH3** (era GS3, §5.7). Además el dosel deja de ser sólo el de Hansen 2000:
+> sin dosel donde Hansen ve pérdida antes del incendio, y CBH por tipo de bosque (§7). Ya están en
+> `app/elmfire/builder/fuels_builder.py` y `canopy_builder.py`.
+>
 > Área de interés: Parque Nacional Los Alerces y entorno. −72,05 / −42,90 / −71,15 / −42,05 (EPSG:4326) · 699.000 ha · grilla EPSG:32719, 30 m.
 
 ---
@@ -160,9 +167,9 @@ Sin excepciones, la turbera heredaría el modelo del mallín y una plantación d
 
 | N2           | % AOI | → FBFM40 | Modelo                           | `mex` |
 | ------------ | ----- | -------- | -------------------------------- | ----- |
-| Herb-Subarb  | 15,02 | **103**  | GR3 · pastizal grueso húmedo     | 30    |
+| Herb-Subarb  | 15,02 | **102** (≥ 1.300 m: **99**) | GR2 · pastizal seco carga baja (era GR3); NB9 sobre el límite del bosque | 15 |
 | Erial        | 11,76 | **99**   | NB9 · estéril                    | —     |
-| Rem Dist Rec | 5,40  | **123**  | GS3 · pastizal-arbustal húmedo   | 40    |
+| Rem Dist Rec | 5,40  | **143**  | SH3 · arbustal carga moderada húmedo (era GS3) | 40 |
 | Hie-Nie      | 3,86  | **92**   | NB2 · nieve y hielo              | —     |
 | Agua         | 3,84  | **98**   | NB8 · agua                       | —     |
 | Exot-Artif   | 2,50  | **101**  | GR1 · pastizal ralo              | 15    |
@@ -317,7 +324,16 @@ Es la misma elección que IGN-20 §6.2 tomó para el arbustal de MapBiomas, que 
 asignación más incierta de la tabla. **Con CCS-BAP y la PT-37 deja de serlo**: ahora hay una
 clase de origen que es efectivamente matorral y una carga medida que la respalda.
 
-### 5.7 · OT Rem Dist Rec — Remanente de disturbio reciente → **123 (GS3)** · 5,40 %
+### 5.7 · OT Rem Dist Rec — Remanente de disturbio reciente → **143 (SH3)** · 5,40 % (era 123, GS3)
+
+**Cambio del 2026-10-03 (loop L).** La literatura sobre el rebrote post-fuego del NO patagónico
+(Tiribelli, Kitzberger y Morales 2018; Blackhall et al. 2017; Landesmann et al. 2021; Raffaele et
+al. 2011) describe gramíneas y rebrote bajo a los 2–5 años (lo que mide A2 y lo que representa GS3)
+y matorral rebrotante leñoso continuo de 2–3 m a los ~10 años (SH3 o SH8). Los mapas son de 2013 y
+2017 y los incendios que los usan, de 2015–2026: el remanente tiene 6–15 años. Con SH3 y sin el
+dosel de 2000 sobre la pérdida previa de Hansen (`canopy_builder`), Patriada pasa de 0,368 a 0,502
+de Dice en calibración; en El Turbio (prueba) desaparece la sobre-propagación (sesgo 5,7 → ~1,1).
+SH8 empata con SH3 en calibración. Lo que sigue es el fundamento original.
 
 Superficie quemada en 2015, mapeada en 2017, simulada en 2026: **once años de regeneración**.
 El análogo medido es el modelo A2 de la PT-37, regeneración coetánea de ñire post-fuego con
@@ -338,10 +354,24 @@ modelo lo recorre como GS3 con cinco veces el área observada (82 % de la cicatr
 Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz. La asignación describe un
 disturbio de dos años mejor que uno de diez (`DECISIONES-DIRECTOR.md` §4).
 
-### 5.8 · OT Herb-Subarb — Estepa → **103 (GR3)** · 15,02 %, con excepción
+### 5.8 · OT Herb-Subarb — Estepa → **102 (GR2)**, sobre 1.300 m **99 (NB9)** · 15,02 %, con excepción
 
-`Estepa` (graminosa, coirón de *Festuca* y *Stipa*) → GR3, *"very coarse grass"*, `mex = 30 %`.
-Misma elección y mismo motivo que IGN-20 §6.4.
+**Cambio del 2026-10-03 (loop L).** Dos medidas sobre los incendios de calibración:
+- la Estepa como GR3 (1.138 m/h a 10 mph, de los modelos más rápidos de SB40) tiene precisión 0,12
+  (1.262 ha de falso positivo contra 173 de acierto), también a baja altura. GR2 la frena y saca la
+  única alarma de sesgo de la receta nueva (Alerces 2023);
+- CCS-BAP llama "Estepa" también a la vegetación altoandina rala entre roca y nieve: en el Cordón
+  Situación (Alerces 2015) sus polígonos están a 1.484 m de mediana, y el 73 % del GR3 de ese caso
+  está sobre 1.300 m. Sobre 1.300 m (del DEM) pasa a NB9: +0,009 de Dice en calibración, Alerces 2024
+  0,562 → 0,614.
+
+GR2 tiene `mex = 15 %`: **rompe la regla de `mex ≥ 25 %`** de §3 para vegetación nativa. Se
+adopta igual porque es lo que mide el benchmark; la alternativa coherente con la regla sería un
+modelo húmedo más ralo que GR3 (GR1 tiene también 15 %; los GR de clima húmedo de SB40 son todos
+más cargados). Queda como desviación declarada.
+
+Fundamento original: `Estepa` (graminosa, coirón de *Festuca* y *Stipa*) → GR3, *"very coarse
+grass"*, `mex = 30 %`. Misma elección y mismo motivo que IGN-20 §6.4.
 
 `Estepa Arb` (estepa arbustiva) → **GS3**, por los modelos A4 y A5 de la PT-37: arbustal bajo
 con gramíneas, donde *"con vientos moderados o fuertes el largo de llama supera la distancia
@@ -632,10 +662,13 @@ fenología sería la mejora, y no está en alcance.
    achaparrada, parte del arbustal nativo), el dosel suele ver bosque cerrado, y ELMFIRE le quita
    el viento al matorral (§5.4). Donde hubo fuegos después de 2000, ve un bosque que ya no está
    (§5.7).
-11. **La altura de base de copa es derivada, no medida** (2026-09-30). Se calcula como 0,20–0,50
-   de la altura del dosel (5 a 10 m en la región), y con esos valores el fuego de copas casi
-   nunca se enciende. Con una base de copa baja sí se enciende, y es el insumo que más mueve el
-   resultado del benchmark (`AUDITORIA-FISICA.md`, loop F; `DECISIONES-DIRECTOR.md` §2).
+11. **La altura de base de copa no es medida** (2026-09-30; actualizado 2026-10-03). Se derivaba
+   como 0,20–0,50 de la altura del dosel (5 a 10 m en la región), y con esos valores el fuego de
+   copas casi nunca se encendía. Desde el loop L sale de la literatura por tipo de bosque (lenga 6
+   m, coihue/ciprés/mixtos con caña y ñire 1,5 m, maitén/radal 1 m, alerce 4 m, pino 1,5 m con CBD
+   0,16 kg/m³ medido; `canopy_builder.CBH_BY_FUEL_MODEL_M`), sin inventario para el bosque nativo:
+   confiabilidad baja a media salvo en pino. Es el insumo que más movió el benchmark (0,381 →
+   0,414 de Dice medio sola; `DECISIONES-DIRECTOR.md` §2).
 
 
 

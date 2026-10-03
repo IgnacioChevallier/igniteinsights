@@ -96,7 +96,15 @@ wind speed. Defensible and now derived rather than hardcoded, but **not measured
 Alerces**. **Criterion needed:** effective aerodynamic roughness for the AOI's canopy,
 or a roughness raster derived from `ch.tif` instead of one scalar.
 
-### 1.5 🟡 Canopy CBH/CBD lookup by fuel model — **resuelto el lookup, reabierta la derivación**
+### 1.5 🟡 Canopy CBH/CBD lookup by fuel model — **CBH por tipo de bosque de literatura (2026-10-03)**
+
+> Al 2026-10-03 (`DECISIONES-DIRECTOR.md` §2 y §3, loop L): `canopy_builder.derive_cbh_cbd`
+> toma el CBH por tipo de bosque de la literatura donde hay copa (`CBH_BY_FUEL_MODEL_M`: lenga 6
+> m, alerce 4 m, coihue/ciprés/mixtos y ñire 1,5 m, maitén/radal 1 m, pino 1,5 m) y el CBD del
+> pino (0,16 kg/m³, medido; `CBD_BY_FUEL_MODEL_KG_M3`); los demás tipos conservan CH × f(CC). Y
+> deja sin dosel la pérdida de Hansen anterior al año del incendio. Sólo el pino tiene valores
+> medidos en la región; el resto sale de la estructura vertical descrita en la literatura
+> (confiabilidad baja a media). Calibración: 0,381 / 0,451 → 0,414 / 0,495 (CBH sola).
 
 > Al 2026-09-30 (`AUDITORIA-FISICA.md`, loop F): el CBH derivado de `cc`/`ch` (0,20–0,50 × CH,
 > 5–10 m) hace que la copa casi nunca se encienda. Con el CBH × 0,25 se enciende y el Dice de
