@@ -42,6 +42,12 @@ MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
 
 
+def anios_publicados(fuente: str) -> tuple[int, ...]:
+    """Años de un mapa; una variante del crosswalk (`ccsbap-l1`, scripts/variante_crosswalk.py)
+    hereda los del producto."""
+    return ANIOS_COMBUSTIBLE[fuente.split("-")[0]]
+
+
 def _sha_json(datos: dict) -> str:
     return hashlib.sha256(json.dumps(datos, sort_keys=True).encode()).hexdigest()
 
@@ -126,7 +132,7 @@ class Receta:
         anterior (WorldCover empieza en 2020), y la iteración queda marcada con
         `fuga_temporal` en sus factores."""
         fuente, anio = self.combustible["fuente"], self.combustible["anio"]
-        publicados = ANIOS_COMBUSTIBLE[fuente]
+        publicados = anios_publicados(fuente)
         if anio == "anterior_al_fuego":
             previos = [a for a in publicados if a < caso.anio_fuego]
             sin_anterior = self.combustible.get("sin_anterior")
@@ -143,7 +149,7 @@ class Receta:
         return anio
 
     def validar(self, caso: Caso) -> None:
-        if self.combustible.get("fuente") not in ANIOS_COMBUSTIBLE:
+        if str(self.combustible.get("fuente")).split("-")[0] not in ANIOS_COMBUSTIBLE:
             raise ValueError(f"{self.id}: fuente de combustible desconocida")
         if self.semilla not in POLITICAS_SEMILLA:
             raise ValueError(f"{self.id}: semilla '{self.semilla}' no es {POLITICAS_SEMILLA}")

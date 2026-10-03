@@ -101,3 +101,21 @@ def test_cbh_por_combustible_solo_donde_hay_copa_y_el_codigo_pisa_al_grupo():
     cbh = np.array([[60, 0, 80, 70, -9999]], dtype=np.int16)
     salida = cadena.cbh_por_combustible(codigos, cbh, {"TU": 1.5, "TL": 4.0, "188": 2.0})
     assert salida.tolist() == [[15, 0, 20, 40, -9999]]
+
+
+def test_variante_crosswalk_solo_la_clase_y_su_codigo_y_la_altura():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("vc", "scripts/variante_crosswalk.py")
+    vc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(vc)
+    fuel = np.array([[148, 148, 144, 148]], dtype=np.int16)
+    clase = np.array([[True, True, True, False]])
+    viejo = np.where(clase, 148, 0)
+    dem = np.array([[1400, 900, 1400, 1400]])
+    salida = vc.aplicar(fuel, clase, viejo, dem, {"a": 143, "altura_min": 1300})
+    assert salida.tolist() == [[143, 148, 144, 148]]
+
+
+def test_variante_hereda_los_anios_del_producto():
+    from app.validation import definiciones
+    assert definiciones.anios_publicados("ccsbap-l1") == definiciones.ANIOS_COMBUSTIBLE["ccsbap"]
