@@ -6,37 +6,52 @@
 
 ## 1. Estado actual
 
-*(se reescribe en cada loop — última: loop L, 2026-10-03)*
+*(se reescribe en cada loop — última: loop M, 2026-10-03)*
 
 - **Receta final: `lw-100-001` sobre los protocolos v6** (LW 100 %, ADJ 1, CCS-BAP anterior al
-  fuego), con el crosswalk y el dosel del loop L ya en los builders: Estepa → GR2 y sobre 1.300 m →
+  fuego), con el crosswalk y el dosel del loop L en los builders: Estepa → GR2 y sobre 1.300 m →
   NB9, remanente → SH3, CBH por tipo de bosque de literatura, CBD 0,16 en pino y sin dosel en la
   pérdida previa de Hansen. `benchmarks/particion.json` apunta a v6. Las decisiones y su
   fundamento: `DECISIONES-DIRECTOR.md`.
-  - Calibración (7): media **0,439**, mediana **0,501**, sin alarmas fuera del caso límite (v5:
-    0,381 / 0,451). IoU 0,297, precisión 0,448, recall 0,504.
-  - Validación cruzada sobre las 28 recetas del loop: 0,424 / 0,501 fuera de muestra.
-  - Prueba (4): 0,191 / 0,167, 2 alarmas (v5: 0,213 / 0,220, 3 alarmas). Mejoran Café, Epuyén 2019 y
-    Alerces 2015; El Turbio baja (0,296 → 0,122) porque deja de sobre-propagar (5,73 → 1,08).
-  - Costo: Alerces 2016 (0,451 → 0,389): la copa del bosque con caña lo acelera.
-  - Robustez a la ignición sobre v6 (21 corridas ±500 m / ±2 h en Alerces 2023, Epuyén 2025 y
-    Alerces 2016): 0,461 / 0,497, 2 alarmas (v4: 0,460 / 0,480, 3); v6 gana en 12 de 21. Mejora
-    Alerces 2023 en las 7, empata Epuyén y baja Alerces 2016 en 6 de 7 (el costo ya conocido).
+  - Calibración (7): media **0,439**, mediana **0,501**, sin alarmas fuera del caso límite. IoU
+    0,297, precisión 0,448, recall 0,504.
+  - Validación cruzada entre las 10 recetas completas de v6 (loop M): 0,437 / 0,490 fuera de
+    muestra.
+  - Prueba (4): 0,191 / 0,167, 2 alarmas.
+  - Robustez a la ignición (21 corridas ±500 m / ±2 h): 0,461 / 0,497, 2 alarmas (v4: 0,460 /
+    0,480, 3); gana en 12 de 21.
+  - Costo: Alerces 2016 (0,451 → 0,389). La copa del ñire con CBH bajo y el arbustal de la quema
+    de 2008, ya sin dosel, lo aceleran.
+- **Loop M, medido y no adoptado:**
+  - la pérdida previa como matorral (Patriada se frena de más);
+  - la supresión de ELMFIRE (saca área donde el fuego ardió y no contiene a los que sobre-propagan);
+  - el viento de WindNinja, con flujos diurnos o sin ellos (arregla Alerces 2016 y hunde a
+    Cholila).
+  - La mejor variante, la velocidad de WindNinja diurno con la dirección del GFS/ERA5, sube la media
+    a 0,450 pero baja la mediana a 0,490 y gana casi sólo en Alerces 2016: queda como alternativa.
+  - La estepa sigue en GR2. El CBH del coihue no es lo que acelera Alerces 2016.
 - **Bugs confirmados y corregidos:** 1 (clima congelado en la banda 0), 2 (`phi` en metros: frente
   a ~0,5×), 3 (`wd` interpolado como ángulo plano), 4 (cobertura sin altura), 5 (grilla de clima
   alta), la capa "sin ignición" leída como quemada y los GeoTIFF sin comprimir. En el benchmark desde
-  v5. El loop L no encontró bugs nuevos: cambió insumos.
-- **Medido y no adoptado:** dosel coherente con el combustible (sospecha 6, también por clase), ERA5
-  × 1,3, pavesas (plantilla de hindcast: inactivas; fuertes: alarmas), lenga achaparrada → SH3,
-  LW 95 / 105 %, combustible de quema de 0–2 años.
-- **Métricas:** la principal guarda Dice, IoU, precisión, recall y tp/fp/fn; `tabla` y `objetivo`
-  las muestran, también para las iteraciones viejas (las leen de su ventana).
-- **Límites que quedan:** el día explosivo (Epuyén 2025: 167 ha a las 24 h contra 1.730, ni con la
-  copa medida del pino), la supresión (El Turbio, Epuyén 2019), la dirección del viento de superficie
-  (Alerces 2015, loop K) y Las Golondrinas.
-- **Próximo paso:** si sigue el trabajo, el viento de superficie en valles (el error de dirección
-  es lo que más queda en los incendios de terreno empinado) y un CBH medido para coihue y ciprés con
-  caña, el valor más incierto de la tabla y el que más mueve (Cholila contra Alerces 2016).
+  v5. El loop M encontró dos problemas de la app, no del benchmark:
+  - la preparación moría por memoria con el AOI completo: el clima va ahora por bloques, con la
+    salida idéntica;
+  - la imagen de la API corría el crosswalk de antes del loop L.
+- **Trampas nuevas de ELMFIRE** (skill): con un fuego sin frente activo antes de `TSTOP` (apagado o
+  contenido), ELMFIRE no vuelca ningún ráster; el ataque ampliado mueve el TOA aun a 0 %/día.
+- **Medido y no adoptado antes:** dosel coherente con el combustible, ERA5 × 1,3, pavesas, lenga
+  achaparrada → SH3, LW 95 / 105 %, combustible de quema de 0–2 años.
+- **Límites que quedan:**
+  - el día explosivo (Epuyén 2025: 167 ha a las 24 h contra 1.730);
+  - la supresión (El Turbio, Epuyén 2019; ni el modelo de ELMFIRE la resuelve);
+  - la dirección del viento de superficie (Alerces 2015: el flujo nocturno del SSO de WindNinja
+    tiene la dirección correcta pero 2–3 mph, y no le gana a la pendiente bajo el bosque);
+  - Las Golondrinas;
+  - el conflicto Alerces 2016 / Cholila: dos incendios ERA5, uno pasado (1,69) y otro corto (0,87),
+    que cada palanca global (CBH, viento, LW) mueve en sentidos opuestos.
+- **Próximo paso:** si sigue el trabajo, el viento medido. Una estación cerca de Alerces 2016 o
+  Cholila diría si la velocidad de WindNinja (que arregla uno) o la del ERA5 (que sirve al otro)
+  es la correcta.
 
 ## 2. Supuestos
 
@@ -865,6 +880,143 @@ sólo al final.
   IoU 0,300 → 0,303, precisión 0,377 → 0,380, recall 0,605 → 0,603. La receta no depende más de
   la ignición que antes: el rango de Epuyén (0,35–0,52) y de Alerces 2023 (0,46–0,54) se mantiene,
   y Alerces 2016 es el único que pierde, en casi todas las variantes (sesgo medio 1,35 → 1,56).
+
+### Loop M — después del loop L: Alerces 2016, viento de valle, supresión y la app
+
+**Pregunta.** Con v6 como protocolo, ¿hay alguna palanca que recupere Alerces 2016 (el único que
+empeoró con v6), corrija la dirección del viento en terreno empinado o frene a los incendios que
+sobre-propagan, sin alarmas en calibración? Y aparte: ¿la app prepara de punta a punta con los
+insumos v6?
+
+**Cierre del loop L.** La robustez a la ignición sobre v6 y `verificar` están en el loop L. Las tres
+iteraciones verificadas (Epuyén 2025 v6, Alerces 2016 v6 y la marcada sucia de Alerces 2023
+v5-h54) reproducen el TOA byte a byte.
+
+**1. Por qué empeora Alerces 2016** (confusión por clase de CCS-BAP, `lw-100-001` v5 → v6). El
+acierto no cambia (720 → 718 ha); el falso positivo sube de 1.102 a 1.602 ha:
+- arbustal y matorral SH4 +289 ha, ñire TU3 +122 ha, ñire bajo SH8 +58 ha;
+- 160 ha del falso positivo de v6 caen en la quema de 2008, que Hansen marca y CCS-BAP 2013
+  sigue llamando arbustal o bosque: sin dosel, ese SH4 corre a viento abierto;
+- 657 ha del falso positivo tienen CBH ≤ 2 m (ñire y coihue con la copa de literatura).
+
+**El coihue no es la causa.** TF|Co suma 27 de los 1.602 ha de falso positivo de Alerces 2016 y
+721 ha de acierto en Cholila: subirle el CBH no puede mover Alerces 2016 más de ~0,01 y le saca copa
+a Cholila. No se armó la capa de clase de CCS-BAP. El ñire (TF|Ñi) sí pesa (567 ha de falso
+positivo contra 28 de acierto), pero en Cholila es lo que falta (1.288 ha no predichas): el mismo
+conflicto que con TU a 2,5 m.
+
+**2. La pérdida previa como remanente** (protocolos `-p`: v6 + `lossyear.tif`, `ampliar_mapas`).
+Toda la pérdida de Hansen desde 2001 al combustible del remanente (SH3) o a SH2, con
+`combustible_perdida_reciente`:
+
+| Receta | Media / mediana | Alarmas | IoU / prec. / recall | Alerces 2016 | Patriada | Cholila |
+|---|---|---|---|---|---|---|
+| `lw-100-001` (v6) | 0,439 / 0,501 | 0 | 0,297 / 0,448 / 0,504 | 0,389 / 1,69 | 0,496 / 0,70 | 0,513 / 0,87 |
+| `lw100-perdsh3-001` | 0,417 / 0,502 | 1 | 0,279 / 0,453 / 0,470 | 0,413 / 1,54 | 0,334 / 0,37 ⚠ | 0,502 / 0,81 |
+| `lw100-perdsh2-001` | 0,403 / 0,497 | 1 | 0,269 / 0,459 / 0,455 | 0,419 / 1,50 | 0,233 / 0,22 ⚠ | 0,497 / 0,81 |
+
+No. Patriada ardió rápido justo sobre bosque con pérdida previa (que v6 ya deja sin dosel), y como
+matorral se frena de más.
+
+**3. Supresión.** `write_namelist(suppression=...)` escribe `&SUPPRESSION` con la plantilla de
+pronóstico con supresión del proveedor (sólo el ataque ampliado: cada 1.800 s la contención
+objetivo sube `MAX_CONTAINMENT_PER_DAY × (1 − crecimiento / 15.000 acres/día)` %/día y ELMFIRE
+anula la propagación de los sectores más lentos del perímetro). Prueba física nueva
+(`pruebas_fisicas.py supresion`, 7 de 7): menos área, cola frenada y cabeza intacta; con 0 %/día
+el mismo quemado, con el TOA corrido hasta un paso (el ataque ampliado llama a `UNTAG_CELLS`).
+- **Con la plantilla (120 %/día) la cadena se corta:** cada ventana arranca sin contención y en
+  24 h puede llegar al 100 %. Un fuego sin frente activo antes de `TSTOP` no vuelca ningún ráster
+  (`IDUMPCOUNT > NDUMPS` en `MAIN_DUMP_ROUTINE`), así que la ventana siguiente no tiene semilla.
+  Trampa en el skill. Se midió a 60 y 30 %/día:
+
+| Receta | Media / mediana | Alarmas | IoU / prec. / recall | A. 2023 | Epuyén | A. 2024 | Patriada | A. 2016 | Cholila |
+|---|---|---|---|---|---|---|---|---|---|
+| `lw-100-001` | 0,439 / 0,501 | 0 | 0,297 / 0,448 / 0,504 | 0,528 / 1,86 | 0,501 / 1,41 | 0,635 / 1,35 | 0,496 / 0,70 | 0,389 / 1,69 | 0,513 / 0,87 |
+| `lw100-supresion-30-001` | 0,411 / 0,471 | 0 | 0,275 / 0,456 / 0,440 | 0,486 / 1,71 | 0,487 / 1,34 | 0,673 / 1,14 | 0,471 / 0,55 | 0,330 / 1,46 | 0,422 / 0,69 |
+| `lw100-supresion-60-001` | 0,368 / 0,410 | 1 | 0,244 / 0,452 / 0,357 | 0,449 / 1,36 | 0,446 / 1,22 | 0,696 / 0,93 | 0,410 / 0,45 ⚠ | 0,191 / 1,18 | 0,377 / 0,56 |
+
+- Sólo mejora Alerces 2024. En los demás, la supresión saca área donde el fuego sí ardió.
+- **Tampoco es la palanca de la prueba** (diagnóstico, no se usa para elegir): El Turbio cae de
+  0,122 a 0,052 (30 %) y 0,029 (60 %); Epuyén 2019 apenas baja el sesgo, de 14,6 a 13,8 y 12,1.
+  Con más de 15.000 acres/día de crecimiento la contención objetivo baja: el modelo no contiene a
+  los incendios que más sobre-propagan, que son justo los que la necesitaban.
+
+**4. Viento de valle: WindNinja con flujos diurnos.**
+- **El modo diurno existe** en `windninja-cli:3.12.2` (`diurnal_winds` con fecha, hora, zona
+  horaria, temperatura y nubosidad) y agrega los flujos de ladera según la hora solar.
+- **Un atlas por hora del día no sirve:** el aporte diurno no es lineal en el viento de entrada.
+  Con 10 mph del O, el residuo |con diurno − (sin diurno + sólo diurno)| es de 0,7 mph de mediana
+  (p95 1,8), del orden del propio aporte diurno (0,8 / 4,3 mph).
+- **Se corre WindNinja por hora**: empaquetador `viento_diurno`, que agrega `wn_u.tif` / `wn_v.tif`
+  a cada ventana (protocolos `-d`), y perilla `viento_diurno`. Entrada de cada hora: el viento medio
+  del dominio a 20 pies, la temperatura media del clima crudo, cielo despejado, 90 m, `brush`.
+  Son ~8–50 s por hora según el dominio.
+- **En Alerces 2015, de noche, gira el viento:** con el ERA5 del ESE a 3 mph, la costa no predicha
+  pasa a viento del SSO (213°, hacia el NNE) en el 63 % de las celdas, la dirección de la carrera
+  real. Pero con 2–3 mph bajo un WAF de bosque de 0,08 no le gana a la pendiente (loop K): con la
+  receta, lo no predicho al N pasa de 700 a 716 ha (Dice 0,309 → 0,297; prueba, sólo diagnóstico).
+
+| Receta (calibración) | Media / mediana | Alarmas | IoU / prec. / recall | A. 2023 | Epuyén | A. 2024 | Patriada | Golondrinas | A. 2016 | Cholila |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `lw-100-001` | 0,439 / 0,501 | 0 | 0,297 / 0,448 / 0,504 | 0,528 / 1,86 | 0,501 / 1,41 | 0,635 / 1,35 | 0,496 / 0,70 | 0,012 | 0,389 / 1,69 | 0,513 / 0,87 |
+| `lw100-atlas-001` (atlas, sin térmica) | 0,417 / 0,483 | 0 | 0,279 / 0,452 / 0,457 | 0,520 / 1,87 | 0,483 / 1,35 | 0,637 / 1,33 | 0,423 / 0,56 | 0,011 | 0,492 / 1,14 | 0,352 / 0,60 |
+| `lw100-diurno-002` (diurno) | 0,426 / 0,487 | 0 | 0,287 / 0,449 / 0,485 | 0,513 / 1,92 | 0,497 / 1,46 | 0,649 / 1,41 | 0,487 / 0,82 | 0,018 | 0,479 / 1,19 | 0,339 / 0,61 |
+| `lw100-diurno-dir-001` (sólo dirección) | 0,411 / 0,487 | 0 | 0,274 / 0,424 / 0,475 | 0,519 / 1,81 | 0,508 / 1,48 | 0,625 / 1,33 | 0,487 / 0,79 | 0,012 | 0,393 / 1,70 | 0,331 / 0,60 |
+| `lw100-diurno-vel-001` (sólo velocidad) | **0,450 / 0,490** | 0 | 0,306 / 0,471 / 0,510 | 0,519 / 1,97 | 0,490 / 1,40 | 0,658 / 1,44 | 0,501 / 0,73 | 0,018 | 0,476 / 1,20 | 0,485 / 0,82 |
+
+- **Se descompone limpio:** la velocidad de WindNinja (más baja en el bosque de ladera) arregla
+  Alerces 2016 (falso positivo de 1.602 a 907 ha, sin perder acierto) y su dirección hunde a
+  Cholila (0,513 → 0,33).
+- **Sólo la velocidad** sube la media (0,439 → 0,450), la IoU, la precisión y el recall, y la
+  validación cruzada la elige en 6 de 7 pliegues (fuera de muestra 0,437 / 0,490). **No se adopta:**
+  - la mediana baja (0,501 → 0,490);
+  - la ganancia es casi toda de Alerces 2016 (+0,087). Pierden Alerces 2023 (−0,009), Epuyén
+    (−0,011) y Cholila (−0,028); suben poco Alerces 2024 (+0,023), Patriada (+0,005) y Las
+    Golondrinas (+0,006);
+  - Alerces 2023 queda con sesgo 1,97, a 0,03 de la alarma (con la ignición −2 h ya estaba en 2,05);
+  - quedarse con la velocidad de un campo y no con su dirección no tiene un fundamento físico propio;
+  - en la app obligaría a correr WindNinja por hora en cada preparación.
+
+  Queda anotada como la alternativa medida, como GR1 en la estepa.
+
+**5. Estepa GR1 contra GR2: se queda GR2.** No hay un argumento independiente de la prueba para
+cambiarla: los dos rompen igual la regla de `mex` (15 %), y el que hay favorece a GR2. La PT-37
+describe coirones de hasta 40 cm (A4) y estratos de 0,4–0,5 m (A5), más cerca del lecho de GR2
+(1 pie, ~30 cm) que del de GR1 (0,4 pie, ~12 cm). La carga de la estepa graminosa subandina no está
+medida en la zona. No se arma v7.
+
+**6. La app de punta a punta.**
+- **Hansen `lossyear` en la ingesta:** `download_hansen_lossyear` baja la tesela a
+  `settings.hansen_lossyear_path` si falta (byte a byte igual a la bajada a mano). Si falla, la
+  ingesta de cc/ch sigue.
+- **La preparación moría por memoria** (OOM, la API llegó a 6,3 GB en una VM de 7,75 GB):
+  `derive_wind` y `derive_moisture` cargaban las 25 bandas del AOI completo (4.333 × 2.591) y
+  llegaban a 5,7 y 5,1 GB. Ahora reproyectan banda por banda a la grilla completa en un memmap y
+  calculan por bloques de 256 filas: la salida es idéntica byte a byte y el pico de la API en la
+  preparación es de 3,2 GB. Reproyectar por ventanas no era idéntico: GDAL aproxima la
+  transformación por bloque.
+- **La imagen de la API era la de antes del loop L** (corría el crosswalk viejo: 17 % de GR3). Se
+  reconstruyó.
+- **Preparación completa** (`POST /ingestion/run` con FIRMS, GFS y dosel, 2026-10-03): 16 insumos,
+  sin avisos. El mapa sale con el crosswalk v6 (GR2 15,2 %, NB9 14,7 %, SH3 3,9 %, sin GR3); el CBH
+  por tipo de bosque (TL6 6 m, TL5 4 m, TU5/TU3/TL8 1,5 m, TL2 1 m); CBD 0,16 en pino, y ninguna
+  celda con dosel sobre las 572.280 de pérdida previa. Falta `phi.tif` porque FIRMS no tenía
+  detecciones en el AOI.
+- **Queda afuera:** la ingesta de FIRMS usa las fuentes NRT, que no cubren fechas viejas (0
+  detecciones para enero de 2024). Para preparar un incendio histórico desde la app hacen falta las
+  fuentes SP.
+
+**Resultado.** Nada nuevo mejora la calibración sin costo. La receta sigue siendo `lw-100-001`
+sobre v6: 0,439 / 0,501, sin alarmas. La validación cruzada entre las 10 recetas completas de v6
+da 0,437 / 0,490 fuera de muestra.
+
+**Lo nuevo en la causa:** `&SUPPRESSION`, el viento diurno (empaquetador y perilla), la ingesta de
+Hansen y la preparación por bloques. Ninguno cambia la receta ni los paquetes existentes.
+
+Casos nuevos: `-p` (v6 + lossyear, los 11) y `-d` (v6 + viento diurno: los 7 de calibración, Alerces
+2015, El Turbio y Epuyén 2019; el de Puerto Café no se terminó de empaquetar). Recetas nuevas:
+`lw100-perdsh3/sh2-001`, `lw100-supresion-30/60-001` (la de 120 %/día no completa ninguna cadena),
+`lw100-diurno-001/002`, `lw100-diurno-dir-001`, `lw100-diurno-vel-001`. Sin corridas sucias.
 
 ## 6. Resultados
 

@@ -1,0 +1,62 @@
+{
+  "descripcion": "Pérdida previa como remanente (AUDITORIA-FISICA.md, loop M): el paquete de `epuyen-2019/calibracion-era5-v6` byte a byte más Hansen GFC v1.13 lossyear en la grilla (scripts/perdida_hansen.py) para la perilla `combustible_perdida_reciente`. Lo que sigue es la descripción del caso base. Epuyén, La Rinconada: el martes 29-ene-2019 después de las 16:30 ART; corte de la Ruta 40. 120 h (tope): el área FIRMS llega al 80 % el 2-feb y al 100 % el 3-feb. Protocolo `calibracion-era5` (RESULTADOS-CSS-BAP): anterior al archivo GFS, clima ERA5 horario de Open-Meteo (celda de 0,25° sin reducción de escala). Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v4 (AUDITORIA-FISICA.md): el protocolo de prueba con las correcciones de la auditoría física: phi.tif ±1, &MONTE_CARLO NUM_METEOROLOGY_TIMES y wd por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-era5-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-2026-09-28-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-2026-09-28-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila). Versión v6 (DECISIONES-DIRECTOR.md, loop L): v5 con el crosswalk y el dosel adoptados en la causa: mapas de CCS-BAP rehechos con el crosswalk actual (Estepa → GR2 y sobre 1.300 m → NB9; remanente de disturbio reciente → SH3; scripts/preparar_benchmark.py --combustible-desde, preparación `data/elmfire/inputs/benchmark-2026-09-28-asp3-v6`), y el dosel re-derivado al empaquetar con el mapa del caso (CBH por tipo de bosque de literatura y CBD 0,16 en pino) y sin dosel donde Hansen GFC v1.13 lossyear marca pérdida antes del año del incendio.",
+  "anio_fuego": 2019,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.32657,
+    "lat": -42.25161,
+    "hora": "2019-01-29T19:00:00+00:00",
+    "fuente": "Red43 (29-ene-2019, 'Cortan la Ruta 40 por incendio en Epuyén') e Infobae (30-ene-2019): comenzó el martes pasadas las 16:30 en La Rinconada; 1.980 ha de pinos, matorral y pastizal (LA NACION).",
+    "ajuste": "La semilla de mask-dataset-gen (-42.2516/-71.3243, 517 m) cae 90 m fuera de la cicatriz. Se toma la celda de la cicatriz a más de 90 m del borde más cercana: 180 m, 519 m, TL2. Hora redondeada a las 16 ART."
+  },
+  "ventanas": [
+    {
+      "t0": "2019-01-29T19:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2019-01-30T19:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2019-01-31T19:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2019-02-01T19:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2019-02-02T19:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.432,
+    -42.351,
+    -71.202,
+    -42.184
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/epuyen-2019/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "era5 horario de Open-Meteo, celda de 0,25° sin reducción de escala (T, HR, viento 10 m y terreno de la celda)",
+  "empaquetado": {
+    "tipo": "ampliar_mapas",
+    "base": "epuyen-2019/calibracion-era5-v6",
+    "preparacion": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v6",
+    "mapas": {
+      "lossyear.tif": "data/static/canopy/hansen_lossyear_v113_ext.tif"
+    }
+  }
+}

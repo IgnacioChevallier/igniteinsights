@@ -1,0 +1,69 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v6",
+  "caso_sha": "7c25507047f03277036a1237002ffa05f118d2d0abf3d393dae65e6c5407fb68",
+  "receta": "lw100-supresion-30-001",
+  "receta_sha": "dabcf2f7eaad4edc7a7b90a121c4883434362f4049c31962501eadec4d6e21e1",
+  "padre": "lw100-supresion-60-001",
+  "motivo": "Loop M: los incendios de la zona se combatieron (El Turbio diez días; Epuyén 2019 sobre-propaga 1-15×) y la corrida no tiene supresión. &SUPPRESSION con el ataque ampliado de la plantilla de pronóstico con supresión del proveedor (cada 1.800 s la contención objetivo sube MAX_CONTAINMENT_PER_DAY × (1 − crecimiento / 15.000 acres/día) %/día y frena primero los sectores más lentos); prueba física pruebas_fisicas.py supresion. Un cuarto de la tasa (30 %/día): cada ventana arranca sin contención y 120 %/día puede contener todo en un día.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0,
+    "suppression": {
+      "MAX_CONTAINMENT_PER_DAY": 30.0
+    }
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "b112d49df4bb62c8a8fe4c2a99def2adecfc2eee",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "c7a7df07a251faf9df45401102ec0b0f111acb2413aa4384c637c3d0a5ad078a",
+        "cbh.tif": "33a78ae406065dfe742325076df0fb2617566e8d1469946682e4a8dc5d081429",
+        "cc.tif": "6f4638a427a5185ea6b1b6c5186168528c5b9017376401ea10628b87338b15c3",
+        "ch.tif": "d996a9072073ff3248cb44f93db3e4b6d50dccf5ce25d2e575bb16ddba128211",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "5ee08e8cf0e3200862e3cf21c7d3edb5d3c9de41fedad9279a43412ea367105a",
+        "fbfm40.tif": "37b90da5b58abb88ba96b708b51de29fbe421ec1f257103824122ad3a40b0e1f",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "6b9e9bcb1eb52d18cdb6d3896599cd7e517f7b3fe18feaa2b2e01f323230b679",
+        "m10.tif": "ae50da8a1e581532bcad63e58384fdbf8a44e5cef0d4cc6ca3d47e8fdc7addb1",
+        "m100.tif": "89003f0a7218eba0dd9bf2030e2efbccf9600ca5b6a971cc5dbb34f1c1eaa849",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "e2c150cc99c057a7eb663a3674c52710f4646d59de6fdceab6dc614481349cab",
+        "ws.tif": "69d2214473a31c6aa9f080101b88f58ee173be524f6058b29752e9fc3cdb9bb8"
+      },
+      "namelist_sha": "1d91a5fa3f0f3654067f8a89260749ebec790c5e079d3da31255bce8a8c57281",
+      "salidas": {
+        "fire_size_stats.csv": "18563c1dd2909e2597df4db5f79e2b18bae7b5793de570d4f40ebaf87072a9ac",
+        "flin_0000001_0086509.tif": "9389ff402e145cdaa783b80f85bb0d6e395a39cc2ebc66cd058e7ca9754b9a01",
+        "hourly_isochrones.dbf": "ef96966565dca2b935d1fabc569fd3eabe25969c213599ea6c9dec6f7751d77b",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "023529ded3a0479b073320262dc8386931b20c73a568932ed4e4897c064fb976",
+        "hourly_isochrones.shx": "b898fdd9725acaa96b011bd15b2bea25e5a7f148ebca4dda6f785c1eb560f8c8",
+        "time_of_arrival_0000001_0086509.tif": "bc01af17d7129cbf8e5cc33d0f0212d2de01238783a8eec57ec08a63947c4886",
+        "vs_0000001_0086509.tif": "4aa3d0878bf4649c8f575a3e3bf085af1fc32d473c377a47e3c356dd28e79a47"
+      },
+      "git": {
+        "sha": "b112d49df4bb62c8a8fe4c2a99def2adecfc2eee",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-03T20:22:38.837937+00:00",
+        "minutos": 0.4
+      }
+    }
+  ]
+}

@@ -85,8 +85,17 @@ registro completo está en `AUDITORIA-FISICA.md`, loop L.
   Epuyén 2019, un incendio de estepa: sesgo 14,6 → 9,2). Elegirla por eso sería usar la prueba para
   decidir; queda anotada. A favor tiene un argumento físico propio: la estepa de coirón es rala,
   más cerca de GR1 que de GR2.
-- **Costo:** Alerces 2016 baja 0,06. Es el único que empeora; la copa en el bosque con caña lo
-  acelera (sesgo 1,33 → 1,69).
+  - **Revisado en el loop M: se queda GR2.** El argumento de la ralera no alcanza: los dos modelos
+    rompen igual la regla de `mex` (15 %), y la altura del lecho favorece a GR2. La PT-37 da
+    coirones de hasta 40 cm (A4) y estratos de 0,4–0,5 m (A5), contra 1 pie (~30 cm) de GR2 y 0,4
+    pie (~12 cm) de GR1. Sin una carga medida de la estepa subandina, no hay motivo independiente
+    de la prueba para un v7.
+- **Costo:** Alerces 2016 baja 0,06. Es el único que empeora (sesgo 1,33 → 1,69).
+  - El diagnóstico por clase del loop M corrige la causa: no es el coihue con caña (27 ha de falso
+    positivo de 1.602). Es el ñire con la copa a 1,5 m (+122 ha) y el arbustal de la quema de 2008,
+    que v6 deja sin dosel (+289 ha en SH4).
+  - Ninguna palanca lo recupera sin sacárselo a Cholila o a Patriada (`AUDITORIA-FISICA.md`, loop
+    M).
 
 ## 1. Ñire bajo, lenga achaparrada y arbustal nativo: ¿con dosel o sin dosel?
 
