@@ -46,7 +46,7 @@ historial de secado (varios días de GFS previos) que la ingesta no conserva hoy
 **Bandas = serie temporal.** ELMFIRE lee la banda *n* como el clima en `n × DT_METEOROLOGY`
 (tiempo absoluto: la banda 0 es T = 0, y `SIMULATION_TSTART` se mide desde ella) e interpola
 entre bandas, **siempre que `&MONTE_CARLO NUM_METEOROLOGY_TIMES` declare cuántas hay**: con el
-valor por defecto (1) usa la banda 0 toda la corrida (AUDITORIA-FISICA.md, hallazgo 1).
+valor por defecto (1) usa la banda 0 toda la corrida (docs/resultados/AUDITORIA-FISICA.md, hallazgo 1).
 `write_namelist()` lo escribe con las bandas de `ws.tif`. Un raster de una sola banda
 congela el clima durante toda la simulación (sin ciclo diurno).
 `namelist_writer.validate_weather_coverage()` falla si las bandas no cubren el horizonte.

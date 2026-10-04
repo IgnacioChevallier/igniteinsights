@@ -7,8 +7,11 @@
     uv run python scripts/benchmark.py comparar   <caso>/<receta> <caso>/<receta>
     uv run python scripts/benchmark.py verificar  <caso> <receta>
     uv run python scripts/benchmark.py materializar <caso> <receta> <ventana>
+    uv run python scripts/benchmark.py modelo     modelo-v0
 
-Casos y recetas viven en `benchmarks/` (en git); los objetos en `data/benchmark/objetos/`.
+Casos, recetas y modelos promovidos viven en `benchmarks/` (en git); los objetos en
+`data/benchmark/objetos/`. Una receta configura iteraciones; un modelo es un snapshot que ya
+pasó el gate productivo y no crea otra clase de corrida.
 Corre desde el host contra el runner de docker-compose (`docker compose up -d elmfire-runner`).
 """
 import argparse
@@ -519,8 +522,8 @@ def _firms_gfs(caso: d.Caso) -> dict:
         mapas[nombre], _ = _recortar(Path(ruta), caja)
         comunes[nombre] = almacen.guardar(mapas[nombre])
     if "dosel_por_combustible" in datos["empaquetado"]:
-        # DECISIONES-DIRECTOR §2 y §3 (protocolos -v6): el CBH del tipo de bosque del mapa del
-        # caso y sin dosel donde Hansen vio pérdida antes del año del incendio. Depende del
+        # docs/crosswalk/DECISIONES-MODELO-V0 §2 y §3 (protocolos -v6): el CBH del tipo de
+        # bosque del mapa del caso y sin dosel donde Hansen vio pérdida antes del año del
         # mapa y del año, así que se deriva por caso y no en la preparación.
         dosel = datos["empaquetado"]["dosel_por_combustible"]
         canopy_builder.derive_cbh_cbd(
@@ -581,7 +584,7 @@ def _firms_gfs(caso: d.Caso) -> dict:
 
 def _ampliar_mapas(caso: d.Caso) -> dict:
     """El paquete de otro caso, byte a byte, más mapas de combustible: lo único que cambia
-    entre las iteraciones de dos mapas es `fbfm40` (COMPARACION-MAPAS-V5.md)."""
+    entre las iteraciones de dos mapas es `fbfm40` (docs/resultados/COMPARACION-MAPAS-V5.md)."""
     datos = caso.datos["empaquetado"]
     base = d.Caso.cargar(datos["base"]).paquete()
     with rasterio.open(almacen.abrir(base["comunes"]["dem.tif"])) as dem:
@@ -1167,6 +1170,22 @@ def comparar(a_id: str, b_id: str) -> dict:
     return diff
 
 
+def mostrar_modelo(modelo_id: str) -> None:
+    """Valida y muestra el snapshot promovido sin ejecutar ELMFIRE."""
+    modelo = d.Modelo.cargar(modelo_id)
+    modelo.validar()
+    print(json.dumps({
+        "modelo": modelo.id,
+        "estado": modelo.estado,
+        "fecha_corte": modelo.fecha_corte,
+        "receta": modelo.receta,
+        "casos": len(modelo.casos),
+        "codigo_sha": modelo.codigo_sha,
+        "resultados": modelo.resultados,
+        "gate": "válido",
+    }, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1182,6 +1201,7 @@ def main() -> None:
     s.add_argument("conjunto", nargs="?", default="calibracion")
     s.add_argument("fuente", nargs="?", default="gfs")
     sub.add_parser("validar").add_argument("fuente", nargs="?", default="gfs")
+    sub.add_parser("modelo").add_argument("modelo")
     s = sub.add_parser("comparar")
     s.add_argument("a")
     s.add_argument("b")
@@ -1198,6 +1218,8 @@ def main() -> None:
         objetivo(args.conjunto, args.fuente)
     elif args.cmd == "validar":
         validar(args.fuente)
+    elif args.cmd == "modelo":
+        mostrar_modelo(args.modelo)
     elif args.cmd == "empaquetar":
         empaquetar(caso)
     elif args.cmd == "diagnosticar":

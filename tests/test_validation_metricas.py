@@ -1,4 +1,7 @@
-"""La aritmética del benchmark: si esto falla, ningún número de RESULTADOS.md vale."""
+"""Aritmética del benchmark.
+
+Si esto falla, ningún número de docs/historico/RESULTADOS.md vale.
+"""
 import numpy as np
 import pytest
 import rasterio

@@ -329,7 +329,7 @@ async def run_preparation(
 
     # cbh + cbd: derived from the measured canopy rasters, with the CBH of the forest type
     # (the fuel map stands in for the CCS-BAP class) and no canopy where Hansen saw loss before
-    # the simulation year (DECISIONES-DIRECTOR.md §2 and §3).
+    # the simulation year (docs/crosswalk/DECISIONES-MODELO-V0.md §2 and §3).
     if "cc.tif" in generated and "ch.tif" in generated:
         lossyear = None
         lossyear_raw = _resolve(settings.hansen_lossyear_path)

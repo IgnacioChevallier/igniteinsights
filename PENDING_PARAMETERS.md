@@ -1,305 +1,70 @@
-# Pending parameters — values set without a criterion
+# Registro de decisiones y pendientes del modelo
 
-Every value in this pipeline that is currently set **arbitrarily, by eye, or by
-convention borrowed from elsewhere**, and what would be needed to set it with an actual
-criterion.
+> Corte: 2026-10-04. Este archivo reemplaza la lista histórica de parámetros sin criterio.
+> El estado canónico del research está en `docs/resultados/ESTADO-RESEARCH.md` y el snapshot
+> promovido en `benchmarks/modelos/modelo-v0.json`.
 
-**Scope.** Physical constants (`MS_TO_MPH = 2.23694`), API endpoints, dataset version
-strings and values *forced* by an external interface are deliberately excluded — they
-are not judgement calls. What is listed here is everything where a different reasonable
-person could have picked a different number and nothing in the repo would object.
+La convención vigente es:
 
-Companion to `docs/historico/SIMULATION_AUDIT.md`. Last swept 2026-08-31;
-estados revisados el 2026-09-15 (§1.1 y §1.5).
+- **receta:** configuración experimental aplicada a un caso;
+- **iteración:** receta × caso;
+- **modelo:** receta y conjunto de evidencia que pasaron el gate productivo.
 
-**Legend for "Basis"**
-- 🔴 **Arbitrary** — no stated justification; a placeholder that stuck.
-- 🟡 **By eye** — tuned until the output looked right on one dataset, never validated.
-- 🟢 **Conventional** — a defensible standard from the literature, but not verified for
-  Patagonia specifically.
-- ⚫ **Forced** — dictated by ELMFIRE, a sensor, or a data provider. Listed only where
-  someone might mistake it for a choice.
+`modelo-v0` promueve la receta `lw-100-001` sobre los protocolos v6. Los valores resueltos no
+se vuelven a calibrar con el conjunto de prueba. Sólo se reabre el modelo por un error físico o
+por evidencia externa nueva.
 
----
+## 1. Congelado en modelo-v0
 
-## 1. The ones that move the answer most
+| Entrada | Valor | Estado y criterio |
+|---|---:|---|
+| Fuente principal de combustible | CCS-BAP anterior al fuego | Crosswalk final aprobado técnicamente; años 2013/2017 evitan fuga temporal |
+| Humedad viva leñosa, LW | 100 % | Calibrada; 110 % es el umbral húmedo de grandes incendios, no el valor de un día extremo |
+| ADJ | 1,0 | Sin ajuste; el ADJ anterior compensaba errores de interfaz |
+| Humedad viva herbácea, LH | 30 % | Convención de pasto curado de Scott & Burgan |
+| Humedad muerta m1 | Nelson sobre GFS/ERA5 | El delta uniforme −6 no tiene soporte en estaciones |
+| `dt_s` / `dtmax_s` | 30 / 300 s | Convergencia verificada con el paso a la mitad |
+| Rugosidad `z0` | 0,22 m | El ráster por dosel duplica el WAF de ELMFIRE y empeora el objetivo |
+| Horizonte Alerces 2023 | 54 h | El área FIRMS deja de crecer; extenderlo mide fuego sin supresión |
+| Estepa CCS-BAP | GR2; >1.300 m → NB9 | Decisión del loop L; GR1 queda como sensibilidad no adoptada |
+| Remanente de disturbio | SH3 | Representa mejor un rebrote de 6–15 años que GS3 |
+| CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino |
+| CBD del pino | 0,16 kg/m³ | Medido en plantaciones patagónicas |
+| Pérdida previa Hansen | Sin dosel | Sólo pérdidas anteriores al año del incendio |
 
-Ranked by how much the predicted fire changes if you change them.
+## 2. Abierto, pero no bloquea el modelo
 
-### 1.1 🟡 WorldCover → FBFM40 crosswalk — **superado, pendiente de aprobación**
-
-> Al 2026-09-15: reemplazado por `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` (CCS-BAP, principal) e
-> `docs/historico/IGN-20-CROSSWALK.md` (MapBiomas, comparador). Falta la aprobación del director y
-> **Cableado resuelto el 2026-09-15**: `settings.fuels_source` elige la fuente, entra en la
-> clave de caché y la procedencia viaja hasta la leyenda del dashboard. Queda pendiente sólo
-> la aprobación del director.
-
-
-`app/elmfire/builder/fuels_builder.py` · `WORLDCOVER_TO_FBFM40`
-
-| Value | Assigned | Effect |
+| Tema | Estado | Qué permitiría reabrirlo |
 |---|---|---|
-| Tree cover → **183 (TL3)** | 🔴 | **59.7% of the AOI.** Near-inert litter model; drives median fireline intensity to 4.6 kW/m |
-| Shrubland → 145 (SH5) | 🔴 | 0.04% of the AOI — implausibly low for Patagonian matorral |
-| Grassland → 102 (GR2) | 🔴 | 17.1% |
-| Bare/sparse → 93 (NB3) | 🔴 | 15.3%, unburnable |
-| Snow/ice → 93, Mangrove → 183, Moss → 101 | 🔴 | Negligible area; mangrove in Patagonia is a no-op mapping |
-
-**This is the single biggest lever on the output** and, per the decision in
-`docs/historico/SIMULATION_AUDIT.md` §10, it is the thesis contribution — the current table is the
-baseline to beat, not a bug.
-
-**Criterion needed:** field plots or a trained classification giving fuel type per pixel.
-WorldCover at 10 m cannot see understory at all, so any crosswalk from it is a guess with
-a citation attached. Tracked as IGN-20/21/22.
-
-### 1.2 🔴 Fuel moisture time-lag offsets
-
-> Al 2026-09-30 (`RESULTADOS-CSS-BAP.md` §6): contra las estaciones, el m1 de Nelson con el GFS
-> crudo ya es el de las tardes de fuego (5,5–9,1 % contra 5,9–6,6 %); el delta uniforme de −6 no
-> tiene soporte. Los desfases de m10/m100 resultaron insensibles, y el modelo de retardo
-> (`derive_moisture_timelag`) existe para el benchmark. Queda abierto sólo el criterio de m10/m100.
-
-`weather_builder.derive_moisture` · `m10 = emc + 2`, `m100 = emc + 5`
-
-No physical basis. Time-lag classes damp toward a running mean; they are not a fixed
-offset from the instantaneous equilibrium. **Criterion needed:** a drying history —
-several days of prior GFS — which the ingestion does not retain today.
-
-Related and equally unaddressed: `m1` is raw equilibrium moisture (median **11.1%**)
-where an afternoon burning period sits at **4–8%**. There is no diurnal, solar-exposure
-or slope/aspect correction anywhere. This depresses spread across the whole domain.
-
-### 1.3 ✅ `adj.tif` = 1.0 uniform — **calibrado: se queda en 1**
-
-> Al 2026-09-30: calibrado contra 7 incendios sobre el benchmark `-v5`, con la interfaz de
-> ELMFIRE corregida (`AUDITORIA-FISICA.md`, loops C y E). **ADJ = 1:** la receta final
-> (`lw-100-001`) no lo necesita, y el intervalo de ADJ uniforme sin alarmas es ~[1,05; 1,15]. El
-> 1,3 de la calibración anterior compensaba los errores de interfaz. ADJ por grupo de
-> combustible: no identificable con siete incendios.
-
-`app/preparation/service.py` · `_write_uniform_raster(..., 1.0)`
-
-ELMFIRE's spread-rate adjustment factor — the knob explicitly designed for calibrating a
-model against observed regional fire behaviour. Currently neutral everywhere, i.e.
-**unused**. **Criterion needed:** an observed fire perimeter to tune against; tune
-per-fuel-model, and only *after* the fuels comparison, or ADJ absorbs the fuel error and
-the fuels result disappears. Tracked as IGN-25.
-
-### 1.4 🟢 Wind roughness length `z0 = 0.22 m`
-
-`weather_builder.WIND_ROUGHNESS_LENGTH_M`
-
-Chosen to reproduce the ~0.87 factor standard in fire weather (stations sited over
-vegetation). Open grassland (`z0 = 0.03`) would give 0.915 instead — a ~5% difference in
-wind speed. Defensible and now derived rather than hardcoded, but **not measured for Los
-Alerces**. **Criterion needed:** effective aerodynamic roughness for the AOI's canopy,
-or a roughness raster derived from `ch.tif` instead of one scalar.
-
-### 1.5 🟡 Canopy CBH/CBD lookup by fuel model — **CBH por tipo de bosque de literatura (2026-10-03)**
-
-> Al 2026-10-03 (`DECISIONES-DIRECTOR.md` §2 y §3, loop L): `canopy_builder.derive_cbh_cbd`
-> toma el CBH por tipo de bosque de la literatura donde hay copa (`CBH_BY_FUEL_MODEL_M`: lenga 6
-> m, alerce 4 m, coihue/ciprés/mixtos y ñire 1,5 m, maitén/radal 1 m, pino 1,5 m) y el CBD del
-> pino (0,16 kg/m³, medido; `CBD_BY_FUEL_MODEL_KG_M3`); los demás tipos conservan CH × f(CC). Y
-> deja sin dosel la pérdida de Hansen anterior al año del incendio. Sólo el pino tiene valores
-> medidos en la región; el resto sale de la estructura vertical descrita en la literatura
-> (confiabilidad baja a media). Calibración: 0,381 / 0,451 → 0,414 / 0,495 (CBH sola).
-
-> Al 2026-09-30 (`AUDITORIA-FISICA.md`, loop F): el CBH derivado de `cc`/`ch` (0,20–0,50 × CH,
-> 5–10 m) hace que la copa casi nunca se encienda. Con el CBH × 0,25 se enciende y el Dice de
-> Cholila pasa de 0,255 a 0,528, pero otros incendios se pasan. Es el insumo que más mueve el
-> resultado hoy. **Criterion needed:** CBH con fundamento por tipo de bosque
-> (`DECISIONES-DIRECTOR.md` §2).
-
-> Al 2026-09-15: `_FBFM40_CBH` y `_FBFM40_CBD` ya no existen. `canopy_builder.py`
-> deriva el dosel de datos reales. Se conserva la entrada por trazabilidad.
-
-
-`canopy_builder.py` · `_FBFM40_CBH`, `_FBFM40_CBD`
-
-Attributed to Scott & Reinhardt (2005), but the per-FBFM assignment was made by hand and
-inherits every error in §1.1 — TL3 → CBH 1.5 m, CBD 0.20 kg/m³ applies to 59.7% of the
-map. These set the **crown-fire initiation threshold**. **Criterion needed:** derive CBH
-from `ch.tif` and canopy structure rather than from the fuel model, or measure it.
-
----
-
-## 2. Ignition perimeter reconstruction
-
-`app/elmfire/builder/perimeter_reconstruction.py`. These decide the shape and size of the
-seed — which is **84% of what the map paints as fire** (`docs/historico/SIMULATION_AUDIT.md` §1).
-
-| Parameter | Value | Basis | Notes |
-|---|---|---|---|
-| `_CLUSTER_EPS_M` | 1500 m | 🟡 | Tuned on the 2026-02 window until it yielded "8-14 clusters" and didn't bridge the lake. One dataset, one eyeball. |
-| `_HULL_RATIO` | 0.4 | 🟡 | Concave-hull concavity. No sensitivity analysis. |
-| `_MIN_HULL_POINTS` | 4 | 🔴 | Below this, points become buffers instead. |
-| `_DEDUP_GRID_M` | 10 m | 🔴 | Collapses re-ingested duplicates. Harmless but unjustified. |
-| `VIIRS_PIXEL_M` | 375 m | ⚫ | Real VIIRS I-band pixel width. Not a choice. |
-| `_PHI_IGNITION_FLOOR` | -1.0 | ⚫ | Forced: ELMFIRE resets `PHI0 < -1.1` to unburned. Must stay above -1.1. |
-
-**Criterion needed:** sensitivity analysis over `eps` × `hull_ratio` against the observed
-burn scar (§5), reporting how seed area and final IoU respond. Cheap to run once the
-validation harness exists, and it directly bounds the uncertainty on every result.
-
----
-
-### 1.6 ✅ Humedad del combustible vivo — **resuelto (Etapa B, B5); calibrado en 100 %**
-
-> Al 2026-09-30: la calibración sobre el benchmark `-v5` elige **LW = 100 %** (intervalo sin
-> alarmas ~[97; 110] %), porque 110 % es el umbral por debajo del cual ocurren los grandes
-> incendios según Bianchi & Defossé, no el valor de un día de gran incendio
-> (`AUDITORIA-FISICA.md`, loop E). El default de la app (`DEFAULT_LW_MOISTURE_PCT`) pasó a
-> **100 %** el mismo día. El benchmark fija su base en 110 % (`cadena.HUMEDAD_VIVA_BASE`), para
-> que `base-001` siga siendo la misma receta.
-
-> Al 2026-09-16: `LW = 110 %`, medido por Bianchi & Defossé (2015) para la temporada de fuego
-> en la Patagonia andina. `LH = 30 %` **no** viene del paper, que no mide herbáceas: es la
-> convención de pasto curado de Scott & Burgan, declarada como tal. Antes ambos eran 60 % sin
-> criterio, por debajo de todo lo medido en la región. La sensibilidad está cuantificada en `docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md` §6.3 y la
-> fundamentación en `docs/historico/ETAPA-B-INSUMO-PATAGONICO.md` §B5.
-
----
-
-## 3. Simulation and namelist
-
-`app/elmfire/builder/namelist_writer.py`
-
-| Parameter | Value | Basis | Notes |
-|---|---|---|---|
-| `dt_s` (`SIMULATION_DT`) | 30 s | ✅ | Convergido (2026-09-28): con el paso a la mitad el Dice cambia < 0,005. Con `phi` ±1 el frente avanza a la velocidad calculada (`scripts/pruebas_fisicas.py nivel`). |
-| `dtmax_s` (`SIMULATION_DTMAX`) | 300 s | ✅ | Ídem. |
-| `dtdump_s` (`DTDUMP`) | 3600 s | 🟢 | Hourly isochrones — a product decision, and it matches `DT_METEOROLOGY`. |
-| `dt_meteorology_s` | 3600 s | 🟢 | Matches GFS hourly output. Must change together with the raster band count. |
-| `NUM_METEOROLOGY_TIMES` (`&MONTE_CARLO`) | bandas de `ws.tif` | ✅ | **2026-09-29.** Sin él ELMFIRE usa la banda 0 del clima toda la corrida (`AUDITORIA-FISICA.md`, hallazgo 1). |
-| `simulation_tstart_s` | derivado | ✅ | **Resuelto 2026-09-15.** *(Sin efecto hasta el 2026-09-29: sin `NUM_METEOROLOGY_TIMES`, ELMFIRE usaba igual la banda 0.)* `preparation/service.py` lo calcula como el desfase entre la primera banda de meteorología y la hora de ignición, así que la corrida arranca en el punto correcto del ciclo diurno. Si la ignición es anterior a la banda 0, cae a 0 y lo registra como warning. |
-| `horizon_hours` (default) | 12 | 🔴 | API default. No basis. |
-| `CROWN_FIRE_MODEL` | **1** | ✅ | **Resuelto 2026-09-15.** Se escribe explícito en `&SIMULATOR` con el valor que ya se venía usando (activado). Antes estaba activo porque ELMFIRE lo prende cuando la clave falta, que no es lo mismo que haberlo decidido. |
-| `MODE` | 1 | ⚫ | Transient spread. The only mode this repo supports. |
-
-~~**Criterion needed** for `dt_s`/`dtmax_s`: a convergence check.~~ Hecho (ver la tabla).
-
----
-
-## 4. Ingestion, grid and domain
-
-| Parameter | Value | Where | Basis | Notes |
-|---|---|---|---|---|
-| `resolution_m` | 30 m | `raster_aligner` | 🟢 | Native Copernicus GLO-30. Sensible; also sets the isochrone resolution floor. |
-| `target_crs` | EPSG:32719 | `raster_aligner` | ⚫ | Correct UTM zone for the AOI. |
-| AOI bbox | -72.0, -42.9, -71.5, -42.5 | `config.py` | 🔴 | **Covers only part of the validation dataset** — see §5. |
-| `gfs_forecast_hours` | 24 | `config.py` | 🟡 | Last GFS forecast hour fetched → band count. Now configurable per ingestion run; **must cover the simulation horizon** or ELMFIRE freezes the weather at the last band. Ceiling is f120 (5 days) from one cycle. |
-| `MAX_LOOKBACK_DAYS` | 2 | `gfs/client` | 🔴 | How far back to hunt for an available cycle. |
-| `_WEATHER_MISMATCH_MAX_S` | 48 h | `preparation/service` | 🟡 | Threshold for flagging fire/weather period mismatch. |
-| `fires_since` default | 48 h | `preparation/service` | 🔴 | Detection window feeding `phi.tif`. Directly sets seed size. |
-| `ACCEPTED_CONFIDENCE` | `{n, h}` | `firms/normalizer` | 🟢 | Drops FIRMS low-confidence detections. Standard practice. |
-| `firms_day_range` | 1 (max 5) | `api/v1/ingestion` | ⚫ | FIRMS API limit. |
-| Moisture clip | 1–40% | `weather_builder` | 🟡 | Bounds EMC output. 40% exceeds every fuel model's extinction moisture anyway. |
-| `elmfire_runner_timeout` | 300 s | `config.py` | 🔴 | |
-| `JOB_TIMEOUT_BUFFER_SECONDS` | 600 s | `runner/client` | 🔴 | Mirrors the runner's own buffer. |
-
----
-
-## 5. Validation ground truth — `mask-dataset-gen`
-
-**These parameters define the ground truth, so they set a ceiling on every accuracy
-number the thesis will report.** They deserve the most scrutiny and currently have the
-least.
-
-`../mask-dataset-gen/generar_dataset.py`
-
-| Parameter | Value | Basis | Notes |
-|---|---|---|---|
-| `DNBR_UMBRAL` | 0.30 | 🟢 | **Accepted for this scope.** Within Key & Benson's low-moderate severity band (0.27–0.44); trialled against 0.22 (`remask_comparisons/`). Known bias: excludes low-severity burn, so the mask runs slightly small. |
-| `PRE_NBR_MIN` | 0.15 | 🟡 | Requires pre-fire vegetation. |
-| `POST_NBR_MAX` | 0.40 | 🟡 | |
-| `NDSI_NIEVE_MAX` | 0.25 | 🟡 | Snow rejection — non-trivial in an Andean AOI. |
-| `NDWI_AGUA_MAX` | 0.05 | 🟡 | Water rejection. |
-| `CLOUDY_PIXEL_PERCENTAGE` | < 20 | 🟢 | Standard S2 scene filter. |
-| `ESCALA` | 20 m | ⚫ | Sentinel-2 SWIR native. Aggregates cleanly onto the 30 m grid. |
-
-### 5.1 The pre-fire window is from 2023 — deliberate, resolved
-
-```
-FECHA_PRE_INI  = "2023-11-01"      FECHA_POST_INI = "2026-02-01"
-FECHA_PRE_FIN  = "2023-12-31"      FECHA_POST_FIN = "2026-03-08"
-```
-
-**Status: deliberate, tested, accepted for this scope (2026-08-31).** The long gap was
-chosen to guarantee cloud-free pre- and post-fire composites — a real constraint in
-Patagonia — and to put clear separation between the two windows. Nov–Dec is also the same
-austral growing-season phase as February, so the phenological match is good; for an NBR
-baseline that matters more than recency. The thresholds were trialled repeatedly
-(`remask_comparisons/`). **Not an open item.**
-
-Residual, stated as a limitation rather than a risk to resolve: the mask necessarily
-includes any *other* land-cover change between Dec 2023 and Mar 2026. If it is ever worth
-quantifying rather than caveating, counting mask pixels far from any 2026 FIRMS detection
-bounds it empirically in one pass.
-
-⚠️ **`docs/README.md` in that repo still disagrees with the code** — it states PRE =
-2025-11-01 to 2025-12-08 and POST = 2026-02-05 to 2026-02-20. Code and shipped
-`metadata.csv` both say 2023-11-01/2023-12-31 and 2026-02-01/2026-03-08. The code is
-right; **the README should be corrected** so the thesis doesn't cite the wrong window.
-
-### 5.2 Domain overlap is partial
-
-- Dataset bbox: lon **-72.014 … -71.201**, lat **-42.818 … -42.079**
-- Simulation AOI: lon -72.0 … -71.5, lat -42.9 … -42.5
-
-**Only 70 of 196 tiles intersect the simulation domain** (50 of those with >1% burned).
-The dataset extends well north and east of the AOI.
-
-**Decided (2026-08-31): use the 70 intersecting tiles.** The AOI stays as it is.
-Report the scope explicitly alongside any accuracy figure — a reader will otherwise
-assume the whole fire.
-
-### 5.3 `pct_quemado` is a percentage, not a fraction
-
-Range 0 – 88.14, mean 20.25. No tile is fully burned. Stratification for reporting:
-
-| Band | Tiles |
-|---|---|
-| < 1% | 58 |
-| 1–10% | 38 |
-| 10–50% | 70 |
-| > 50% | 30 |
-
-Report accuracy **stratified by this band**. Pooled numbers are dominated by the 58
-near-empty tiles, which any model predicts correctly by doing nothing.
-
-### 5.4 Format notes for the harness
-
-- Masks: `dataset/mascaras/tile_NNN.tif`, uint8 `{0,1}`, separate files.
-- Images: `dataset/imagenes/` (post) and `imagenes_pre/`, 6 bands (B2,B3,B4,B8,B11,B12), float64.
-- 196 tiles, 257×257, **EPSG:4326** at 0.00017966° (~20 m) — needs a warp to EPSG:32719
-  at 30 m to meet the simulation grid.
-
----
-
-## 6. Cosmetic — listed for completeness, no action
-
-| Parameter | Value | Where |
-|---|---|---|
-| `_RAMP_STOPS` / `_RAMP_COLORS` | ColorBrewer YlOrRd 5-class | `raster_overlay.py` |
-| Overlay alpha | 178 (~70%) | `raster_overlay.py` |
-| Isochrone `line-width` | 2 px | `fire-map.tsx` |
-| Ignition fill | `#5b6b7a` @ 0.35 | `fire-map.tsx` |
-| `_NODATA` | -9999 | throughout |
-| `_NODATA_FBFM40` | 99 (NB9) | `fuels_builder.py` |
-
----
-
-## 7. Suggested order
-
-1. ~~§5.1 pre-fire window~~ — resolved: deliberate. Fix the generator README.
-2. ~~§5.2 validation domain~~ — resolved: the 70 intersecting tiles.
-3. **§3 `simulation_tstart_s`** — anchor runs to `ignition_datetime`. Now the blocker for
-   validation: a hindcast has to start at a real wall-clock hour for the hourly weather
-   bands to line up with the fire.
-4. **§1.3 ADJ + §2 sensitivity analysis** — both need the validation harness first, and
-   both convert a guess into a measured range.
-5. **§1.1 fuels** — the thesis contribution; §5 must be trustworthy before it can be
-   evaluated.
-6. **§3 `dt_s`/`dtmax_s` convergence check** — one run at half the timestep answers it.
+| m10/m100 | Los offsets +2/+5 no tienen fundamento físico, pero el benchmark es insensible | Serie meteorológica previa y mediciones de humedad de combustibles |
+| Viento de superficie | ERA5 y GFS no resuelven bien los valles | Estación cercana a Alerces 2016 o Cholila durante el incendio |
+| CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
+| Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual | Sensibilidad específica para el modo operativo con semilla observada |
+| Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
+
+Estos puntos son incertidumbres de entrada. No justifican otra búsqueda de perillas con los
+mismos once incendios.
+
+## 3. Límites declarados
+
+- **Día 1 explosivo:** faltan ráfagas subhorarias, pavesas o propagación de copa que el clima y
+  la configuración actuales no resuelven.
+- **Supresión:** la regla disponible de ELMFIRE fue implementada y probada; empeora la
+  calibración y no contiene los incendios que más sobre-propagan.
+- **Las Golondrinas:** la ráfaga nocturna no está representada en GFS; es un caso límite y no
+  participa del gate de sesgo.
+- **Transferencia:** el conjunto de prueba tiene cuatro incendios, Dice 0,191/0,167 y dos
+  alarmas. `modelo-v0` es un baseline productivo auditable, no una afirmación de generalización
+  universal.
+- **Datos históricos en la app:** la ingesta FIRMS NRT no reemplaza las fuentes SP necesarias
+  para reconstruir incendios antiguos.
+
+## 4. Próximo trabajo
+
+1. Incorporar al texto de tesis la comparación final cerrada en
+   `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
+2. Obtener aprobación formal del director para las decisiones de
+   `docs/crosswalk/DECISIONES-MODELO-V0.md`.
+3. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
+
+No quedan barridos de receta pendientes con los datos actuales.

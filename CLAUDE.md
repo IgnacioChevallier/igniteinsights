@@ -29,13 +29,17 @@ English. Match the file or module you are editing.
 
 ## Where the project state lives
 
-Read these before assuming something is missing. `RESULTADOS-CSS-BAP.md` §1 is the current
-state of the calibration work (rewritten every loop); `IGN-26-VALIDACION.md` is the validation
-method and benchmark; `RESULTADOS.md` holds the three-map comparison; `PENDING_PARAMETERS.md`
-lists values set without a criterion. Finished or superseded documents are in
+Read these before assuming something is missing. `docs/resultados/ESTADO-RESEARCH.md` is the
+single current status; `docs/resultados/MODELO-V0.md` defines the promoted model;
+`docs/resultados/IGN-26-VALIDACION.md` is the validation method and benchmark; and
+`PENDING_PARAMETERS.md` separates frozen decisions from non-blocking uncertainties. Active
+crosswalk material is in `docs/crosswalk/`. Finished or superseded documents are in
 `docs/historico/`, deferred scope in `docs/out-of-scope/`, and converted source material in
-`docs/referencias/`. The fuel-model crosswalk the thesis argues for is
-`docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`.
+`docs/referencias/`.
+
+Benchmark vocabulary is strict: a **recipe** configures experimental iterations, an
+**iteration** is recipe × case, and a **model** under `benchmarks/modelos/` is an immutable
+recipe/case/results snapshot that passed the production gate. Do not call every recipe a model.
 
 ## Working with ELMFIRE inputs
 

@@ -57,8 +57,9 @@ class Settings(BaseSettings):
     aoi_north: float = -41.90
     # Fuente de cobertura con la que se construye fbfm40.tif. Entra en la clave de
     # caché del ráster, así que cambiarla lo regenera en vez de servir el anterior.
-    # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3 (docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md)
-    # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (docs/historico/IGN-20-CROSSWALK.md)
+    # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3
+    #                  (docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md)
+    # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (docs/crosswalk/IGN-20-CROSSWALK.md)
     # "worldcover" → ESA WorldCover 2021, el baseline de comparación (ETAPA-A §A7)
     fuels_source: FuelsSource = "ccsbap"
     # Recorte al AOI de la capa vectorial de CCS-BAP, derivado con
@@ -66,8 +67,9 @@ class Settings(BaseSettings):
     # contenedor del runner y de la API tienen montado.
     ccsbap_vector_path: str = "/app/data/raw/ccsbap/ccsbap_2017_aoi.gpkg"
     mapbiomas_raster_path: str = "/app/data/raw/mapbiomas/mapbiomas_2024_aoi.tif"
-    # Hansen GFC v1.13 lossyear (40S_080W, una tesela cubre el AOI): sin dosel donde hubo pérdida
-    # antes del año de la simulación (DECISIONES-DIRECTOR.md §3). Si falta, se sigue sin ella.
+    # Hansen GFC v1.13 lossyear (40S_080W, una tesela cubre el AOI): sin dosel donde
+    # hubo pérdida antes del año de la simulación
+    # (docs/crosswalk/DECISIONES-MODELO-V0.md §3). Si falta, se sigue sin ella.
     hansen_lossyear_path: str = (
         "/app/data/raw/hansen/Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif"
     )

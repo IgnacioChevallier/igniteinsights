@@ -1,7 +1,7 @@
 """
 Validation endpoint — lo que cada versión del modelo predijo contra lo que se quemó.
 
-El benchmark (`app/validation/`, `IGN-26-VALIDACION.md` §Benchmark) se organiza en
+El benchmark (`app/validation/`, `docs/resultados/IGN-26-VALIDACION.md` §Benchmark) se organiza en
 **incendio → protocolo (caso) → receta (versión del modelo)**. Cada iteración es inmutable:
 su manifiesto y sus métricas viven en `benchmarks/iteraciones/`, y las vistas derivadas
 (confusión y tiempos de llegada) en `data/benchmark/vistas/`. Este módulo sólo los lee: la
@@ -9,7 +9,7 @@ aritmética de la validación no se recalcula acá, para que el dashboard no pue
 número distinto del que se documentó.
 
 Los dos endpoints `/cases` del final son el visor de los harness viejos; se van cuando las
-recetas `legacy-*` reproducen RESULTADOS.md dentro del benchmark.
+recetas `legacy-*` reproducen docs/historico/RESULTADOS.md dentro del benchmark.
 """
 import asyncio
 import functools

@@ -1,4 +1,6 @@
-"""Comparación de los tres mapas de combustible sobre el benchmark v5 (COMPARACION-MAPAS-V5.md).
+"""Comparación de los tres mapas de combustible sobre el benchmark v5.
+
+Ver docs/resultados/COMPARACION-MAPAS-V5.md.
 
 Lee las iteraciones de los protocolos `-v5m` (el paquete v5 más los mapas de WorldCover y
 MapBiomas) y escribe en Markdown: Dice, sesgo y forma por incendio y por mapa; diferencias
@@ -6,10 +8,13 @@ apareadas con test de signos; el día 1; y dónde se diferencian, por grupo de c
 CCS-BAP dentro de la cicatriz.
 
     uv run python scripts/comparacion_mapas_v5.py [--recetas final|base]
+    uv run python scripts/comparacion_mapas_v5.py --modelo modelo-v0
 """
 import argparse
 import json
+import sys
 from math import comb
+from pathlib import Path
 from statistics import mean, median
 
 import numpy as np
@@ -26,12 +31,37 @@ RECETAS = {
 }
 GRUPOS = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149), "TU": (161, 165),
           "TL": (181, 189), "NB": (91, 99)}
+CASOS_COMPARACION = {
+    "los-alerces-2023/calibracion-v6-h54":
+        "los-alerces-2023/calibracion-v6m2-h54",
+}
 
 
-def casos() -> list[dict]:
-    """Los casos v5 de la partición, con su gemelo v5m."""
+def caso_comparacion(base: str) -> str:
+    if base in CASOS_COMPARACION:
+        return CASOS_COMPARACION[base]
+    incendio, protocolo = base.split("/")
+    return f"{incendio}/{protocolo.replace('v6', 'v6m', 1)}"
+
+
+def casos(modelo_id: str | None = None) -> list[dict]:
+    """Los casos base y sus gemelos con los tres mapas."""
     particion = json.loads((d.RAIZ / "particion.json").read_text())
     filas = []
+    if modelo_id:
+        modelo = d.Modelo.cargar(modelo_id)
+        modelo.validar()
+        for conjunto, fuentes in modelo.conjuntos.items():
+            for clima, ids in fuentes.items():
+                for base in ids:
+                    filas.append({
+                        "base": base,
+                        "id": caso_comparacion(base),
+                        "conjunto": conjunto,
+                        "clima": clima,
+                        "limite": base in particion["limites"],
+                    })
+        return filas
     for conjunto in ("calibracion", "prueba"):
         for clima, ids in particion[conjunto].items():
             for base in ids:
@@ -61,6 +91,18 @@ def _arranco(manifiesto: dict) -> bool:
 
 def _ha(v: float) -> str:
     return f"{v:,.0f}".replace(",", ".")
+
+
+def control_reproducido(base_id: str, mapas_id: str, receta: str) -> bool:
+    """El control del caso ampliado debe reproducir los TOA congelados byte a byte."""
+    base = d.cargar_manifiesto(base_id, receta)
+    mapas = d.cargar_manifiesto(mapas_id, receta)
+    if not base or not mapas or len(base["ventanas"]) != len(mapas["ventanas"]):
+        return False
+    return all(
+        cadena._toa(a["salidas"]) == cadena._toa(b["salidas"])
+        for a, b in zip(base["ventanas"], mapas["ventanas"], strict=True)
+    )
 
 
 def metricas(caso_id: str, recetas: dict) -> dict:
@@ -161,14 +203,32 @@ def fuga(caso_id: str) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--recetas", choices=RECETAS, default="final")
+    ap.add_argument("--modelo")
+    ap.add_argument("--salida", type=Path)
     args = ap.parse_args()
+    if args.salida:
+        args.salida.parent.mkdir(parents=True, exist_ok=True)
+        sys.stdout = args.salida.open("w")
     recetas = RECETAS[args.recetas]
-    filas = casos()
+    filas = casos(args.modelo)
+    if args.modelo:
+        print(f"# Resultados de la comparación de mapas condicionada a {args.modelo}\n")
     for f in filas:
         f["m"] = metricas(f["id"], recetas)
     completos = [f for f in filas if len(f["m"]) == 3]
     print(f"## Recetas `{args.recetas}`: {', '.join(recetas.values())}\n")
     print(f"{len(completos)} de {len(filas)} incendios con los tres mapas.\n")
+    controles = [control_reproducido(f["base"], f["id"], recetas["CCS-BAP"]) for f in filas]
+    if not all(controles):
+        malos = [f["base"] for f, ok in zip(filas, controles, strict=True) if not ok]
+        raise RuntimeError(f"los controles CCS-BAP no reproducen modelo-v0: {malos}")
+    print(f"Controles CCS-BAP reproducidos byte a byte: {sum(controles)}/{len(controles)}.\n")
+    if args.modelo and CASOS_COMPARACION:
+        print(
+            "Los Alerces 2023 usa el protocolo `v6m2`: la primera corrida `v6m` se rechazó "
+            "porque fue ejecutada durante una prueba de concurrencia MPI y no reprodujo el "
+            "control. `v6m2` es la repetición limpia, íntegramente serial.\n"
+        )
 
     print("| Incendio | Conjunto | Clima | " + " | ".join(
         f"{m} Dice / sesgo / forma" for m in recetas) + " |")
@@ -265,6 +325,43 @@ def main() -> None:
         for g, t in total.items():
             print(f"| {g} | {_ha(t['obs_ha'])} | " + " | ".join(
                 f"{_ha(t[m]['tp_ha'])} / {_ha(t[m]['fp_ha'])}" for m in recetas) + " |")
+
+    calibracion = [f for f in sin_limite if f["conjunto"] == "calibracion"]
+    prueba = [f for f in sin_limite if f["conjunto"] == "prueba"]
+    sin_fuga = [f for f in sin_limite if not f["m"]["WorldCover"]["fuga"]]
+
+    def media(sel: list[dict], mapa: str) -> float:
+        return mean(f["m"][mapa]["dice"] for f in sel)
+
+    print("\n## Conclusión\n")
+    print(
+        f"En los seis casos sin fuga temporal, CCS-BAP obtiene Dice medio "
+        f"{_f(media(sin_fuga, 'CCS-BAP'))}, frente a "
+        f"{_f(media(sin_fuga, 'WorldCover'))} de WorldCover y "
+        f"{_f(media(sin_fuga, 'MapBiomas'))} de MapBiomas. Supera a WorldCover en 5/6 "
+        "incendios y a MapBiomas en 4/6, con un empate. La dirección favorece claramente a "
+        "CCS-BAP frente a WorldCover, pero la muestra es demasiado pequeña para significación "
+        "en el test de signos (p = 0,219). Frente a MapBiomas, la ventaja es pequeña y tampoco "
+        "concluyente (p = 0,375).\n"
+    )
+    print(
+        f"En calibración, CCS-BAP conserva la mayor media "
+        f"({_f(media(calibracion, 'CCS-BAP'))} contra "
+        f"{_f(media(calibracion, 'WorldCover'))} y "
+        f"{_f(media(calibracion, 'MapBiomas'))}). En prueba ocurre lo contrario: "
+        f"{_f(media(prueba, 'CCS-BAP'))} contra "
+        f"{_f(media(prueba, 'WorldCover'))} y {_f(media(prueba, 'MapBiomas'))}. "
+        "El Turbio explica buena parte de esa inversión. Como el holdout no puede usarse para "
+        "elegir el mapa después de observarlo, el resultado no cambia modelo-v0.\n"
+    )
+    print(
+        "Cierre: WorldCover queda descartado como fuente principal; además de la fuga temporal "
+        "en 2015–2019, falla fuertemente en la mayoría de los casos posteriores. CCS-BAP sigue "
+        "siendo el mapa de modelo-v0. MapBiomas queda como el comparador competitivo: no hay "
+        "evidencia suficiente para afirmar que CCS-BAP lo supera de forma general. Un eventual "
+        "cambio exige un modelo-v1 predefinido y datos independientes nuevos, no otro ajuste "
+        "sobre estos once incendios."
+    )
 
 if __name__ == "__main__":
     main()

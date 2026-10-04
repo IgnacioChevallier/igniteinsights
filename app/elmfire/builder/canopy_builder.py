@@ -44,8 +44,9 @@ _CANOPY_FUEL_LOAD_FULL = 1.0
 # Floor on canopy layer depth, so cbd cannot blow up when cbh approaches ch.
 _MIN_CANOPY_DEPTH_M = 1.0
 
-# Canopy base height by forest type (DECISIONES-DIRECTOR.md §2, loop L), where the canopy
-# exists: there is no CBH inventory for the native forest, so the values come from the
+# Canopy base height by forest type
+# (docs/crosswalk/DECISIONES-MODELO-V0.md §2, loop L), where the canopy exists: there is no
+# CBH inventory for the native forest, so the values come from the
 # vertical structure described for NW Patagonia. The FBFM40 code is only a proxy for the
 # CCS-BAP forest class (the crosswalk maps one to the other). A code not listed keeps the
 # CH × f(CC) value above, so an unknown code never blanks the canopy out.
@@ -146,8 +147,9 @@ def derive_cbh_cbd(
     cc.tif is rewritten with cover 0 where the canopy is shorter than _MIN_CANOPY_HEIGHT_M
     or its height is nodata.
     ELMFIRE takes the wind reduction under a canopy from (CC, CH): with CH ≈ 0 and CC ≥ 15 %
-    it uses a sheltered factor of 0, and the cell gets no wind at all (AUDITORIA-FISICA.md,
-    hallazgo 4: Hansen cover without ETH height, 0.1–2.6 % of the burnable cells).
+    it uses a sheltered factor of 0, and the cell gets no wind at all
+    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 4: Hansen cover without ETH height,
+    0.1–2.6 % of the burnable cells).
 
     fuel_path (the fbfm40 on the same grid): CBH and CBD by forest type where there is canopy
     (CBH_BY_FUEL_MODEL_M, CBD_BY_FUEL_MODEL_KG_M3).
@@ -155,8 +157,9 @@ def derive_cbh_cbd(
     lossyear_path + fire_year (Hansen GFC lossyear on the same grid, nearest-resampled): no
     canopy (cc = ch = 0, so cbh = cbd = 0 and the unsheltered wind factor) where Hansen saw
     stand-replacing loss before fire_year. Hansen 2000 and ETH 2020 both still see closed
-    forest over the 2015 burns (standing dead stems): DECISIONES-DIRECTOR.md §3. Never the
-    loss of fire_year itself, which is the fire being simulated.
+    forest over the 2015 burns (standing dead stems):
+    docs/crosswalk/DECISIONES-MODELO-V0.md §3. Never the loss of fire_year itself, which is
+    the fire being simulated.
     """
     import rasterio
 

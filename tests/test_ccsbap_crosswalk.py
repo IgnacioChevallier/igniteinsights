@@ -1,4 +1,4 @@
-"""The CCS-BAP legend → FBFM40 resolution (docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §3).
+"""The CCS-BAP legend → FBFM40 resolution (docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §3).
 
 The failure this guards against is silent: a legend class with no fuel model would either
 raise deep inside a raster build or, worse, land on a code ELMFIRE resolves to unburnable.

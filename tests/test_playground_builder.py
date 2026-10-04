@@ -75,7 +75,7 @@ def test_phi_ignites_the_centre_and_respects_elmfires_floor(tmp_path):
 def test_phi_is_elmfires_plus_minus_one_field(tmp_path):
     """-1 inside the disc, +1 outside, nothing else. A signed distance in metres made
     ELMFIRE's front advance at ~0.5x the computed rate (scripts/pruebas_fisicas.py,
-    AUDITORIA-FISICA.md hallazgo 2)."""
+    docs/resultados/AUDITORIA-FISICA.md hallazgo 2)."""
     radius, cell = 90.0, 30.0
     d = _build(tmp_path, domain_size_m=1200, cellsize_m=cell, ignition_radius_m=radius)
     with rasterio.open(d / "phi.tif") as ds:

@@ -12,7 +12,7 @@ el atlas entre las dos direcciones vecinas.
   las componentes (u, v) del viento a 20 pies por unidad de viento a 10 m.
 - `aplicar(velocidad_10m, direccion, u, v)` es la interpolación, sin I/O.
 - `diurno(dem, …)` corre WindNinja una vez por hora con los flujos de ladera diurnos
-  (AUDITORIA-FISICA.md, loop M), que el atlas no puede representar.
+  (docs/resultados/AUDITORIA-FISICA.md, loop M), que el atlas no puede representar.
 """
 import subprocess
 from datetime import datetime

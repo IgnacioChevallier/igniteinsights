@@ -1,5 +1,5 @@
 """Convenciones de la interfaz con ELMFIRE 2025.0212 que encontró la auditoría física
-(AUDITORIA-FISICA.md §3). Cada una se verificó corriendo ELMFIRE en
+(docs/resultados/AUDITORIA-FISICA.md §3). Cada una se verificó corriendo ELMFIRE en
 scripts/pruebas_fisicas.py; estos tests fijan lo que el repo emite."""
 import numpy as np
 import rasterio

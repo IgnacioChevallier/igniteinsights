@@ -13,7 +13,7 @@ everywhere and ignite cells at -1; its level set (superbee-limited upwinding on 
 2-cell tagged band, elmfire_level_set.f90) advances the front at the Rothermel rate
 only on that ±1 field. Until 2026-09-29 this builder wrote the signed distance in
 metres (+30, +60, … outside): the front then moved at ~0.5× the rate ELMFIRE computed,
-in every direction and at every wind speed (AUDITORIA-FISICA.md, hallazgo 2;
+in every direction and at every wind speed (docs/resultados/AUDITORIA-FISICA.md, hallazgo 2;
 scripts/pruebas_fisicas.py).
 """
 import logging

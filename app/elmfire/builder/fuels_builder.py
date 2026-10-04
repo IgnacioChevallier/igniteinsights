@@ -216,7 +216,7 @@ def assert_codes_are_defined(fbfm40: "np.ndarray", table_path: Path | None = Non
 
 
 # ---------------------------------------------------------------------------
-# MapBiomas Argentina Colección 2 → FBFM40 (docs/historico/IGN-20-CROSSWALK.md §5)
+# MapBiomas Argentina Colección 2 → FBFM40 (docs/crosswalk/IGN-20-CROSSWALK.md §5)
 # ---------------------------------------------------------------------------
 MAPBIOMAS_SOURCE_ID = "mapbiomas_argentina_col2_2024"
 
@@ -245,7 +245,7 @@ MAPBIOMAS_TO_FBFM40: dict[int, int] = {
 }
 
 # ---------------------------------------------------------------------------
-# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md
+# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md
 #
 # Clave: el par (Ley_N1, Ley_N2). Ley_N2 sola es ambigua — "Le" existe como bosque
 # (TF) y como lenga achaparrada (OFL), y esa distinción estructural es justamente la
@@ -278,15 +278,17 @@ CCSBAP_TO_FBFM40: dict[tuple[str, str], int] = {
     ("OFL", "Ma"): 144,      # Maitén bajo     → SH4
     ("OFL", "Cg"): 144,      # Ciprés guaitecas juvenil → SH4
     # --- Otras Tierras ---
-    # Estepa → GR2 (DECISIONES-DIRECTOR loop L; antes GR3, 1.138 m/h a 10 mph, precisión 0,12 en
-    # calibración) y sobre el límite del bosque → NB9 (CCSBAP_SOBRE_LIMITE_BOSQUE).
+    # Estepa → GR2 (docs/crosswalk/DECISIONES-MODELO-V0 loop L; antes GR3,
+    # 1.138 m/h a 10 mph, precisión 0,12 en calibración) y sobre el límite del bosque → NB9
+    # (CCSBAP_SOBRE_LIMITE_BOSQUE).
     ("OT", "Herb-Subarb"): 102,   # Estepa      → GR2 (ver override Estepa Arb/Pradera)
     ("OT", "Erial"): 99,          # Erial       → NB9
     ("OT", "Humedales"): 105,     # Mallín      → GR5 (ver override Turbera)
     ("OT", "Agua"): 98,           # Agua        → NB8
     ("OT", "Hie-Nie"): 92,        # Hielo/nieve → NB2
-    # Remanente de disturbio reciente → SH3 (DECISIONES-DIRECTOR §4, loop L): el GS3 de la
-    # PT-37 (A2, ñire a 2 años) describe los primeros 2-5 años; con mapas de 2013/2017 y fuegos
+    # Remanente de disturbio reciente → SH3
+    # (docs/crosswalk/DECISIONES-MODELO-V0 §4, loop L): el GS3 de la PT-37 (A2, ñire a
+    # 2 años) describe los primeros 2-5 años; con mapas de 2013/2017 y fuegos
     # de 2015-2026 el remanente tiene 6-15 años, matorral rebrotante leñoso (Tiribelli et al.
     # 2018; Blackhall et al. 2017).
     ("OT", "Rem Dist Rec"): 143,
@@ -295,7 +297,7 @@ CCSBAP_TO_FBFM40: dict[tuple[str, str], int] = {
 
 # Clases de nivel 3 cuyo comportamiento del fuego NO es el de su nivel 2. Sin estos, la
 # turbera heredaría el modelo del mallín y una forestación de pino heredaría el de un
-# cultivo. Cada una está justificada en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §5.
+# cultivo. Cada una está justificada en docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §5.
 CCSBAP_N3_OVERRIDES: dict[str, int] = {
     "Turbera": 99,       # NB9 — combustión latente, fuera del alcance de Rothermel
     "Cg Juv-Tur": 99,    # ciprés de las guaitecas sobre turbera → ídem
@@ -312,8 +314,9 @@ CCSBAP_N3_OVERRIDES: dict[str, int] = {
 
 # Clases de nivel 3 que sobre una altura (m, del DEM de referencia) cambian de modelo: CCS-BAP
 # llama "Estepa" también a la vegetación altoandina rala entre roca y nieve, por encima del
-# límite del bosque (AUDITORIA-FISICA.md loop K; DECISIONES-DIRECTOR loop L: +0,009 en
-# calibración, Alerces 2024 0,562 → 0,614).
+# límite del bosque (docs/resultados/AUDITORIA-FISICA.md loop K;
+# docs/crosswalk/DECISIONES-MODELO-V0 loop L: +0,009 en calibración,
+# Alerces 2024 0,562 → 0,614).
 CCSBAP_SOBRE_LIMITE_BOSQUE: dict[str, tuple[float, int]] = {"Estepa": (1300.0, 99)}
 
 

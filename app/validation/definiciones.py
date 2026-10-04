@@ -1,12 +1,15 @@
-"""Caso, receta e iteración: qué se corre, con qué modelo, y qué cambió entre dos corridas.
+"""Caso, receta, iteración y modelo: qué se corre y qué llegó al gate productivo.
 
 - **Caso** `benchmarks/casos/<incendio>/<protocolo>.json`: un incendio con un protocolo
   (semilla inicial, ventanas, referencias). Su paquete congelado vive en
   `<protocolo>.paquete.json`: cada archivo, por sha256.
-- **Receta** `benchmarks/recetas/<id>.json`: la versión del modelo, global. Declara su
-  padre, el motivo y lo que cambia: combustible, parámetros, política de semilla.
+- **Receta** `benchmarks/recetas/<id>.json`: una configuración experimental reutilizable.
+  Declara su padre, el motivo y lo que cambia: combustible, parámetros y política de semilla.
 - **Iteración** = receta × caso. Su manifiesto registra además lo que no se declara
   (commit, hashes de cada insumo y salida), y con eso se detecta lo que cambió sin avisar.
+- **Modelo** `benchmarks/modelos/<id>.json`: una receta más un conjunto congelado de casos,
+  artefactos, resultados y criterios que ya pasaron el gate para uso productivo. Una receta
+  puede tener muchas iteraciones; sólo una selección explícita se promueve a modelo.
 
 Sólo se comparan peras con peras: recetas distintas sobre el mismo caso, o la misma
 receta sobre casos distintos.
@@ -180,6 +183,73 @@ class Receta:
         return cls(id=receta_id, padre=datos.get("padre"), motivo=datos["motivo"],
                    combustible=datos["combustible"], semilla=datos["semilla"],
                    parametros=datos.get("parametros", {}))
+
+
+@dataclass(frozen=True)
+class Modelo:
+    """Snapshot promovido: no ejecuta corridas ni reemplaza a :class:`Receta`.
+
+    El modelo fija la receta, los casos y sus hashes. Así un cambio posterior en una receta,
+    un paquete o la partición no puede cambiar silenciosamente qué significa ``modelo-v0``.
+    """
+
+    id: str
+    estado: str
+    fecha_corte: str
+    receta: str
+    receta_sha: str
+    codigo_sha: str
+    conjuntos: dict[str, dict[str, list[str]]]
+    casos_sha: dict[str, str]
+    criterios_gate: dict[str, Any]
+    resultados: dict[str, Any]
+    limitaciones: list[str]
+    documentacion: list[str]
+
+    @property
+    def casos(self) -> list[str]:
+        return [caso for conjunto in self.conjuntos.values()
+                for fuente in conjunto.values() for caso in fuente]
+
+    def validar(self) -> None:
+        if self.estado not in {"aprobado", "retirado"}:
+            raise ValueError(f"{self.id}: estado de modelo desconocido '{self.estado}'")
+        if not self.casos:
+            raise ValueError(f"{self.id}: un modelo promovido no puede quedar sin casos")
+        if not self.criterios_gate or not self.resultados or not self.documentacion:
+            raise ValueError(f"{self.id}: gate, resultados y documentación son obligatorios")
+        if len(self.codigo_sha) != 40 or any(c not in "0123456789abcdef" for c in self.codigo_sha):
+            raise ValueError(f"{self.id}: codigo_sha no es un SHA de git")
+        if len(self.casos) != len(set(self.casos)):
+            raise ValueError(f"{self.id}: un caso aparece más de una vez")
+        if set(self.casos) != set(self.casos_sha):
+            raise ValueError(f"{self.id}: casos y casos_sha no coinciden")
+
+        receta = Receta.cargar(self.receta)
+        if receta.sha() != self.receta_sha:
+            raise ValueError(f"{self.id}: cambió la receta congelada {self.receta}")
+
+        for caso_id in self.casos:
+            caso = Caso.cargar(caso_id)
+            if caso.sha() != self.casos_sha[caso_id]:
+                raise ValueError(f"{self.id}: cambió el caso congelado {caso_id}")
+            manifiesto = cargar_manifiesto(caso_id, self.receta)
+            metricas = cargar_metricas(caso_id, self.receta)
+            if manifiesto is None or metricas is None:
+                raise ValueError(f"{self.id}: faltan artefactos de {caso_id}/{self.receta}")
+            if (manifiesto.get("caso_sha") != self.casos_sha[caso_id]
+                    or manifiesto.get("receta_sha") != self.receta_sha):
+                raise ValueError(f"{self.id}: manifiesto fuera del snapshot en {caso_id}")
+
+    @classmethod
+    def cargar(cls, modelo_id: str) -> "Modelo":
+        datos = json.loads((RAIZ / "modelos" / f"{modelo_id}.json").read_text())
+        return cls(id=modelo_id, estado=datos["estado"], fecha_corte=datos["fecha_corte"],
+                   receta=datos["receta"], receta_sha=datos["receta_sha"],
+                   codigo_sha=datos["codigo_sha"], conjuntos=datos["conjuntos"],
+                   casos_sha=datos["casos_sha"], criterios_gate=datos["criterios_gate"],
+                   resultados=datos["resultados"], limitaciones=datos["limitaciones"],
+                   documentacion=datos["documentacion"])
 
 
 def ruta_iteracion(caso_id: str, receta_id: str) -> Path:

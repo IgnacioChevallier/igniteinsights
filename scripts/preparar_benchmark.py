@@ -14,8 +14,9 @@ del benchmark: WorldCover 2021 (también es el relleno del hueco fronterizo) y C
 2017 con el mismo crosswalk.
 
 Con `--dosel-desde` arma una preparación nueva a partir de otra, re-derivando sólo el dosel con
-el `canopy_builder` actual (AUDITORIA-FISICA.md, hallazgo 4: cobertura 0 donde CH < 2 m) y con
-hardlinks para todo lo demás. Así se armaron las preparaciones de los protocolos `-v5`:
+el `canopy_builder` actual (docs/resultados/AUDITORIA-FISICA.md, hallazgo 4: cobertura 0
+donde CH < 2 m) y con hardlinks para todo lo demás. Así se armaron las preparaciones de los
+protocolos `-v5`:
 
     uv run python scripts/preparar_benchmark.py --dosel-desde \
         data/elmfire/inputs/benchmark-aoi-asp3 --salida data/elmfire/inputs/benchmark-aoi-asp3-v5
@@ -62,9 +63,9 @@ def rehacer_dosel(desde: Path, salida: Path) -> None:
 
 def rehacer_combustible(desde: Path, salida: Path, relleno: Path | None) -> None:
     """Otra preparación con los mapas de CCS-BAP rehechos con el crosswalk actual (protocolos
-    -v6, DECISIONES-DIRECTOR.md); el resto, hardlinks a `desde`. El relleno del hueco fronterizo
-    es el WorldCover 2021 de `desde` salvo que se pase otro (la preparación del AOI no lo tiene:
-    data/static/fuel_maps/fbfm40_worldcover.tif)."""
+    -v6, docs/crosswalk/DECISIONES-MODELO-V0.md); el resto, hardlinks a `desde`. El relleno
+    del hueco fronterizo es el WorldCover 2021 de `desde` salvo que se pase otro (la
+    preparación del AOI no lo tiene: data/static/fuel_maps/fbfm40_worldcover.tif)."""
     salida.mkdir(parents=True)
     for ruta in sorted(desde.iterdir()):
         if ruta.is_file() and not ruta.name.startswith("fbfm40_ccsbap"):

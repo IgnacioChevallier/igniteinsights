@@ -109,8 +109,8 @@ def wd_for_elmfire(wd_deg: np.ndarray) -> np.ndarray:
     Between two bands ELMFIRE interpolates the *angle* linearly, after mapping it to a
     "to" direction in (0, 360]: from 170° to 190° (a southerly) that is 350° → 10°, and
     for the whole hour the wind swings through north instead of staying southerly
-    (AUDITORIA-FISICA.md, hallazgo 3). Every angle is only meaningful mod 360, so each
-    pixel's series is rewritten with values whose "to" angles differ by ≤ 180° from band
+    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 3). Every angle is only meaningful mod
+    360, so each pixel's series is rewritten with values whose "to" angles differ by ≤ 180°
     to band: unwrapped, and centred so a window turning < 720° stays in [-180, 540], where
     ELMFIRE's single wrap lands the result in [0, 360]. wd - 180 reaches a "to" T ≤ 360
     and wd + 180 one above 360, so any T is reachable. Beyond that range the result only

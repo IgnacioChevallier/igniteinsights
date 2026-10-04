@@ -3,7 +3,7 @@
 Cada prueba es un experimento controlado con una predicción y una tolerancia. Los insumos
 salen de los builders del repo (write_namelist, weather_builder.derive_wind,
 raster_aligner._derive_slope_aspect), así que una convención mal puesta en el pipeline
-falla acá antes de llegar a una calibración (AUDITORIA-FISICA.md §4).
+falla acá antes de llegar a una calibración (docs/resultados/AUDITORIA-FISICA.md §4).
 
     uv run python scripts/pruebas_fisicas.py            # todas
     uv run python scripts/pruebas_fisicas.py viento pendiente

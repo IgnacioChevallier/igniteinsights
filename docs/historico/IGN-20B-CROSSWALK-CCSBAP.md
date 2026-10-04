@@ -1,5 +1,8 @@
 # IGN-20B · Tabla de correspondencia CCS-BAP → Scott & Burgan FBFM40
 
+> **Histórico:** propuesta reemplazada por
+> `docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`.
+>
 > **Estado: propuesta, pendiente de revisión y aprobación del director.** Insumo principal. Convive con `IGN-20-CROSSWALK.md` (MapBiomas), que pasa a ser punto intermedio de comparación, y con el baseline de WorldCover (`ETAPA-A §A7`).
 >
 > Área de interés: Parque Nacional Los Alerces y entorno. −72,05 / −42,90 / −71,15 / −42,05 (EPSG:4326) · 699.000 ha · grilla EPSG:32719, 30 m.
@@ -375,7 +378,7 @@ Lecturas:
 
 Tres corridas de 12 h sobre el **mismo incendio**: misma ignición, misma meteorología, misma
 topografía, mismo `ADJ`. Lo único que cambia es `fbfm40.tif`. Se puntúa **sólo el anillo de
-crecimiento**, nunca la unión con la semilla (`IGN-26-VALIDACION.md` §12.1).
+crecimiento**, nunca la unión con la semilla (`docs/resultados/IGN-26-VALIDACION.md` §12.1).
 
 Semilla FIRMS: 8.095 ha, verificada idéntica en las tres corridas. Humedad del combustible
 vivo en los valores medidos de `ETAPA-B` §B5: `LH` 30 %, `LW` 110 %.
@@ -421,7 +424,7 @@ observado, que es el harness B. Que los dos insumos patagónicos coincidan entre
 y difieran igual del baseline (0,245 y 0,269) es consistente con que el baseline sea el
 atípico, pero no lo prueba.
 
-**Y el harness B ya corrió** (2026-09-19, `RESULTADOS.md` §4). Contra la cicatriz de
+**Y el harness B ya corrió** (2026-09-19, `docs/historico/RESULTADOS.md` §4). Contra la cicatriz de
 Sentinel-2 —dNBR entre una ventana pre y una post, umbral 0,30, independiente de FIRMS, que es
 lo que construyó la semilla— sobre el mismo incendio y las mismas 12 h:
 
@@ -590,7 +593,7 @@ la tabla que ELMFIRE realmente carga. ELMFIRE resuelve cualquier código ausente
 | Comparación de los tres mapas (§6.1)   | 2026-09-16                          |
 | Paso 4 sobre la quema de la PT-37      | **hecho** 2026-09-16 (§6.2)         |
 | Sensibilidad de la humedad viva (§6.3) | 2026-09-16                          |
-| Validación contra lo observado         | 2026-09-19 (`IGN-26-VALIDACION.md`) |
+| Validación contra lo observado         | 2026-09-19 (`docs/resultados/IGN-26-VALIDACION.md`) |
 | Revisión del director                  | **pendiente**                       |
 
 
@@ -633,4 +636,3 @@ la clase de forestación exótica.)
 - Interno: `IGN-20-CROSSWALK.md` · `ETAPA-B-INSUMO-PATAGONICO.md` ·
 `docs/out-of-scope/ETAPA-C-MODELOS-PROPIOS.md` §C0 · `app/elmfire/builder/fuels_builder.py` ·
 `scripts/build_fuel_maps.py`
-

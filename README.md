@@ -157,6 +157,10 @@ de que ELMFIRE termina exitosamente. Ver [Mapeo a ELMFIRE](docs/elmfire-mapping.
 
 ## Documentación
 
+- [Estado del research](docs/resultados/ESTADO-RESEARCH.md)
+- [Modelo v0](docs/resultados/MODELO-V0.md)
+- [Resultados y auditoría](docs/resultados/README.md)
+- [Crosswalks vigentes](docs/crosswalk/README.md)
 - [Arquitectura](docs/architecture.md)
 - [Fuentes de datos](docs/data-sources.md)
 - [Mapeo a ELMFIRE](docs/elmfire-mapping.md)

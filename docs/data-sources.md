@@ -132,9 +132,9 @@ curl -X POST http://localhost:8000/api/v1/ingestion/worldcover/run
 
 | Layer   | Source                | Derivation                                                   |
 | ------- | --------------------- | ------------------------------------------------------------ |
-| `cbh.tif` | `cc.tif` + `ch.tif` (+ `fbfm40.tif`) | `cbh = ch · f(cc)`, fracción de autopoda creciente con la cobertura; donde hay copa, el CBH de literatura del tipo de bosque (`CBH_BY_FUEL_MODEL_M`, DECISIONES-DIRECTOR §2) |
+| `cbh.tif` | `cc.tif` + `ch.tif` (+ `fbfm40.tif`) | `cbh = ch · f(cc)`, fracción de autopoda creciente con la cobertura; donde hay copa, el CBH de literatura del tipo de bosque (`CBH_BY_FUEL_MODEL_M`, docs/crosswalk/DECISIONES-MODELO-V0 §2) |
 | `cbd.tif` | `cc.tif` + `ch.tif` (+ `fbfm40.tif`) | `cbd = carga de copa / (ch − cbh)`, carga proporcional a la cobertura; pino 0,16 kg/m³ medido |
-| `cc`/`ch` en 0 | Hansen GFC v1.13 `lossyear` | donde hubo pérdida antes del año del incendio (DECISIONES-DIRECTOR §3) |
+| `cc`/`ch` en 0 | Hansen GFC v1.13 `lossyear` | donde hubo pérdida antes del año del incendio (docs/crosswalk/DECISIONES-MODELO-V0 §3) |
 
 **Hansen GFC v1.13 `lossyear`** (2001–2025, codificado 1–25): `https://storage.googleapis.com/earthenginepartners-hansen/GFC-2025-v1.13/Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif` (19 MB, una tesela cubre el AOI). Se baja a mano a `data/raw/hansen/` (ruta en `settings.hansen_lossyear_path`); la preparación lo reproyecta con vecino más cercano. Si falta, el dosel queda el de 2000 y la preparación lo avisa.
 
