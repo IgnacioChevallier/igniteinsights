@@ -1,0 +1,59 @@
+{
+  "caso": "cholila-2015/calibracion-era5-v5m",
+  "caso_sha": "d192f7e736a470636428aadcd9e490ed4a926a2cde1a32a81638f135122c6c0d",
+  "receta": "fuels-worldcover-002",
+  "receta_sha": "326a321bfca49c5eaa1917b2ad75b612bb149bdd414d55dd8398b2dbc1c989a9",
+  "padre": "fuels-worldcover-001",
+  "motivo": "Comparación de mapas sobre los 11 incendios de v5 (COMPARACION-MAPAS-V5.md), con la base de base-001 (LW 110 %, ADJ 1). Como fuels-worldcover-001, pero WorldCover sólo existe para 2020 y 2021: en los incendios anteriores a 2021 no hay mapa anterior al fuego y se usa el primero publicado (2020), una fuga temporal declarada que la iteración registra en sus factores. Esos incendios se reportan aparte.",
+  "factores": {
+    "combustible": "worldcover2020",
+    "semilla": "prediccion",
+    "fuga_temporal": true
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "35ab1cb1e62e7bc152e1709a0defb686d3d979ce",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2015-02-16T18:00:00+00:00",
+      "inicio": "2015-02-16T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "23f01ba8a156a4b2c0a7c86c1919218747233dbe14414963519d35002b055526",
+        "asp.tif": "5f852bfdbdbc7f37c1ef1c49f01e58c5a46083b8157a11de6b55590372f065aa",
+        "cbd.tif": "6be2106563e58e8a9c0c4196133c17bd0a3bd09371679cca55ea6da8f9e7fdea",
+        "cbh.tif": "40ad7ad95b76f559b9474f0622700f10e2d310c8c26f9238da4f8ecf1fb93e5c",
+        "cc.tif": "fb7bd778145741594e084b05ccb059fc5fef9737588cb22e58c5f050e33d8a86",
+        "ch.tif": "41fcdcf017ae737a964a2b93609465efcd42af5a592b87fe76ca3b9fb5311f7c",
+        "dem.tif": "9310f66ba3ddcb1c1fa7a590044692f56b1d1a1394116a46f5d6a77e938aa9f2",
+        "elmfire.data": "35c8fa6f06f443b9617fa3171f61195035ea61fd984c7b3536153ae9adda60ca",
+        "fbfm40.tif": "a1641c6104e9467d90532c06a1fd0b317253db73ee2286d557ed4555ce6894b3",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "915138550f148362e26b07be2e9f5cf62e096a0c73c959b70e81311ba5ff8d33",
+        "m10.tif": "00b0b07f68cc063f0f8893e41eaa207e96122b2499eee372ceb3222ab68c8eab",
+        "m100.tif": "d6ed8a7be444382be25b9060a57b0b8738ca7a2d312f54679e2746281b857b08",
+        "phi.tif": "84e34efae1a82d44c5cae02a2af35fd3e052c244ae5618391d2e75fd39d6864e",
+        "slp.tif": "83a93adcec4133be4a6f98ef64a72d66950d4b09eb6acb84f811cbf1bd4caade",
+        "wd.tif": "290470e7984a8bad83db13cb75f352b03b4943ae841880a08057eb721f87fcae",
+        "ws.tif": "c302dd19a395929ed670e3ae7149b41422ca1e2a86666e158e93ab992bd588bc"
+      },
+      "namelist_sha": "aadc5fd2580ec8669a69ffd8e96c7300d23f591862fc07ac214c45a5878ea978",
+      "salidas": {
+        "fire_size_stats.csv": "2dfdaad819bbcdb87e18ca33d41ca1cc1248dbfec70134380e3b7ad653473683"
+      },
+      "git": {
+        "sha": "35ab1cb1e62e7bc152e1709a0defb686d3d979ce",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-01T03:13:32.238898+00:00",
+        "minutos": 1.7
+      }
+    }
+  ]
+}

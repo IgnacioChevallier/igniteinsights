@@ -65,7 +65,7 @@ export function DashboardHeader({
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <img
-          src="/images/wildfire-logo-tree-colored.svg"
+          src="/images/igniteinsights-celdas.svg"
           alt=""
           aria-hidden="true"
           className="mt-0.5 h-8 w-8 shrink-0"

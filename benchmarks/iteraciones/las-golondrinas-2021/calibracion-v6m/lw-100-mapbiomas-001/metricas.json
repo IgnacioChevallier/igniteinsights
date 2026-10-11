@@ -1,0 +1,184 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v6m",
+  "receta": "lw-100-mapbiomas-001",
+  "factores": {
+    "combustible": "mapbiomas2020",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "semilla_ha": 1.6199999999999999,
+      "predicho_ha": 103.41,
+      "firms": {
+        "incremento": {
+          "tp_ha": 17.64,
+          "fp_ha": 85.77,
+          "fn_ha": 10438.289999999999,
+          "predicho_ha": 103.41,
+          "observado_ha": 10455.93,
+          "iou": 0.0016733543925552805,
+          "dice": 0.0033411179107785145,
+          "recall": 0.0016870809196312523,
+          "precision": 0.17058311575282856,
+          "sesgo_area": 0.009890081513552597,
+          "alarma_sesgo": true,
+          "tp": 196,
+          "fp": 953,
+          "fn": 115981
+        },
+        "incremento_cercano": {
+          "tp_ha": 17.64,
+          "fp_ha": 85.77,
+          "fn_ha": 8949.15,
+          "predicho_ha": 103.41,
+          "observado_ha": 8966.789999999999,
+          "iou": 0.0019486200588562793,
+          "dice": 0.0038896606469537606,
+          "recall": 0.001967259186397808,
+          "precision": 0.17058311575282856,
+          "sesgo_area": 0.011532555128423884,
+          "alarma_sesgo": true,
+          "tp": 196,
+          "fp": 953,
+          "fn": 99435
+        }
+      },
+      "llegada": {
+        "detecciones": 51556,
+        "mediana_h": 6.258266003396775,
+        "nunca_alcanzadas": 0.9978082085499262
+      },
+      "cicatriz": {
+        "acumulado": {
+          "tp_ha": 53.55,
+          "fp_ha": 49.86,
+          "fn_ha": 10568.07,
+          "predicho_ha": 103.41,
+          "observado_ha": 10621.619999999999,
+          "iou": 0.005018048105792261,
+          "dice": 0.009985986053185866,
+          "recall": 0.0050416038231456215,
+          "precision": 0.5178416013925152,
+          "sesgo_area": 0.009735803013099696,
+          "alarma_sesgo": true,
+          "tp": 595,
+          "fp": 554,
+          "fn": 117423
+        },
+        "bandas": {
+          "0-10": {
+            "tp_ha": 49.5,
+            "fp_ha": 30.509999999999998,
+            "fn_ha": 419.13,
+            "predicho_ha": 80.00999999999999,
+            "observado_ha": 468.63,
+            "iou": 0.0991705733862243,
+            "dice": 0.18044619422572178,
+            "recall": 0.10562704052237373,
+            "precision": 0.6186726659167604,
+            "sesgo_area": 0.17073170731707318,
+            "alarma_sesgo": true,
+            "tp": 550,
+            "fp": 339,
+            "fn": 4657
+          },
+          "10-40": {
+            "tp_ha": 0.0,
+            "fp_ha": 0.0,
+            "fn_ha": 2216.0699999999997,
+            "predicho_ha": 0.0,
+            "observado_ha": 2216.0699999999997,
+            "iou": 0.0,
+            "dice": 0.0,
+            "recall": 0.0,
+            "precision": null,
+            "sesgo_area": 0.0,
+            "alarma_sesgo": true,
+            "tp": 0,
+            "fp": 0,
+            "fn": 24623
+          },
+          "40-70": {
+            "tp_ha": 4.859999999999999,
+            "fp_ha": 20.34,
+            "fn_ha": 6467.58,
+            "predicho_ha": 25.2,
+            "observado_ha": 6472.44,
+            "iou": 0.0007485237448365723,
+            "dice": 0.0014959277522300404,
+            "recall": 0.0007508760220256966,
+            "precision": 0.19285714285714287,
+            "sesgo_area": 0.0038934312253184273,
+            "alarma_sesgo": true,
+            "tp": 54,
+            "fp": 226,
+            "fn": 71862
+          },
+          "70-100": {
+            "tp_ha": 0.0,
+            "fp_ha": 0.0,
+            "fn_ha": 1525.23,
+            "predicho_ha": 0.0,
+            "observado_ha": 1525.23,
+            "iou": 0.0,
+            "dice": 0.0,
+            "recall": 0.0,
+            "precision": null,
+            "sesgo_area": 0.0,
+            "alarma_sesgo": true,
+            "tp": 0,
+            "fp": 0,
+            "fn": 16947
+          }
+        }
+      }
+    }
+  ],
+  "agregado_firms": {
+    "incremento": {
+      "tp": 196,
+      "fp": 953,
+      "fn": 115981,
+      "tp_ha": 17.64,
+      "recall": 0.0016870809196312523,
+      "precision": 0.17058311575282856,
+      "iou": 0.0016733543925552805,
+      "dice": 0.0033411179107785145
+    },
+    "incremento_cercano": {
+      "tp": 196,
+      "fp": 953,
+      "fn": 99435,
+      "tp_ha": 17.64,
+      "recall": 0.001967259186397808,
+      "precision": 0.17058311575282856,
+      "iou": 0.0019486200588562793,
+      "dice": 0.0038896606469537606
+    }
+  },
+  "principal": {
+    "referencia": "cicatriz",
+    "ventana": 0,
+    "dice": 0.009985986053185866,
+    "iou": 0.005018048105792261,
+    "precision": 0.5178416013925152,
+    "recall": 0.0050416038231456215,
+    "tp": 595,
+    "fp": 554,
+    "fn": 117423,
+    "sesgo_area": 0.009735803013099696,
+    "alarma_sesgo": true,
+    "area_igualada": {
+      "hora": 24.059383680555555,
+      "alcanzada": false,
+      "dice": 0.009985986053185866,
+      "iou": 0.005018048105792261,
+      "recall": 0.0050416038231456215,
+      "precision": 0.5178416013925152
+    }
+  }
+}

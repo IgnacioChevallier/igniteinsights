@@ -1,0 +1,69 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v6",
+  "caso_sha": "7c25507047f03277036a1237002ffa05f118d2d0abf3d393dae65e6c5407fb68",
+  "receta": "lw100-supresion-60-001",
+  "receta_sha": "3e50527b61055675096149e6c74442d6384ca033b23d3f6447a5a6ecf656c2b5",
+  "padre": "lw-100-001",
+  "motivo": "Loop M: los incendios de la zona se combatieron (El Turbio diez días; Epuyén 2019 sobre-propaga 1-15×) y la corrida no tiene supresión. &SUPPRESSION con el ataque ampliado de la plantilla de pronóstico con supresión del proveedor (cada 1.800 s la contención objetivo sube MAX_CONTAINMENT_PER_DAY × (1 − crecimiento / 15.000 acres/día) %/día y frena primero los sectores más lentos); prueba física pruebas_fisicas.py supresion. Mitad de la tasa (60 %/día): cada ventana arranca sin contención y 120 %/día puede contener todo en un día.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0,
+    "suppression": {
+      "MAX_CONTAINMENT_PER_DAY": 60.0
+    }
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "b112d49df4bb62c8a8fe4c2a99def2adecfc2eee",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "c7a7df07a251faf9df45401102ec0b0f111acb2413aa4384c637c3d0a5ad078a",
+        "cbh.tif": "33a78ae406065dfe742325076df0fb2617566e8d1469946682e4a8dc5d081429",
+        "cc.tif": "6f4638a427a5185ea6b1b6c5186168528c5b9017376401ea10628b87338b15c3",
+        "ch.tif": "d996a9072073ff3248cb44f93db3e4b6d50dccf5ce25d2e575bb16ddba128211",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "276d1e73e003a90ebdc91264839198a947396a383ef69705d3bb3c0fefeb8dc6",
+        "fbfm40.tif": "37b90da5b58abb88ba96b708b51de29fbe421ec1f257103824122ad3a40b0e1f",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "6b9e9bcb1eb52d18cdb6d3896599cd7e517f7b3fe18feaa2b2e01f323230b679",
+        "m10.tif": "ae50da8a1e581532bcad63e58384fdbf8a44e5cef0d4cc6ca3d47e8fdc7addb1",
+        "m100.tif": "89003f0a7218eba0dd9bf2030e2efbccf9600ca5b6a971cc5dbb34f1c1eaa849",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "e2c150cc99c057a7eb663a3674c52710f4646d59de6fdceab6dc614481349cab",
+        "ws.tif": "69d2214473a31c6aa9f080101b88f58ee173be524f6058b29752e9fc3cdb9bb8"
+      },
+      "namelist_sha": "3497cc45c84b2465687be9f2c50ef45ec58489cb28874453b854876847d7145d",
+      "salidas": {
+        "fire_size_stats.csv": "970fe6659bb6d651ce82615468ed4cd626e9695cb5acabeb9ef8614f90709006",
+        "flin_0000001_0086511.tif": "7d2c207f900308c1de4521532105982aae34a99e1f13d409486256955c417299",
+        "hourly_isochrones.dbf": "d4ffedae7121f7539e5c102c49240f1bd74aed685da6424195d87523192620f7",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "086c1079f65cdc2c5d6682933386ceab130e65e43703574c21276a15205ba008",
+        "hourly_isochrones.shx": "29203add81e659f12f931b9ea50f17dc125c7bcb32e5e05a75bbed3eb0286b33",
+        "time_of_arrival_0000001_0086511.tif": "69df7ed8900f59173db50ba15624b3d03da52047fde5e56277b86602052976ea",
+        "vs_0000001_0086511.tif": "81d32d5ddfedc590b7aa927e510473293c0aa79ccefdbb4a7b88ba5c90ae07cb"
+      },
+      "git": {
+        "sha": "b112d49df4bb62c8a8fe4c2a99def2adecfc2eee",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-03T20:03:35.474463+00:00",
+        "minutos": 0.4
+      }
+    }
+  ]
+}

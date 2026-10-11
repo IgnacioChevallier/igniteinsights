@@ -1,0 +1,62 @@
+{
+  "descripcion": "Las Golondrinas y Cerro Radal (Lago Puelo / El Hoyo), martes 9-mar-2021: dos focos a 30-40 min, viento extremo; 605 viviendas afectadas en un par de horas. 24 h contra la cicatriz COMPLETA: VIIRS SP casi no vio este incendio (6 píxeles a las 19:49 UTC del 9-mar, 1 en la pasada nocturna, ninguno después), porque ardió entre dos pasadas y bajo el humo de otro incendio activo desde el 7-mar al este (que la máscara excluye); truncar la cicatriz por detecciones dejaría 853 de 10.623 ha. Las crónicas y la falta de detecciones posteriores ubican casi todo el crecimiento en la primera noche. Protocolo `calibracion` (RESULTADOS-CSS-BAP), sobre la preparación extendida al norte. Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v3: v2 más el atlas de viento de WindNinja (16 direcciones a 90 m) para la perilla `viento_atlas`. Versión v4 (AUDITORIA-FISICA.md): v3 con las correcciones de la auditoría física: phi.tif en la convención ±1 de ELMFIRE (con la distancia en metros el frente avanzaba a ~0,5× la velocidad calculada), &MONTE_CARLO NUM_METEOROLOGY_TIMES (sin él ELMFIRE usaba la banda 0 del clima toda la ventana) y wd reescrito para que ELMFIRE lo interpole por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-2026-09-28-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-2026-09-28-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila).",
+  "anio_fuego": 2021,
+  "semilla_inicial": {
+    "tipo": "puntos",
+    "hora": "2021-03-09T18:00:00+00:00",
+    "puntos": [
+      {
+        "nombre": "Las Golondrinas",
+        "lon": -71.52181,
+        "lat": -42.01227
+      },
+      {
+        "nombre": "Cerro Radal",
+        "lon": -71.55865,
+        "lat": -42.03658
+      }
+    ],
+    "fuente": "Pericias citadas por elDiarioAR y Diario Río Negro (mar-2022): el foco de Las Golondrinas empezó a las 15 h del 9-mar-2021 por una línea aérea de media tensión sobre coníferas; el de Cerro Radal, 30-40 min después. Radio Nacional (9-mar-2021): 'alrededor de las 16 h' en Las Golondrinas y en Radal. Lugares: OSM (Escuela N° 41 'Las Golondrinas', -42.0152/-71.5329; Cerro Radal, -42.0328/-71.5658).",
+    "ajuste": "Los dos lugares documentados caen fuera de la cicatriz (816 m y 582 m; zona de viviendas, NB1): la cicatriz dNBR empieza al este de los poblados. Se toma para cada uno la celda de la cicatriz a más de 90 m del borde más cercana: Las Golondrinas → -42.01227/-71.52181 (969 m, 463 m de altura, TU3); Cerro Radal → -42.03658/-71.55865 (716 m, 349 m, TL8). Los dos a las 15 ART (Radal fue 30-40 min después). La semilla de mask-dataset-gen (-42.084/-71.371, centroide MODIS) está a 1.388 m, 7,9 km de las primeras detecciones (19:49 UTC, -42.014/-71.510, 602 m)."
+  },
+  "ventanas": [
+    {
+      "t0": "2021-03-09T18:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.64,
+    -42.2,
+    -71.16,
+    -41.95
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/las-golondrinas-2021/runs/event-filter-001",
+      "hasta_horizonte": false
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v5",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v5/fbfm40_ccsbap2017.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true,
+    "viento_atlas": {
+      "motor": "WindNinja 3.12.2, conservación de masa",
+      "resolucion_m": 90,
+      "vegetacion": "brush"
+    }
+  }
+}

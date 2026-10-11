@@ -52,7 +52,7 @@ def test_crown_fire_model_is_written_explicitly(tmp_path):
 
 def test_non_zero_tstart_shifts_the_whole_window(tmp_path):
     # Anchoring the run to the wall clock means TSTOP moves with TSTART: ELMFIRE reads
-    # weather band n at TSTART + n × DT_METEOROLOGY.
+    # weather band n at absolute time n × DT_METEOROLOGY, so TSTOP = TSTART + duration.
     inputs = tmp_path / "in"
     inputs.mkdir()
     _grid(inputs / "dem.tif")

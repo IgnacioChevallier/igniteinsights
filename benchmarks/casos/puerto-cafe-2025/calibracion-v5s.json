@@ -1,0 +1,59 @@
+{
+  "descripcion": "Puerto Café, brazo sur del Lago Menéndez (PN Los Alerces). Incendio por rayo (tormenta del 29-nov) detectado el 9-dic-2025, que ardió latente ~500 ha hasta el 5-ene-2026 y explotó entre la pasada VIIRS de las 19:20 UTC del 5-ene (1 detección) y la de las 04:43 UTC del 6-ene (101). El caso es esa fase: semilla observada (todo FIRMS SP hasta el inicio), 96 h de crecimiento libre, cicatriz truncada al horizonte (~30 % del área FIRMS final). Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio. Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v2s: semilla observada restringida al incendio objetivo. Versión v4 (AUDITORIA-FISICA.md): el protocolo de prueba con las correcciones de la auditoría física: phi.tif ±1, &MONTE_CARLO NUM_METEOROLOGY_TIMES y wd por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-v4s` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-aoi-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-aoi-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila).",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "firms",
+    "hora": "2026-01-05T20:00:00+00:00",
+    "fuente": "Fechas: Red43 (9-dic-2025, parte de PN Los Alerces), LA NACION (28-mar-2026: 'a partir del 5 de enero ... se propagó de forma explosiva hacia los lagos Verde y Rivadavia'). Hora de arranque: entre las dos pasadas VIIRS citadas.",
+    "ajuste": "No hay ignición puntual: la fase explosiva arranca desde lo que ardía latente, que se toma de FIRMS SP (9-dic a 5-ene). Sólo detecciones a menos de 1 km de la cicatriz del incendio: con toda la caja, la semilla incluía otros incendios activos al NE y el modelo los propagaba (21.718 ha de falso positivo a 44 km; RESULTADOS-CSS-BAP loop 5).",
+    "radio_cicatriz_m": 1000
+  },
+  "ventanas": [
+    {
+      "t0": "2026-01-05T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-06T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-07T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-08T20:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.993,
+    -42.864,
+    -71.234,
+    -42.472
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-cafe-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000,
+      "desde": "2025-12-08"
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3-v5",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true
+  }
+}

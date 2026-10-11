@@ -10,13 +10,22 @@ import math
 import re
 from pathlib import Path
 
+import numpy as np
 import rasterio
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_DTDUMP_S = 3600.0
-# Weather rasters whose band count is the forecast time series. ELMFIRE reads band n as
-# the weather at TSTART + n × DT_METEOROLOGY and interpolates between bands.
+# Weather rasters whose band count is the forecast time series. At absolute time T ELMFIRE
+# interpolates between bands floor(T / DT_METEOROLOGY) and the next (0-based), so band n is
+# the weather at n × DT_METEOROLOGY — T is absolute, band 0 is T = 0, not TSTART
+# (elmfire_level_set.f90: ITLO_METEOROLOGY = 1 + FLOOR(T / DT_METEOROLOGY)).
+#
+# It only does so if &MONTE_CARLO NUM_METEOROLOGY_TIMES says how many bands there are: the
+# default is 1, and with 1 ELMFIRE clamps the band index to 1 and holds the FIRST band for
+# the whole run, silently (elmfire_namelists.f90 READ_MONTE_CARLO; the vendor transient
+# tutorials 02/03 set it to 8). Until 2026-09-29 this repo never wrote it, so every run used
+# the weather of its first hour throughout (docs/resultados/AUDITORIA-FISICA.md, hallazgo 1).
 WEATHER_RASTERS = ("ws", "wd", "m1", "m10", "m100")
 REQUIRED_NAMELISTS = (
     "INPUTS",
@@ -51,23 +60,127 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # explícito con el valor que ya se venía usando: activado.
 DEFAULT_CROWN_FIRE_MODEL = 1
 
+# Pavesas (&SPOTTING, elmfire_spotting.f90). Apagadas por defecto en ELMFIRE y acá. Los
+# valores son los de la plantilla de hindcast del proveedor
+# (/opt/elmfire/runs/hindcasts/templates/hindcast/elmfire.data), con un detalle: ELMFIRE
+# sortea cada parámetro entre su _MIN/_LO y su _MAX/_HI en SET_SPOTTING_PARAMETERS, también en
+# una corrida única (elmfire.f90, con la semilla fija SEED = 2024), así que acá _MIN = _MAX =
+# el centro del rango de la plantilla y el valor queda declarado, no sorteado.
+SPOTTING_HINDCAST: dict[str, float | bool | str] = {
+    "ENABLE_SPOTTING": True,
+    "ENABLE_SURFACE_FIRE_SPOTTING": True,
+    "CRITICAL_SPOTTING_FIRELINE_INTENSITY": 1000.0,
+    "SPOTTING_DISTRIBUTION_TYPE": "LOGNORMAL",
+    "MEAN_SPOTTING_DIST": 10.0,
+    "NORMALIZED_SPOTTING_DIST_VARIANCE": 425.0,
+    "SPOT_WS_EXP": 0.55,
+    "SPOT_FLIN_EXP": 0.3,
+    "NEMBERS_MIN": 1.0,
+    "NEMBERS_MAX": 1.0,
+    "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT": 0.065,
+    "CROWN_FIRE_SPOTTING_PERCENT": 0.65,
+    "PIGN": 100.0,
+}
+# Cada parámetro sorteado y los nombres de sus extremos en el fuente.
+_SPOTTING_RANGOS = {
+    "MEAN_SPOTTING_DIST": ("MEAN_SPOTTING_DIST_MIN", "MEAN_SPOTTING_DIST_MAX"),
+    "NORMALIZED_SPOTTING_DIST_VARIANCE": ("NORMALIZED_SPOTTING_DIST_VARIANCE_MIN",
+                                          "NORMALIZED_SPOTTING_DIST_VARIANCE_MAX"),
+    "SPOT_WS_EXP": ("SPOT_WS_EXP_LO", "SPOT_WS_EXP_HI"),
+    "SPOT_FLIN_EXP": ("SPOT_FLIN_EXP_LO", "SPOT_FLIN_EXP_HI"),
+    "NEMBERS_MAX": ("NEMBERS_MAX_LO", "NEMBERS_MAX_HI"),
+    "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT": ("GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT_MIN",
+                                             "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT_MAX"),
+    "CROWN_FIRE_SPOTTING_PERCENT": ("CROWN_FIRE_SPOTTING_PERCENT_MIN",
+                                    "CROWN_FIRE_SPOTTING_PERCENT_MAX"),
+    "PIGN": ("PIGN_MIN", "PIGN_MAX"),
+}
+_SPOTTING_FIJOS = {"ENABLE_SPOTTING", "ENABLE_SURFACE_FIRE_SPOTTING",
+                   "CRITICAL_SPOTTING_FIRELINE_INTENSITY", "SPOTTING_DISTRIBUTION_TYPE",
+                   "NEMBERS_MIN"}
+
+
+def _fortran(v: float | bool | str) -> str:
+    if isinstance(v, bool):
+        return ".TRUE." if v else ".FALSE."
+    if isinstance(v, str):
+        return f"'{v}'"
+    if isinstance(v, int):   # NEMBERS_*: enteros en el fuente, un real no se lee
+        return str(v)
+    return f"{float(v)}"
+
+
+def spotting_group(cambios: dict | None) -> str:
+    """El grupo &SPOTTING: la plantilla de hindcast con `cambios` encima (mismas claves)."""
+    if cambios is None:
+        return ""
+    desconocidas = set(cambios) - set(SPOTTING_HINDCAST)
+    if desconocidas:
+        raise ValueError(f"keywords de &SPOTTING no soportados: {sorted(desconocidas)}")
+    valores = SPOTTING_HINDCAST | cambios
+    lineas = []
+    for clave, v in valores.items():
+        if clave in _SPOTTING_RANGOS:
+            nombres = (clave, *_SPOTTING_RANGOS[clave]) if clave != "NEMBERS_MAX" else \
+                _SPOTTING_RANGOS[clave]
+            if clave == "NEMBERS_MAX":
+                v = int(v)
+            lineas += [f"  {n:<42s}= {_fortran(v)}" for n in nombres]
+        elif clave in _SPOTTING_FIJOS:
+            lineas.append(f"  {clave:<42s}= {_fortran(int(v) if clave == 'NEMBERS_MIN' else v)}")
+    return "\n&SPOTTING\n" + "\n".join(lineas) + "\n/\n"
+
+
+# Supresión (&SUPPRESSION, READ_SUPPRESSION en elmfire_namelists.f90; elmfire_suppression.f90).
+# Apagada por defecto en ELMFIRE y acá. Los valores son los de la plantilla de pronóstico de
+# incendios activos con supresión del proveedor
+# (/opt/elmfire/runs/forecasts/templates/active_fires-suppressed/elmfire.data): sólo el ataque
+# ampliado. Cada DT_EXTENDED_ATTACK s la contención objetivo sube
+# MAX_CONTAINMENT_PER_DAY × (1 − crecimiento / AREA_NO_CONTAINMENT_CHANGE) %/día (crecimiento
+# en acres/día) y ELMFIRE anula la propagación de los sectores más lentos del perímetro hasta
+# alcanzarla. El ataque inicial no se usa: sortea si el fuego se contiene (RANDOM_NUMBER).
+SUPPRESSION_EXTENDED: dict[str, float | bool] = {
+    "ENABLE_INITIAL_ATTACK": False,
+    "ENABLE_EXTENDED_ATTACK": True,
+    "USE_SDI": False,
+    "DT_EXTENDED_ATTACK": 1800.0,
+    "MAX_CONTAINMENT_PER_DAY": 120.0,
+    "AREA_NO_CONTAINMENT_CHANGE": 15000.0,
+}
+
+
+def suppression_group(cambios: dict | None) -> str:
+    """El grupo &SUPPRESSION: la plantilla del proveedor con `cambios` encima (mismas claves)."""
+    if cambios is None:
+        return ""
+    desconocidas = set(cambios) - set(SUPPRESSION_EXTENDED)
+    if desconocidas:
+        raise ValueError(f"keywords de &SUPPRESSION no soportados: {sorted(desconocidas)}")
+    lineas = [f"  {clave:<42s}= {_fortran(v)}"
+              for clave, v in (SUPPRESSION_EXTENDED | cambios).items()]
+    return "\n&SUPPRESSION\n" + "\n".join(lineas) + "\n/\n"
+
+
 # Humedad del combustible vivo, de Bianchi & Defossé (2015), IJWF 24(3):340, que mide LFMC
 # en las especies de la Patagonia andina cada 10-15 días durante la temporada de fuego
 # (mediados de noviembre a principios de abril), en hojas de la cara norte —la más expuesta
 # y por lo tanto la más seca— a 2 m de altura.
 #
 # LW: ñire, ciprés, laura y radal se mueven entre 110 y 220 % durante la temporada; la caña
-# colihue nunca supera 110 %. Se toma **110 %, el extremo seco de la banda medida**, que es
-# la condición más propensa al fuego y donde además cae la caña. Lenga, coihue y alerce no
-# fueron medidos: heredan el valor por analogía con el ñire, y eso se declara.
+# colihue nunca supera 110 %. Bianchi & Defossé ubican en 110 % el UMBRAL por debajo del cual
+# ocurren los grandes incendios, así que el día de un gran incendio está por debajo. Se toma
+# **100 %**, el valor calibrado contra siete incendios con la interfaz de ELMFIRE corregida
+# (docs/resultados/AUDITORIA-FISICA.md, loop E: intervalo sin sobre-propagación
+# ~[97; 110] %; hasta el 2026-09-30 era 110 %, el borde húmedo). Lenga, coihue y alerce
+# valor por analogía con el ñire, y eso se declara.
 # LH: no hay medición de herbáceas. 30 % representa el pasto **completamente curado** del
 # verano tardío, que es el umbral de transferencia dinámica de Scott & Burgan. Es una
 # convención de modelado declarada, no un dato.
 #
 # El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
-# Su efecto está cuantificado en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §6.3.
+# Su efecto está cuantificado en docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §6.3.
 DEFAULT_LH_MOISTURE_PCT = 30.0
-DEFAULT_LW_MOISTURE_PCT = 110.0
+DEFAULT_LW_MOISTURE_PCT = 100.0
 
 
 def resolve_dtdump_s(tstop_s: float, dtdump_s: float = DEFAULT_DTDUMP_S) -> float:
@@ -95,7 +208,7 @@ def validate_weather_coverage(
 ) -> list[str]:
     """Fail if the weather rasters do not span the simulation horizon; return warnings.
 
-    ELMFIRE indexes weather bands by `TSTART + n × DT_METEOROLOGY`. A raster with fewer
+    ELMFIRE reads band n as the weather at absolute time n × DT_METEOROLOGY. A raster with fewer
     bands than the run needs does not error — it silently holds the last available band,
     which freezes wind and moisture for the remainder of the simulation and removes the
     diurnal cycle that drives fire behaviour. Catch it here instead.
@@ -112,6 +225,11 @@ def validate_weather_coverage(
             continue
         with rasterio.open(path) as ds:
             bands = ds.count
+        if bands != weather_band_count(inputs_dir):
+            # ELMFIRE indexes every weather raster with the same band number.
+            raise ValueError(f"{path.name} has {bands} band(s) but ws.tif has "
+                             f"{weather_band_count(inputs_dir)}: weather rasters must share "
+                             "one time series")
         if bands == 1:
             msg = (
                 f"{path.name} tiene una sola banda: el clima permanece constante "
@@ -131,6 +249,59 @@ def validate_weather_coverage(
     return warnings
 
 
+def weather_band_count(inputs_dir: Path) -> int:
+    """Bands in ws.tif — the NUM_METEOROLOGY_TIMES ELMFIRE needs (1 if there is no ws.tif)."""
+    path = inputs_dir / "ws.tif"
+    if not path.exists():
+        return 1
+    with rasterio.open(path) as ds:
+        return int(ds.count)
+
+
+def pad_weather_columns(inputs_dir: Path) -> None:
+    """Pad the weather rasters east with their last column until NCOLS >= NROWS.
+
+    ELMFIRE 2025.0212 maps each fuel cell to a weather cell in MAP_FINE_TO_COARSE and clamps
+    the weather ROW with the weather grid's NCOLS instead of NROWS (elmfire_subs.f90:296-297).
+    Rows count from the south (the reader flips them, elmfire_io.f90:1265), so on a
+    weather grid taller than wide every fuel row with IY > NCOLS reads weather row NCOLS: the
+    northern strip gets the weather of another latitude
+    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 5).
+
+    Each raster's shape comes from its own header (READ_BSQ_HDR_HEADER, elmfire_io.f90:1242)
+    and the mapping only uses the weather grid's lower-left corner and cell size
+    (elmfire_subs.f90:293-297). Adding columns to the east moves neither, so every fuel cell
+    keeps its weather cell and the extra columns are never read (ICOL <= the fuel grid's own
+    columns). Padding is the whole fix, with no ELMFIRE change and no new keyword.
+
+    Done here because write_namelist is the one step every path runs last before ELMFIRE
+    (the API, preparation, the benchmark's cadena._preparar after its knobs, the physics
+    bench and the harness scripts), like wd_for_elmfire but without two call sites. It uses
+    each raster's own shape, so a weather grid coarser than the fuel grid is padded in its
+    own cells. A no-op on grids at least as wide as tall, so re-writing the namelist on the
+    same inputs is safe. Band by band, to keep memory at one band of the AOI grid.
+    """
+    for name in WEATHER_RASTERS:
+        path = inputs_dir / f"{name}.tif"
+        if not path.exists():
+            continue
+        with rasterio.open(path) as src:
+            if src.width >= src.height:
+                continue
+            extra = src.height - src.width
+            profile = src.profile | {"width": src.height, "compress": "deflate",
+                                     "predictor": 3 if src.dtypes[0].startswith("float") else 2}
+            # A new file then a rename: inputs can be read-only hardlinks into the benchmark
+            # store (cadena), which must never be written through.
+            tmp = path.with_name(f".{name}.padded.tif")
+            with rasterio.open(tmp, "w", **profile) as dst:
+                for band in range(1, src.count + 1):
+                    dst.write(np.pad(src.read(band), ((0, 0), (0, extra)), mode="edge"), band)
+        tmp.replace(path)
+        logger.info("Padded %s east by %d columns (ELMFIRE clamps weather rows by NCOLS)",
+                    path.name, extra)
+
+
 def write_namelist(
     inputs_dir: Path,
     outputs_dir: Path,
@@ -145,6 +316,8 @@ def write_namelist(
     crown_fire_model: int = DEFAULT_CROWN_FIRE_MODEL,
     lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
     lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
+    spotting: dict | None = None,
+    suppression: dict | None = None,
 ) -> tuple[Path, float, list[str]]:
     """
     Write elmfire.data to output_path.
@@ -158,13 +331,17 @@ def write_namelist(
         dtmax_s: maximum timestep in seconds
         dtdump_s: output dump interval in seconds
         dt_meteorology_s: interval between weather-raster bands in seconds
-        simulation_tstart_s: absolute simulation start time in seconds. Non-zero anchors
-            the run to the wall clock: ELMFIRE reads weather band n at
-            TSTART + n × DT_METEOROLOGY, so this is what puts the fire at the right point
-            of the diurnal cycle.
+        simulation_tstart_s: absolute simulation start time in seconds, measured from
+            weather band 0. Non-zero anchors the run to the wall clock: ELMFIRE reads band
+            n as the weather at T = n × DT_METEOROLOGY (T absolute), so a run starting at
+            TSTART begins on band floor(TSTART / DT_METEOROLOGY).
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
         crown_fire_model: 0 disables crown fire; any value > 0 enables it. Written
             explicitly because ELMFIRE enables it when the keyword is absent.
+        spotting: None leaves &SPOTTING out (spotting off, ELMFIRE's default); a dict writes
+            SPOTTING_HINDCAST with those keys overridden ({} = the vendor hindcast values).
+        suppression: None leaves &SUPPRESSION out (no suppression, ELMFIRE's default); a dict
+            writes SUPPRESSION_EXTENDED with those keys overridden ({} = the vendor template).
 
     Returns:
         Tuple of (namelist path, resolved dump interval in seconds, weather warnings).
@@ -186,6 +363,7 @@ def write_namelist(
     outputs_str = _fortran_path(outputs_dir)
 
     weather_warnings = validate_weather_coverage(inputs_dir, tstop_s, dt_meteorology_s)
+    pad_weather_columns(inputs_dir)
 
     dem_path = inputs_dir / "dem.tif"
     utm_west, utm_south, cell_size = _read_domain(dem_path)
@@ -249,7 +427,11 @@ def write_namelist(
   MISCELLANEOUS_INPUTS_DIRECTORY  = '{inputs_str}'
   FUEL_MODEL_FILE                 = '{FUEL_MODEL_FILE}'
 /
-"""
+
+&MONTE_CARLO
+  NUM_METEOROLOGY_TIMES           = {weather_band_count(inputs_dir)}
+/
+{spotting_group(spotting)}{suppression_group(suppression)}"""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     validate_namelist(namelist)
     output_path.write_text(namelist, encoding="utf-8", newline="\n")

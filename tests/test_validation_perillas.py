@@ -83,3 +83,62 @@ def test_rugosidad_del_dosel():
 def test_reasignar_combustible():
     codigos = np.array([[188, 144, 188, 98]])
     assert cadena.reasignar(codigos, {"188": 165}).tolist() == [[165, 144, 165, 98]]
+
+
+def test_dosel_coherente_solo_en_combustibles_no_forestales():
+    codigos = np.array([[102, 123, 144, 165, 188, 98]])
+    assert cadena.no_forestal(codigos).tolist() == [[True, True, True, False, False, False]]
+
+
+def test_sin_dosel_por_codigo_o_grupo():
+    codigos = np.array([[102, 144, 148, 165, 188]])
+    assert cadena.en_codigos(codigos, ["148"]).tolist() == [[False, False, True, False, False]]
+    assert cadena.en_codigos(codigos, ["SH", "188"]).tolist() == [[False, True, True, False, True]]
+
+
+def test_cbh_por_combustible_solo_donde_hay_copa_y_el_codigo_pisa_al_grupo():
+    codigos = np.array([[165, 165, 188, 186, 144]])
+    cbh = np.array([[60, 0, 80, 70, -9999]], dtype=np.int16)
+    salida = cadena.por_combustible(codigos, cbh, {"TU": 1.5, "TL": 4.0, "188": 2.0}, 10)
+    assert salida.tolist() == [[15, 0, 20, 40, -9999]]
+    cbd = np.array([[5, 0, 7, 4, 3]], dtype=np.int16)
+    assert cadena.por_combustible(codigos, cbd, {"188": 0.16, "SH": 0}, 100).tolist() == [
+        [5, 0, 16, 4, 0]]
+
+
+def test_variante_crosswalk_solo_la_clase_y_su_codigo_y_la_altura():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("vc", "scripts/variante_crosswalk.py")
+    vc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(vc)
+    fuel = np.array([[148, 148, 144, 148]], dtype=np.int16)
+    clase = np.array([[True, True, True, False]])
+    viejo = np.where(clase, 148, 0)
+    dem = np.array([[1400, 900, 1400, 1400]])
+    salida = vc.aplicar(fuel, clase, viejo, dem, {"a": 143, "altura_min": 1300})
+    assert salida.tolist() == [[143, 148, 144, 148]]
+
+
+def test_variante_hereda_los_anios_del_producto():
+    from app.validation import definiciones
+    assert definiciones.anios_publicados("ccsbap-l1") == definiciones.ANIOS_COMBUSTIBLE["ccsbap"]
+
+
+def test_principal_completa_lee_iou_precision_y_recall_de_la_ventana():
+    vieja = {"principal": {"referencia": "cicatriz", "ventana": 1, "dice": 0.5,
+                           "sesgo_area": 1.0, "alarma_sesgo": False},
+             "ventanas": [{}, {"cicatriz": {"acumulado": {
+                 "dice": 0.5, "iou": 1 / 3, "precision": 0.5, "recall": 0.5,
+                 "tp": 10, "fp": 10, "fn": 10}}}]}
+    pr = cadena.principal_completa(vieja)
+    assert (pr["iou"], pr["precision"], pr["recall"], pr["tp"]) == (1 / 3, 0.5, 0.5, 10)
+    assert pr["dice"] == 0.5 and pr["ventana"] == 1
+
+
+def test_perdida_previa_excluye_el_anio_del_incendio():
+    ly = np.array([[0, 14, 15, 24, 25]])
+    assert cadena.perdida_previa(ly, 2025).tolist() == [[False, True, True, True, False]]
+    assert cadena.perdida_previa(ly, 2015).tolist() == [[False, True, False, False, False]]
+    # sólo los dos años anteriores (2023 y 2024) para un incendio de 2025
+    assert cadena.perdida_previa(ly, 2025, desde=2023).tolist() == [
+        [False, False, False, True, False]]

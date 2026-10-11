@@ -1,0 +1,67 @@
+{
+  "descripcion": "El Turbio / Loma de la Chancha, valle del Río Turbio. Incendio por rayo (tormenta del 1-dic-2025) que ardió latente: la primera detección VIIRS SP es del 2-dic 18:16 UTC (2 píxeles). La cadena arranca en esa pasada y corre 120 h (tope; a los 5 días el área FIRMS es ~50 % de la final: creció diez días seguidos), con la cicatriz truncada al horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio. Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v4 (AUDITORIA-FISICA.md): el protocolo de prueba con las correcciones de la auditoría física: phi.tif ±1, &MONTE_CARLO NUM_METEOROLOGY_TIMES y wd por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-aoi-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-aoi-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila). Versión v6 (DECISIONES-DIRECTOR.md, loop L): v5 con el crosswalk y el dosel adoptados en la causa: mapas de CCS-BAP rehechos con el crosswalk actual (Estepa → GR2 y sobre 1.300 m → NB9; remanente de disturbio reciente → SH3; scripts/preparar_benchmark.py --combustible-desde, preparación `data/elmfire/inputs/benchmark-aoi-asp3-v6`), y el dosel re-derivado al empaquetar con el mapa del caso (CBH por tipo de bosque de literatura y CBD 0,16 en pino) y sin dosel donde Hansen GFC v1.13 lossyear marca pérdida antes del año del incendio.",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.93738,
+    "lat": -42.29621,
+    "hora": "2025-12-02T18:00:00+00:00",
+    "fuente": "Causa y fecha: SPMF Chubut vía Cholila Online y Red43 (rayo en tormenta local, detectado el lunes 1-dic-2025 en Loma de la Chancha). Sin coordenadas publicadas: el lugar es el de las dos primeras detecciones VIIRS SP (2-dic 18:16 UTC, -42.2967/-71.9395, 565 m), que es también la semilla de mask-dataset-gen.",
+    "ajuste": "La semilla de mask-dataset-gen (-42.2959/-71.9356, 531 m, GS3) cae 60 m fuera de la cicatriz. Se toma la celda de la cicatriz a más de 90 m del borde más cercana a las primeras detecciones: 153 m, 554 m, GS3. Hora: la de la primera pasada, redondeada; el día latente previo no se simula."
+  },
+  "ventanas": [
+    {
+      "t0": "2025-12-02T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-12-03T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-12-04T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-12-05T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-12-06T18:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -72.046,
+    -42.402,
+    -71.729,
+    -42.227
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/el-turbio-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3-v6",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/elmfire/inputs/benchmark-aoi-asp3-v6/fbfm40_ccsbap2017.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true,
+    "dosel_por_combustible": {
+      "mapa": "fbfm40_ccsbap2017.tif",
+      "perdida_hansen": "data/static/canopy/hansen_lossyear_v113_aoi.tif"
+    }
+  }
+}

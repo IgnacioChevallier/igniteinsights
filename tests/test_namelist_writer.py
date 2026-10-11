@@ -100,3 +100,40 @@ class NamelistWriterTests(unittest.TestCase):
             write_namelist(
                 self.inputs_dir, self.root / "outputs", 2, self.root / "elmfire.data", 60, 30
             )
+
+
+def test_spotting_ausente_por_defecto_y_con_min_igual_max_si_se_pide():
+    from app.elmfire.builder.namelist_writer import spotting_group
+    assert spotting_group(None) == ""
+    g = spotting_group({"CROWN_FIRE_SPOTTING_PERCENT": 1.2})
+    linea = {ln.split("=")[0].strip(): ln.split("=")[1].strip()
+             for ln in g.splitlines() if "=" in ln}
+    assert linea["ENABLE_SPOTTING"] == ".TRUE."
+    assert linea["CROWN_FIRE_SPOTTING_PERCENT_MIN"] == "1.2"
+    assert linea["CROWN_FIRE_SPOTTING_PERCENT_MAX"] == "1.2"
+    assert linea["NEMBERS_MAX_LO"] == linea["NEMBERS_MIN"] == "1"
+    assert linea["MEAN_SPOTTING_DIST_MIN"] == "10.0"
+
+
+def test_spotting_rechaza_keywords_inventados():
+    import pytest
+
+    from app.elmfire.builder.namelist_writer import spotting_group
+    with pytest.raises(ValueError):
+        spotting_group({"EMBER_MAGIC": 1.0})
+
+
+def test_supresion_ausente_por_defecto_y_plantilla_del_proveedor_si_se_pide():
+    import pytest
+
+    from app.elmfire.builder.namelist_writer import suppression_group
+    assert suppression_group(None) == ""
+    g = suppression_group({"MAX_CONTAINMENT_PER_DAY": 60.0})
+    linea = {ln.split("=")[0].strip(): ln.split("=")[1].strip()
+             for ln in g.splitlines() if "=" in ln}
+    assert linea["ENABLE_EXTENDED_ATTACK"] == ".TRUE."
+    assert linea["ENABLE_INITIAL_ATTACK"] == ".FALSE."
+    assert linea["MAX_CONTAINMENT_PER_DAY"] == "60.0"
+    assert linea["AREA_NO_CONTAINMENT_CHANGE"] == "15000.0"
+    with pytest.raises(ValueError):
+        suppression_group({"CREWS": 3})

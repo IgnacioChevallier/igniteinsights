@@ -1,5 +1,7 @@
 # Etapa A — Baseline honesto y andamiaje de medición
 
+> **Histórico:** etapa completada y reemplazada por el benchmark reproducible y `modelo-v0`.
+>
 > Estado: **A0-A6 implementados** (2026-09-06), pendiente A7 (congelar el baseline, requiere
 > re-ingesta y una corrida completa) · Issues: IGN-21 (parcial), habilita IGN-20 / IGN-22 / IGN-26
 > Depende de: nada externo · Bloquea: Etapa B, Etapa C, y toda validación
@@ -29,7 +31,7 @@ depende de un caché que nadie invalida, **no sirve como término de comparació
 ## A0 — Resolver el AOI definitivo (BLOQUEANTE)
 
 El AOI vigente en `app/config.py:30-33` es `west=-72.0, south=-42.9, east=-71.5, north=-42.5`.
-El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles** intersectan el AOI (`IGN-26-VALIDACION.md` §12.5, hallazgo 3).
+El dataset de validación se extiende hasta **lat −42.079**; sólo **70 de 196 tiles** intersectan el AOI (`docs/resultados/IGN-26-VALIDACION.md` §12.5, hallazgo 3).
 
 Decisión tomada: **ampliar el AOI al footprint del incendio.**
 
@@ -346,7 +348,7 @@ Pasos:
   distribución de códigos FBFM por área, fracción no combustible, intensidad de línea de
    fuego mediana.
 4. Registrar el `IoU` del baseline con el harness B, puntuando **sólo el anillo de
-  crecimiento** — nunca la unión con el `phi` inicial (`IGN-26-VALIDACION.md` §12.1: el 84 %
+  crecimiento** — nunca la unión con el `phi` inicial (`docs/resultados/IGN-26-VALIDACION.md` §12.1: el 84 %
    de lo que la corrida reporta como quemado es la semilla FIRMS, y puntuar la unión daría
    un IoU halagüeño que no mide nada de ELMFIRE).
 5. Estratificar por `pct_quemado` (§12.4): los tiles cerca de 0 o 100 son triviales; los
@@ -395,5 +397,4 @@ cual la Etapa B puede compararse.
 - Cruz, M.G.; Alexander, M.E.; Wakimoto, R.H. (2003). *Assessing canopy fuel stratum
 characteristics in crown fire prone fuel types of western North America.* IJWF 12:39-50.
 - Scott, J.H.; Burgan, R.E. (2005). *Standard Fire Behavior Fuel Models.* RMRS-GTR-153.
-- `docs/historico/SIMULATION_AUDIT.md` §1, §7.4 · `IGN-26-VALIDACION.md` §12.1, §12.3, §12.4, §12.5
-
+- `docs/historico/SIMULATION_AUDIT.md` §1, §7.4 · `docs/resultados/IGN-26-VALIDACION.md` §12.1, §12.3, §12.4, §12.5

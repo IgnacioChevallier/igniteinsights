@@ -1,0 +1,158 @@
+{
+  "caso": "los-alerces-2016/calibracion-era5-v4-ign-p2h",
+  "caso_sha": "17ed5d13c6abad23a58c9f711fd7a9b1d446c3acde57c4b25eddfe5042c841d2",
+  "receta": "adj-110-001",
+  "receta_sha": "2e2e91d5ea16de191e40121c4aebfed982baf3ebdde0b287515b6ce6b66f08d7",
+  "padre": "base-001",
+  "motivo": "Loop 3: la velocidad que pide cada incendio no se explica por su composición de combustible (Alerces 2016, 52 % SH, está bien con base; Epuyén, 54 % SH, pide ~2), así que el ADJ por grupo no es identificable con estos incendios. Se busca el ADJ uniforme que deja a todos (salvo Las Golondrinas, §2.12) sin alarma de sesgo: interpolando base/1,3/1,6, el intervalo factible es ~[1,1; 1,35]. ADJ = 1,1.",
+  "factores": {
+    "combustible": "ccsbap2013",
+    "semilla": "prediccion",
+    "adj": 1.1
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "d20e5b1569442f5d8c8bd2aca3ef8f8ae5f619f3",
+    "sucio": true
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2016-01-21T19:00:00+00:00",
+      "inicio": "2016-01-21T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "13c74926d06f8074b90680cc0b7271d9a2fe25c8da815752f1602d8d6db13b78",
+        "asp.tif": "cfca1ef7fe79adf25e6266f1a372897bf228b6486359f98a06a9ed0c7d57bd7d",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "259aebbf668896284d3ce2b48c04c5670f3742b8007878b2f935fe919e15b277",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "cb4eaee9d79c6dc64ede924eda9720fbf24fdda539d3d806135a61345e9d69a5",
+        "m10.tif": "3c2cf0cd8c5db86a5b0f91f490c8694c6e355a4ce50ae36de121c48800f8429b",
+        "m100.tif": "86caa29f135fc3f6565101c85242039746b6fbd8e2dfacf9642e6db1fcbfe7ec",
+        "phi.tif": "93609b8b623b93c228fe062887f2b26412756bfa16ff05267413dddb1e4711b8",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "07dd84a98b1a6d679baa6f4a8f2b4dea661f5fefd8d79a02454b6fdd655840af",
+        "ws.tif": "55ad25459785b7d0f382d24ea8e55b3653bb557ef59ffd33228b7605ce327cf9"
+      },
+      "namelist_sha": "c548ef03ee0459c1fd7f7524bb07c1d35f63f270d69f69b550ca1fc6817f85b2",
+      "salidas": {
+        "fire_size_stats.csv": "04144bb40b5db86d4e4bfd36b0e10bf8c645987d2e39ac19eebbf4b76e8183a9",
+        "flin_0000001_0086709.tif": "f19de58b5de9f0c356cf3cac7d9a8a38020785bcdea36af8f70b049606514a57",
+        "hourly_isochrones.dbf": "b17ebe20c169083fce2807728c0a6f5392cbcd60586cd95b8132ecc9924065b8",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "5c6c75cd31a24e9e40631cf8de1fbbf3ab57a00045b49843c1ac5e7593782fdf",
+        "hourly_isochrones.shx": "4c928f42afd3e47062e40902cd45880a4accfd9c75aa9099e7c7873a3ff51838",
+        "time_of_arrival_0000001_0086709.tif": "8ef1368d0a5ac0b006e2585f14268f56fd7bea4eec00dec6ce8415f838627fcc",
+        "vs_0000001_0086709.tif": "68e8f916002a09ab35b88c7f75d1cdf3179e8f505df243f2c7e227d488cd4b0f"
+      },
+      "git": {
+        "sha": "d20e5b1569442f5d8c8bd2aca3ef8f8ae5f619f3",
+        "sucio": true
+      },
+      "corrida": {
+        "inicio": "2026-09-30T01:03:25.706684+00:00",
+        "minutos": 0.1
+      }
+    },
+    {
+      "n": 1,
+      "t0": "2016-01-22T19:00:00+00:00",
+      "inicio": "2016-01-22T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "ventana_anterior",
+      "insumos": {
+        "adj.tif": "13c74926d06f8074b90680cc0b7271d9a2fe25c8da815752f1602d8d6db13b78",
+        "asp.tif": "cfca1ef7fe79adf25e6266f1a372897bf228b6486359f98a06a9ed0c7d57bd7d",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "6c00d5a0b17bcc41f2fe21176f7529b443c2b1a231d51eb3885625fa0b700174",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "29aca61652062a8b156ec453790d6c648f923022ac1b3e33a987558365fd6a62",
+        "m10.tif": "f6422ab91005f51e513ec70f10e10f203b647d7569a2434b273e31a752db96de",
+        "m100.tif": "00f6c1120d028e6c95d1586986539500455a870b41378568ac89336ce920372d",
+        "phi.tif": "a030a539001beaa20b5c4dca3ad428d109d3fc4e8a9b2c184b975a5fd8758eae",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "5c47d68083b6e53fee724b768ae1f453430a7e7af3ecdd6c7e08d22331721ff2",
+        "ws.tif": "a879de1e86b019c8341f4ac4309f7acb029b6b79d9dbd5a64ee84cacfea84076"
+      },
+      "namelist_sha": "c548ef03ee0459c1fd7f7524bb07c1d35f63f270d69f69b550ca1fc6817f85b2",
+      "salidas": {
+        "fire_size_stats.csv": "95e0f2fcae2f1a2b2686d816550558cc716cf5b7fc9ce34564dd250845ae0bd9",
+        "flin_0000001_0086426.tif": "f91a330e44310da435d8c84e2113120a1849fd3dcb51719331ff9f2a4a5fdc17",
+        "hourly_isochrones.dbf": "9e8852154adfa6a25a27d39e353e991709973dd835ce9979bf5b2231e2442393",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "f2101570e26d53ade52dfc063d25d3e034165e43859b5a474475105a3b1d4f4d",
+        "hourly_isochrones.shx": "299dd49a36c25fe65be0248466adbd6cdf100a96edb0080ad296b4670c826078",
+        "time_of_arrival_0000001_0086426.tif": "1c97bca435a79bff7002dfc4b7682a0ebf4aa6f70dfc2093867baad3e7e8e1af",
+        "vs_0000001_0086426.tif": "5acef991be4d0765af0fcbbf476e0a0971693b635322c0cb0a24c82a6769f42a"
+      },
+      "git": {
+        "sha": "d20e5b1569442f5d8c8bd2aca3ef8f8ae5f619f3",
+        "sucio": true
+      },
+      "corrida": {
+        "inicio": "2026-09-30T01:03:33.077842+00:00",
+        "minutos": 0.1
+      }
+    },
+    {
+      "n": 2,
+      "t0": "2016-01-23T19:00:00+00:00",
+      "inicio": "2016-01-23T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "ventana_anterior",
+      "insumos": {
+        "adj.tif": "13c74926d06f8074b90680cc0b7271d9a2fe25c8da815752f1602d8d6db13b78",
+        "asp.tif": "cfca1ef7fe79adf25e6266f1a372897bf228b6486359f98a06a9ed0c7d57bd7d",
+        "cbd.tif": "bf00ce7971b92f48ad2240431cf2e01c8c347f1afb1937f8c9ab496a53d7bcc6",
+        "cbh.tif": "1915900e772c246d4732c7bb0e14759ccae59037213f703e8dc8191c84541e0a",
+        "cc.tif": "102cee31be63a76c00d0118131438cf25217c8fd7f25f28bca9e5d02a2031a12",
+        "ch.tif": "d76b182174667b47fb3a8a6813fa34633af6b8b106fbdfeb5b8dbc6bd807fd0d",
+        "dem.tif": "4ec1460b75c0f8e8df77db57f5d3cfba899a2655bfa475033340b023be0061b5",
+        "elmfire.data": "c43a4a5f30e376bb3831335d26e9040bf9a22b932e58ae00f318c10c871f545d",
+        "fbfm40.tif": "2f212efbf4e714f53b2eea6daa24edb414278042ab7e826f7dfcda899e1fc34d",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "f6238ff038fa7cae5498a8217fccf84f9b99a2fb3d6f7eb27999920f1dba0504",
+        "m10.tif": "ac0ff65e23249bbf107adff65b1a5705832e16a6aa6fee308623fd9566a86142",
+        "m100.tif": "b015803a1be6957dfbd1167c76aa22de7557d9066f90d270fe9aa1f13904db9e",
+        "phi.tif": "192b807c5424cdd9d4919c868356a3305c0139a44344b93efc8227f6268f9ce2",
+        "slp.tif": "d7146f620b6a58465c7f55896f569c538335cf0757d68aec2a801b90c20ff622",
+        "wd.tif": "cbf8afa07c84a4ed9374f1cf55ff740ad8887416d9e0b1304ec4af1391a15027",
+        "ws.tif": "2d9e54641d08bdac9e0c0479d5e31f70727bf0d59e61b562f9554b9c0036dc5b"
+      },
+      "namelist_sha": "c548ef03ee0459c1fd7f7524bb07c1d35f63f270d69f69b550ca1fc6817f85b2",
+      "salidas": {
+        "fire_size_stats.csv": "b0cfd2e0ee0544b2e1ff57ec457dff79413118b463239a93ac4a6f0057c61436",
+        "flin_0000001_0086429.tif": "7c3fea1e4fd6a2552d226396acc565ef3ab14910c8c4f6114ca01dbc7eefaea1",
+        "hourly_isochrones.dbf": "579f49e0cbb0e50852dfc124588bd5842783274bc53d2726059949ab62835fa0",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "5016f119835e318199de42336b5ed6b51a5c2f710047308e352d32a3624a6c22",
+        "hourly_isochrones.shx": "c37ba997dbb2423971619a6a1017b527a1adef3aef83e7b503fdaad07fba4d77",
+        "time_of_arrival_0000001_0086429.tif": "2c9bdf88f411cc651c3e809a8ce43999256aa5e4d305a82eee6e41335ef646cb",
+        "vs_0000001_0086429.tif": "353b56a2d77d13e77e6a683dcd499540d0754e01337ad3adb6ef705ada7538fe"
+      },
+      "git": {
+        "sha": "d20e5b1569442f5d8c8bd2aca3ef8f8ae5f619f3",
+        "sucio": true
+      },
+      "corrida": {
+        "inicio": "2026-09-30T01:03:40.956755+00:00",
+        "minutos": 0.2
+      }
+    }
+  ]
+}

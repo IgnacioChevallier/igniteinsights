@@ -5,8 +5,12 @@ export const metadata: Metadata = {
   title: "Ignite Insights",
   description: "Panel de lectura para ejecuciones y entradas ELMFIRE de Ignite Insights",
   icons: {
-    icon: "/images/wildfire-logo-tree-colored.svg",
-    shortcut: "/images/wildfire-logo-tree-colored.svg",
+    icon: [
+      { url: "/images/igniteinsights-celdas.svg", type: "image/svg+xml" },
+      { url: "/images/igniteinsights-celdas.png", type: "image/png" },
+    ],
+    shortcut: "/images/igniteinsights-celdas.svg",
+    apple: "/images/igniteinsights-celdas.png",
   },
 };
 

@@ -2,6 +2,8 @@
 Canopy cover and height downloads from two public COG sources (no auth):
   - Hansen Global Forest Change v1.11 treecover2000 (Google Cloud Storage, 30 m)
   - ETH Global Canopy Height 2020 — Lang et al. (libdrive.ethz.ch, 10 m)
+plus Hansen GFC v1.13 lossyear, to drop the canopy where it burned or was cut before the
+simulation year (docs/crosswalk/DECISIONES-MODELO-V0.md §3).
 """
 import logging
 import math
@@ -53,6 +55,21 @@ def _hansen_tiles(west: float, south: float, east: float, north: float) -> list[
         lat += _HANSEN_TILE_DEG
 
     return tiles
+
+
+# GFC v1.13 lossyear (0 = no loss, n = loss in 2000 + n). Kept as the whole 10° tile, with
+# the name it has on GCS: the benchmark reprojects the same raw file to its own grids
+# (scripts/perdida_hansen.py), which reach past the AOI.
+_HANSEN_LOSSYEAR_BASE = (
+    "https://storage.googleapis.com/earthenginepartners-hansen/GFC-2025-v1.13"
+)
+
+
+def download_hansen_lossyear(output_path: Path) -> None:
+    """Download the Hansen lossyear tile named by `output_path` (settings.hansen_lossyear_path,
+    e.g. Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif) as is."""
+    _stream_download(f"{_HANSEN_LOSSYEAR_BASE}/{output_path.name}", output_path,
+                     f"Hansen {output_path.name}")
 
 
 # ── ETH Global Canopy Height 2020 ────────────────────────────────────────────

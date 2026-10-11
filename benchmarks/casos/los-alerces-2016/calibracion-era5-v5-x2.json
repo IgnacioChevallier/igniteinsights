@@ -1,0 +1,55 @@
+{
+  "descripcion": "Antigüedad del dosel y remanente por edad (DECISIONES-DIRECTOR.md §3 y §4, loop L): el paquete de `los-alerces-2016/calibracion-era5-v5` byte a byte más Hansen GFC v1.13 lossyear en la grilla (scripts/perdida_hansen.py) para la perilla `dosel_sin_perdida_previa`, y dos mapas de CCS-BAP con el remanente de disturbio reciente reasignado (scripts/variante_crosswalk.py): `ccsbap-remsh3` → SH3 y `ccsbap-remsh8` → SH8 (rebrote leñoso a ~10 años: Tiribelli et al. 2018, Blackhall et al. 2017, Landesmann et al. 2021). Lo que sigue es la descripción del caso base. PN Los Alerces, cañadón del Arroyo Cascada junto a Villa Futalaufquen: ignición intencional el jueves 21-ene-2016 cerca de las 14 ART. 72 h: el área FIRMS llega al 94 % el 23-ene. Protocolo `calibracion-era5` (RESULTADOS-CSS-BAP): anterior al archivo GFS, clima ERA5 horario de Open-Meteo (celda de 0,25° sin reducción de escala). Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v3: v2 más el atlas de viento de WindNinja (16 direcciones a 90 m) para la perilla `viento_atlas`. Versión v4 (AUDITORIA-FISICA.md): v3 con las correcciones de la auditoría física: phi.tif en la convención ±1 de ELMFIRE (con la distancia en metros el frente avanzaba a ~0,5× la velocidad calculada), &MONTE_CARLO NUM_METEOROLOGY_TIMES (sin él ELMFIRE usaba la banda 0 del clima toda la ventana) y wd reescrito para que ELMFIRE lo interpole por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-era5-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-2026-09-28-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-2026-09-28-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila).",
+  "anio_fuego": 2016,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.6092,
+    "lat": -42.9215,
+    "hora": "2016-01-21T17:00:00+00:00",
+    "fuente": "Revista Cultura de Montaña y El Esquiú (24-ene-2016): 'comenzó el jueves alrededor de las 14 horas, a unos 500 metros del portal de acceso al parque, en el sector denominado Cañadón del arroyo Cascada'; dos focos cerca de Villa Futalaufquen (La Arena, 26-ene-2016: detenidos a 4 km de la villa). Coordenada: la de mask-dataset-gen (primera detección VNP14A1), 270 m dentro de la cicatriz, 601 m, 202 m de las primeras detecciones VIIRS (18:49 UTC).",
+    "ajuste": "Ninguno: la coordenada cumple los tres criterios."
+  },
+  "ventanas": [
+    {
+      "t0": "2016-01-21T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2016-01-22T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2016-01-23T17:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.714,
+    -43.036,
+    -71.527,
+    -42.858
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2016/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "era5 horario de Open-Meteo, celda de 0,25° sin reducción de escala (T, HR, viento 10 m y terreno de la celda)",
+  "empaquetado": {
+    "tipo": "ampliar_mapas",
+    "base": "los-alerces-2016/calibracion-era5-v5",
+    "preparacion": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v5",
+    "mapas": {
+      "fbfm40_ccsbap-remsh32013.tif": "data/static/fuel_maps/variantes/remsh3/fbfm40_ccsbap2013_ext.tif",
+      "fbfm40_ccsbap-remsh82013.tif": "data/static/fuel_maps/variantes/remsh8/fbfm40_ccsbap2013_ext.tif",
+      "lossyear.tif": "data/static/canopy/hansen_lossyear_v113_ext.tif"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""The CCS-BAP legend → FBFM40 resolution (docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §3).
+"""The CCS-BAP legend → FBFM40 resolution (docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §3).
 
 The failure this guards against is silent: a legend class with no fuel model would either
 raise deep inside a raster build or, worse, land on a code ELMFIRE resolves to unburnable.
@@ -63,3 +63,31 @@ def _fails(a: str, b: str, c: str) -> bool:
         return False
     except ValueError:
         return True
+
+
+def test_estepa_sobre_el_limite_del_bosque_es_no_quemable(tmp_path):
+    """La 'Estepa' de CCS-BAP sobre 1.300 m es vegetación altoandina: NB9; abajo, GR2. Un
+    polígono de otra clase a la misma altura no cambia."""
+    import geopandas as gpd
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    from shapely.geometry import box
+
+    from app.elmfire.builder.fuels_builder import ccsbap_to_fbfm40
+
+    t = from_origin(500000, 5300000, 30, 30)
+    dem = tmp_path / "dem.tif"
+    with rasterio.open(dem, "w", driver="GTiff", height=1, width=3, count=1, dtype="float32",
+                       crs="EPSG:32719", transform=t) as dst:
+        dst.write(np.array([[1400.0, 900.0, 1400.0]], dtype="float32"), 1)
+    gdf = gpd.GeoDataFrame(
+        {"Ley_N1": ["OT", "OT", "TF"], "Ley_N2": ["Herb-Subarb", "Herb-Subarb", "Le"],
+         "Ley_N3": ["Estepa", "Estepa", "Le"]},
+        geometry=[box(500000, 5299970, 500030, 5300000), box(500030, 5299970, 500060, 5300000),
+                  box(500060, 5299970, 500090, 5300000)], crs="EPSG:32719")
+    shp = tmp_path / "ccsbap.shp"
+    gdf.to_file(shp)
+    salida = ccsbap_to_fbfm40(shp, dem, tmp_path / "fbfm40.tif")
+    with rasterio.open(salida) as src:
+        assert src.read(1).tolist() == [[99, 102, 186]]

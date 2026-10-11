@@ -1,0 +1,55 @@
+{
+  "descripcion": "Variantes del crosswalk (DECISIONES-DIRECTOR.md, loop L): el paquete de `los-alerces-2023/calibracion-v5-h54` byte a byte más tres mapas de CCS-BAP con clases reasignadas por scripts/variante_crosswalk.py (data/static/fuel_maps/variantes/<variante>/cambios.json): `ccsbap-lach3` lenga achaparrada (OFL Le) → SH3; `ccsbap-alto` Estepa sobre 1.300 m → NB9; `ccsbap-rem2` remanente de disturbio reciente → GS2. Lo que sigue es la descripción del caso base. Población Rosales II, PN Los Alerces: ignición el sábado 4-feb-2023 22:00 ART, 72 h en tres ventanas de 24 h. El horizonte es el de las detecciones que agregan área: el área FIRMS acumulada llega al 99 % el 7-feb y la cicatriz alcanzada por detecciones queda fija desde las ~54 h; lo que sigue es liquidación y combate (`cadena-96h` corría 96 h). Cicatriz truncada al horizonte; humedad de retardo y clima crudo del GFS disponibles. Protocolo `calibracion` (RESULTADOS-CSS-BAP). Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v3: v2 más el atlas de viento de WindNinja (16 direcciones a 90 m) para la perilla `viento_atlas`. Versión v4 (AUDITORIA-FISICA.md): v3 con las correcciones de la auditoría física: phi.tif en la convención ±1 de ELMFIRE (con la distancia en metros el frente avanzaba a ~0,5× la velocidad calculada), &MONTE_CARLO NUM_METEOROLOGY_TIMES (sin él ELMFIRE usaba la banda 0 del clima toda la ventana) y wd reescrito para que ELMFIRE lo interpole por el camino corto. Variante h54 (AUDITORIA-FISICA, loop C): el área FIRMS acumulada deja de crecer a las 54 h (1.055 ha a las 54 h, 1.056 a las 72 h), así que la regla del horizonte (RESULTADOS-CSS-BAP §2.9) corta ahí; el protocolo de 72 h redondeaba a ventanas de 24 h. Última ventana de 6 h. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-v4-h54` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-aoi-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-aoi-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila).",
+  "anio_fuego": 2023,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.576667,
+    "lat": -42.8825,
+    "hora": "2023-02-05T01:00:00+00:00",
+    "fuente": "Parte citado por Red43 (2023-02-05): 'El sábado a las 22 hs se declaró un incendio denominado Población Rosales II'. Ubicación: partes del SNMF (config de mask-dataset-gen)."
+  },
+  "ventanas": [
+    {
+      "t0": "2023-02-05T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-06T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-07T01:00:00+00:00",
+      "horas": 6
+    }
+  ],
+  "caja_wgs84": [
+    -71.78,
+    -43.05,
+    -71.33,
+    -42.72
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2023/runs/event-filter-002",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "ampliar_mapas",
+    "base": "los-alerces-2023/calibracion-v5-h54",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3-v5",
+    "mapas": {
+      "fbfm40_ccsbap-lach32017.tif": "data/static/fuel_maps/variantes/lach3/fbfm40_ccsbap2017_aoi.tif",
+      "fbfm40_ccsbap-alto2017.tif": "data/static/fuel_maps/variantes/alto/fbfm40_ccsbap2017_aoi.tif",
+      "fbfm40_ccsbap-rem22017.tif": "data/static/fuel_maps/variantes/rem2/fbfm40_ccsbap2017_aoi.tif"
+    }
+  }
+}

@@ -1,18 +1,23 @@
 """
 Builds the ignition layer (phi.tif) for ELMFIRE from FIRMS fire detection points.
 
-phi.tif is a signed distance function raster:
-  phi < 0  inside the fire perimeter (igniting cells)
-  phi > 0  outside the fire perimeter (unburned)
-  phi = 0  at the fire front
+phi.tif is ELMFIRE's initial level-set field, in ELMFIRE's own convention:
+  phi = -1  inside the fire perimeter (burning cells)
+  phi = +1  outside (unburned)
 
 Delegates detection-points → burn polygon to perimeter_reconstruction (clustering +
-concave hull), rasterizes it, then a 4-pass sweep computes the L1 signed distance
-in metres.
+concave hull) and rasterizes it.
+
+**Not a signed distance.** ELMFIRE's tutorials and verification cases write phi = +1
+everywhere and ignite cells at -1; its level set (superbee-limited upwinding on a
+2-cell tagged band, elmfire_level_set.f90) advances the front at the Rothermel rate
+only on that ±1 field. Until 2026-09-29 this builder wrote the signed distance in
+metres (+30, +60, … outside): the front then moved at ~0.5× the rate ELMFIRE computed,
+in every direction and at every wind speed (docs/resultados/AUDITORIA-FISICA.md, hallazgo 2;
+scripts/pruebas_fisicas.py).
 """
 import logging
 from pathlib import Path
-from typing import cast
 
 import numpy as np
 import rasterio
@@ -29,10 +34,9 @@ _DEFAULT_BUFFER_M = perimeter_reconstruction.VIIRS_PIXEL_M
 
 # ELMFIRE's own raster loader resets any PHI0 value < -1.1 back to +1.0 (unburned) —
 # a sanity clamp against nodata/garbage (elmfire_io.f90: WHERE(PHI0 < -1.1) PHI0 = 1.0).
-# A signed-distance-in-meters field goes far more negative than that for any interior
-# cell, so without this floor every ignition we write gets silently erased before the
-# simulation starts. Must stay strictly above -1.1.
+# So the burning value must stay strictly above -1.1.
 PHI_IGNITION_FLOOR = -1.0  # public: the playground writes phi too
+PHI_UNBURNED = 1.0
 
 
 def build_ignition_layer(
@@ -61,16 +65,13 @@ def build_ignition_layer(
         crs = ref.crs
         transform = ref.transform
         height, width = ref.height, ref.width
-        cell_size = abs(transform.a)   # metres per pixel (UTM CRS)
         profile = ref.meta.copy()
 
-    profile.update(dtype="float32", count=1, nodata=-9999.0)
+    profile.update(dtype="float32", count=1, nodata=-9999.0, compress="deflate")
 
     if not fire_points:
-        logger.warning("No fire detections — writing uniform phi=-9999 (no ignition)")
-        phi = np.full((height, width), -9999.0, dtype=np.float32)
-        with rasterio.open(phi_path, "w", **profile) as dst:
-            dst.write(phi, 1)
+        logger.warning("No fire detections — writing an all-unburned phi (no ignition)")
+        _write_phi(np.zeros((height, width), dtype=bool), profile, phi_path)
         return phi_path, shp_path
 
     # Project fire points from EPSG:4326 to the reference CRS
@@ -96,15 +97,15 @@ def build_ignition_layer(
     if not fire_mask.any():
         logger.warning(
             "Ignition layer: %d detections projected but none fall within raster bounds — "
-            "writing nodata phi (no ignition)",
+            "writing an all-unburned phi (no ignition)",
             len(fire_points),
         )
-        phi_out = np.full((height, width), -9999.0, dtype=np.float32)
-        with rasterio.open(phi_path, "w", **profile) as dst:
-            dst.write(phi_out, 1)
+        # +1, not -9999: ELMFIRE would reset -9999 to +1 anyway, but every reader here
+        # takes phi <= 0 as burning and would see the whole domain on fire.
+        _write_phi(fire_mask, profile, phi_path)
         return phi_path, shp_path
 
-    _write_phi(fire_mask, cell_size, profile, phi_path)
+    _write_phi(fire_mask, profile, phi_path)
     _write_shapefile(burn_polygon, str(crs), shp_path)
     logger.info(
         "Ignition layer: %d detections, %d burning cells → %s",
@@ -129,53 +130,21 @@ def build_ignition_from_mask(
     output_dir.mkdir(parents=True, exist_ok=True)
     phi_path = output_dir / "phi.tif"
     with rasterio.open(reference_raster) as ref:
-        cell_size = abs(ref.transform.a)
         profile = ref.meta.copy()
         if fire_mask.shape != (ref.height, ref.width):
             raise ValueError(f"mask {fire_mask.shape} does not match the reference grid")
-    profile.update(dtype="float32", count=1, nodata=-9999.0)
-    _write_phi(fire_mask.astype(bool), cell_size, profile, phi_path)
+    profile.update(dtype="float32", count=1, nodata=-9999.0, compress="deflate")
+    _write_phi(fire_mask.astype(bool), profile, phi_path)
     return phi_path
 
 
 # ── internal helpers ───────────────────────────────────────────────────────────
 
-def _write_phi(fire_mask: np.ndarray, cell_size: float, profile: dict, phi_path: Path) -> None:
-    """Signed distance in metres, interior clamped to PHI_IGNITION_FLOOR (see above)."""
-    phi_m = _signed_distance(fire_mask) * cell_size
-    phi_m = np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)
+def _write_phi(fire_mask: np.ndarray, profile: dict, phi_path: Path) -> None:
+    """ELMFIRE's ±1 field (see the module docstring for why not a signed distance)."""
+    phi = np.where(fire_mask, PHI_IGNITION_FLOOR, PHI_UNBURNED)
     with rasterio.open(phi_path, "w", **profile) as dst:
-        dst.write(phi_m.astype(np.float32), 1)
-
-
-def _signed_distance(fire_mask: np.ndarray) -> np.ndarray:
-    """
-    L1 signed distance (in cells).
-      phi < 0 inside fire (fire_mask == True)
-      phi > 0 outside fire (fire_mask == False)
-    """
-    INF = float(fire_mask.size + 1)
-
-    def _dt(source: np.ndarray) -> np.ndarray:
-        """L1 distance transform: 0 at source, increasing elsewhere."""
-        d = np.full(source.shape, INF)
-        d[source] = 0.0
-        rows, cols = cast(tuple[int, int], d.shape)
-        for i in range(1, rows):
-            d[i] = np.minimum(d[i], d[i - 1] + 1)
-        for j in range(1, cols):
-            d[:, j] = np.minimum(d[:, j], d[:, j - 1] + 1)
-        for i in range(rows - 2, -1, -1):
-            d[i] = np.minimum(d[i], d[i + 1] + 1)
-        for j in range(cols - 2, -1, -1):
-            d[:, j] = np.minimum(d[:, j], d[:, j + 1] + 1)
-        return d
-
-    dist_outside = _dt(fire_mask)         # dist from non-fire to nearest fire cell
-    dist_inside = _dt(~fire_mask)         # dist from fire to nearest non-fire cell
-
-    phi = np.where(fire_mask, -dist_inside, dist_outside)
-    return phi
+        dst.write(phi.astype(np.float32), 1)
 
 
 def _write_shapefile(polygon, crs_wkt: str, path: Path) -> None:

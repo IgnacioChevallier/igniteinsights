@@ -14,8 +14,10 @@ Outputs (matched to reference grid, Float32, one band per forecast hour):
   m10.tif  — 10-hour fuel moisture (%)
   m100.tif — 100-hour fuel moisture (%)
 
-**Band count is the time series.** ELMFIRE reads band *n* as the weather at
-`SIMULATION_TSTART + n × DT_METEOROLOGY` and linearly interpolates between bands, so
+**Band count is the time series.** ELMFIRE reads band *n* as the weather at absolute time
+`n × DT_METEOROLOGY` (band 0 is T = 0; SIMULATION_TSTART is measured from it) and linearly
+interpolates between bands — given `&MONTE_CARLO NUM_METEOROLOGY_TIMES`, which
+`namelist_writer` writes — so
 the band count must cover the simulation horizon. A single-band raster paired with
 `DT_METEOROLOGY = 3600` silently freezes weather for the whole run — no diurnal wind
 peak, no afternoon RH minimum. See `namelist_writer.validate_weather_coverage()`.
@@ -25,12 +27,14 @@ Int16 mph also quantized wind to ±0.45 m/s for no benefit.
 """
 import logging
 import math
+import tempfile
 from pathlib import Path
 
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
+from rasterio.windows import Window
 
 logger = logging.getLogger(__name__)
 
@@ -73,30 +77,58 @@ def derive_wind(
     ws_path = output_dir / "ws.tif"
     wd_path = output_dir / "wd.tif"
 
-    u10 = _read_aligned(u10_path, reference_path)
-    v10 = _read_aligned(v10_path, reference_path)
-    if u10.shape[0] != v10.shape[0]:
-        raise ValueError(
-            f"u10 has {u10.shape[0]} band(s) but v10 has {v10.shape[0]} — "
-            "wind components must share a forecast time series"
-        )
+    def wind(u10: np.ndarray, v10: np.ndarray) -> list[np.ndarray]:
+        ws_mph = np.sqrt(u10**2 + v10**2) * wind_height_factor() * MS_TO_MPH
+        # Meteorological convention: direction FROM which wind blows, CW from north.
+        # Height conversion scales magnitude only, so direction is taken from raw u/v.
+        wd_deg = (np.degrees(np.arctan2(-u10, -v10)) + 360.0) % 360.0
+        return [ws_mph, wd_for_elmfire(wd_deg)]
 
-    ws_ms = np.sqrt(u10**2 + v10**2) * wind_height_factor()
-    ws_mph = ws_ms * MS_TO_MPH
-
-    # Meteorological convention: direction FROM which wind blows, CW from north.
-    # Height conversion scales magnitude only, so direction is taken from raw u/v.
-    wd_deg = (np.degrees(np.arctan2(-u10, -v10)) + 360.0) % 360.0
-
-    _write_like_reference(reference_path, ws_path, ws_mph)
-    _write_like_reference(reference_path, wd_path, wd_deg)
+    bands = _by_row_blocks(reference_path, [u10_path, v10_path], [ws_path, wd_path], wind,
+                           "wind components must share a forecast time series")
     logger.info(
         "Wind rasters written to %s (%d band(s), 20-ft factor %.3f)",
         output_dir,
-        ws_mph.shape[0],
+        bands,
         wind_height_factor(),
     )
     return ws_path, wd_path
+
+
+def _elmfire_blows_to(wd: np.ndarray) -> np.ndarray:
+    """The "to" angle ELMFIRE interpolates (elmfire_subs.f90 INTERP_WD_RASTER):
+    wd + 180, minus 360 once if that exceeds 360."""
+    to = wd + 180.0
+    return np.where(to > 360.0, to - 360.0, to)
+
+
+def wd_for_elmfire(wd_deg: np.ndarray) -> np.ndarray:
+    """Re-express a (bands, rows, cols) from-direction series so ELMFIRE interpolates it
+    the short way round.
+
+    Between two bands ELMFIRE interpolates the *angle* linearly, after mapping it to a
+    "to" direction in (0, 360]: from 170° to 190° (a southerly) that is 350° → 10°, and
+    for the whole hour the wind swings through north instead of staying southerly
+    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 3). Every angle is only meaningful mod
+    360, so each pixel's series is rewritten with values whose "to" angles differ by ≤ 180°
+    to band: unwrapped, and centred so a window turning < 720° stays in [-180, 540], where
+    ELMFIRE's single wrap lands the result in [0, 360]. wd - 180 reaches a "to" T ≤ 360
+    and wd + 180 one above 360, so any T is reachable. Beyond that range the result only
+    leaves [0, 360], harmless in MODE = 1: the level set reads it through sin/cos
+    (elmfire_level_set.f90); the lookup tables indexed by it are MODE = 2 and the building
+    model's. Idempotent. Values outside [0, 360) are deliberate: consumers use sin/cos.
+    """
+    wd = np.asarray(wd_deg, dtype="float64")
+    if wd.ndim != 3 or wd.shape[0] < 2:
+        return wd_deg
+    valid = np.isfinite(wd) & (wd != _NODATA)
+    to = _elmfire_blows_to(np.mod(np.where(valid, wd, 0.0), 360.0))
+    steps = (np.diff(to, axis=0) + 180.0) % 360.0 - 180.0
+    unwrapped = np.concatenate([to[:1], to[:1] + np.cumsum(steps, axis=0)], axis=0)
+    centre = (unwrapped.max(axis=0) + unwrapped.min(axis=0)) / 2.0
+    unwrapped -= 360.0 * np.round((centre - 180.0) / 360.0)
+    out = np.where(unwrapped <= 360.0, unwrapped - 180.0, unwrapped + 180.0)
+    return np.where(valid, out, wd).astype(np.float32)
 
 
 def derive_moisture(
@@ -112,29 +144,18 @@ def derive_moisture(
     m10_path = output_dir / "m10.tif"
     m100_path = output_dir / "m100.tif"
 
-    t_kelvin = _read_aligned(t2m_path, reference_path)
-    rh = _read_aligned(rh_path, reference_path)
-    if t_kelvin.shape[0] != rh.shape[0]:
-        raise ValueError(
-            f"t2m has {t_kelvin.shape[0]} band(s) but rh has {rh.shape[0]} — "
-            "moisture inputs must share a forecast time series"
-        )
+    def moisture(t_kelvin: np.ndarray, rh: np.ndarray) -> list[np.ndarray]:
+        t_f = (t_kelvin - 273.15) * 9.0 / 5.0 + 32.0  # Kelvin → Fahrenheit
+        # ponytail: m10/m100 are the instantaneous EMC offset by +2/+5 %, which has no
+        # physical basis — time-lag classes damp toward a running mean, they are not a
+        # fixed offset from the current equilibrium. Correct fix needs a drying history
+        # (several days of prior GFS), which the ingestion does not keep today.
+        emc = _nelson_emc(t_f, np.clip(rh, 0.0, 100.0))
+        return [np.clip(emc + offset, 1.0, 40.0) for offset in (0.0, 2.0, 5.0)]
 
-    t_f = (t_kelvin - 273.15) * 9.0 / 5.0 + 32.0  # Kelvin → Fahrenheit
-    rh = np.clip(rh, 0.0, 100.0)
-
-    # ponytail: m10/m100 are the instantaneous EMC offset by +2/+5 %, which has no
-    # physical basis — time-lag classes damp toward a running mean, they are not a
-    # fixed offset from the current equilibrium. Correct fix needs a drying history
-    # (several days of prior GFS), which the ingestion does not keep today.
-    emc = _nelson_emc(t_f, rh)
-    m1 = np.clip(emc, 1.0, 40.0)
-    m10 = np.clip(emc + 2.0, 1.0, 40.0)
-    m100 = np.clip(emc + 5.0, 1.0, 40.0)
-
-    for path, data in [(m1_path, m1), (m10_path, m10), (m100_path, m100)]:
-        _write_like_reference(reference_path, path, data)
-    logger.info("Moisture rasters written to %s (%d band(s))", output_dir, m1.shape[0])
+    bands = _by_row_blocks(reference_path, [t2m_path, rh_path], [m1_path, m10_path, m100_path],
+                           moisture, "moisture inputs must share a forecast time series")
+    logger.info("Moisture rasters written to %s (%d band(s))", output_dir, bands)
     return m1_path, m10_path, m100_path
 
 
@@ -208,11 +229,55 @@ def _nelson_emc(t_f: np.ndarray, rh: np.ndarray) -> np.ndarray:
     return emc
 
 
-def _read_aligned(src_path: Path, reference_path: Path) -> np.ndarray:
+# Rows per block in _by_row_blocks: a whole AOI × 25 hourly bands is ~1.1 GB per variable in
+# float32, and derive_wind held five of those (5.7 GB peak): the API container got OOM-killed.
+ROW_BLOCK = 256
+
+
+def _by_row_blocks(reference_path: Path, inputs: list[Path], outputs: list[Path], compute,
+                   mismatch: str) -> int:
+    """Run `compute(*inputs)` → one array per output, by blocks of rows of the reference grid.
+
+    Each input is reprojected band by band onto the whole grid, exactly as `_read_aligned`
+    does (GDAL approximates the transform per destination chunk, so reprojecting by windows
+    would change the values), into a memmap on disk. Everything `compute` does is per pixel
+    along the band (time) axis, so the blocks give the same values as the whole grid.
+    Returns the band count.
+    """
+    with rasterio.open(reference_path) as ref:
+        profile, height, width = ref.meta.copy(), ref.height, ref.width
+    # DEFLATE: ELMFIRE reads inputs through gdal_translate, and an uncompressed 5-day series
+    # over a benchmark domain is ~1 GB per variable (it filled the disk, AUDITORIA-FISICA §2).
+    profile.update(dtype="float32", nodata=_NODATA, compress="deflate",
+                   predictor=3)   # floating-point predictor: 2.4x smaller than plain DEFLATE
+    with tempfile.TemporaryDirectory() as tmp:
+        aligned = [_read_aligned(path, reference_path, Path(tmp) / f"{n}.npy")
+                   for n, path in enumerate(inputs)]
+        counts = [a.shape[0] for a in aligned]
+        if len(set(counts)) != 1:
+            raise ValueError(f"inputs have {counts} band(s) — {mismatch}")
+        destinations = [rasterio.open(path, "w", **(profile | {"count": counts[0]}))
+                        for path in outputs]
+        try:
+            for row in range(0, height, ROW_BLOCK):
+                rows = slice(row, min(row + ROW_BLOCK, height))
+                results = compute(*(np.asarray(a[:, rows]) for a in aligned))
+                window = Window(0, row, width, rows.stop - row)
+                for dst, data in zip(destinations, results, strict=True):
+                    dst.write(data.astype(np.float32), window=window)
+        finally:
+            for dst in destinations:
+                dst.close()
+            del aligned
+    return counts[0]
+
+
+def _read_aligned(src_path: Path, reference_path: Path,
+                  memmap: Path | None = None) -> np.ndarray:
     """Read every band of `src_path` reprojected onto the reference grid.
 
     Returns a 3-D (bands, height, width) float32 array — band order is preserved, so
-    band *n* stays the n-th forecast hour.
+    band *n* stays the n-th forecast hour. With `memmap`, the array lives in that file.
     """
     with rasterio.open(reference_path) as ref:
         dst_transform = ref.transform
@@ -220,7 +285,9 @@ def _read_aligned(src_path: Path, reference_path: Path) -> np.ndarray:
         dst_shape = (ref.height, ref.width)
 
     with rasterio.open(src_path) as src:
-        data = np.empty((src.count, *dst_shape), dtype=np.float32)
+        shape = (src.count, *dst_shape)
+        data = (np.empty(shape, dtype=np.float32) if memmap is None
+                else np.lib.format.open_memmap(memmap, "w+", np.float32, shape))
         for idx in range(src.count):
             reproject(
                 source=rasterio.band(src, idx + 1),
@@ -244,6 +311,9 @@ def _write_like_reference(
         raise ValueError(f"expected a (bands, height, width) array, got shape {data.shape}")
     with rasterio.open(reference_path) as ref:
         profile = ref.meta.copy()
-    profile.update(dtype="float32", count=data.shape[0], nodata=_NODATA)
+    # DEFLATE: ELMFIRE reads inputs through gdal_translate, and an uncompressed 5-day series
+    # over a benchmark domain is ~1 GB per variable (it filled the disk, AUDITORIA-FISICA §2).
+    profile.update(dtype="float32", count=data.shape[0], nodata=_NODATA, compress="deflate",
+                   predictor=3)   # floating-point predictor: 2.4x smaller than plain DEFLATE
     with rasterio.open(output_path, "w", **profile) as dst:
         dst.write(data.astype(np.float32))

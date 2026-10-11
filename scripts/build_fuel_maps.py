@@ -28,6 +28,26 @@ MAPBIOMAS_COG = (
     "/collection-2/coverage/argentina_coverage_{year}.tif"
 )
 CCSBAP_SHP = Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
+# WorldCover 2020 (v100): el único año anterior a 2021, para el benchmark (COMPARACION-MAPAS-V5).
+# Misma leyenda que v200, así que el mismo crosswalk; misma caja que el v200 local.
+WORLDCOVER_2020 = Path("data/raw/worldcover/esa_worldcover_v100_2020_10m.tif")
+WORLDCOVER_2020_SOURCE_ID = "esa_worldcover_v100_2020"
+
+
+def fetch_worldcover_2020(out: Path = WORLDCOVER_2020) -> Path:
+    from app.ingestion.fuels.worldcover.client import WorldCoverClient
+
+    if out.exists():
+        return out
+    caja = (-73.5, -44.5, -70.0, -41.0)
+    client = WorldCoverClient()
+    tiles = [t.model_copy(update={"url": t.url.replace("v200/2021", "v100/2020")
+                                  .replace("2021_v200", "2020_v100")})
+             for t in client.compute_tile_ids(*caja)]
+    client.download_clipped(tiles, *caja, out)
+    with rasterio.open(out, "r+") as dst:   # el cliente etiqueta v200/2021
+        dst.update_tags(version="v100", acquisition_year="2020")
+    return out
 
 
 def fetch_mapbiomas_window(reference: Path, out: Path, year: int = 2024) -> Path:
@@ -57,6 +77,8 @@ def main() -> None:
     ap.add_argument("--reference", type=Path, default=Path("data/static/dem.tif"))
     ap.add_argument("--out-dir", type=Path, default=Path("data/static/fuel_maps"))
     ap.add_argument("--mapbiomas-years", type=int, nargs="+", default=[2024])
+    ap.add_argument("--worldcover-2020", action="store_true",
+                    help="también fbfm40_worldcover2020.tif (benchmark, incendios ≤ 2021)")
     args = ap.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -64,6 +86,10 @@ def main() -> None:
         Path("data/raw/worldcover/esa_worldcover_v200_10m.tif"), args.reference,
         args.out_dir / "fbfm40_worldcover.tif", fb.WORLDCOVER_TO_FBFM40, fb.WORLDCOVER_SOURCE_ID,
     )
+    if args.worldcover_2020:
+        fb.raster_to_fbfm40(fetch_worldcover_2020(), args.reference,
+                            args.out_dir / "fbfm40_worldcover2020.tif",
+                            fb.WORLDCOVER_TO_FBFM40, WORLDCOVER_2020_SOURCE_ID)
     # 2024 es el mapa que sirve la app (fbfm40_mapbiomas.tif). Otros años, para validar
     # incendios anteriores sin fuga temporal (IGN-26 §Benchmark), llevan el año en el nombre.
     for year in args.mapbiomas_years:

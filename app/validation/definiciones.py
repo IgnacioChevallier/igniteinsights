@@ -1,12 +1,15 @@
-"""Caso, receta e iteración: qué se corre, con qué modelo, y qué cambió entre dos corridas.
+"""Caso, receta, iteración y modelo: qué se corre y qué llegó al gate productivo.
 
 - **Caso** `benchmarks/casos/<incendio>/<protocolo>.json`: un incendio con un protocolo
   (semilla inicial, ventanas, referencias). Su paquete congelado vive en
   `<protocolo>.paquete.json`: cada archivo, por sha256.
-- **Receta** `benchmarks/recetas/<id>.json`: la versión del modelo, global. Declara su
-  padre, el motivo y lo que cambia: combustible, parámetros, política de semilla.
+- **Receta** `benchmarks/recetas/<id>.json`: una configuración experimental reutilizable.
+  Declara su padre, el motivo y lo que cambia: combustible, parámetros y política de semilla.
 - **Iteración** = receta × caso. Su manifiesto registra además lo que no se declara
   (commit, hashes de cada insumo y salida), y con eso se detecta lo que cambió sin avisar.
+- **Modelo** `benchmarks/modelos/<id>.json`: una receta más un conjunto congelado de casos,
+  artefactos, resultados y criterios que ya pasaron el gate para uso productivo. Una receta
+  puede tener muchas iteraciones; sólo una selección explícita se promueve a modelo.
 
 Sólo se comparan peras con peras: recetas distintas sobre el mismo caso, o la misma
 receta sobre casos distintos.
@@ -36,9 +39,19 @@ PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
               # transformaciones de rásters que ELMFIRE ya lee (app/validation/cadena.py)
               "adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
               "humedad_m1_delta", "modelo_humedad", "rotacion_viento", "z0_desde_dosel",
-              "aspecto_mas_180", "cbh_factor", "viento_atlas", "reasignar_combustible"}
+              "aspecto_mas_180", "cbh_factor", "viento_atlas", "reasignar_combustible",
+              "dosel_coherente", "sin_dosel", "cbh_por_combustible", "cbd_por_combustible",
+              "dosel_sin_perdida_previa", "spotting", "suppression",
+              "combustible_perdida_reciente",
+              "viento_diurno"}
 MODELOS_HUMEDAD = {"retardo", "fosberg", "altura"}
 POLITICAS_SEMILLA = {"prediccion", "observacion"}
+
+
+def anios_publicados(fuente: str) -> tuple[int, ...]:
+    """Años de un mapa; una variante del crosswalk (`ccsbap-l1`, scripts/variante_crosswalk.py)
+    hereda los del producto."""
+    return ANIOS_COMBUSTIBLE[fuente.split("-")[0]]
 
 
 def _sha_json(datos: dict) -> str:
@@ -118,11 +131,19 @@ class Receta:
 
     def anio_combustible(self, caso: Caso) -> int:
         """Resuelve el año y aplica la regla de fuga: el mapa tiene que ser anterior al
-        incendio, o ya ve la cicatriz que se quiere predecir."""
+        incendio, o ya ve la cicatriz que se quiere predecir.
+
+        La única excepción es declarada: `"sin_anterior": "primero_publicado"` (o
+        `"ultimo_publicado"`) toma el primer (o último) año publicado cuando no hay ninguno
+        anterior (WorldCover empieza en 2020), y la iteración queda marcada con
+        `fuga_temporal` en sus factores."""
         fuente, anio = self.combustible["fuente"], self.combustible["anio"]
-        publicados = ANIOS_COMBUSTIBLE[fuente]
+        publicados = anios_publicados(fuente)
         if anio == "anterior_al_fuego":
             previos = [a for a in publicados if a < caso.anio_fuego]
+            sin_anterior = self.combustible.get("sin_anterior")
+            if not previos and sin_anterior in ("primero_publicado", "ultimo_publicado"):
+                return min(publicados) if sin_anterior == "primero_publicado" else max(publicados)
             if not previos:
                 raise ValueError(f"{fuente}: ningún año publicado antes de {caso.anio_fuego}")
             return max(previos)
@@ -134,7 +155,7 @@ class Receta:
         return anio
 
     def validar(self, caso: Caso) -> None:
-        if self.combustible.get("fuente") not in ANIOS_COMBUSTIBLE:
+        if str(self.combustible.get("fuente")).split("-")[0] not in ANIOS_COMBUSTIBLE:
             raise ValueError(f"{self.id}: fuente de combustible desconocida")
         if self.semilla not in POLITICAS_SEMILLA:
             raise ValueError(f"{self.id}: semilla '{self.semilla}' no es {POLITICAS_SEMILLA}")
@@ -151,8 +172,10 @@ class Receta:
 
     def factores(self, caso: Caso) -> dict:
         """Lo declarado, ya resuelto contra el caso: lo que se compara entre recetas."""
-        return {"combustible": f"{self.combustible['fuente']}{self.anio_combustible(caso)}",
-                "semilla": self.semilla, **self.parametros}
+        anio = self.anio_combustible(caso)
+        fuga = {"fuga_temporal": True} if anio >= caso.anio_fuego else {}
+        return {"combustible": f"{self.combustible['fuente']}{anio}",
+                "semilla": self.semilla, **fuga, **self.parametros}
 
     @classmethod
     def cargar(cls, receta_id: str) -> "Receta":
@@ -160,6 +183,73 @@ class Receta:
         return cls(id=receta_id, padre=datos.get("padre"), motivo=datos["motivo"],
                    combustible=datos["combustible"], semilla=datos["semilla"],
                    parametros=datos.get("parametros", {}))
+
+
+@dataclass(frozen=True)
+class Modelo:
+    """Snapshot promovido: no ejecuta corridas ni reemplaza a :class:`Receta`.
+
+    El modelo fija la receta, los casos y sus hashes. Así un cambio posterior en una receta,
+    un paquete o la partición no puede cambiar silenciosamente qué significa ``modelo-v0``.
+    """
+
+    id: str
+    estado: str
+    fecha_corte: str
+    receta: str
+    receta_sha: str
+    codigo_sha: str
+    conjuntos: dict[str, dict[str, list[str]]]
+    casos_sha: dict[str, str]
+    criterios_gate: dict[str, Any]
+    resultados: dict[str, Any]
+    limitaciones: list[str]
+    documentacion: list[str]
+
+    @property
+    def casos(self) -> list[str]:
+        return [caso for conjunto in self.conjuntos.values()
+                for fuente in conjunto.values() for caso in fuente]
+
+    def validar(self) -> None:
+        if self.estado not in {"aprobado", "retirado"}:
+            raise ValueError(f"{self.id}: estado de modelo desconocido '{self.estado}'")
+        if not self.casos:
+            raise ValueError(f"{self.id}: un modelo promovido no puede quedar sin casos")
+        if not self.criterios_gate or not self.resultados or not self.documentacion:
+            raise ValueError(f"{self.id}: gate, resultados y documentación son obligatorios")
+        if len(self.codigo_sha) != 40 or any(c not in "0123456789abcdef" for c in self.codigo_sha):
+            raise ValueError(f"{self.id}: codigo_sha no es un SHA de git")
+        if len(self.casos) != len(set(self.casos)):
+            raise ValueError(f"{self.id}: un caso aparece más de una vez")
+        if set(self.casos) != set(self.casos_sha):
+            raise ValueError(f"{self.id}: casos y casos_sha no coinciden")
+
+        receta = Receta.cargar(self.receta)
+        if receta.sha() != self.receta_sha:
+            raise ValueError(f"{self.id}: cambió la receta congelada {self.receta}")
+
+        for caso_id in self.casos:
+            caso = Caso.cargar(caso_id)
+            if caso.sha() != self.casos_sha[caso_id]:
+                raise ValueError(f"{self.id}: cambió el caso congelado {caso_id}")
+            manifiesto = cargar_manifiesto(caso_id, self.receta)
+            metricas = cargar_metricas(caso_id, self.receta)
+            if manifiesto is None or metricas is None:
+                raise ValueError(f"{self.id}: faltan artefactos de {caso_id}/{self.receta}")
+            if (manifiesto.get("caso_sha") != self.casos_sha[caso_id]
+                    or manifiesto.get("receta_sha") != self.receta_sha):
+                raise ValueError(f"{self.id}: manifiesto fuera del snapshot en {caso_id}")
+
+    @classmethod
+    def cargar(cls, modelo_id: str) -> "Modelo":
+        datos = json.loads((RAIZ / "modelos" / f"{modelo_id}.json").read_text())
+        return cls(id=modelo_id, estado=datos["estado"], fecha_corte=datos["fecha_corte"],
+                   receta=datos["receta"], receta_sha=datos["receta_sha"],
+                   codigo_sha=datos["codigo_sha"], conjuntos=datos["conjuntos"],
+                   casos_sha=datos["casos_sha"], criterios_gate=datos["criterios_gate"],
+                   resultados=datos["resultados"], limitaciones=datos["limitaciones"],
+                   documentacion=datos["documentacion"])
 
 
 def ruta_iteracion(caso_id: str, receta_id: str) -> Path:
@@ -208,7 +298,14 @@ _INSUMOS_POR_FACTOR = {
     "z0_desde_dosel": {"ws.tif"},
     "aspecto_mas_180": {"asp.tif"},
     "cbh_factor": {"cbh.tif"},
+    "cbh_por_combustible": {"cbh.tif"},
+    "cbd_por_combustible": {"cbd.tif"},
+    "dosel_sin_perdida_previa": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
+    "combustible_perdida_reciente": {"fbfm40.tif"},
+    "sin_dosel": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
+    "dosel_coherente": {"cc.tif", "ch.tif", "cbh.tif", "cbd.tif"},
     "viento_atlas": {"ws.tif", "wd.tif"},
+    "viento_diurno": {"ws.tif", "wd.tif"},
     "reasignar_combustible": {"fbfm40.tif"},
     "humedad_muerta_delta": {"m1.tif", "m10.tif", "m100.tif"},
     "modelo_humedad": {"m1.tif", "m10.tif", "m100.tif"},

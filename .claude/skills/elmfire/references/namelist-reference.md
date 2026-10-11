@@ -19,8 +19,9 @@ not a substitute.
 | `&INPUTS` | `LH_MOISTURE_CONTENT`, `LW_MOISTURE_CONTENT` | Live herbaceous / woody moisture, percent, one scalar for the whole domain (`DEFAULT_LH_MOISTURE_PCT`, `DEFAULT_LW_MOISTURE_PCT`; ELMFIRE's own default is 60 for both) |
 | `&COMPUTATIONAL_DOMAIN` | `A_SRS`, `COMPUTATIONAL_DOMAIN_XLLCORNER`, `COMPUTATIONAL_DOMAIN_YLLCORNER`, `COMPUTATIONAL_DOMAIN_CELLSIZE` | Corner/cellsize are read from `dem.tif` bounds via `_read_domain()` — only lower-left corner + cellsize, **no** upper-right corner keywords (ELMFIRE derives extent from the raster itself) |
 | `&OUTPUTS` | `DTDUMP`, `OUTPUTS_DIRECTORY`, `CONVERT_TO_GEOTIFF`, `DUMP_TIME_OF_ARRIVAL`, `DUMP_FLIN`, `DUMP_SPREAD_RATE` | `DTDUMP` is clamped by `resolve_dtdump_s()` to `tstop_s / 2` if the caller-supplied value would be `>= tstop_s` — see gotcha below |
-| `&TIME_CONTROL` | `SIMULATION_TSTART`, `SIMULATION_DT`, `SIMULATION_DTMAX`, `SIMULATION_TSTOP` | `SIMULATION_TSTOP = simulation_hours * 3600`; ELMFIRE reads weather band n at `TSTART + n × DT_METEOROLOGY` |
+| `&TIME_CONTROL` | `SIMULATION_TSTART`, `SIMULATION_DT`, `SIMULATION_DTMAX`, `SIMULATION_TSTOP` | `SIMULATION_TSTOP = TSTART + simulation_hours * 3600`. Time is **absolute**: at time T ELMFIRE interpolates bands `floor(T / DT_METEOROLOGY)` and the next (0-based), so band n is the weather at `n × DT_METEOROLOGY` and band 0 is T = 0, not TSTART |
 | `&SIMULATOR` | `MODE`, `CROWN_FIRE_MODEL` | `MODE` must be `1` (transient spread; `_validate_parameters()` rejects anything else). `CROWN_FIRE_MODEL`: `0` = off, any value `> 0` = on (only one crown model is implemented); ELMFIRE turns it **on** when the keyword is omitted, so it is written explicitly (`DEFAULT_CROWN_FIRE_MODEL = 1`) |
+| `&MONTE_CARLO` | `NUM_METEOROLOGY_TIMES` | Number of weather bands (`weather_band_count()`, the band count of `ws.tif`). **Required for transient weather**: the default is 1, and with 1 ELMFIRE holds band 0 for the whole run (see `interface-gotchas.md`) |
 | `&MISCELLANEOUS` | `PATH_TO_GDAL`, `SCRATCH`, `MISCELLANEOUS_INPUTS_DIRECTORY`, `FUEL_MODEL_FILE` | Keyword is `SCRATCH`, not `SCRATCH_PATH`. `FUEL_MODEL_FILE = 'fuel_models.csv'` and `MISCELLANEOUS_INPUTS_DIRECTORY` are always written together — one without the other makes ELMFIRE look for `null/fuel_models.csv` and abort |
 
 Raster basename vocabulary this repo produces (see `references/interface-gotchas.md`
@@ -43,7 +44,7 @@ weren't fully self-consistent (see flag below).
 | `&SIMULATOR` | `MODE=2` | Landscape-scale fire-potential ("head fire" mode, every pixel burned independently, FlamMap-style); this repo only emits `MODE=1` |
 | `&SIMULATOR` | `NUM_IGNITIONS`, `X_IGN(n)`, `Y_IGN(n)`, `T_IGN(n)` | Point ignitions; coordinates are in the raster's projected CRS (UTM meters), not lat/lon; `T_IGN` in seconds |
 | `&MONTE_CARLO` | `METEOROLOGY_BAND_START`, `METEOROLOGY_BAND_STOP`, `METEOROLOGY_BAND_SKIP_INTERVAL` | Sweep over weather raster bands, one calc per band (used with `MODE=2`) |
-| `&MONTE_CARLO` | ⚠️ `NUM_METEOROLOGY_TIMES` vs `NUM_METEOROLOGY_BANDS` | **Unresolved discrepancy in the vendor docs themselves**: Tutorial 02 prose refers to `NUM_METEOROLOGY_BANDS`, but the namelist code snippet in the same tutorial uses `NUM_METEOROLOGY_TIMES`. Do not pick one without checking upstream ELMFIRE source first. |
+| `&MONTE_CARLO` | ~~`NUM_METEOROLOGY_BANDS`~~ | Resolved against the source (`elmfire_namelists.f90`, `READ_MONTE_CARLO`): the keyword is `NUM_METEOROLOGY_TIMES` (now written by this repo, above); `NUM_METEOROLOGY_BANDS` does not exist. |
 
 `&TIME_CONTROL` is referenced by the vendor docs (as containing timestep/CFL/stop-time
 settings) but its full keyword list beyond what's already used in `namelist_writer.py`

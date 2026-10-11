@@ -1,7 +1,9 @@
 """Recortar las bandas de meteorología que la corrida no va a leer.
 
-ELMFIRE lee la banda n como el clima en `TSTART + n × DT_METEOROLOGY`, así que una corrida
-que termina en TSTOP sólo necesita `ceil((TSTOP - TSTART) / DT) + 1` bandas. La ingesta baja
+ELMFIRE lee la banda n como el clima en `n × DT_METEOROLOGY`, con el tiempo absoluto (la banda 0
+es T = 0, no TSTART), así que una corrida que termina en TSTOP sólo necesita
+`floor(TSTOP / DT) + 1` bandas desde la 0, y `NUM_METEOROLOGY_TIMES` tiene que decir cuántas
+quedan: si declara más, ELMFIRE salta el caso sin quemar nada. La ingesta baja
 24 h de pronóstico por defecto, y sobre el AOI completo (8,3 M celdas) esas bandas de más son
 unos 2 GB de RAM que hacen que el OOM killer mate la simulación.
 
@@ -27,8 +29,7 @@ def bandas_necesarias(namelist: Path) -> int:
     def valor(clave: str) -> float:
         return float(re.search(rf"{clave}\s+=\s+([\d.]+)", texto).group(1))
 
-    span = valor("SIMULATION_TSTOP") - valor("SIMULATION_TSTART")
-    return math.ceil(span / valor("DT_METEOROLOGY")) + 1
+    return math.floor(valor("SIMULATION_TSTOP") / valor("DT_METEOROLOGY")) + 1
 
 
 def main() -> None:
@@ -55,9 +56,10 @@ def main() -> None:
                         dst.write(src.read(banda), banda)
             print(f"  {f.name}: recortado a {n} bandas")
         elif f.name == "elmfire.data":
-            (destino / f.name).write_text(
-                f.read_text().replace(args.base.name, destino.name)
-            )
+            texto = f.read_text().replace(args.base.name, destino.name)
+            (destino / f.name).write_text(re.sub(
+                r"(NUM_METEOROLOGY_TIMES\s+=\s+)\d+",
+                lambda m: m.group(1) + str(min(n, int(m.group(0).split("=")[1]))), texto))
         else:
             (destino / f.name).hardlink_to(f)
     print(f"Listo: {destino}")

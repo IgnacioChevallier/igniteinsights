@@ -42,7 +42,8 @@ one row per time band, no explicit time column) — but **ELMFIRE never reads `w
 directly**. The tutorial's `01-run.sh` script parses it and burns it into multiband
 GeoTIFFs (`ws.tif`, `wd.tif`, etc.), which is what the namelist actually points to.
 The uniform time spacing between bands is set via `DT_METEOROLOGY` in `&INPUTS`
-(seconds); ELMFIRE linearly interpolates between bands at its internal timestep. This
+(seconds); ELMFIRE linearly interpolates between bands at its internal timestep — **only if
+`&MONTE_CARLO NUM_METEOROLOGY_TIMES` gives the band count** (next section). This
 repo's `weather_builder.py` follows the same pattern (writes multiband rasters
 directly, no CSV intermediate), and `write_namelist(dt_meteorology_s=3600.0)` writes the
 spacing — if it changes (e.g. sub-hourly weather), the raster band count has to change with
@@ -105,20 +106,12 @@ the value `write_namelist()` actually resolved to, or the two will disagree agai
 ELMFIRE's raster loader (`elmfire_io.f90`, reading `PHI0` from `PHI_FILENAME`) does
 `WHERE(PHI0 < -1.1) PHI0 = 1.0` right after reading the raster — any value more
 negative than -1.1 is treated as garbage/nodata and reset to +1.0 (unburned), no
-warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` as a
-signed-distance-in-meters field (buffer radius × cell size, e.g. -90 for a 90 m
-buffer) — unclamped, every interior "on fire" cell is erased before the simulation
-starts and the run reports `Fire area: 0.0` whatever the weather and fuel.
-
-Fix: clamp the *negative* (interior/ignited) side of the signed-distance field to a
-floor just above -1.1 (`PHI_IGNITION_FLOOR = -1.0` in `ignition_builder.py`, also used by
-`app/playground/builder.py`) before writing —
-`np.where(phi_m < 0, np.maximum(phi_m, PHI_IGNITION_FLOOR), phi_m)`. Leave positive
-(unburned/outside) values as true physical distances; only the interior needs
-clamping. The vendor tutorials sidestep this entirely by initializing `phi.tif`
-uniformly to `+1.0` and igniting via `&SIMULATOR` point ignitions
-(`NUM_IGNITIONS`/`X_IGN`/`Y_IGN`/`T_IGN`) instead of a spatial phi raster — this repo
-uses the raster approach instead, so the clamp is required.
+warning printed. `app/elmfire/builder/ignition_builder.py` writes `phi.tif` with the burning cells at
+`PHI_IGNITION_FLOOR = -1.0` (also used by `app/playground/builder.py`), just above the reset
+threshold, and the rest at `+1.0` — ELMFIRE's own convention (see "`phi.tif` is a ±1 field"
+below: a signed distance, which this repo wrote until 2026-09-29, halved the front speed). The
+vendor tutorials initialise `phi.tif` uniformly to `+1.0` and ignite via `&SIMULATOR` point
+ignitions (`NUM_IGNITIONS`/`X_IGN`/`Y_IGN`/`T_IGN`) instead; this repo uses the raster.
 
 ## Crown fire is on by default upstream
 
@@ -136,3 +129,131 @@ if `ASP` is the LANDFIRE aspect: the azimuth the slope faces, i.e. downslope. Un
 every run pushed fires **downhill** (found in RESULTADOS-CSS-BAP, loop 2: 150 m along `asp`, the
 terrain rose in 96 % of cells steeper than 20°). `tests/test_topo_aspect.py` pins the convention
 with synthetic slopes: a slope rising to the north faces south (180).
+
+## Without `NUM_METEOROLOGY_TIMES`, ELMFIRE uses weather band 0 for the whole run
+
+`&MONTE_CARLO NUM_METEOROLOGY_TIMES` defaults to **1** (`elmfire_namelists.f90`,
+`READ_MONTE_CARLO`), and the level set clamps the band index to it
+(`elmfire_level_set.f90`: `ITLO_METEOROLOGY = MIN(1 + FLOOR(T/DT_METEOROLOGY),
+NUM_METEOROLOGY_TIMES)`): with the default, every run holds the first band — no diurnal cycle,
+no wind shift, whatever the rasters carry. The vendor transient tutorials (02, 03) set it to 8.
+This repo omitted it until 2026-09-29 (AUDITORIA-FISICA.md, hallazgo 1): every benchmark window
+ran with the weather of its first hour. `write_namelist()` now writes it from `ws.tif`'s band
+count; `validate_weather_coverage()` rejects weather rasters whose band counts differ (ELMFIRE
+indexes them all with one band number). Time is absolute: band n is the weather at
+`n × DT_METEOROLOGY`, so `SIMULATION_TSTART` is measured from band 0.
+
+## `phi.tif` is a ±1 field, not a signed distance
+
+ELMFIRE's tutorials and verification cases write `phi = +1` everywhere and ignite at `-1`. Its
+level set (superbee-limited upwinding on a 2-cell tagged band) advances the front at the
+Rothermel rate only on that field. With a signed distance in metres (+30, +60, … outside, what
+`ignition_builder` wrote until 2026-09-29) the front moved at **~0.5×** the rate ELMFIRE itself
+computed (its `vs` output), in every direction, with and without wind; with the distance in cells,
+~0.85× (AUDITORIA-FISICA.md, hallazgo 2; `scripts/pruebas_fisicas.py nivel`). The spread-rate
+raster `vs` looked right the whole time — only the TOA was slow. Write `-1` inside and `+1`
+outside (`PHI_IGNITION_FLOOR`, `PHI_UNBURNED`).
+
+## ELMFIRE interpolates `wd` as a plain angle
+
+Between bands, `INTERP_WD_RASTER` (`elmfire_subs.f90`) maps each direction to a "to" angle in
+(0, 360] and interpolates it linearly: from 170° to 190° (a southerly) that is 350° → 10°, and for
+the whole hour the wind swings through north. Latent while `NUM_METEOROLOGY_TIMES` was missing;
+live once bands are interpolated. `weather_builder.wd_for_elmfire()` rewrites each pixel's series
+so consecutive "to" angles differ by ≤ 180° (values outside [0, 360) are deliberate; MODE 1 uses
+them only through sin/cos). `derive_wind` applies it, and `cadena._preparar` re-applies it after
+the knobs that re-wrap the angle. The alternative, `&SIMULATOR WX_BILINEAR_INTERPOLATION = T`,
+interpolates u/v instead, but also changes the spatial interpolation and is not used.
+
+## CC ≥ 15 % with CH = 0 means no wind at all
+
+`CALC_WIND_ADJUSTMENT_FACTOR_EVERYWHERE` (`elmfire_init.f90`) takes the sheltered WAF from
+(CC, CH); with CH = 0 the canopy branch is skipped and the fuel-bed height passed is 0, so the
+sheltered WAF is 0, and with CC ≥ 15 % (F = CC/3 ≥ 0.05) the cell uses it: WAF = 0. A `cc.tif`
+nodata (< 0) also gives WAF = 0. In the benchmark packages 0.1–2.6 % of burnable cells hit this
+(Hansen tree cover without ETH height). `canopy_builder.derive_cbh_cbd` now zeroes the cover where
+CH < 2 m (its own "no crown fuel" threshold).
+
+## Weather rows are clamped by the weather grid's column count
+
+`MAP_FINE_TO_COARSE` (`elmfire_subs.f90:296-297`) maps each fuel cell to a weather cell and
+clamps the **row** with `COARSE%NCOLS` instead of `NROWS`. Rows count from the south (the
+raster reader flips them), so when the weather grid is taller than wide, every fuel row with
+`IY > NCOLS` (the northern `NROWS − NCOLS` rows) reads weather row `NCOLS`. All weather reads go
+through `IROW_ANALYSIS_F2C` (spread, spotting, moisture interpolation), and the later
+`WX_IROW_FROM_ANALYSIS_IY` re-clamp with `NROWS` comes too late. Confirmed with real ELMFIRE
+(`pruebas_fisicas.py grilla`): 81 × 161 domain, 20 mph only in the northern strip, fire there
+moves 0 m (60 cells, calm circle); same fire in the south, or with the weather rasters padded
+east to 161 columns, moves 879 m.
+
+- ELMFIRE accepts weather rasters with a different shape than the fuel grid (same corner and
+  cell size, extra columns to the east are never read), so padding the weather columns
+  (`np.pad(..., mode="edge")`) to `NCOLS ≥ NROWS` is a repo-side fix that needs no ELMFIRE change.
+- **Fixed in the repo (2026-09-30):** `namelist_writer.pad_weather_columns()`, called by
+  `write_namelist()` (the last step before ELMFIRE on every path: API, preparation,
+  `cadena._preparar` after its knobs, the physics bench, the harness scripts), pads `ws`, `wd`,
+  `m1`, `m10`, `m100` east with their last column until NCOLS ≥ NROWS, band by band, writing a
+  new file (inputs can be read-only hardlinks into the benchmark store). It uses each raster's
+  own shape, so a coarser weather grid is padded in its own cells; a no-op on wide grids. Each
+  raster's shape comes from its own header (`READ_BSQ_HDR_HEADER`, `elmfire_io.f90:1242`) and the
+  mapping uses only the weather grid's lower-left corner and cell size, which east padding does
+  not move. Consequence: the `ws`/`wd` a run leaves in its inputs directory can be wider than
+  `dem.tif` — crop to the dem's width before comparing cell by cell. Tests:
+  `test_grilla_alta_el_clima_se_rellena_hasta_ser_cuadrado`; `pruebas_fisicas.py grilla`
+  (`franja-norte` 879 m with the fix, `franja-norte-sin-relleno` 0 m).
+- The same file has a second bug on the opt-in bilinear path: `GET_BILINEAR_INTERPOLATE_COEFFS`
+  sets `J2 = MAX(MIN(J2 + 1, NROW_WX), 1)` with `J2` uninitialized (should be `J1 + 1`). Another
+  reason not to turn on `WX_BILINEAR_INTERPOLATION`.
+
+## &SPOTTING: every spotting parameter is drawn between its _MIN/_LO and _MAX/_HI, even in a single run
+
+- `ENABLE_SPOTTING` (default `.FALSE.`) makes `NUM_PARAMETERS_SPOTTING = 8`
+  (`elmfire_namelists.f90`, `READ_SPOTTING`), so `NUM_MONTE_CARLO_VARIABLES > 0` and the main loop
+  draws `COEFFS` with `RANDOM_NUMBER` and calls `SET_SPOTTING_PARAMETERS` for **every** case,
+  including our one-case MODE 1 runs (`elmfire.f90` ~l. 568–574). `SET_SPOTTING_PARAMETERS`
+  (`elmfire_spotting.f90`) then overwrites `MEAN_SPOTTING_DIST`, `NORMALIZED_SPOTTING_DIST_VARIANCE`,
+  `SPOT_WS_EXP`, `SPOT_FLIN_EXP`, `NEMBERS_MAX`, `GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT`,
+  `CROWN_FIRE_SPOTTING_PERCENT` and `PIGN` with `X_MIN + r·(X_MAX − X_MIN)` (`_LO`/`_HI` for the
+  exponents and `NEMBERS_MAX`). Setting only the plain keyword does nothing; the defaults of the
+  ranges (`MEAN_SPOTTING_DIST_MIN/MAX = 0`) win.
+- The repo writes `_MIN = _MAX` (and the plain keyword) so the value is declared, not drawn:
+  `namelist_writer.SPOTTING_HINDCAST`, the centre of each range of the vendor hindcast template
+  (`/opt/elmfire/runs/hindcasts/templates/hindcast/elmfire.data`). The draw is still made, with the
+  fixed `SEED = 2024` (`RANDOMIZE_RANDOM_SEED = .FALSE.`), and the spotting events themselves use
+  `RANDOM_NUMBER` during the run: deterministic for a given input, but chaotic.
+- `NEMBERS_*` are INTEGER in the source: write `1`, not `1.0`.
+- `CROWN_FIRE_MODEL` is only ever tested as `> 0` in 2025.0212: the template's `2` behaves as `1`.
+- Off unless `write_namelist(spotting=...)` is given (`{}` = the hindcast values); keys outside
+  `SPOTTING_HINDCAST` are rejected.
+
+## &SUPPRESSION: extended attack only, per run, and it perturbs the front even at 0 %/day
+
+- `READ_SUPPRESSION` (`elmfire_namelists.f90`) reads `ENABLE_INITIAL_ATTACK`,
+  `ENABLE_EXTENDED_ATTACK`, `DT_EXTENDED_ATTACK` (s), `MAX_CONTAINMENT_PER_DAY` (%/day),
+  `AREA_NO_CONTAINMENT_CHANGE` (**acres/day**), `B_SDI`, `SDI_FACTOR`, `USE_SDI`,
+  `USE_SDI_LOG_FUNCTION`; all off by default. The repo writes the vendor template
+  (`/opt/elmfire/runs/forecasts/templates/active_fires-suppressed/elmfire.data`:
+  extended attack, 1800 s, 120 %/day, 15000 acres/day) via `write_namelist(suppression=...)`;
+  keys outside `namelist_writer.SUPPRESSION_EXTENDED` are rejected.
+- Extended attack (`elmfire_level_set.f90` ~l. 1069): every `DT_EXTENDED_ATTACK` the target
+  containment grows by `MAX_CONTAINMENT_PER_DAY × (1 − growth / AREA_NO_CONTAINMENT_CHANGE)`
+  %/day, and `CONTAINMENT` (`elmfire_suppression.f90`) sets `SUPPRESSION_ADJUSTMENT_FACTOR = 0`
+  on the tagged cells of the **slowest** 1° sectors around the centroid until the target is met
+  (head last). Growth above `AREA_NO_CONTAINMENT_CHANGE` makes the target shrink.
+- The state lives in `SUPP(0:1000)` and is reset at the start of every case: in the benchmark
+  chain each window starts uncontained again.
+- The extended-attack step also calls `UNTAG_CELLS`, so even `MAX_CONTAINMENT_PER_DAY = 0`
+  shifts some TOA by up to one timestep (same burned cells): `pruebas_fisicas.py supresion`.
+- Initial attack draws containment with `RANDOM_NUMBER` (probability from size and intensity):
+  not used.
+
+## A fire that goes out before SIMULATION_TSTOP leaves no rasters
+
+- When `LIST_TAGGED%NUM_NODES <= 2` (no active front: burned out, or fully contained by
+  &SUPPRESSION) the level-set loop sets `T = TSTOP + 1` and `IDUMPCOUNT = NDUMPS + 1`
+  (`elmfire_level_set.f90` ~l. 1032), and `MAIN_DUMP_ROUTINE` returns at once when
+  `IDUMPCOUNT > NDUMPS` (`elmfire_io.f90`): no `time_of_arrival`, `vs` or `flin`, only
+  `fire_size_stats.csv` (with `Containfrac 1.000` and the stop hour). The benchmark chain then
+  fails with "la corrida no dejó time_of_arrival".
+- With the vendor suppression template (120 %/day) a 24-h window can reach full containment, so
+  the benchmark uses rates below 100 %/day (each window restarts at 0 %).

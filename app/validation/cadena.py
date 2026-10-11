@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from app.elmfire.builder import ignition_builder, namelist_writer
+from app.elmfire.builder import ignition_builder, namelist_writer, weather_builder
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
 from app.validation import almacen, humedad, viento
@@ -124,6 +124,56 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         # aporte de la tesis y no se calibra). {"188": 165} modela las plantaciones TL8 como TU5.
         _reescribir(insumos / "fbfm40.tif",
                     lambda a: reasignar(a, par["reasignar_combustible"]))
+    if par.get("dosel_coherente"):
+        # Diagnóstico (auditoría física): el combustible sale de CCS-BAP y el dosel de Hansen 2000
+        # + ETH 2020, y en el matorral quemado se contradicen. Con dosel, ELMFIRE le da al SH el
+        # WAF de un bosque cerrado (~0,08 en vez de 0,46). Como LANDFIRE, sin dosel donde el
+        # combustible no es forestal.
+        with rasterio.open(insumos / "fbfm40.tif") as src:
+            sin_dosel = no_forestal(src.read(1))
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
+    if "combustible_perdida_reciente" in par:
+        # docs/crosswalk/DECISIONES-MODELO-V0 §3: una quema de 0-1 año es ceniza, fustes en
+        # pie y rebrote incipiente (Tiribelli et al. 2019; LANDFIRE FDist): casi no se
+        # mapa (2013/2017) todavía le da el combustible del bosque. {"anios": n, "codigo": c}
+        # pone c donde Hansen marca pérdida en los n años antes del incendio.
+        if "lossyear.tif" not in archivos:
+            raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -x2)")
+        cfg = par["combustible_perdida_reciente"]
+        with rasterio.open(almacen.abrir(archivos["lossyear.tif"])) as src:
+            reciente = perdida_previa(src.read(1), caso.anio_fuego,
+                                      desde=caso.anio_fuego - cfg["anios"])
+        _reescribir(insumos / "fbfm40.tif", lambda a: np.where(reciente, cfg["codigo"], a))
+    if par.get("dosel_sin_perdida_previa"):
+        # docs/crosswalk/DECISIONES-MODELO-V0 §3: el dosel es Hansen 2000 + ETH 2020 y los
+        # dos siguen viendo bosque en las quemas de 2015 (fustes en pie). Sin dosel donde
+        # pérdida antes del año del incendio (nunca ese año: sería ver la propia cicatriz).
+        if "lossyear.tif" not in archivos:
+            raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -x2)")
+        with rasterio.open(almacen.abrir(archivos["lossyear.tif"])) as src:
+            quemado = perdida_previa(src.read(1), caso.anio_fuego)
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            _reescribir(insumos / nombre, lambda a: np.where(quemado, 0, a))
+    if {"sin_dosel", "cbh_por_combustible", "cbd_por_combustible"} & set(par):
+        with rasterio.open(insumos / "fbfm40.tif") as src:
+            codigos = src.read(1)
+    if "sin_dosel" in par:
+        # docs/crosswalk/DECISIONES-MODELO-V0 §1 (c): el dosel se ignora sólo en las clases
+        # declaradas.
+        sin = en_codigos(codigos, par["sin_dosel"])
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            _reescribir(insumos / nombre, lambda a: np.where(sin, 0, a))
+    if "cbh_por_combustible" in par:
+        # docs/crosswalk/DECISIONES-MODELO-V0 §2: CBH por tipo de bosque en vez de
+        # CH × (0,2 + 0,3 CC).
+        _reescribir(insumos / "cbh.tif",
+                    lambda a: por_combustible(codigos, a, par["cbh_por_combustible"], 10))
+    if "cbd_por_combustible" in par:
+        # Ídem para la densidad de copa (p. ej. 0,16 kg/m³ medido en pino, Paritsis et al.
+        # 2018); 0 apaga la copa de esa clase sin tocar el viento bajo dosel.
+        _reescribir(insumos / "cbd.tif",
+                    lambda a: por_combustible(codigos, a, par["cbd_por_combustible"], 100))
     if "adj" in par:
         _reescribir(insumos / "adj.tif", lambda a: np.full_like(a, par["adj"]))
     if "adj_grupos" in par:
@@ -147,6 +197,24 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             raise FileNotFoundError(f"{caso.id} no empaquetó el atlas de viento: definir "
                                     "`viento_atlas` en el caso")
         _viento_del_atlas(archivos, insumos)
+    if par.get("viento_diurno"):
+        # AUDITORIA-FISICA loop M: el viento de cada hora con los flujos de ladera de WindNinja
+        # (empaquetador `viento_diurno`), en lugar del GFS/ERA5 uniforme o del atlas.
+        # "direccion" / "velocidad": sólo una de las dos; la otra sigue siendo la del GFS/ERA5.
+        if not {"wn_u.tif", "wn_v.tif"} <= set(archivos):
+            raise FileNotFoundError(f"{caso.id} no empaquetó el viento diurno (protocolo -d)")
+        dem = insumos / "dem.tif"
+        este = viento.a_la_grilla(almacen.abrir(archivos["wn_u.tif"]), dem, rellenar=True)
+        norte = viento.a_la_grilla(almacen.abrir(archivos["wn_v.tif"]), dem, rellenar=True)
+        with rasterio.open(insumos / "ws.tif") as src:
+            if src.count != este.shape[0]:
+                raise ValueError(f"el viento diurno trae {este.shape[0]} horas y la ventana "
+                                 f"{src.count}")
+        if par["viento_diurno"] != "direccion":
+            _reescribir(insumos / "ws.tif", lambda a: np.hypot(este, norte))
+        if par["viento_diurno"] != "velocidad":
+            _reescribir(insumos / "wd.tif",
+                        lambda a: (np.degrees(np.arctan2(-este, -norte)) + 360.0) % 360.0)
     if par.get("z0_desde_dosel"):
         with rasterio.open(insumos / "ch.tif") as src:
             ch_m = np.where(src.read(1) > 0, src.read(1) / 10.0, 0.0)   # 10 × m (LANDFIRE)
@@ -162,8 +230,13 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             _reescribir(insumos / nombre,
                         lambda a: np.clip(a + par["humedad_muerta_delta"], 1.0, 40.0))
 
+    # Al final, después de las perillas que vuelven a envolver el ángulo (rotacion_viento,
+    # viento_atlas): ELMFIRE interpola wd por el camino corto (hallazgo 3 de la auditoría).
+    _reescribir(insumos / "wd.tif", weather_builder.wd_for_elmfire)
+
     v = caso.ventanas[n]
-    kwargs = {k: val for k, val in receta.parametros.items() if k not in RASTERS_TRANSFORMADOS}
+    kwargs = HUMEDAD_VIVA_BASE | {k: val for k, val in receta.parametros.items()
+                                  if k not in RASTERS_TRANSFORMADOS}
     namelist_writer.write_namelist(
         insumos.resolve(), salidas.resolve(), simulation_hours=v.horas,
         output_path=insumos / "elmfire.data", simulation_tstart_s=v.tstart_s, **kwargs,
@@ -176,11 +249,18 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
     return {nombre: almacen.guardar(insumos / nombre) for nombre in sorted(nombres)}
 
 
+# La humedad viva de base del benchmark (la de base-001: LH 30 %, LW 110 %), fija acá y no
+# heredada del default de la app: así una receta sin LW sigue siendo la misma receta aunque la
+# app cambie su default (pasó a LW 100 % el 2026-09-30, la receta calibrada).
+HUMEDAD_VIVA_BASE = {"lh_moisture_pct": 30.0, "lw_moisture_pct": 110.0}
 # Perillas que no son kwargs del namelist sino transformaciones de un ráster de entrada.
 RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
                          "humedad_m1_delta", "modelo_humedad", "rotacion_viento",
                          "z0_desde_dosel", "aspecto_mas_180", "cbh_factor", "viento_atlas",
-                         "reasignar_combustible"}
+                         "reasignar_combustible", "dosel_coherente", "sin_dosel",
+                         "cbh_por_combustible", "cbd_por_combustible",
+                         "dosel_sin_perdida_previa", "combustible_perdida_reciente",
+                         "viento_diurno"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}
@@ -215,6 +295,43 @@ def factor_rugosidad(ch_m: np.ndarray) -> np.ndarray:
     z0 = np.clip(0.13 * ch_m, 0.03, 0.9 * 6.096)   # el log-perfil exige z0 < 20 pies
     arriba = np.log(6.096 / z0) / np.log(10.0 / z0)
     return (arriba / wind_height_factor()).astype("float32")
+
+
+def no_forestal(codigos: np.ndarray) -> np.ndarray:
+    """Celdas con combustible de pastizal, pastizal-arbustal o arbustal (GR, GS, SH): los
+    grupos de Scott y Burgan sin dosel arbóreo."""
+    return (codigos >= GRUPOS_COMBUSTIBLE["GR"][0]) & (codigos <= GRUPOS_COMBUSTIBLE["SH"][1])
+
+
+def perdida_previa(lossyear: np.ndarray, anio_fuego: int, desde: int = 2001) -> np.ndarray:
+    """Hansen GFC lossyear (0 = sin pérdida, n = 2000 + n) con pérdida entre `desde` y el año
+    anterior al incendio."""
+    return (lossyear >= max(desde - 2000, 1)) & (lossyear <= anio_fuego - 1 - 2000)
+
+
+def en_codigos(codigos: np.ndarray, claves) -> np.ndarray:
+    """Celdas cuyo código FBFM40 está en `claves`: códigos ("148") o grupos ("SH")."""
+    m = np.zeros(codigos.shape, dtype=bool)
+    for clave in claves:
+        if clave in GRUPOS_COMBUSTIBLE:
+            desde, hasta = GRUPOS_COMBUSTIBLE[clave]
+            m |= (codigos >= desde) & (codigos <= hasta)
+        else:
+            m |= codigos == int(clave)
+    return m
+
+
+def por_combustible(codigos: np.ndarray, capa: np.ndarray, tabla: dict,
+                    escala: float) -> np.ndarray:
+    """Valor por código o grupo FBFM40 (en unidades físicas; `escala` es la codificación de
+    ELMFIRE: 10 para cbh en m, 100 para cbd en kg/m³), sólo donde ya hay copa (capa > 0); un
+    código pisa a su grupo. El resto queda como lo derivó canopy_builder."""
+    salida = capa.copy()
+    hay_copa = capa > 0
+    for clave in sorted(tabla, key=lambda k: k in GRUPOS_COMBUSTIBLE, reverse=True):
+        m = hay_copa & en_codigos(codigos, [clave])
+        salida[m] = round(tabla[clave] * escala)
+    return salida
 
 
 def reasignar(codigos: np.ndarray, cambios: dict) -> np.ndarray:
@@ -264,7 +381,9 @@ def _reescribir(ruta: Path, transformar) -> None:
     with rasterio.open(ruta) as src:
         perfil, datos = src.profile, src.read()
     ruta.unlink()
-    with rasterio.open(ruta, "w", **perfil) as dst:
+    predictor = 3 if perfil["dtype"].startswith("float") else 2
+    comprimir = {"compress": "deflate", "predictor": predictor}
+    with rasterio.open(ruta, "w", **(perfil | comprimir)) as dst:
         dst.write(transformar(datos).astype(perfil["dtype"]))
 
 
@@ -305,6 +424,12 @@ def correr(caso: Caso, receta: Receta) -> dict:
     exigir_receta_intacta(receta, caso)
     previo = cargar_manifiesto(caso.id, receta.id)
     hechas = previo["ventanas"] if previo and previo["caso_sha"] == caso.sha() else []
+    semilla_en_metros = _leer(caso.paquete()["ventanas"][0]["phi.tif"]).max() > 1
+    if len(hechas) < len(caso.ventanas) and semilla_en_metros:
+        # phi en metros: un paquete anterior a la auditoría física (hallazgo 2). Correrlo
+        # ahora mezclaría la semilla vieja con las ventanas encadenadas nuevas (±1).
+        raise ValueError(f"{caso.id} se empaquetó antes de la auditoría física: "
+                         "re-empaquetarlo como protocolo nuevo (-v4)")
     if receta.semilla == "prediccion":
         dems = {caso.paquete()["comunes"].get("dem.tif")}
         dems |= {v.get("dem.tif") for v in caso.paquete()["ventanas"] if "dem.tif" in v}
@@ -448,6 +573,23 @@ def puntuar(caso: Caso, receta: Receta) -> dict:
     return metricas
 
 
+# Lo que la principal copia de la confusión al horizonte (o del agregado FIRMS).
+METRICAS_PRINCIPALES = ("dice", "iou", "precision", "recall", "tp", "fp", "fn")
+
+
+def principal_completa(metricas: dict) -> dict | None:
+    """La principal con IoU, precisión, recall y tp/fp/fn. Las iteraciones puntuadas antes de
+    que la principal los copiara los tienen igual en su ventana (o en el agregado FIRMS)."""
+    pr = metricas.get("principal")
+    if not pr or all(k in pr for k in METRICAS_PRINCIPALES):
+        return pr
+    if pr["referencia"] == "cicatriz":
+        m = metricas["ventanas"][pr["ventana"]]["cicatriz"]["acumulado"]
+    else:
+        m = metricas["agregado_firms"]["incremento"]
+    return {**{k: m.get(k) for k in METRICAS_PRINCIPALES}, **pr}
+
+
 def _principal(filas: list[dict], semilla: str, agregado: dict | None) -> dict | None:
     """Dice de la última ventana contra la cicatriz, si la cadena corre sola.
 
@@ -459,11 +601,13 @@ def _principal(filas: list[dict], semilla: str, agregado: dict | None) -> dict |
     ultima = filas[-1]
     if semilla == "prediccion" and "cicatriz" in ultima:
         m = ultima["cicatriz"]["acumulado"]
-        return {"referencia": "cicatriz", "ventana": ultima["n"], "dice": m["dice"],
+        return {"referencia": "cicatriz", "ventana": ultima["n"],
+                **{k: m[k] for k in METRICAS_PRINCIPALES},
                 "sesgo_area": m["sesgo_area"], "alarma_sesgo": m["alarma_sesgo"]}
     if agregado and "incremento" in agregado:
         m = agregado["incremento"]
-        return {"referencia": "firms", "ventana": None, "dice": m["dice"],
+        return {"referencia": "firms", "ventana": None,
+                **{k: m[k] for k in METRICAS_PRINCIPALES},
                 "sesgo_area": None, "alarma_sesgo": False}
     return None
 
@@ -497,7 +641,7 @@ def _confusion(pred, ref, ya, excluido, grilla: p.Grilla, destino: Path) -> None
     codigos[excluido] = EXCLUIDO
     codigos[ya] = SEMILLA
     destino.parent.mkdir(parents=True, exist_ok=True)
-    perfil = grilla.perfil | {"dtype": "uint8", "count": 1, "nodata": None}
+    perfil = grilla.perfil | {"dtype": "uint8", "count": 1, "nodata": None, "compress": "deflate"}
     with rasterio.open(destino, "w", **perfil) as dst:
         dst.write(codigos, 1)
 
@@ -507,7 +651,7 @@ def _llegada(horas: np.ndarray, grilla: p.Grilla, destino: Path) -> None:
     dashboard lo polígonice con el mismo código que el mapa. La semilla queda afuera: el
     visor la dibuja aparte, como el perímetro de ignición."""
     segundos = np.where(np.isnan(horas), -1.0, horas * 3600.0)
-    perfil = grilla.perfil | {"dtype": "float32", "count": 1, "nodata": -1.0}
+    perfil = grilla.perfil | {"dtype": "float32", "count": 1, "nodata": -1.0, "compress": "deflate"}
     destino.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".tif", dir=destino.parent, delete=False) as tmp:
         with rasterio.open(tmp.name, "w", **perfil) as dst:

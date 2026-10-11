@@ -27,7 +27,7 @@ FETCH_BACKOFF_S = 10.0
 MAX_LOOKBACK_DAYS = 2
 
 # Forecast hours fetched per cycle. Each becomes one band of the output GeoTIFF, and
-# ELMFIRE reads band n as the weather at TSTART + n × DT_METEOROLOGY (3600 s). Fetching
+# ELMFIRE reads band n as the weather at absolute time n × DT_METEOROLOGY (3600 s). Fetching
 # only fxx=0 produces a single-band raster that silently freezes weather for the whole
 # simulation — no diurnal wind peak, no afternoon RH minimum. 24 h of hourly bands
 # covers the default 12 h horizon with headroom; GFS publishes hourly out to f120.

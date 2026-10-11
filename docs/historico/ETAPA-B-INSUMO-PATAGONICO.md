@@ -1,5 +1,8 @@
 # Etapa B — Insumo patagónico y crosswalk fundamentado
 
+> **Histórico:** etapa completada. El crosswalk vigente está en `docs/crosswalk/` y el estado
+> del research en `docs/resultados/ESTADO-RESEARCH.md`.
+>
 > Estado: **B0 ejecutado** (2026-09-06, MapBiomas promovido) · **B1 cerrado** (2026-09-13,
 > CIEFAP dio acceso) · **B2 propuesto** en `IGN-20B-CROSSWALK-CCSBAP.md` · **B3/B4
 > implementados** y cableados al pipeline (`settings.fuels_source`, por defecto `ccsbap`) ·
@@ -437,5 +440,4 @@ species in Andean Patagonia, Argentina.* IJWF 24(3):340. —
 [https://connectsci.au/wf/article-abstract/24/3/340/21003/Live-fuel-moisture-content-and-leaf-ignition-of](https://connectsci.au/wf/article-abstract/24/3/340/21003/Live-fuel-moisture-content-and-leaf-ignition-of)
 - Loguercio, G. et al. (2006), citado por CCS-BAP para la separación matorral / arbustal.
 - MapBiomas Argentina, Colección 2 — [https://argentina.mapbiomas.org/](https://argentina.mapbiomas.org/)
-- `docs/historico/SIMULATION_AUDIT.md` §1, §2.1 · `IGN-26-VALIDACION.md` §12.3, §12.4
-
+- `docs/historico/SIMULATION_AUDIT.md` §1, §2.1 · `docs/resultados/IGN-26-VALIDACION.md` §12.3, §12.4

@@ -36,6 +36,20 @@ def test_anterior_al_fuego_resuelve_por_incendio():
     assert _receta().anio_combustible(_caso(2023)) == 2017
 
 
+def test_sin_anterior_la_fuga_se_declara():
+    combustible = {"fuente": "worldcover", "anio": "anterior_al_fuego"}
+    with pytest.raises(ValueError, match="ningún año"):
+        _receta(combustible=combustible).anio_combustible(_caso(2016))
+    r = _receta(combustible=combustible | {"sin_anterior": "primero_publicado"})
+    assert r.anio_combustible(_caso(2016)) == 2020
+    assert r.factores(_caso(2016))["fuga_temporal"] is True
+    assert r.anio_combustible(_caso(2023)) == 2021
+    assert "fuga_temporal" not in r.factores(_caso(2023))
+    ultimo = _receta(combustible=combustible | {"sin_anterior": "ultimo_publicado"})
+    assert ultimo.anio_combustible(_caso(2016)) == 2021
+    assert ultimo.anio_combustible(_caso(2021)) == 2020
+
+
 def test_prediccion_exige_ventanas_contiguas():
     with pytest.raises(ValueError, match="contiguas"):
         _receta().validar(_caso(contiguo=False))
@@ -118,3 +132,48 @@ def test_modelo_de_humedad_desconocido_rechazado():
         _receta(parametros={"modelo_humedad": "magia"}).validar(_caso())
     _receta(parametros={"modelo_humedad": "fosberg", "humedad_m1_delta": -2,
                         "adj_grupos": {"SH": 1.3}}).validar(_caso())
+
+
+def test_modelo_es_un_gate_y_no_otra_receta(tmp_path, monkeypatch):
+    monkeypatch.setattr(d, "RAIZ", tmp_path)
+    (tmp_path / "recetas").mkdir()
+    (tmp_path / "modelos").mkdir()
+    receta = {
+        "motivo": "receta promovida",
+        "combustible": {"fuente": "ccsbap", "anio": "anterior_al_fuego"},
+        "semilla": "prediccion",
+        "parametros": {"lw_moisture_pct": 100.0},
+    }
+    (tmp_path / "recetas" / "r.json").write_text(json.dumps(receta))
+    r = d.Receta.cargar("r")
+    caso = _caso()
+    caso_sha = caso.sha()
+    monkeypatch.setattr(d.Caso, "cargar", lambda _: caso)
+    monkeypatch.setattr(
+        d,
+        "cargar_manifiesto",
+        lambda *_: {"caso_sha": caso_sha, "receta_sha": r.sha()},
+    )
+    monkeypatch.setattr(d, "cargar_metricas", lambda *_: {"dice": 0.5})
+    conjuntos = {"calibracion": {"gfs": [caso.id]}}
+    modelo = d.Modelo(
+        "modelo-v0",
+        "aprobado",
+        "2026-10-04",
+        "r",
+        r.sha(),
+        "a" * 40,
+        conjuntos,
+        {caso.id: caso_sha},
+        {"fisica": "aprobada"},
+        {"calibracion": {"dice": 0.5}},
+        [],
+        ["docs/modelo.md"],
+    )
+    modelo.validar()
+    assert modelo.casos == [caso.id]
+
+    receta["parametros"]["lw_moisture_pct"] = 90.0
+    (tmp_path / "recetas" / "r.json").write_text(json.dumps(receta))
+    with pytest.raises(ValueError, match="cambió la receta"):
+        modelo.validar()

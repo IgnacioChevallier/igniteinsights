@@ -72,14 +72,10 @@ def test_phi_ignites_the_centre_and_respects_elmfires_floor(tmp_path):
     assert (phi < 0).sum() > 1
 
 
-def test_phi_is_a_signed_distance_field_outside_the_disc(tmp_path):
-    """Sign is what ELMFIRE reads, but the magnitude outside must be a real distance —
-    a +/-1 field would give the front no gradient to initialise from.
-
-    Note the asymmetry, which is deliberate and not a bug: PHI_IGNITION_FLOOR clamps the
-    interior, so every cell more than 1 m inside the disc holds exactly the floor rather
-    than its true (more negative) distance. Only the exterior carries real metres.
-    """
+def test_phi_is_elmfires_plus_minus_one_field(tmp_path):
+    """-1 inside the disc, +1 outside, nothing else. A signed distance in metres made
+    ELMFIRE's front advance at ~0.5x the computed rate (scripts/pruebas_fisicas.py,
+    docs/resultados/AUDITORIA-FISICA.md hallazgo 2)."""
     radius, cell = 90.0, 30.0
     d = _build(tmp_path, domain_size_m=1200, cellsize_m=cell, ignition_radius_m=radius)
     with rasterio.open(d / "phi.tif") as ds:
@@ -89,13 +85,9 @@ def test_phi_is_a_signed_distance_field_outside_the_disc(tmp_path):
     centre = (n - 1) / 2.0
     rows, cols = np.mgrid[0:n, 0:n]
     distance = np.hypot(rows - centre, cols - centre) * cell
-
-    inside, outside = distance < radius, distance > radius
-    assert (phi[inside] < 0).all(), "every cell inside the disc must be burning"
-    assert (phi[outside] > 0).all(), "no cell outside the disc may start burning"
-    # Outside, phi is the distance to the disc edge in metres, not a flag.
-    assert np.allclose(phi[outside], (distance - radius)[outside], atol=1e-3)
-    assert len(np.unique(phi[outside])) > 1, "a +/-1 field would have a single value here"
+    assert (phi[distance < radius] == -1.0).all()
+    assert (phi[distance > radius] == 1.0).all()
+    assert set(np.unique(phi)) == {-1.0, 1.0}
 
 
 def test_ignition_smaller_than_a_cell_is_rejected(tmp_path):

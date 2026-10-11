@@ -216,7 +216,7 @@ def assert_codes_are_defined(fbfm40: "np.ndarray", table_path: Path | None = Non
 
 
 # ---------------------------------------------------------------------------
-# MapBiomas Argentina Colección 2 → FBFM40 (docs/historico/IGN-20-CROSSWALK.md §5)
+# MapBiomas Argentina Colección 2 → FBFM40 (docs/crosswalk/IGN-20-CROSSWALK.md §5)
 # ---------------------------------------------------------------------------
 MAPBIOMAS_SOURCE_ID = "mapbiomas_argentina_col2_2024"
 
@@ -245,7 +245,7 @@ MAPBIOMAS_TO_FBFM40: dict[int, int] = {
 }
 
 # ---------------------------------------------------------------------------
-# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md
+# CCS-BAP (CIEFAP/MAyDS) → FBFM40 — ver docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md
 #
 # Clave: el par (Ley_N1, Ley_N2). Ley_N2 sola es ambigua — "Le" existe como bosque
 # (TF) y como lenga achaparrada (OFL), y esa distinción estructural es justamente la
@@ -278,18 +278,26 @@ CCSBAP_TO_FBFM40: dict[tuple[str, str], int] = {
     ("OFL", "Ma"): 144,      # Maitén bajo     → SH4
     ("OFL", "Cg"): 144,      # Ciprés guaitecas juvenil → SH4
     # --- Otras Tierras ---
-    ("OT", "Herb-Subarb"): 103,   # Estepa      → GR3 (ver override Estepa Arb/Pradera)
+    # Estepa → GR2 (docs/crosswalk/DECISIONES-MODELO-V0 loop L; antes GR3,
+    # 1.138 m/h a 10 mph, precisión 0,12 en calibración) y sobre el límite del bosque → NB9
+    # (CCSBAP_SOBRE_LIMITE_BOSQUE).
+    ("OT", "Herb-Subarb"): 102,   # Estepa      → GR2 (ver override Estepa Arb/Pradera)
     ("OT", "Erial"): 99,          # Erial       → NB9
     ("OT", "Humedales"): 105,     # Mallín      → GR5 (ver override Turbera)
     ("OT", "Agua"): 98,           # Agua        → NB8
     ("OT", "Hie-Nie"): 92,        # Hielo/nieve → NB2
-    ("OT", "Rem Dist Rec"): 123,  # Remanente de disturbio reciente → GS3 (PT-37 A2)
+    # Remanente de disturbio reciente → SH3
+    # (docs/crosswalk/DECISIONES-MODELO-V0 §4, loop L): el GS3 de la PT-37 (A2, ñire a
+    # 2 años) describe los primeros 2-5 años; con mapas de 2013/2017 y fuegos
+    # de 2015-2026 el remanente tiene 6-15 años, matorral rebrotante leñoso (Tiribelli et al.
+    # 2018; Blackhall et al. 2017).
+    ("OT", "Rem Dist Rec"): 143,
     ("OT", "Exot-Artif"): 101,    # Exóticas/artificial → GR1 (ver overrides)
 }
 
 # Clases de nivel 3 cuyo comportamiento del fuego NO es el de su nivel 2. Sin estos, la
 # turbera heredaría el modelo del mallín y una forestación de pino heredaría el de un
-# cultivo. Cada una está justificada en docs/historico/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §5.
+# cultivo. Cada una está justificada en docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §5.
 CCSBAP_N3_OVERRIDES: dict[str, int] = {
     "Turbera": 99,       # NB9 — combustión latente, fuera del alcance de Rothermel
     "Cg Juv-Tur": 99,    # ciprés de las guaitecas sobre turbera → ídem
@@ -302,6 +310,14 @@ CCSBAP_N3_OVERRIDES: dict[str, int] = {
     "Pastura": 102,      # pastura implantada → GR2
     "Infraest": 91,      # infraestructura → NB1
 }
+
+
+# Clases de nivel 3 que sobre una altura (m, del DEM de referencia) cambian de modelo: CCS-BAP
+# llama "Estepa" también a la vegetación altoandina rala entre roca y nieve, por encima del
+# límite del bosque (docs/resultados/AUDITORIA-FISICA.md loop K;
+# docs/crosswalk/DECISIONES-MODELO-V0 loop L: +0,009 en calibración,
+# Alerces 2024 0,562 → 0,614).
+CCSBAP_SOBRE_LIMITE_BOSQUE: dict[str, tuple[float, int]] = {"Estepa": (1300.0, 99)}
 
 
 def ccsbap_fuel_code(ley_n1: str, ley_n2: str, ley_n3: str) -> int:
@@ -429,7 +445,8 @@ def ccsbap_to_fbfm40(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     key = _cache_key(
         shapefile_path, reference_path, CCSBAP_SOURCE_ID,
-        {f"{a}|{b}": v for (a, b), v in CCSBAP_TO_FBFM40.items()} | CCSBAP_N3_OVERRIDES,
+        {f"{a}|{b}": v for (a, b), v in CCSBAP_TO_FBFM40.items()} | CCSBAP_N3_OVERRIDES
+        | {f"{k}>={h}": v for k, (h, v) in CCSBAP_SOBRE_LIMITE_BOSQUE.items()},
     )
     key_path = output_path.parent / f".{output_path.stem}_cache_key.json"
     if output_path.exists() and key_path.exists():
@@ -453,6 +470,10 @@ def ccsbap_to_fbfm40(
         ccsbap_fuel_code(a, b, c)
         for a, b, c in zip(gdf["Ley_N1"], gdf["Ley_N2"], gdf["Ley_N3"])
     ]
+    # Las clases con cambio por altura se queman con un código propio (negativo, fuera de la
+    # tabla) y se resuelven después de la moda, con la altura de cada celda.
+    altura_clases = {n3: -(i + 1) for i, n3 in enumerate(CCSBAP_SOBRE_LIMITE_BOSQUE)}
+    gdf.loc[gdf["Ley_N3"].isin(altura_clases), "fuel"] = gdf["Ley_N3"].map(altura_clases)
 
     fine_transform = dst_transform * rasterio.Affine.scale(1 / subpixel, 1 / subpixel)
     fine = rasterize(
@@ -473,6 +494,16 @@ def ccsbap_to_fbfm40(
         count = (blocks == code).sum(axis=(1, 3)).astype(np.int8)
         wins = count > best
         best[wins], fbfm40[wins] = count[wins], code
+
+    if altura_clases:
+        with rasterio.open(reference_path) as ref:
+            altura = ref.read(1)
+        for n3, provisorio in altura_clases.items():
+            umbral, sobre = CCSBAP_SOBRE_LIMITE_BOSQUE[n3]
+            clase = fbfm40 == provisorio
+            debajo = next(ccsbap_fuel_code(a, b, c) for a, b, c in
+                          zip(gdf["Ley_N1"], gdf["Ley_N2"], gdf["Ley_N3"]) if c == n3)
+            fbfm40[clase] = np.where(altura[clase] >= umbral, sobre, debajo)
 
     fbfm40 = _fill_gaps(fbfm40, fbfm40 == 0, fill_path)
     assert_codes_are_defined(fbfm40)

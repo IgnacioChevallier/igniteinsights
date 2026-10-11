@@ -22,7 +22,7 @@ MAPAS = Path("data/static/fuel_maps")
 INPUTS, OUTPUTS = Path("data/elmfire/inputs"), Path("data/elmfire/outputs")
 
 
-def preparar(base: Path, fuente: str, sufijo: str, lh: float, lw: float) -> str:
+def preparar(base: Path, fuente: str, sufijo: str, lh: float, lw: float, mapas: str) -> str:
     nombre = f"cmp{sufijo}_{fuente}"
     inputs, outputs = INPUTS / nombre, OUTPUTS / nombre
     shutil.rmtree(inputs, ignore_errors=True)
@@ -36,7 +36,7 @@ def preparar(base: Path, fuente: str, sufijo: str, lh: float, lw: float) -> str:
             (inputs / f.name).hardlink_to(f)
         except OSError:
             shutil.copy2(f, inputs / f.name)
-    shutil.copy2(MAPAS / f"fbfm40_{fuente}.tif", inputs / "fbfm40.tif")
+    shutil.copy2(mapas.format(fuente=fuente), inputs / "fbfm40.tif")
 
     texto = (base / "elmfire.data").read_text()
     for clave, valor in (("LH_MOISTURE_CONTENT", lh), ("LW_MOISTURE_CONTENT", lw)):
@@ -66,11 +66,15 @@ def main() -> None:
     ap.add_argument("--sufijo", default="")
     ap.add_argument("--lh", type=float, default=DEFAULT_LH_MOISTURE_PCT)
     ap.add_argument("--lw", type=float, default=DEFAULT_LW_MOISTURE_PCT)
+    # Los mapas de data/static/fuel_maps se regeneraron sobre la caja del benchmark: para
+    # re-correr una comparación vieja, sus propios fbfm40
+    # (p. ej. data/elmfire/inputs/cmp_b5_{fuente}/fbfm40.tif).
+    ap.add_argument("--mapas", default=str(MAPAS / "fbfm40_{fuente}.tif"))
     args = ap.parse_args()
 
     print(f"Base: {args.base} · LH {args.lh} % · LW {args.lw} %")
     for fuente in ("worldcover", "mapbiomas", "ccsbap"):
-        nombre = preparar(args.base, fuente, args.sufijo, args.lh, args.lw)
+        nombre = preparar(args.base, fuente, args.sufijo, args.lh, args.lw, args.mapas)
         print(f"  corriendo {nombre} …", flush=True)
         correr(nombre)
         print(f"  listo {nombre}", flush=True)

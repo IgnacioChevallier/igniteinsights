@@ -1,0 +1,106 @@
+{
+  "estado": "aprobado",
+  "fecha_corte": "2026-10-04",
+  "receta": "lw-100-001",
+  "receta_sha": "b903a55293b195067043f1cb3533a370721b87ee0256a0d6867df115eae4ecac",
+  "codigo_sha": "f710c4bd038ad23a440034e874f53b4ba488e7f4",
+  "conjuntos": {
+    "calibracion": {
+      "gfs": [
+        "los-alerces-2023/calibracion-v6-h54",
+        "epuyen-2025/calibracion-v6",
+        "los-alerces-2024/calibracion-v6",
+        "puerto-patriada-2026/calibracion-v6",
+        "las-golondrinas-2021/calibracion-v6"
+      ],
+      "era5": [
+        "los-alerces-2016/calibracion-era5-v6",
+        "cholila-2015/calibracion-era5-v6"
+      ]
+    },
+    "prueba": {
+      "gfs": [
+        "el-turbio-2025/calibracion-v6",
+        "puerto-cafe-2025/calibracion-v6s"
+      ],
+      "era5": [
+        "epuyen-2019/calibracion-era5-v6",
+        "los-alerces-2015/calibracion-era5-v6"
+      ]
+    }
+  },
+  "casos_sha": {
+    "los-alerces-2023/calibracion-v6-h54": "cd9181828db8c9461e1df2d0628910dc275de1cc58ee82ea14eb6a571f81ffba",
+    "epuyen-2025/calibracion-v6": "72a4b3be28ba82206c49f75b005aa91e92d823066c62ed9a60a663951968229a",
+    "los-alerces-2024/calibracion-v6": "991b592afe457826ce007a89a11a5a0f9ffb7a55dc80901135cb620bafa3465e",
+    "puerto-patriada-2026/calibracion-v6": "6d2dd434d5b22781aaf4330ab3cdee01a5074612892ca7df6315b8fd6c7fdaf2",
+    "las-golondrinas-2021/calibracion-v6": "7c25507047f03277036a1237002ffa05f118d2d0abf3d393dae65e6c5407fb68",
+    "los-alerces-2016/calibracion-era5-v6": "0682da74dc18fc28d2ee316d97b11f362e957f6407573f0d1251959f578431bb",
+    "cholila-2015/calibracion-era5-v6": "672442a6a0cfe607daadc3a18034071fb1e00b120f900d30fdf02ca1b1aeb254",
+    "el-turbio-2025/calibracion-v6": "ffc2d0fd99468d48671f21e8516d225ad0b1e465524ce912c00f3ee9821d9807",
+    "puerto-cafe-2025/calibracion-v6s": "432dc15032fa49c018e8b1037ffb2c7fd1af3c1cf0c94f3e38af9898c6a0c4c8",
+    "epuyen-2019/calibracion-era5-v6": "af03354a3cce269ede9b8745d02add8d8d675c1befa3013649d0b35205713aaf",
+    "los-alerces-2015/calibracion-era5-v6": "49a4c162e20243f37fe052a7c2b377b1d670c3968bac9f2603ea639d1e1b8d44"
+  },
+  "criterios_gate": {
+    "interfaz_fisica": "Banco físico de ELMFIRE aprobado con las correcciones 1-5 y la orientación de terreno v3.",
+    "calibracion": "Sin sesgo de área fuera de [0.5, 2] en calibración, excluido el caso límite Las Golondrinas.",
+    "reproducibilidad": "Receta, casos, paquetes, manifiestos y métricas congelados por SHA-256.",
+    "holdout": "El conjunto de prueba se informa y no se usa para modificar el modelo.",
+    "stop_rule": "No se reabre por una mejora en prueba; sólo por un bug físico o evidencia externa nueva."
+  },
+  "resultados": {
+    "calibracion": {
+      "n": 7,
+      "dice_media": 0.439,
+      "dice_mediana": 0.501,
+      "iou_media": 0.297,
+      "precision_media": 0.448,
+      "recall_media": 0.504,
+      "alarmas_sin_caso_limite": 0
+    },
+    "validacion_cruzada": {
+      "n_casos": 7,
+      "n_recetas_completas": 5,
+      "dice_media_fuera_de_muestra": 0.416,
+      "dice_mediana_fuera_de_muestra": 0.496
+    },
+    "prueba": {
+      "n": 4,
+      "dice_media": 0.191,
+      "dice_mediana": 0.167,
+      "alarmas": 2
+    },
+    "robustez_ignicion": {
+      "n": 21,
+      "dice_media": 0.461,
+      "dice_mediana": 0.497,
+      "alarmas": 2
+    },
+    "verificacion_ejecutable": {
+      "fecha": "2026-10-04",
+      "gfs": {
+        "caso": "epuyen-2025/calibracion-v6",
+        "ventanas_iguales": 4
+      },
+      "era5": {
+        "caso": "los-alerces-2016/calibracion-era5-v6",
+        "ventanas_iguales": 3
+      }
+    }
+  },
+  "limitaciones": [
+    "No reproduce el primer día explosivo de varios incendios.",
+    "No representa adecuadamente la supresión observada en El Turbio y Epuyén 2019.",
+    "La dirección y velocidad del viento de superficie no están validadas con estaciones cercanas a Alerces 2016 y Cholila.",
+    "Las Golondrinas es un caso límite meteorológico fuera del gate de sesgo.",
+    "El holdout tiene cuatro incendios y dos alarmas; modelo-v0 es un baseline productivo, no evidencia de generalización universal."
+  ],
+  "documentacion": [
+    "docs/resultados/ESTADO-RESEARCH.md",
+    "docs/resultados/MODELO-V0.md",
+    "docs/resultados/AUDITORIA-FISICA.md",
+    "docs/crosswalk/DECISIONES-MODELO-V0.md",
+    "docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md"
+  ]
+}

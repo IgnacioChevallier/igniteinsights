@@ -1,0 +1,60 @@
+{
+  "descripcion": "PN Los Alerces, cordón Situación (sur del Lago Futalaufquen, zona intangible): incendio intencional según la intendencia, declarado el lunes 23-mar-2015. 72 h: el área FIRMS llega al 91 % el 25-mar. Protocolo `calibracion-era5` (RESULTADOS-CSS-BAP): anterior al archivo GFS, clima ERA5 horario de Open-Meteo (celda de 0,25° sin reducción de escala). Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v4 (AUDITORIA-FISICA.md): el protocolo de prueba con las correcciones de la auditoría física: phi.tif ±1, &MONTE_CARLO NUM_METEOROLOGY_TIMES y wd por el camino corto. Versión v5 (AUDITORIA-FISICA.md, loop I): `calibracion-era5-v4` con el dosel re-derivado por canopy_builder (hallazgo 4: cobertura 0 donde el CH de ETH es < 2 m o no tiene dato; con cobertura ≥ 15 % y sin altura ELMFIRE deja la celda sin viento), desde la preparación `data/elmfire/inputs/benchmark-2026-09-28-asp3-v5` (hardlinks de `data/elmfire/inputs/benchmark-2026-09-28-asp3` salvo cc/cbh/cbd; scripts/preparar_benchmark.py --dosel-desde), y corrido con el clima rellenado al este hasta NCOLS ≥ NROWS en write_namelist (hallazgo 5: con la grilla más alta que ancha, la franja norte leía el clima de otra fila). Versión v5a (AUDITORIA-FISICA.md, loop K, diagnóstico del caso de prueba): `calibracion-era5-v5` más el atlas de viento de WindNinja (16 direcciones a 90 m), como los v5 de calibración con ERA5, para la perilla `viento_atlas`: ¿el valle del Futalaufquen encauza el viento del ESE de ERA5 hacia el N a lo largo de la costa? Sólo diagnóstico: no se usa para elegir receta.",
+  "anio_fuego": 2015,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.6272,
+    "lat": -42.908,
+    "hora": "2015-03-23T16:00:00+00:00",
+    "fuente": "Perfil (23-mar-2015): 'un incendio se desató hoy en el Parque Nacional Los Alerces', intencional según el intendente Daniel Crosta; zona intangible, restricción de navegación entre la cabecera sur del Futalaufquen y Punta Mattos. Coordenada: la de mask-dataset-gen (primera detección VNP14A1), 300 m dentro de la cicatriz, 841 m, 261 m de las primeras detecciones VIIRS (18:53 UTC).",
+    "ajuste": "Hora no publicada: se toma 13 ART, antes de la primera pasada VIIRS que ya ve 8 píxeles."
+  },
+  "ventanas": [
+    {
+      "t0": "2015-03-23T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2015-03-24T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2015-03-25T16:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.72,
+    -42.972,
+    -71.533,
+    -42.793
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2015/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "era5 horario de Open-Meteo, celda de 0,25° sin reducción de escala (T, HR, viento 10 m y terreno de la celda)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v5",
+    "clima_fuente": "era5",
+    "mapas": {
+      "fbfm40_ccsbap2013.tif": "data/elmfire/inputs/benchmark-2026-09-28-asp3-v5/fbfm40_ccsbap2013.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true,
+    "viento_atlas": {
+      "motor": "WindNinja 3.12.2, conservación de masa",
+      "resolucion_m": 90,
+      "vegetacion": "brush"
+    }
+  }
+}

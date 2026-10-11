@@ -1,0 +1,85 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v5-x3",
+  "caso_sha": "e61d6dc59b1ca932c9606f5355c023af960098910e3234ae7b985455c093385d",
+  "receta": "lw100-full-rec1nb-001",
+  "receta_sha": "48de04a7275f57cfba89872bd7862d5465bcf73c86351686e053a1df11e1f790",
+  "padre": "lw100-lit-altoremsh3-perd-gr1-001",
+  "motivo": "Loop L, DECISIONES-DIRECTOR §3: sin el dosel la quema de Alerces 2015 (685 ha, un año antes) acelera a Alerces 2016 (falso positivo en la pérdida 63 → 149 ha); una quema de 0-1 año casi no se reenciende (Tiribelli et al. 2019; LANDFIRE FDist). Pérdida del año anterior → NB9.",
+  "factores": {
+    "combustible": "ccsbap-altoremsh32017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0,
+    "cbh_por_combustible": {
+      "186": 6.0,
+      "185": 4.0,
+      "165": 1.5,
+      "163": 1.5,
+      "182": 1.0,
+      "188": 1.5
+    },
+    "cbd_por_combustible": {
+      "188": 0.16
+    },
+    "dosel_sin_perdida_previa": true,
+    "reasignar_combustible": {
+      "103": 101
+    },
+    "combustible_perdida_reciente": {
+      "anios": 1,
+      "codigo": 99
+    }
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "c0acf2f926636b5cc0c89f7a604dc1cbdb1b0a33",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "6713fc21a04c880887081222acf1e6e30d24bbb501dc46ec366f76c7df152e20",
+        "cbh.tif": "4938339cb32c6297e45fbd3f2518e7ae5fd710af00ff3adb0d907727361fb420",
+        "cc.tif": "a3801a800d1ccb8312ad787bd150d850e09681ddf211a15e75c3aa9981c16aa3",
+        "ch.tif": "7b002cf1b873c88735a48bc19440e3754444c186e14b5f9a875e9f365ed4af3a",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "4dc4c00602592077252dd81ba345a908bbeea8d8a7fcee5ded3d64cafabe5c56",
+        "fbfm40.tif": "c36c2f6a4a05626058a2d849cd85509db6423bc5380b7992edd590cd297f8002",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "6b9e9bcb1eb52d18cdb6d3896599cd7e517f7b3fe18feaa2b2e01f323230b679",
+        "m10.tif": "ae50da8a1e581532bcad63e58384fdbf8a44e5cef0d4cc6ca3d47e8fdc7addb1",
+        "m100.tif": "89003f0a7218eba0dd9bf2030e2efbccf9600ca5b6a971cc5dbb34f1c1eaa849",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "e2c150cc99c057a7eb663a3674c52710f4646d59de6fdceab6dc614481349cab",
+        "ws.tif": "69d2214473a31c6aa9f080101b88f58ee173be524f6058b29752e9fc3cdb9bb8"
+      },
+      "namelist_sha": "4a0d021398d9de3cc27985156044add3d7b2f97f7c1517d24d27e3486d3a6a6c",
+      "salidas": {
+        "fire_size_stats.csv": "69dd59cfbb85c19dbcc1f8971e9d866aab26708c162a0f0c3e31ce975a5ceab8",
+        "flin_0000001_0086743.tif": "6ed09a23735c130fbad5d4748430691795187a4895302c5afdc381401e57861b",
+        "hourly_isochrones.dbf": "df77160ec52fdec2a31ea2c11d00298eb4728210f3401858f2b4607bd124ad3d",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "574c1c3a3292b74298eafd1cccb547e141f1b642a3d2644c41b1926707053fa7",
+        "hourly_isochrones.shx": "2766419c761402420180d3b7c651d93811daecfdce6b6fd2ffa4f95f2b1c82ff",
+        "time_of_arrival_0000001_0086743.tif": "b98d2b102af7dc2f18c6c5b1b17401743d1f0838d8ae92b4e3103279e84e2b64",
+        "vs_0000001_0086743.tif": "dde0391d99710cfd23d16c4c1d4c6110deb52d4a4781dd00c216365548719908"
+      },
+      "git": {
+        "sha": "c0acf2f926636b5cc0c89f7a604dc1cbdb1b0a33",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-03T10:10:15.191856+00:00",
+        "minutos": 0.3
+      }
+    }
+  ]
+}

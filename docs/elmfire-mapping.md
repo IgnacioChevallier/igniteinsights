@@ -13,7 +13,8 @@
 | ESA WorldCover          | worldcover_raw.tif          | crosswalk Scott & Burgan (fuels_builder) | `FBFM_FILENAME` → fbfm40.tif       | elmfire/builder/fuels_builder    | ✅ |
 | Hansen GFC v1.11        | hansen_treecover2000.tif (4326) | reproject bilinear, % 0–100 sin escalar (canopy_builder) | `CC_FILENAME` → cc.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
 | ETH Canopy Height 2020  | eth_canopy_height.tif (4326)    | reproject bilinear + ×10 (Int16) (canopy_builder) | `CH_FILENAME` → ch.tif        | ingestion/canopy + elmfire/builder/canopy_builder | ✅ |
-| Hansen GFC + ETH Canopy Height | cc.tif + ch.tif         | derivación estructural (canopy_builder)  | `CBH_FILENAME`, `CBD_FILENAME` | elmfire/builder/canopy_builder                   | ✅ |
+| Hansen GFC + ETH Canopy Height | cc.tif + ch.tif (+ fbfm40.tif, Hansen lossyear) | CH × f(CC); CBH por tipo de bosque de literatura y CBD del pino donde hay copa; sin dosel en la pérdida de Hansen anterior al año del incendio (canopy_builder) | `CBH_FILENAME`, `CBD_FILENAME` (y `cc`/`ch` en 0 en la pérdida) | elmfire/builder/canopy_builder | ✅ |
+| Hansen GFC v1.13 lossyear | Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif (4326) | reproject nearest (canopy_builder, `settings.hansen_lossyear_path`) | sólo para anular el dosel | preparation/service + canopy_builder | ✅ |
 
 ## Derivaciones implementadas
 
@@ -42,8 +43,11 @@ Modelo Nelson (1984) para equilibrium moisture content (EMC) a partir de tempera
 una media móvil, no son un offset fijo del equilibrio instantáneo. Corregirlo requiere
 historial de secado (varios días de GFS previos) que la ingesta no conserva hoy.
 
-**Bandas = serie temporal.** ELMFIRE lee la banda *n* como el clima en
-`TSTART + n × DT_METEOROLOGY` e interpola entre bandas. Un raster de una sola banda
+**Bandas = serie temporal.** ELMFIRE lee la banda *n* como el clima en `n × DT_METEOROLOGY`
+(tiempo absoluto: la banda 0 es T = 0, y `SIMULATION_TSTART` se mide desde ella) e interpola
+entre bandas, **siempre que `&MONTE_CARLO NUM_METEOROLOGY_TIMES` declare cuántas hay**: con el
+valor por defecto (1) usa la banda 0 toda la corrida (docs/resultados/AUDITORIA-FISICA.md, hallazgo 1).
+`write_namelist()` lo escribe con las bandas de `ws.tif`. Un raster de una sola banda
 congela el clima durante toda la simulación (sin ciclo diurno).
 `namelist_writer.validate_weather_coverage()` falla si las bandas no cubren el horizonte.
 

@@ -1,0 +1,64 @@
+{
+  "descripcion": "Epuyén, La Rinconada. Misma ignición junto al lago y horizonte que `cadena-96h-lago` (96 h: 80 % del área FIRMS del incendio; siguió creciendo en pulsos hasta el 22-ene), con la cicatriz truncada a lo detectado hasta el horizonte. Protocolo `calibracion` (RESULTADOS-CSS-BAP): como `cadena-horizonte`, más el clima crudo del GFS (T, HR y terreno a 0,25°) para las humedades con criterio. Versión v2: orientación del terreno corregida (asp = dirección hacia la que mira la ladera, raster_aligner DERIVATION_VERSION 3); los protocolos sin v2 empujaban el fuego ladera abajo (RESULTADOS-CSS-BAP, loop 2). Versión v3: v2 más el atlas de viento de WindNinja (16 direcciones a 90 m) para la perilla `viento_atlas`. Versión v4 (AUDITORIA-FISICA.md): v3 con las correcciones de la auditoría física: phi.tif en la convención ±1 de ELMFIRE (con la distancia en metros el frente avanzaba a ~0,5× la velocidad calculada), &MONTE_CARLO NUM_METEOROLOGY_TIMES (sin él ELMFIRE usaba la banda 0 del clima toda la ventana) y wd reescrito para que ELMFIRE lo interpole por el camino corto. Sensibilidad a la ignición (p2h), como en RESULTADOS-CSS-BAP loop 5c, sobre v4.",
+  "anio_fuego": 2025,
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.4299,
+    "lat": -42.21516,
+    "hora": "2025-01-15T16:00:00+00:00",
+    "fuente": "Hora: El Chubut y NoticiasNQN (2025-01-15), 'pasadas las 11' en una plantación de pinos. Lugar: 'un sector próximo al lago comprendido entre el cementerio local y la Escuela N° 9' (El Extremo Sur, ANB, 2025-01-15), con avance hacia la Ruta 40.",
+    "ajuste": "La 'semilla aproximada' del filtro de evento de mask-dataset-gen (-42.2921, -71.4447) está a 1.400 m de altura, en la montaña, ~8 km al sur del lago. Se toma la localidad Lago Epuyén (OSM/Photon: -42.2159, -71.4291; 339 m), y la celda de la cicatriz a más de 90 m del borde más cercana a ella: 106 m de distancia, 348 m de altura, TL8/TU5 en CCS-BAP (plantación de pinos, consistente con las crónicas). Las primeras detecciones VIIRS (18:10 UTC) caen 1,5-3 km al sureste, en la dirección de avance reportada."
+  },
+  "ventanas": [
+    {
+      "t0": "2025-01-15T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-16T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-17T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-18T16:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.63,
+    -42.45,
+    -71.16,
+    -42.06
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/epuyen-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "firms_gfs",
+    "preparacion": "data/elmfire/inputs/benchmark-aoi-asp3",
+    "mapas": {
+      "fbfm40_ccsbap2017.tif": "data/static/fuel_maps/fbfm40_ccsbap.tif"
+    },
+    "humedad_retardo_h": 120,
+    "clima_crudo": true,
+    "viento_atlas": {
+      "motor": "WindNinja 3.12.2, conservación de masa",
+      "resolucion_m": 90,
+      "vegetacion": "brush"
+    }
+  }
+}

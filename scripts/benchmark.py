@@ -7,8 +7,11 @@
     uv run python scripts/benchmark.py comparar   <caso>/<receta> <caso>/<receta>
     uv run python scripts/benchmark.py verificar  <caso> <receta>
     uv run python scripts/benchmark.py materializar <caso> <receta> <ventana>
+    uv run python scripts/benchmark.py modelo     modelo-v0
 
-Casos y recetas viven en `benchmarks/` (en git); los objetos en `data/benchmark/objetos/`.
+Casos, recetas y modelos promovidos viven en `benchmarks/` (en git); los objetos en
+`data/benchmark/objetos/`. Una receta configura iteraciones; un modelo es un snapshot que ya
+pasó el gate productivo y no crea otra clase de corrida.
 Corre desde el host contra el runner de docker-compose (`docker compose up -d elmfire-runner`).
 """
 import argparse
@@ -31,6 +34,7 @@ from shapely.geometry import Point, mapping
 os.environ.setdefault("ELMFIRE_RUNNER_URL", "http://localhost:8001")
 
 from app.elmfire.builder import (  # noqa: E402
+    canopy_builder,
     fuels_builder,
     ignition_builder,
     perimeter_reconstruction,
@@ -52,7 +56,7 @@ LEGADO_COMBUSTIBLES = {"fbfm40_worldcover2021.tif": "worldcover",
 # ── empaquetado ───────────────────────────────────────────────────────────────
 
 def _guardar_array(datos: np.ndarray, grilla: p.Grilla, dtype: str, nodata=None) -> str:
-    perfil = grilla.perfil | {"dtype": dtype, "count": 1, "nodata": nodata}
+    perfil = grilla.perfil | {"dtype": dtype, "count": 1, "nodata": nodata, "compress": "deflate"}
     with tempfile.TemporaryDirectory() as tmp:
         ruta = Path(tmp) / "capa.tif"
         with rasterio.open(ruta, "w", **perfil) as dst:
@@ -404,6 +408,12 @@ def _clima(caso: d.Caso, dem: Path) -> list[dict[str, str]]:
             with rasterio.open(cortes / f"{var}.tif", "w", **perfil) as dst:
                 dst.write(datos)
         weather_builder.derive_wind(cortes / "u10.tif", cortes / "v10.tif", dem, cortes)
+        factor = caso.datos["empaquetado"].get("factor_viento_fuente")
+        if factor:   # homogeneiza la fuente (ERA5 → GFS), AUDITORIA-FISICA loop D
+            with rasterio.open(cortes / "ws.tif") as src:
+                perfil, ws = src.profile, src.read()
+            with rasterio.open(cortes / "ws.tif", "w", **perfil) as dst:
+                dst.write((ws * float(factor)).astype(perfil["dtype"]))
         weather_builder.derive_moisture(cortes / "t2m.tif", cortes / "rh.tif", dem, cortes)
         archivos = {n_: almacen.guardar(cortes / n_)
                     for n_ in ("ws.tif", "wd.tif", "m1.tif", "m10.tif", "m100.tif")}
@@ -507,8 +517,21 @@ def _firms_gfs(caso: d.Caso) -> dict:
     for nombre in ESTATICOS_PREP:
         recortes[nombre], _ = _recortar(prep / nombre, caja)
         comunes[nombre] = almacen.guardar(recortes[nombre])
+    mapas = {}
     for nombre, ruta in datos["empaquetado"]["mapas"].items():
-        comunes[nombre] = almacen.guardar(_recortar(Path(ruta), caja)[0])
+        mapas[nombre], _ = _recortar(Path(ruta), caja)
+        comunes[nombre] = almacen.guardar(mapas[nombre])
+    if "dosel_por_combustible" in datos["empaquetado"]:
+        # docs/crosswalk/DECISIONES-MODELO-V0 §2 y §3 (protocolos -v6): el CBH del tipo de
+        # bosque del mapa del caso y sin dosel donde Hansen vio pérdida antes del año del
+        # mapa y del año, así que se deriva por caso y no en la preparación.
+        dosel = datos["empaquetado"]["dosel_por_combustible"]
+        canopy_builder.derive_cbh_cbd(
+            recortes["cc.tif"], recortes["ch.tif"], recortes["cbh.tif"], recortes["cbd.tif"],
+            mapas[dosel["mapa"]], _recortar(Path(dosel["perdida_hansen"]), caja)[0],
+            caso.anio_fuego)
+        for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
+            comunes[nombre] = almacen.guardar(recortes[nombre])
     comunes["fuel_models.csv"] = almacen.guardar(fuels_builder.FUEL_MODEL_TABLE)
     dem = recortes["dem.tif"]
     grilla = p.Grilla(dem)
@@ -559,8 +582,62 @@ def _firms_gfs(caso: d.Caso) -> dict:
             "origen": origen | {"preparacion": str(prep), "firms_detecciones": len(df)}}
 
 
+def _ampliar_mapas(caso: d.Caso) -> dict:
+    """El paquete de otro caso, byte a byte, más mapas de combustible: lo único que cambia
+    entre las iteraciones de dos mapas es `fbfm40` (docs/resultados/COMPARACION-MAPAS-V5.md)."""
+    datos = caso.datos["empaquetado"]
+    base = d.Caso.cargar(datos["base"]).paquete()
+    with rasterio.open(almacen.abrir(base["comunes"]["dem.tif"])) as dem:
+        grilla = (dem.shape, dem.transform, dem.crs)
+    nuevos = {}
+    for nombre, ruta in datos["mapas"].items():
+        recorte, _ = _recortar(Path(ruta), tuple(caso.datos["caja_wgs84"]))
+        with rasterio.open(recorte) as src:
+            if (src.shape, src.transform, src.crs) != grilla:
+                raise ValueError(f"{ruta} no está en la grilla del dem de {datos['base']}")
+        nuevos[nombre] = almacen.guardar(recorte)
+        if nombre in base["comunes"] and base["comunes"][nombre] != nuevos[nombre]:
+            raise ValueError(f"{nombre} difiere del de {datos['base']}")
+    return {"comunes": base["comunes"] | nuevos, "ventanas": base["ventanas"],
+            "origen": base["origen"] | {"base": datos["base"], "mapas": datos["mapas"]}}
+
+
+def _viento_diurno(caso: d.Caso) -> dict:
+    """El paquete de otro caso, byte a byte, más el viento de cada hora de cada ventana con los
+    flujos de ladera diurnos de WindNinja (`wn_u.tif`, `wn_v.tif`; AUDITORIA-FISICA loop M).
+    La entrada de cada hora es el viento medio del dominio (ws/wd del paquete, a 20 pies) y la
+    temperatura media del clima crudo."""
+    from app.validation import viento
+
+    datos = caso.datos["empaquetado"]
+    base = d.Caso.cargar(datos["base"]).paquete()
+    dem = almacen.abrir(base["comunes"]["dem.tif"])
+    ventanas = []
+    for n, (v, archivos) in enumerate(zip(caso.ventanas, base["ventanas"], strict=True)):
+        with rasterio.open(almacen.abrir(archivos["ws.tif"])) as a, \
+                rasterio.open(almacen.abrir(archivos["wd.tif"])) as b, \
+                rasterio.open(almacen.abrir(archivos["t2m_gfs.tif"])) as t:
+            ws, wd, t2m = a.read(), np.radians(b.read()), t.read()
+        este = (-ws * np.sin(wd)).mean(axis=(1, 2))
+        norte = (-ws * np.cos(wd)).mean(axis=(1, 2))
+        desde = (np.degrees(np.arctan2(-este, -norte)) + 360.0) % 360.0
+        horas = [v.inicio + timedelta(hours=k) for k in range(ws.shape[0])]
+        print(f"  ventana {n}: WindNinja diurno, {len(horas)} horas …", flush=True)
+        u, w, perfil = viento.diurno(
+            dem, Path("data/benchmark/trabajo/windninja-diurno") / caso.id / f"v{n}",
+            np.hypot(este, norte), desde, np.nanmean(t2m, axis=(1, 2)) - 273.15, horas,
+            float(datos.get("resolucion_m", 90)), datos.get("vegetacion", "brush"))
+        with tempfile.TemporaryDirectory() as tmp:
+            ru, rv = viento.guardar(u, w, perfil, Path(tmp))
+            ventanas.append(archivos | {"wn_u.tif": almacen.guardar(ru),
+                                        "wn_v.tif": almacen.guardar(rv)})
+    return {"comunes": base["comunes"], "ventanas": ventanas,
+            "origen": base["origen"] | {"base": datos["base"], "viento_diurno": viento.IMAGEN}}
+
+
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
-                  "firms_gfs": _firms_gfs}
+                  "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas,
+                  "viento_diurno": _viento_diurno}
 
 
 def empaquetar(caso: d.Caso) -> None:
@@ -888,6 +965,8 @@ def analizar(caso: d.Caso, receta: d.Receta) -> dict:
         u = -(ws * np.sin(np.radians(wd)))
         w = -(ws * np.cos(np.radians(wd)))
         def media(sel):
+            if not sel.any():   # una ventana corta (p. ej. las 6 h finales de h54) sin tarde
+                return {"mph": None, "desde_grados": None}
             uu, ww = u[sel].mean(), w[sel].mean()
             return {"mph": round(float(ws[sel].mean()), 1),
                     "desde_grados": round(float((np.degrees(np.arctan2(-uu, -ww))) % 360))}
@@ -947,17 +1026,17 @@ def tabla(caso: d.Caso) -> None:
             filas.append(json.loads(ruta.read_text()))
     print(f"{caso.id}: {len(filas)} recetas")
     print(f"{'receta':28s}{'dice':>8s}{'ref':>5s}{'sesgo':>8s}{'forma':>8s}{'t*':>6s}"
-          f"{'recall F':>10s}{'prec. F':>9s}  factores")
+          f"{'iou':>7s}{'prec.':>7s}{'recall':>7s}  factores")
     for m in filas:
-        pr = m["principal"] or {}
-        ag = (m["agregado_firms"] or {}).get("incremento", {})
+        pr = cadena.principal_completa(m) or {}
         alarma = " ⚠" if pr.get("alarma_sesgo") else ""
         ref = {"cicatriz": "C", "firms": "F"}.get(pr.get("referencia"), "")
         ai = pr.get("area_igualada") or {}
         hora = f"{ai['hora']:.0f}" + ("" if ai.get("alcanzada") else "+") if ai.get("hora") else "—"
         print(f"{m['receta']:28s}{_fmt(pr.get('dice')):>8s}{ref:>5s}"
               f"{_fmt(pr.get('sesgo_area')):>8s}{_fmt(ai.get('dice')):>8s}{hora:>6s}"
-              f"{_fmt(ag.get('recall')):>10s}{_fmt(ag.get('precision')):>9s}  "
+              f"{_fmt(pr.get('iou')):>7s}{_fmt(pr.get('precision')):>7s}"
+              f"{_fmt(pr.get('recall')):>7s}  "
               f"{m['factores']}{alarma}")
 
 
@@ -1003,13 +1082,14 @@ def _filas(casos: list[str]) -> dict[str, dict[str, dict]]:
         raiz = d.ruta_iteracion(caso_id, "")
         for ruta in sorted(raiz.glob("*/metricas.json")) if raiz.exists() else []:
             m = json.loads(ruta.read_text())
-            pr = m.get("principal") or {}
+            pr = cadena.principal_completa(m) or {}
             if pr.get("referencia") != "cicatriz":
                 continue
             ai = pr.get("area_igualada") or {}
             t = ai.get("hora") if ai.get("alcanzada") else None
             filas.setdefault(m["receta"], {})[caso_id] = {
-                "dice": pr["dice"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
+                "dice": pr["dice"], "iou": pr["iou"], "precision": pr["precision"],
+                "recall": pr["recall"], "sesgo": pr["sesgo_area"], "alarma": pr["alarma_sesgo"],
                 "forma": ai.get("dice"), "dt": abs(t - horizonte) if t is not None else horizonte}
     return filas
 
@@ -1061,7 +1141,8 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
     cortos = [c.split("/")[0].replace("los-alerces", "alerces").replace("puerto-", "")[:13]
               for c in casos]
     print(f"{'receta':24s}{'n':>2s}{'media':>7s}{'mediana':>8s}{'alarm':>6s}{'forma':>7s}"
-          f"{'|Δt*|':>7s}  " + "  ".join(f"{c:>13s}" for c in cortos))
+          f"{'|Δt*|':>7s}{'iou':>6s}{'prec':>6s}{'rec':>6s}  "
+          + "  ".join(f"{c:>13s}" for c in cortos))
     orden = sorted(filas.items(), key=lambda kv: (-len(kv[1]),
                                                   -np.mean([v["dice"] for v in kv[1].values()])))
     for receta, f in orden:
@@ -1070,8 +1151,10 @@ def objetivo(conjunto: str = "calibracion", fuente: str = "gfs") -> None:
                            if c in f else f"{'—':>13s}" for c in casos)
         print(f"{receta:24s}{len(v):2d}{np.mean([x['dice'] for x in v]):7.3f}"
               f"{np.median([x['dice'] for x in v]):8.3f}{sum(x['alarma'] for x in v):6d}"
-              f"{np.mean([x['forma'] or 0 for x in v]):7.3f}{np.mean([x['dt'] for x in v]):7.1f}  "
-              + celdas)
+              f"{np.mean([x['forma'] or 0 for x in v]):7.3f}{np.mean([x['dt'] for x in v]):7.1f}"
+              + "".join(f"{np.mean([x[k] for x in v]):6.3f}"
+                        for k in ("iou", "precision", "recall"))
+              + "  " + celdas)
 
 
 def comparar(a_id: str, b_id: str) -> dict:
@@ -1085,6 +1168,22 @@ def comparar(a_id: str, b_id: str) -> dict:
     diff["deltas"] = d.deltas(*(d.cargar_metricas(*partes(i)) for i in (a_id, b_id)))
     print(json.dumps(diff, indent=2, ensure_ascii=False))
     return diff
+
+
+def mostrar_modelo(modelo_id: str) -> None:
+    """Valida y muestra el snapshot promovido sin ejecutar ELMFIRE."""
+    modelo = d.Modelo.cargar(modelo_id)
+    modelo.validar()
+    print(json.dumps({
+        "modelo": modelo.id,
+        "estado": modelo.estado,
+        "fecha_corte": modelo.fecha_corte,
+        "receta": modelo.receta,
+        "casos": len(modelo.casos),
+        "codigo_sha": modelo.codigo_sha,
+        "resultados": modelo.resultados,
+        "gate": "válido",
+    }, indent=2, ensure_ascii=False))
 
 
 def main() -> None:
@@ -1102,6 +1201,7 @@ def main() -> None:
     s.add_argument("conjunto", nargs="?", default="calibracion")
     s.add_argument("fuente", nargs="?", default="gfs")
     sub.add_parser("validar").add_argument("fuente", nargs="?", default="gfs")
+    sub.add_parser("modelo").add_argument("modelo")
     s = sub.add_parser("comparar")
     s.add_argument("a")
     s.add_argument("b")
@@ -1118,6 +1218,8 @@ def main() -> None:
         objetivo(args.conjunto, args.fuente)
     elif args.cmd == "validar":
         validar(args.fuente)
+    elif args.cmd == "modelo":
+        mostrar_modelo(args.modelo)
     elif args.cmd == "empaquetar":
         empaquetar(caso)
     elif args.cmd == "diagnosticar":

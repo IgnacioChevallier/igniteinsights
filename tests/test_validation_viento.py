@@ -26,3 +26,22 @@ def test_un_valle_norte_sur_encauza():
     u, v = _atlas(lambda x: 0.0 if np.cos(np.radians(x)) >= 0 else 180.0)
     _, desde = viento.aplicar(np.full((1, 1, 1), 10.0), np.full((1, 1, 1), 300.0), u, v)
     assert min(desde[0, 0, 0], 360.0 - desde[0, 0, 0]) < 0.5   # del norte, a lo largo del valle
+
+
+def test_diurno_pasa_la_hora_local_y_devuelve_el_viento_hacia_donde_sopla(tmp_path, monkeypatch):
+    from datetime import UTC, datetime
+
+    entradas = []
+
+    def correr(dem, trabajo, nombre, resolucion_m, vegetacion, entrada):
+        entradas.append(entrada)
+        return np.full((2, 2), 4.0), np.full((2, 2), 180.0), {}   # del sur, 4 mph
+
+    monkeypatch.setattr(viento, "_correr", correr)
+    dem = tmp_path / "dem.tif"
+    dem.write_bytes(b"")
+    u, v, _ = viento.diurno(dem, tmp_path / "t", np.array([3.0]), np.array([-90.0]),
+                            np.array([12.0]), [datetime(2015, 3, 24, 4, tzinfo=UTC)])
+    assert "hour = 1\n" in entradas[0] and "day = 24\n" in entradas[0]   # 04 UTC = 01 ART
+    assert "input_direction = 270.0\n" in entradas[0]
+    assert u[0, 0, 0] == pytest.approx(0.0, abs=1e-6) and v[0, 0, 0] == pytest.approx(4.0)
