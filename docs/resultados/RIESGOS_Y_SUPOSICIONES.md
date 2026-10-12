@@ -16,7 +16,7 @@ incendios.
 | 1 | Sin supresión | Sobre-propaga los incendios combatidos: 5–16× en El Turbio y Epuyén 2019 | Probado y no adoptado |
 | 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–3,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
 | 3 | Viento de superficie | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago | Límite de datos |
-| 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Límite de datos |
+| 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usa el mapa de 2017: no ve las quemas posteriores como combustible distinto | Abierto en la app |
 | 6 | Ingesta histórica de FIRMS | La app no puede preparar incendios viejos | Abierto en la app |
 | 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas | Declarado |
@@ -273,11 +273,50 @@ verano. El modelo lo quema tan seco como la costa. En Alerces 2015 el cinturón 
 
 Las dos mueven el Dice ±0,01. En Alerces 2015, `altura-001` sube el m1 de la montaña pero el
 falso positivo pasa de 818 a 817 ha: el aire más fresco no alcanza para frenar el fuego en la
-hojarasca de lenga. Lo que probablemente la protege es el microclima bajo el dosel cerrado
-(sombra, suelo y hojarasca húmedos), que ninguna corrección del aire representa.
+hojarasca de lenga.
 
-**Qué permitiría reducirlo.** Mediciones de humedad de combustibles o estaciones meteorológicas a
-distintas alturas en la misma cuenca.
+Después se buscó bibliografía y se hizo un análisis regional fuera del benchmark
+(`HUMEDAD-ALTURA-PROPUESTA.md`):
+
+- **No existe ninguna medición de humedad de hojarasca bajo lenga.** El aire medido bajo lenga
+  (Paritsis et al. 2015) es 5 °C más fresco y 4–7 pp más húmedo que en el matorral, lo que suma
+  ~1 pp al m1. Para que la humedad frene un TL6 a la mitad haría falta un m1 de ~20 % en la
+  hojarasca.
+- **El efecto de la altura es común a todos los tipos de vegetación** (Barberá et al. 2025). En los
+  incendios de 2014–2026 de la cordillera de Chubut y Río Negro, fuera del benchmark, la fracción
+  quemada cae con la altura igual en la lenga que en la estepa altoandina. Dentro del mismo
+  incendio y la misma banda, el bosque de lenga arde como el coihue y el ciprés.
+- **En calibración, el bosque de lenga no está sobrequemado:** sesgo 0,99 en los seis incendios sin
+  el caso límite.
+- **La lenga achaparrada sí se sobrequema** (sesgo 1,73), y en la región arde la mitad que sus
+  vecinas. Pero el modelo más lento que se midió para ella (SH3, loop L) rompe Cholila. SH8 se
+  mantiene como la mejor asignación medida en el benchmark, con la limitación declarada en el
+  crosswalk (§5.5).
+
+**Por qué no se corrige.**
+
+1. La corrección física disponible, la humedad del aire llevada a cada celda, ya se aplicó sin
+   ajuste y se midió.
+2. Lo que falta, la hojarasca más húmeda bajo el dosel, no tiene dato con qué fijarlo. Derivarlo
+   de los incendios del benchmark violaría la regla de parada.
+3. El combustible del bosque de lenga no está sesgado en calibración, y la alternativa medida
+   para la lenga achaparrada empeora la calibración.
+4. Aun con la lenga no quemable (`diag-lw100-lenga-nb-001`), Alerces 2015 sigue sin predecir los
+   ~600 ha al norte. El error dominante de ese caso es el viento (§3).
+5. Alerces 2015 es un caso de prueba y no puede usarse para elegir nada.
+
+**Consecuencia.** Con viento flojo y aire seco en la celda, el modelo sube a la lenga de altura.
+Igual que con la supresión (§1), esas salidas son el peor caso.
+
+**Qué lo reabriría** (evidencia externa nueva):
+
+- humedad de hojarasca medida bajo lenga en un transecto de altura (~800, 1.100 y 1.400 m),
+  durante una temporada de fuego;
+- un umbral de ignición de la hojarasca de lenga;
+- los datos por sitio de Barberá et al. (2023).
+
+La regla y el criterio de adopción para ese caso ya están fijados en `HUMEDAD-ALTURA-PROPUESTA.md`
+§4.3.
 
 ## 5. Lo ya quemado
 

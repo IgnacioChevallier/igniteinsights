@@ -1,7 +1,7 @@
 # IGN-20B · Tabla de correspondencia CCS-BAP → Scott & Burgan FBFM40
 
-> **Estado: crosswalk vigente de `modelo-v0`.** Adoptado técnicamente e implementado en v6;
-> queda la conformidad académica del director. CCS-BAP es el insumo principal, MapBiomas la
+> **Estado: crosswalk vigente de `modelo-v0`.** Adoptado e implementado en v6; las decisiones
+> que estaban abiertas quedaron tomadas el 2026-10-12 (ver al final). CCS-BAP es el insumo principal, MapBiomas la
 > comparación intermedia y ESA WorldCover el baseline.
 >
 > La tabla completa está en §4, su fundamento en §5 y sus limitaciones y sensibilidades en §7. Las referencias a otros archivos identifican procedencia; el argumento necesario para decidir está incluido acá.
@@ -221,6 +221,24 @@ Es hojarasca latifoliada de carga moderada.
 **Procedencia.** El estrato portador y el tipo de hojarasca son bibliográficos; la elección
 de TL6 sobre TL2 y TU2 es juicio fundamentado del autor. **Sensibilidad S1.**
 
+**Decisión (2026-10-12): se mantiene TL6.** Ahora tiene respaldo medido, además del juicio de la
+ficha:
+
+- **Calibración.** En los seis incendios de calibración sin el caso límite, modelo-v0 predice
+  2.325 ha de bosque de lenga contra 2.358 observadas: sesgo 0,99, con 1.351 ha de acierto.
+- **Región.** En los incendios de 2014–2026 de la cordillera de Chubut y Río Negro, fuera del
+  benchmark, el bosque de lenga arde dentro del mismo incendio y banda de altura como el coihue y
+  el ciprés (0,97×), algo menos que el ñire (0,87×) y menos que el matorral y la estepa (0,70–0,74×).
+  Es el orden de Mermoz et al. (2005) y Barberá et al. (2025), y el modelo lo respeta: bajo dosel,
+  TL6 propaga a ~0,3× SH8 (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md` §3–§4).
+
+**Limitación declarada:**
+
+- Sigue sin dato de sotobosque ni de carga propia.
+- La lenga de altura arde cada vez menos sobre 1.200 m, pero es un efecto de la altura común a
+  todos los tipos de vegetación, no del modelo de combustible. El modelo no lo representa y queda
+  declarado como límite de humedad (`docs/resultados/RIESGOS_Y_SUPOSICIONES.md` §4).
+
 ### 5.2 · TF Co, TF Ci y TF Mx — Coihue, ciprés y mixtos → **165 (TU5)** · 12,33 % del AOI
 
 Coihue (*N. dombeyi*, perennifolio) y ciprés (*Austrocedrus chilensis*, conífera) comparten
@@ -313,6 +331,22 @@ arbustivo.
 parametrización no puede**: no existe un modelo FBFM40 construido sobre ninguna de las dos, y
 sólo una tiene carga medida. Es un argumento directo a favor de la `ETAPA-C`. **Sensibilidad S2.**
 
+**Decisión (2026-10-12): se mantiene SH8.** Es la mejor asignación entre las medidas en el
+benchmark. La alternativa más lenta, SH3 (`lw100-x-lach3-001`, loop L), empeora la calibración:
+Cholila cae de 0,280 a 0,213 con sesgo 0,22, porque el fuego real corrió a través de esta clase.
+**Limitación declarada:**
+
+- **Física.** SH8 sigue siendo una analogía sin carga medida.
+- **Región.** En los incendios de 2014–2026 de la cordillera de Chubut y Río Negro, fuera del
+  benchmark, la lenga achaparrada arde 0,41× lo que sus vecinas del mismo incendio y banda de
+  altura, y 0,70× lo que el ñire (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md` §3).
+- **Calibración.** Modelo-v0 la sobrequema: 1.761 ha predichas contra 1.019 observadas, con
+  sesgo 1,73 y el falso positivo concentrado en Cholila.
+- **Lectura.** Lo más probable es que la velocidad de SH8 en esta clase compense procesos que la
+  corrida no tiene: el día 1 explosivo, la copa y las pavesas.
+
+Se reabre sólo con carga o comportamiento medidos para la lenga achaparrada.
+
 ### 5.6 · OFL Arbu Na y MMx — Arbustal nativo y matorral mixto → **144 (SH4)** · 9,56 %
 
 PT-37 modelo A3: matorral de maqui, radal, ciprés y laura, altura media 3,42 m, cobertura
@@ -355,6 +389,45 @@ remanente de la cicatriz de 2015: ardió lento (latente, diez días hasta 2.000 
 modelo lo recorre como GS3 con cinco veces el área observada (82 % de la cicatriz es GS3). Además,
 Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz. La asignación describe un
 disturbio de dos años mejor que uno de diez (`docs/crosswalk/DECISIONES-MODELO-V0.md` §4).
+
+**Decisión (2026-10-12): se mantiene SH3.** GS3 queda descartado por la estructura medida. Entre
+SH3 y SH8, la estructura medida se parece más a SH8, pero SH8 se probó en calibración y no pasó el
+criterio fijado antes de correr.
+
+- **Estructura medida del rebrote.** Tiribelli (2019) mide, con la vara de intercepción, 18
+  matorrales rebrotantes de ñire de 1 a 116 años desde el fuego (39–43° S, 755–1.237 m; entre
+  ellos Cholila, Lago Froilán y La Torta). Ninguna de las dos fuentes reporta carga en t/ha.
+  - **Altura.** La altura máxima sigue 6,0 × (1 − e^(−0,032·años)) m: ~1,0 m a los 6 años,
+    1,6 m a los 10 y 2,3 m a los 15.
+  - **Combustible fino.** La proporción de fino crece a ritmo constante hasta 0,40 a los ~35
+    años, con densidad constante. El vivo domina siempre; el muerto es ~0,32 del total (asíntotas
+    0,129 y 0,398).
+  - **Blackhall et al. (2017)**, en Cerro Donat a 16 años del fuego: el matorral tiene ~2,5 veces
+    más fino y mucha más continuidad vertical y horizontal que el bosque quemado.
+  - **Lectura.** A la edad del remanente (6–15 años) es un matorral leñoso de 1–2 m, no el
+    pastizal-arbustal de GS3 (lecho de 0,55 m). Eso respalda el cambio del loop L. Comparado con
+    SH3 (lecho de 0,73 m, fracción muerta del fino 0,07) y SH8 (0,91 m, 0,32), se parece más a
+    SH8. La fracción medida es de contactos con la vara, no de masa: el parecido es indicativo.
+- **Calibración** (sólo Patriada tiene remanente):
+  - GS3 daba 0,368; SH3 solo, 0,394; SH3 junto con sacar el dosel donde Hansen ve pérdida previa,
+    0,502 (loop L);
+  - **SH8 sobre modelo-v0, medido el 2026-10-12** (`lw100-remsh8-001`). El criterio, fijado antes
+    de correr, era Dice de Patriada ≥ 0,496, sesgo más cerca de 1 que 0,70 y Alerces 2016 sin
+    perder más de 0,01. Resultado: Patriada da Dice **0,489** (no pasa) y sesgo **0,92** (pasa);
+    Alerces 2016 sale igual (0,389). SH8 recorre más remanente (recall de 0,421 a 0,470), pero
+    también quema más donde no ardió (precisión de 0,605 a 0,509).
+
+**Limitación declarada:**
+
+- La evidencia de benchmark sale de un solo incendio de calibración, y la diferencia entre SH3 y
+  SH8 es chica (0,007 de Dice).
+- Con SH3, modelo-v0 **subquema** el remanente dentro de Patriada: 125 ha predichas contra 369
+  observadas, con sesgo 0,34 en la última ventana. SH8 corrige el sesgo del incendio, pero no el
+  Dice.
+- La estructura medida apunta a SH8. Una carga medida en masa a 6–15 años lo definiría.
+- En El Turbio (prueba, descriptivo) el remanente lento saca la sobre-propagación (sesgo 5,7 →
+  ~1,1), pero el Dice no mejora. Ese incendio ardió latente y combatido: el límite es la
+  supresión.
 
 ### 5.8 · OT Herb-Subarb — Estepa → **102 (GR2)**, sobre 1.300 m **99 (NB9)** · 15,02 %, con excepción
 
@@ -635,6 +708,19 @@ fenología sería la mejora, y no está en alcance.
 1. **Desfase temporal: 2017 contra un incendio de febrero de 2026, nueve años.** Es el precio
   de la discriminación por especie. Mitigación: contrastar con el histórico de FIRMS los
    fuegos del intervalo; MapBiomas 2024 queda como control de dos años de desfase.
+   **Control hecho (2026-10-12, `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).**
+   MapBiomas usa el año anterior a cada incendio, con 0–2 años de desfase, y en calibración
+   pierde con CCS-BAP 2017 en 5 de 6 incendios (Dice medio 0,430 contra 0,510). Pierde también
+   en los dos con más desfase: Patriada 2026, nueve años (0,418 contra 0,496), y Epuyén 2025,
+   ocho años (0,319 contra 0,501). La discriminación por especie pesa más que la actualidad del
+   mapa.
+   - Esa comparación mezcla leyenda y época: muestra que el mapa viejo y detallado le gana al
+     nuevo y grueso, **no que el desfase no cueste**.
+   - Donde el desfase sí cuesta es en las quemas posteriores a 2017, que el mapa ve como la
+     vegetación previa. En El Turbio (prueba, descriptivo), que volvió a quemar la cicatriz de
+     2015, MapBiomas 2024 da 0,388 y CCS-BAP 0,122.
+   - Lo mitiga en parte sacar el dosel donde Hansen ve pérdida previa (hasta 2024). En la app el
+     riesgo sigue abierto (`docs/resultados/RIESGOS_Y_SUPOSICIONES.md` §5).
 2. **Hueco fronterizo del 4,55 % en el recorte vectorial**, relleno con WorldCover; en la grilla definitiva ocupa el 5,38 % (§6). Se aplica la misma regla de relleno, pero la máscara de huecos difiere entre productos: no se puede afirmar que no sesgue la comparación. El borde oeste se apoya en el baseline y la mejora allí queda limitada por ese insumo.
 3. **SB40 no distingue lo que CCS-BAP sí distingue** (§5.5): ñire bajo y lenga achaparrada
   comparten modelo, y coihue y ciprés también. El techo ahora es el sistema de modelos, no el
@@ -674,14 +760,14 @@ fenología sería la mejora, y no está en alcance.
 
 
 
-### Sensibilidades a evaluar
+### Sensibilidades
 
 
-| #   | Decisión           | Alternativa                              | Motivo                                          |
-| --- | ------------------ | ---------------------------------------- | ----------------------------------------------- |
-| S1  | TF Le → TL6        | TU2 (162) o TL2 (182)                    | 10,64 % del AOI, sin sotobosque medido          |
-| S2  | OFL Le → SH8       | SH3 (143), carga menor                   | 8,71 % del AOI, sin carga medida                |
-| S3  | Rem Dist Rec → GS3 | SB2 (202)                                | 5,40 %, depende de cuánto pesa el muerto en pie |
+| #   | Decisión             | Alternativa                              | Estado                                          |
+| --- | -------------------- | ---------------------------------------- | ----------------------------------------------- |
+| S1  | TF Le → TL6          | TU2 (162) o TL2 (182)                    | Decidida (§5.1). 10,64 % del AOI, sin sotobosque medido. Las alternativas no se corrieron: TL6 tiene sesgo 0,99 en calibración y la lenga arde en la región como el coihue (0,97×) |
+| S2  | OFL Le → SH8         | SH3 (143), carga menor                   | Decidida (§5.5). 8,71 % del AOI, sin carga medida. SH3, medido en el loop L: Cholila 0,280 → 0,213. Se mantiene SH8, con sesgo 1,73 declarado |
+| S3  | Rem Dist Rec → SH3   | SH8 (148); GS3 (123), la asignación anterior | Decidida (§5.7). 5,40 % del AOI. GS3 descartado por la estructura medida (Tiribelli 2019). SH8 sobre modelo-v0: Patriada 0,489 contra 0,496 (no pasa el criterio), sesgo 0,92 contra 0,70. SB2 descartado: describe el estado a los dos años |
 | S4  | Clave (N1,N2)      | Nivel 3 completo, 92 clases              | El nivel 3 no tiene exactitud reportada propia  |
 | S5  | Cargas de SB40     | Sustituir `w0_1h` por el medido en PT-37 | Es la rama parcial de la Etapa C §C0            |
 
@@ -761,15 +847,18 @@ Las métricas del harness B se escriben en `data/validation/harness_b/feb2026_12
 | Validación contra lo observado         | **ejecutada, alcance parcial** · 2026-09-19 (§6.1, harness B) |
 | Re-medición con la interfaz corregida  | 2026-09-30 (§6.1-§6.3; `docs/resultados/AUDITORIA-FISICA.md`) |
 | Comparación sobre el benchmark de 11 incendios | en curso (`docs/resultados/COMPARACION-MAPAS-V5.md`) |
-| Revisión del director                  | **pendiente**                       |
 
 
 Puntos que requieren decisión explícita:
 
-1. **OFL Le → SH8** (§5.5): 8,71 % del AOI por analogía, sin carga medida.
+1. **OFL Le → SH8** (§5.5): 8,71 % del AOI por analogía, sin carga medida. Decidido el
+   2026-10-12: se mantiene (§5.5).
 2. **TF Le → TL6** (§5.1): 10,64 % del AOI, la clase de bosque más extensa, elegida sin dato de sotobosque.
+   Decidido el 2026-10-12: se mantiene (§5.1).
 3. **Rem Dist Rec → GS3** (§5.7): 5,40 % del AOI, once años de regeneración supuestos.
-4. **Época 2017 frente al desfase de nueve años** (§7, limitación 1).
+   Cambiado a SH3 en el loop L y decidido el 2026-10-12: se mantiene SH3 (§5.7).
+4. **Época 2017 frente al desfase de nueve años** (§7, limitación 1). Decidido el 2026-10-12: se
+   acepta (§7, limitación 1).
 
 **Lo que el paso 4 agregó a la decisión.** No cambia ninguno de los cuatro puntos en
 discusión, pero sí cambia lo que se les puede pedir: ningún modelo de arbustal de SB40
@@ -804,6 +893,8 @@ Patagonian forests of Argentina.* Forest Systems. (Umbrales de ignición: 21,5 %
 species in Andean Patagonia, Argentina.* International Journal of Wildland Fire 24(3):340.
 (Respalda la elección de `LW` 110 %; **no mide herbáceas ni respalda `LH` 30 % como dato**. Esa convención se fundamenta con Scott & Burgan, como se explica en §6.3.)
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). *Landscape influences on occurrence and spread of wildfires in Patagonian forests and shrublands.* Ecology 86(10).
+- Tiribelli, F. (2019). *Cambios en la inflamabilidad con la edad post-fuego en bosques y matorrales del NO de la Patagonia: composición, estructura y combustibles finos.* Tesis doctoral, Universidad Nacional del Comahue. (Cap. 3 y Apéndice 3.3: altura y proporción de combustible fino del matorral rebrotante por edad; `docs/referencias/FlorenciaTiribelli_Tesis.pdf`)
+- Blackhall, M.; Raffaele, E.; Paritsis, J.; Tiribelli, F.; Morales, J.M.; Kitzberger, T.; Gowda, J.H.; Veblen, T.T. (2017). *Effects of biological legacies and herbivory on fuels and flammability traits: a long-term experimental study of alternative stable states.* Journal of Ecology 105(5): 1309–1322. doi:10.1111/1365-2745.12796. (Combustible fino 16 años después del fuego en matorral y bosque subalpino; `docs/referencias/`)
 - Cóbar-Carranza, A.J.; García, R.A.; Pauchard, A.; Peña, E. (2014). *Effect of Pinus contorta
 invasion on forest fuel properties and its potential implications on the fire regime of
 Araucaria araucana and Nothofagus antarctica forests.* Biological Invasions. (Carga de leña
@@ -825,11 +916,17 @@ la clase de forestación exótica.)
 
 ---
 
-**Decisiones que requieren firma del director** — pendientes; aprobar el documento no elimina los sesgos declarados:
+**Decisiones tomadas el 2026-10-12.** Cerrarlas no elimina los sesgos declarados:
 
 1. **OFL Le → SH8:** analogía estructural sin carga medida; **8,71 % del AOI** (§4 y §5.5).
+   **Decidido el 2026-10-12 por el autor: se mantiene**, como la mejor de las medidas en el
+   benchmark, con la limitación declarada en §5.5.
 2. **TF Le → TL6:** sin dato de sotobosque; **10,64 % del AOI** (§4 y §5.1).
+   **Decidido el 2026-10-12 por el autor: se mantiene**, sin sesgo en calibración y con el orden
+   regional de inflamabilidad (§5.1).
 3. **Rem Dist Rec → GS3:** **once años de regeneración supuestos**; **5,40 % del AOI** (§4 y §5.7).
+   **Decidido el 2026-10-12 por el autor:** la clase pasó a **SH3** en el loop L y se mantiene.
+   GS3 queda descartado por la estructura medida, y SH8 se probó y no pasó el criterio (§5.7).
 4. **Época 2017 frente al desfase de nueve años:** aceptar el insumo para el incendio de 2026 con la incertidumbre temporal declarada (§1 y §7).
-
-Firma del director: ____________________ · Fecha: ____________________
+   **Decidido el 2026-10-12 por el autor: se acepta.** Un mapa sin desfase (MapBiomas) no le
+   gana en calibración. Las quemas posteriores a 2017 quedan como limitación (§7, limitación 1).

@@ -65,8 +65,6 @@ mismos once incendios.
 
 1. Incorporar al texto de tesis la comparación final cerrada en
    `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
-2. Obtener aprobación formal del director para las decisiones de
-   `docs/crosswalk/DECISIONES-MODELO-V0.md`.
-3. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
+2. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
 
 No quedan barridos de receta pendientes con los datos actuales.
