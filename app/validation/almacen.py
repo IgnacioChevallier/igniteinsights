@@ -46,7 +46,8 @@ def guardar(ruta: Path) -> str:
     destino = _raiz() / sha[:2] / sha
     if not destino.exists():
         destino.parent.mkdir(parents=True, exist_ok=True)
-        temporal = destino.with_suffix(".tmp")
+        # Uno por proceso: dos empaquetados en paralelo pueden guardar el mismo objeto a la vez.
+        temporal = destino.with_suffix(f".{os.getpid()}.tmp")
         shutil.copyfile(ruta, temporal)
         os.chmod(temporal, 0o444)
         temporal.replace(destino)

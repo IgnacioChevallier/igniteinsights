@@ -39,7 +39,7 @@ por evidencia externa nueva.
 | m10/m100 | Los offsets +2/+5 no tienen fundamento físico, pero el benchmark es insensible | Serie meteorológica previa y mediciones de humedad de combustibles |
 | Viento de superficie | ERA5 y GFS no resuelven bien los valles | Estación cercana a Alerces 2016 o Cholila durante el incendio |
 | CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
-| Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual | Sensibilidad específica para el modo operativo con semilla observada |
+| Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da pronósticos casi iguales a los de arrancar desde la cicatriz real | Sólo un perímetro operativo independiente (vuelo IR, partes) |
 | Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
 
 Estos puntos son incertidumbres de entrada. No justifican otra búsqueda de perillas con los
@@ -47,8 +47,10 @@ mismos once incendios.
 
 ## 3. Límites declarados
 
-- **Día 1 explosivo:** faltan ráfagas subhorarias, pavesas o propagación de copa que el clima y
-  la configuración actuales no resuelven.
+- **Día 1 explosivo:** casi todo el déficit está en las 2–6 h anteriores a la primera pasada
+  VIIRS. Desde ahí queda un residuo de 2–3,5× en Patriada y Alerces 2024, compatible con copa que
+  ELMFIRE 2025.0212 no enciende bajo dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7). El
+  pronóstico operativo arranca en la última pasada (protocolo P-24).
 - **Supresión:** la regla disponible de ELMFIRE fue implementada y probada; empeora la
   calibración y no contiene los incendios que más sobre-propagan.
 - **Las Golondrinas:** la ráfaga nocturna no está representada en GFS; es un caso límite y no
@@ -63,8 +65,6 @@ mismos once incendios.
 
 1. Incorporar al texto de tesis la comparación final cerrada en
    `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
-2. Obtener aprobación formal del director para las decisiones de
-   `docs/crosswalk/DECISIONES-MODELO-V0.md`.
-3. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
+2. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
 
 No quedan barridos de receta pendientes con los datos actuales.

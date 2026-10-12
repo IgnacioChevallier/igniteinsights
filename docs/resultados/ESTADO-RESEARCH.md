@@ -81,14 +81,23 @@ prueba.
 
 ## 6. Límites y trabajo futuro
 
-- Día 1 explosivo: ráfagas subhorarias, copa o pavesas no representadas.
+- Día 1 explosivo: casi todo el déficit está antes de la primera pasada VIIRS. Desde ahí, el
+  pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24) mejora a la cadena en 6 de
+  6 incendios a 12 h y 5 de 6 a 24 h. El residuo (2–3,5× en Patriada y Alerces 2024) coincide
+  con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
+  (`docs/resultados/DIA-1-PROPUESTA.md` §7).
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja.
 - Las Golondrinas: evento meteorológico ausente en GFS.
+- Humedad en altura: la lenga de altura arde tan seca como el valle. Las correcciones del aire no
+  alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
+  lenga achaparrada sigue en SH8, con su limitación declarada
+  (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
 - Ingesta histórica de la app: FIRMS NRT no sustituye las fuentes SP.
 
-Estos puntos se reportan como límites. No bloquean la comparación de mapas condicionada a
+Estos puntos se reportan como límites; el detalle de cada uno está en
+`docs/resultados/RIESGOS_Y_SUPOSICIONES.md`. No bloquean la comparación de mapas condicionada a
 modelo-v0.
 
 ## 7. Comparación final de mapas
@@ -101,7 +110,10 @@ sobre los once casos. Los controles CCS-BAP reprodujeron modelo-v0 byte a byte.
 - Prueba: 0,191 CCS-BAP, 0,272 WorldCover y 0,284 MapBiomas.
 
 WorldCover queda descartado como fuente principal. CCS-BAP permanece en modelo-v0; MapBiomas es
-competitivo y no hay evidencia para afirmar superioridad general de CCS-BAP sobre él. El holdout
+competitivo y no hay evidencia para afirmar superioridad general de CCS-BAP sobre él, pero sí
+no inferioridad: con 95 % de confianza (Hodges-Lehmann, cota exacta de Wilcoxon), CCS-BAP no
+pierde más de 0,098 de Dice en los seis casos sin fuga, dentro de un margen de 0,130 (la mitad
+de la ventaja de MapBiomas sobre WorldCover, fijado después de ver los datos). El holdout
 no se usa retrospectivamente para cambiar el modelo. Resultado completo:
 `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
 

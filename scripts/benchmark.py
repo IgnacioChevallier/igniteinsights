@@ -15,6 +15,7 @@ pasó el gate productivo y no crea otra clase de corrida.
 Corre desde el host contra el runner de docker-compose (`docker compose up -d elmfire-runner`).
 """
 import argparse
+import csv
 import json
 import os
 import tempfile
@@ -42,7 +43,7 @@ from app.elmfire.builder import (  # noqa: E402
 )
 from app.ingestion.meteorology.gfs.client import GFSClient  # noqa: E402
 from app.ingestion.satellite.firms.client import FIRMSClient  # noqa: E402
-from app.validation import almacen, cadena  # noqa: E402
+from app.validation import almacen, cadena, copa, pronostico  # noqa: E402
 from app.validation import definiciones as d  # noqa: E402
 from app.validation import puntuacion as p  # noqa: E402
 
@@ -635,9 +636,133 @@ def _viento_diurno(caso: d.Caso) -> dict:
             "origen": base["origen"] | {"base": datos["base"], "viento_diurno": viento.IMAGEN}}
 
 
+# ── P-24: pronóstico desde el perímetro observado (DIA-1-PROPUESTA §2) ──────────
+
+REFERENCIAS_VENTANA = {"phi.tif", "ref_firms.tif", "ref_firms_horas.tif", "alcance.tif"}
+
+
+def _horas_por_pasada(df: pd.DataFrame, origen: datetime, hasta: datetime, dem: Path,
+                      radio_m: float, desde: datetime | None = None) -> np.ndarray:
+    """Horas desde `origen` de la primera detección a menos de `radio_m` de cada celda (inf si
+    ninguna), entre `desde` (excluido) y `hasta`. Rasteriza de a una hora de adquisición y no de
+    a una detección como `_horas_deteccion`: con las ~10⁵ detecciones de Patriada, aquélla tarda
+    horas."""
+    grilla = p.Grilla(dem)
+    horas = np.full(grilla.shape, np.inf)
+    sel = df[(df["acq_datetime"] <= hasta)
+             & ((df["acq_datetime"] > desde) if desde is not None else True)]
+    tr = Transformer.from_crs("EPSG:4326", str(grilla.crs), always_xy=True)
+    for t, grupo in sel.groupby("acq_datetime"):
+        xs, ys = tr.transform(grupo["longitude"].to_numpy(), grupo["latitude"].to_numpy())
+        disco = rasterio.features.rasterize(
+            [(mapping(Point(x, y).buffer(radio_m)), 1) for x, y in zip(xs, ys)],
+            out_shape=grilla.shape, transform=grilla.transform, dtype="uint8").astype(bool)
+        horas[disco] = np.minimum(horas[disco], (t - origen).total_seconds() / 3600)
+    return horas
+
+
+def _clima_desde_base(base: d.Caso, ventanas: list[dict], nombre: str, h0: int, n: int) -> str:
+    """`n` bandas horarias de `nombre` desde la hora `h0` del caso base, tomadas de sus ventanas
+    (el mismo clima que corrió la cadena, sin volver a bajar ni derivar nada)."""
+    inicio = base.ventanas[0].inicio
+    desfases = [int((v.inicio - inicio).total_seconds() // 3600) for v in base.ventanas]
+    horas = [v.horas for v in base.ventanas]
+    bandas = []
+    for h in range(h0, h0 + n):
+        j, b = pronostico.hora_en_base(h, desfases, horas)
+        with rasterio.open(almacen.abrir(ventanas[j][nombre])) as src:
+            bandas.append(src.read(b + 1))
+            perfil = src.profile | {"count": n}
+    with tempfile.TemporaryDirectory() as tmp:
+        ruta = Path(tmp) / nombre
+        with rasterio.open(ruta, "w", **perfil) as dst:
+            dst.write(np.stack(bandas))
+        return almacen.guardar(ruta)
+
+
+def _pronostico(caso: d.Caso) -> dict:
+    """P-24: un caso de calibración re-cortado en ventanas de 24 h que arrancan en cada pasada
+    VIIRS. Estáticos, mapas, dosel, FIRMS, cicatriz y clima son los del caso base byte a byte, así
+    que contra la cadena de modelo-v0 lo único distinto es la semilla:
+
+    - `firms`: lo observado hasta el reinicio, acumulado (la reconstrucción sola no es monótona);
+    - `oraculo`: la cicatriz ya vista por VIIRS. Usa la cicatriz final, que en tiempo real no
+      existe; separa el error de la reconstrucción del de la propagación.
+
+    La ventana 0 es la del caso base (desde la ignición) y cada ventana trae `vistas_horas.tif`:
+    la hora de la primera detección a menos de un píxel, para la referencia por plazo."""
+    datos = caso.datos["empaquetado"]
+    base_caso = d.Caso.cargar(datos["base"])
+    if any(v.tstart_s for v in base_caso.ventanas) or not base_caso.contiguo:
+        raise ValueError(f"{datos['base']}: el clima se re-arma por hora desde ventanas contiguas "
+                         "que arrancan en su banda 0")
+    base = base_caso.paquete()
+    comunes = base["comunes"]
+    dem = almacen.abrir(comunes["dem.tif"])
+    grilla = p.Grilla(dem)
+    df = pd.read_csv(almacen.abrir(comunes["firms.csv"]), parse_dates=["acq_datetime"])
+    semilla = caso.datos["semilla_inicial"]
+    radio = semilla.get("radio_cicatriz_m")
+    if radio:   # como el caso base: sólo las detecciones del incendio objetivo
+        positivo, _ = p.cargar_cicatriz(Path(caso.datos["referencias"]["cicatriz"]["run"]), grilla)
+        df = _cerca_de(df, positivo, grilla, float(radio))
+    ignicion = cadena._leer(base["ventanas"][0]["phi.tif"]) < 0
+    cicatriz = cadena._leer(comunes["cicatriz.tif"]).astype(bool)
+    punto = _puntos_ignicion(semilla)
+    alcance_m = caso.datos["referencias"]["firms"].get("alcance_m", 5000.0)
+    inicio0 = base_caso.ventanas[0].inicio
+    ventanas, previo = [], ignicion
+    for n, v in enumerate(caso.ventanas):
+        if v.fin > base_caso.ventanas[-1].fin:
+            raise ValueError(f"ventana {n}: termina después del caso base")
+        if n == 0:
+            if v != base_caso.ventanas[0]:
+                raise ValueError("la ventana 0 tiene que ser la del caso base")
+            archivos, observado = dict(base["ventanas"][0]), ignicion
+        else:
+            h0 = int((v.t0 - inicio0).total_seconds() // 3600)
+            bandas = pronostico.bandas_necesarias(v.horas, v.tstart_s)
+            archivos = {}
+            for nombre, sha in base["ventanas"][0].items():
+                if nombre in REFERENCIAS_VENTANA:
+                    continue
+                with rasterio.open(almacen.abrir(sha)) as src:
+                    multibanda = src.count > 1
+                archivos[nombre] = (_clima_desde_base(base_caso, base["ventanas"], nombre, h0,
+                                                      bandas) if multibanda else sha)
+            antes = _puntos(df, None, v.inicio)
+            if datos["semilla"] == "oraculo":
+                vistas = _horas_por_pasada(df, v.inicio, v.inicio, dem,
+                                           perimeter_reconstruction.VIIRS_PIXEL_M)
+                observado = ignicion | (cicatriz & np.isfinite(vistas))
+            else:
+                observado = previo | ignicion | _mascara(antes, dem)
+            with tempfile.TemporaryDirectory() as tmp:
+                archivos["phi.tif"] = almacen.guardar(
+                    ignition_builder.build_ignition_from_mask(observado, dem, Path(tmp)))
+            nuevas = _mascara(_puntos(df, v.inicio, v.fin), dem) & ~observado
+            det = _horas_por_pasada(df, v.inicio, v.fin, dem, MEDIO_PIXEL_VIIRS_M, desde=v.inicio)
+            archivos |= {
+                "ref_firms.tif": _guardar_array(nuevas, grilla, "uint8"),
+                "ref_firms_horas.tif": _guardar_array(np.where(np.isinf(det), -1.0, det), grilla,
+                                                      "float32", -1.0),
+                "alcance.tif": _guardar_array(_alcance(punto + antes, dem, alcance_m), grilla,
+                                              "uint8"),
+            }
+        archivos["vistas_horas.tif"] = _guardar_array(
+            _horas_por_pasada(df, v.inicio, v.fin, dem, perimeter_reconstruction.VIIRS_PIXEL_M),
+            grilla, "float32")
+        previo = observado
+        ventanas.append(archivos)
+        print(f"  ventana {n} ({v.inicio:%d-%m %H:%M}): semilla "
+              f"{observado.sum() * grilla.celda_ha:,.0f} ha", flush=True)
+    return {"comunes": comunes, "ventanas": ventanas,
+            "origen": base["origen"] | {"base": datos["base"], "semilla": datos["semilla"]}}
+
+
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
                   "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas,
-                  "viento_diurno": _viento_diurno}
+                  "viento_diurno": _viento_diurno, "pronostico": _pronostico}
 
 
 def empaquetar(caso: d.Caso) -> None:
@@ -1186,6 +1311,210 @@ def mostrar_modelo(modelo_id: str) -> None:
     }, indent=2, ensure_ascii=False))
 
 
+# ── P-24 y diagnóstico de copa (DIA-1-PROPUESTA §2 y §4) ──────────────────────
+
+def crear_pronostico(base_id: str, semilla: str) -> d.Caso:
+    """Escribe el caso P-24 de un caso de calibración: la ventana 0 del base y un reinicio de 24 h
+    en cada pasada VIIRS que deje 24 h dentro del horizonte del base (§2.4)."""
+    base = d.Caso.cargar(base_id)
+    protocolo = {"firms": "pronostico-v6", "oraculo": "pronostico-oraculo-v6"}[semilla]
+    ruta = d.RAIZ / "casos" / base.incendio / f"{protocolo}.json"
+    if ruta.exists():
+        raise SystemExit(f"{ruta} ya existe")
+    df = pd.read_csv(almacen.abrir(base.paquete()["comunes"]["firms.csv"]),
+                     parse_dates=["acq_datetime"])
+    inicio, fin = base.ventanas[0].inicio, base.ventanas[-1].fin
+    tiempos = df.loc[(df["acq_datetime"] > inicio) & (df["acq_datetime"] <= fin), "acq_datetime"]
+    reinicios = [t.to_pydatetime() for t in pronostico.pasadas(tiempos)
+                 if t.to_pydatetime() + timedelta(hours=24) <= fin]
+    v0 = base.ventanas[0]
+    datos = {k: base.datos[k] for k in ("anio_fuego", "caja_wgs84", "semilla_inicial",
+                                         "referencias", "clima") if k in base.datos}
+    datos = {
+        "descripcion": (
+            f"P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `{base_id}`: la ventana 0 del "
+            "caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última "
+            "detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del "
+            "horizonte. "
+            + ("Semilla: lo observado por FIRMS hasta el reinicio, acumulado."
+               if semilla == "firms" else
+               "Semilla oráculo: la cicatriz dNBR ya vista por VIIRS al reinicio (diagnóstico: "
+               "usa la cicatriz final).")
+            + " Estáticos, mapas, dosel, cicatriz y clima son los del caso base."),
+        **datos,
+        "ventanas": [{"t0": v0.t0.isoformat(), "horas": v0.horas}]
+                    + [pronostico.ventana_desde(t) for t in reinicios],
+        "empaquetado": {"tipo": "pronostico", "base": base_id, "semilla": semilla},
+        "plazos": list(pronostico.PLAZOS_H),
+        "cadena": {"caso": base_id, "receta": "lw-100-001"},
+    }
+    ruta.write_text(json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+    print(f"{ruta}: {len(reinicios)} reinicios")
+    return d.Caso.cargar(f"{base.incendio}/{protocolo}")
+
+
+def _ventanas_cadena(caso_id: str, receta_id: str) -> list:
+    caso = d.Caso.cargar(caso_id)
+    manifiesto = d.cargar_manifiesto(caso_id, receta_id)
+    if manifiesto is None:
+        raise FileNotFoundError(f"{caso_id}/{receta_id} no corrió")
+    return [(v.inicio, v.fin, cadena._leer(w["insumos"]["phi.tif"]) < 0,
+             p.horas_relativas(cadena._leer(cadena._toa(w["salidas"])), v.tstart_s))
+            for v, w in zip(caso.ventanas, manifiesto["ventanas"])]
+
+
+def puntuar_pronostico(caso: d.Caso, receta_id: str) -> list[dict]:
+    """Por reinicio y plazo, el crecimiento de P-24, de la cadena de modelo-v0 y de la
+    persistencia contra la misma referencia (§2.4). Se guarda junto a la iteración."""
+    manifiesto = d.cargar_manifiesto(caso.id, receta_id)
+    if manifiesto is None:
+        raise FileNotFoundError(f"{caso.id}/{receta_id} no corrió")
+    paquete = caso.paquete()
+    cad = caso.datos["cadena"]
+    if d.Caso.cargar(cad["caso"]).paquete()["comunes"]["dem.tif"] != paquete["comunes"]["dem.tif"]:
+        raise ValueError(f"{caso.id} y {cad['caso']} no comparten la grilla")
+    cadena_v0 = _ventanas_cadena(cad["caso"], cad["receta"])
+    grilla = p.Grilla(almacen.abrir(paquete["comunes"]["dem.tif"]))
+    cicatriz = cadena._leer(paquete["comunes"]["cicatriz.tif"]).astype(bool)
+    excluido = cadena._leer(paquete["comunes"]["excluido.tif"]).astype(bool)
+    filas, previa = [], None
+    for v, w in zip(caso.ventanas, manifiesto["ventanas"]):
+        archivos = paquete["ventanas"][w["n"]]
+        semilla = cadena._leer(w["insumos"]["phi.tif"]) < 0
+        horas = np.nan_to_num(p.horas_relativas(cadena._leer(cadena._toa(w["salidas"])),
+                                                v.tstart_s), nan=np.inf)
+        vistas = cadena._leer(archivos["vistas_horas.tif"])
+        det = cadena._leer(archivos["ref_firms_horas.tif"])
+        fila = {"incendio": caso.incendio, "n": w["n"], "inicio": v.inicio.isoformat(),
+                "horas_desde_ignicion": (v.inicio - caso.ventanas[0].inicio).total_seconds() / 3600,
+                "semilla_ha": float(semilla.sum() * grilla.celda_ha), "plazos": {}}
+        for plazo in caso.datos["plazos"]:
+            preds = {"p24": horas <= plazo,
+                     "cadena": pronostico.quemado_en(cadena_v0, v.inicio + timedelta(hours=plazo))}
+            if previa is not None:
+                preds["persistencia"] = pronostico.persistencia(
+                    semilla, previa[1], (v.inicio - previa[0]).total_seconds() / 3600, plazo,
+                    grilla)
+            fila["plazos"][str(plazo)] = {
+                nombre: pronostico.puntuar(pred, semilla, cicatriz, excluido, vistas, det, plazo,
+                                           grilla.celda_ha)
+                for nombre, pred in preds.items()}
+        filas.append(fila)
+        previa = (v.inicio, semilla)
+    destino = d.ruta_iteracion(caso.id, receta_id) / "pronostico.json"
+    destino.write_text(json.dumps(filas, indent=2, ensure_ascii=False))
+    return filas
+
+
+def tabla_pronostico(receta_id: str, casos: list[str]) -> None:
+    filas = []
+    for caso_id in casos:
+        filas += puntuar_pronostico(d.Caso.cargar(caso_id), receta_id)
+    for plazo in pronostico.PLAZOS_H:
+        print(f"\n## Crecimiento a {plazo} h (Dice / sesgo contra la cicatriz ya vista)\n")
+        print("| Incendio | k | h desde ign. | semilla ha | obs. ha | P-24 | cadena v0 "
+              "| persistencia |")
+        print("|---|---:|---:|---:|---:|---|---|---|")
+        for f in filas:
+            m = f["plazos"][str(plazo)]
+            celdas = [f"{_fmt(m[c]['cicatriz']['dice'])} / {_fmt(m[c]['cicatriz']['sesgo_area'])}"
+                      if c in m else "—" for c in ("p24", "cadena", "persistencia")]
+            print(f"| {f['incendio']} | {f['n']} | {f['horas_desde_ignicion']:.1f} | "
+                  f"{f['semilla_ha']:,.0f} | {m['p24']['cicatriz']['observado_ha']:,.0f} | "
+                  + " | ".join(celdas) + " |")
+        for contra in ("cadena", "persistencia"):
+            r = pronostico.resumir(filas, plazo, contra)
+            print(f"\nP-24 contra {contra}, {plazo} h (k ≥ 1): mediana ΔDice "
+                  f"{_fmt(r['mediana_delta'])}, mejora en {r['mejoran']} de {r['n']} incendios")
+            protocolo = casos[0].split("/")[1]
+            r_path = (d.RAIZ / "diagnosticos"
+                      / f"{protocolo}-{receta_id}-{contra}-{plazo}h.json")
+            r_path.write_text(json.dumps(r, indent=2, ensure_ascii=False))
+
+
+def diagnosticar_copa(caso: d.Caso, receta_id: str = "lw-100-001") -> dict:
+    """§4: en las celdas de bosque (TU, TL) con dosel que la cicatriz y VIIRS dan por quemadas
+    cada día, ¿qué parte hace copa según CFIS (ajustado en rodales de coníferas) y qué parte según
+    Van Wagner sobre Rothermel con el WAF de ELMFIRE? Cuenta cualquier hora del día hasta la de la
+    primera detección de la celda. Ninguna corrida, ningún parámetro ajustado."""
+    receta = d.Receta.cargar(receta_id)
+    paquete = caso.paquete()
+    comunes = paquete["comunes"]
+    dem = almacen.abrir(comunes["dem.tif"])
+    grilla = p.Grilla(dem)
+    fbfm = cadena._leer(comunes[f"fbfm40_{receta.combustible['fuente']}"
+                                f"{receta.anio_combustible(caso)}.tif"])
+    cc = cadena._leer(comunes["cc.tif"]) / 100.0
+    ch, cbh = cadena._leer(comunes["ch.tif"]) / 10.0, cadena._leer(comunes["cbh.tif"]) / 10.0
+    con_dosel = ((cc >= 0.15) & (ch >= 2.0) & (cbh > 0) & (cadena._leer(comunes["cbd.tif"]) > 0)
+                 & np.isin(fbfm, [*range(161, 166), *range(181, 190)]))
+    cicatriz = cadena._leer(comunes["cicatriz.tif"]).astype(bool)
+    df = pd.read_csv(almacen.abrir(comunes["firms.csv"]), parse_dates=["acq_datetime"])
+    inicio = caso.ventanas[0].inicio
+    vistas = _horas_por_pasada(df, inicio, caso.ventanas[-1].fin, dem,
+                               perimeter_reconstruction.VIIRS_PIXEL_M)
+    with open(almacen.abrir(comunes["fuel_models.csv"])) as fh:
+        modelos = {int(r[0]): r for r in csv.reader(fh) if r}
+    viva = cadena.HUMEDAD_VIVA_BASE | receta.parametros
+    lh, lw = viva["lh_moisture_pct"] / 100, viva["lw_moisture_pct"] / 100
+    dias = []
+    for n, v in enumerate(caso.ventanas):
+        desfase = (v.inicio - inicio).total_seconds() / 3600
+        celdas = con_dosel & cicatriz & (vistas > desfase) & (vistas <= desfase + v.horas)
+        clima = {}
+        for nom in ("ws", "m1", "m10", "m100"):
+            with rasterio.open(almacen.abrir(paquete["ventanas"][n][f"{nom}.tif"])) as src:
+                clima[nom] = src.read()
+        cfis_bajo = np.zeros(grilla.shape, bool)
+        cfis_alto = np.zeros(grilla.shape, bool)
+        van_wagner = np.zeros(grilla.shape, bool)
+        por_modelo = {}
+        for codigo in np.unique(fbfm[celdas]):
+            fila = modelos.get(int(codigo))
+            if fila is None or float(fila[3]) + float(fila[4]) <= 0:
+                continue
+            sel = celdas & (fbfm == codigo)
+            prof_ft = float(fila[11])
+            fsg = np.maximum(cbh[sel] - prof_ft * copa.PIE_M, 0.0)
+            waf = copa.waf_elmfire(cc[sel], ch[sel], prof_ft)
+            i0 = copa.intensidad_critica(cbh[sel])
+            antes_de_verse = vistas[sel] - desfase   # horas desde el inicio de la ventana
+            for b in range(clima["ws"].shape[0]):
+                ws, m1 = clima["ws"][b][sel], clima["m1"][b][sel]
+                ya = b <= antes_de_verse + 1
+                u10 = ws * copa.MPH_20FT_A_KMH_10M
+                for destino, con_100h in ((cfis_bajo, False), (cfis_alto, True)):
+                    destino[sel] |= ya & (copa.prob_cfis(
+                        u10, fsg, copa.consumo_superficial(fila, con_100h), m1) >= copa.CFIS_CORTE)
+                _, flin = copa.rothermel(fila, m1 / 100, clima["m10"][b][sel] / 100,
+                                         clima["m100"][b][sel] / 100, lh, lw, ws * waf * 88.0)
+                van_wagner[sel] |= ya & (flin > i0)
+            por_modelo[fila[1]] = {
+                "ha": float(sel.sum() * grilla.celda_ha),
+                "cfis_bajo": float((cfis_bajo & sel).sum() / sel.sum()),
+                "cfis_alto": float((cfis_alto & sel).sum() / sel.sum()),
+                "van_wagner": float((van_wagner & sel).sum() / sel.sum()),
+                "cbh_m": float(np.median(cbh[sel])), "waf": float(np.median(waf))}
+        total = celdas.sum()
+        dias.append({"n": n, "inicio": v.inicio.isoformat(),
+                     "con_dosel_ha": float(total * grilla.celda_ha),
+                     **{k: float((m & celdas).sum() / total) if total else None
+                        for k, m in (("cfis_bajo", cfis_bajo), ("cfis_alto", cfis_alto),
+                                     ("van_wagner", van_wagner))},
+                     "por_modelo": por_modelo})
+    salida = {"caso": caso.id, "receta": receta_id, "dias": dias}
+    destino = d.RAIZ / "diagnosticos" / "copa" / f"{caso.incendio}.json"
+    destino.parent.mkdir(exist_ok=True)
+    destino.write_text(json.dumps(salida, indent=2, ensure_ascii=False))
+    print(f"\n{caso.id}: fracción del bosque quemado con dosel que hace copa antes de verse")
+    print("| Día | con dosel ha | CFIS (SFC bajo) | CFIS (SFC alto) | Van Wagner + Rothermel |")
+    print("|---:|---:|---:|---:|---:|")
+    for dia in dias:
+        print(f"| {dia['n'] + 1} | {dia['con_dosel_ha']:,.0f} | {_fmt(dia['cfis_bajo'])} | "
+              f"{_fmt(dia['cfis_alto'])} | {_fmt(dia['van_wagner'])} |")
+    return salida
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1209,10 +1538,25 @@ def main() -> None:
     s.add_argument("caso")
     s.add_argument("receta")
     s.add_argument("ventana", type=int)
+    s = sub.add_parser("crear-pronostico", help="caso P-24 desde un caso de calibración")
+    s.add_argument("caso")
+    s.add_argument("--semilla", choices=("firms", "oraculo"), default="firms")
+    s = sub.add_parser("pronostico", help="tabla P-24 contra la cadena y la persistencia")
+    s.add_argument("receta")
+    s.add_argument("casos", nargs="+")
+    s = sub.add_parser("copa", help="CFIS contra Van Wagner + Rothermel, sin correr nada")
+    s.add_argument("caso")
     args = ap.parse_args()
 
+    if args.cmd == "crear-pronostico":
+        crear_pronostico(args.caso, args.semilla)
+        return
     caso = d.Caso.cargar(args.caso) if hasattr(args, "caso") else None
-    if args.cmd == "resumen":
+    if args.cmd == "pronostico":
+        tabla_pronostico(args.receta, args.casos)
+    elif args.cmd == "copa":
+        diagnosticar_copa(caso)
+    elif args.cmd == "resumen":
         resumen()
     elif args.cmd == "objetivo":
         objetivo(args.conjunto, args.fuente)

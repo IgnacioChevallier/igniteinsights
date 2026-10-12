@@ -188,6 +188,24 @@ Con fuga temporal (2015-2019): aciertos / sobrantes en ha
 | TL | 1.655 | 1.059 / 1.322 | 598 / 1.443 | 972 / 1.230 |
 | NB | 118 | 0 / 0 | 9 / 264 | 37 / 258 |
 
+## No inferioridad frente a MapBiomas
+
+Δ = CCS-BAP − MapBiomas por incendio. Estimador de Hodges-Lehmann y cota inferior unilateral exacta al 95 % (Wilcoxon de rangos con signo). CCS-BAP es no inferior si la cota supera −0,130: la mitad de la ventaja media de MapBiomas sobre WorldCover en los casos sin fuga (0,378 − 0,118). El margen se fijó después de ver las diferencias por incendio; por eso la cota se lee también por sí misma: su valor absoluto es el margen más chico que los datos sostienen, sin depender de esa elección.
+
+| Conjunto | Métrica | n | Δ HL | Cota inferior | Nivel exacto | No inferior |
+|---|---|---|---|---|---|---|
+| Sin fuga (6) | dice | 6 | 0,074 | -0,098 | 95,3 % | sí |
+| Sin fuga (6) | forma | 6 | 0,052 | -0,094 | 95,3 % | sí |
+| Todos sin el límite | dice | 10 | 0,022 | -0,075 | 95,8 % | sí |
+| Todos sin el límite | forma | 10 | 0,027 | -0,063 | 95,8 % | sí |
+| Calibración | dice | 6 | 0,078 | -0,000 | 95,3 % | sí |
+| Calibración | forma | 6 | 0,077 | -0,006 | 95,3 % | sí |
+| Prueba | dice | 4 | -0,065 | — | — % | n insuficiente |
+| Prueba | forma | 4 | -0,027 | — | — % | n insuficiente |
+
+Sensibilidad: sin El Turbio, la cota de Dice en los casos sin fuga pasa a 0,002 (n = 5).
+
+
 ## Conclusión
 
 En los seis casos sin fuga temporal, CCS-BAP obtiene Dice medio 0,415, frente a 0,118 de WorldCover y 0,378 de MapBiomas. Supera a WorldCover en 5/6 incendios y a MapBiomas en 4/6, con un empate. La dirección favorece claramente a CCS-BAP frente a WorldCover, pero la muestra es demasiado pequeña para significación en el test de signos (p = 0,219). Frente a MapBiomas, la ventaja es pequeña y tampoco concluyente (p = 0,375).
@@ -195,3 +213,5 @@ En los seis casos sin fuga temporal, CCS-BAP obtiene Dice medio 0,415, frente a 
 En calibración, CCS-BAP conserva la mayor media (0,510 contra 0,131 y 0,430). En prueba ocurre lo contrario: 0,191 contra 0,272 y 0,284. El Turbio explica buena parte de esa inversión. Como el holdout no puede usarse para elegir el mapa después de observarlo, el resultado no cambia modelo-v0.
 
 Cierre: WorldCover queda descartado como fuente principal; además de la fuga temporal en 2015–2019, falla fuertemente en la mayoría de los casos posteriores. CCS-BAP sigue siendo el mapa de modelo-v0. MapBiomas queda como el comparador competitivo: no hay evidencia suficiente para afirmar que CCS-BAP lo supera de forma general. Un eventual cambio exige un modelo-v1 predefinido y datos independientes nuevos, no otro ajuste sobre estos once incendios.
+
+No inferioridad: con 95 % de confianza, CCS-BAP no pierde contra MapBiomas más de 0,098 de Dice en los casos sin fuga (0,075 con los diez), dentro del margen de 0,130. La afirmación que se sostiene es "no inferior a MapBiomas", no "equivalente": la cota depende casi entera de El Turbio, y una pérdida de hasta 0,1 de Dice no es despreciable. El conjunto de prueba (4) es demasiado chico para una cota exacta al 95 %.
