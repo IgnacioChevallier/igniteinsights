@@ -73,11 +73,6 @@ class Settings(BaseSettings):
     hansen_lossyear_path: str = (
         "/app/data/raw/hansen/Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif"
     )
-    # Año de la última quema (Hansen ∪ dNBR ∪ MCD64A1, scripts/anio_quema.py), misma
-    # codificación que lossyear. Si existe, reemplaza a Hansen: ve también las quemas
-    # posteriores a su último año y las no forestales
-    # (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §5, paso 2).
-    cicatrices_path: str = "/app/data/raw/cicatrices/anio_quema_ext.tif"
     aoi_crs_processing: str = "EPSG:32719"
     aoi_crs_output: str = "EPSG:4326"
 

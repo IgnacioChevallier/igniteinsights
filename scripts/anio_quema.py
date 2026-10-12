@@ -1,9 +1,10 @@
 """Año de la última quema por celda en la grilla de la app: Hansen ∪ dNBR ∪ MCD64A1.
 
-Ver docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §1, §4 y §5 (paso 2). Sale con la codificación
-de Hansen `lossyear` (0 = sin quema, n = 2000 + n) en data/raw/cicatrices/anio_quema_<grilla>.tif;
-la de la grilla `ext` es `settings.cicatrices_path`, y la preparación
-lo prefiere a Hansen solo para el combustible de las quemas que el mapa no vio y para el dosel.
+Ver docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §1, §4, §5 (paso 2) y §10. Sale con la
+codificación de Hansen `lossyear` (0 = sin quema, n = 2000 + n) en
+data/raw/cicatrices/anio_quema_<grilla>.tif. **La app no la usa**: el protocolo LYQ-2 no pasó
+(§10). El bosque se decide acá por la cobertura de Hansen 2000 y en la regla por el código de
+combustible, y las plantaciones posteriores a 2000 quedan en el medio.
 
 - **Hansen GFC `lossyear`** (30 m): pérdida de dosel que reemplaza al rodal, hasta su último año.
 - **Máscaras dNBR** de los runs vigentes de ../mask-dataset-gen (20-30 m), con el año de inicio

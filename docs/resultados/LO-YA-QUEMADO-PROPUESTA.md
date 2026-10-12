@@ -1,6 +1,7 @@
 # Lo ya quemado: propuesta para la app
 
-> Corte: 2026-10-11; resultado de LYQ-1 el 2026-10-12 (§9). Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
+> Corte: 2026-10-11; resultados de LYQ-1 (§9), del paso 2, de LYQ-2 y de la prueba de la premisa
+> (§10) el 2026-10-12. Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
 > histórica de FIRMS). Es una propuesta: no cambia código ni `modelo-v0`. Todos los números de
 > los §3 y §4 salen de diagnósticos sin ELMFIRE sobre los paquetes `-p` de **calibración** (v6 +
 > Hansen `lossyear`). No se abrió ningún resultado del conjunto de prueba.
@@ -438,6 +439,110 @@ No se corrió una preparación completa por la API.
   forestales);
 - la prueba de la premisa del §6, punto 3;
 - la lectura descriptiva del conjunto de prueba.
+
+## 10. Paso 2, LYQ-2 y prueba de la premisa (2026-10-12)
+
+### 10.1 Capa de año de quema
+
+- **`scripts/exportar_mcd64a1.py`** baja de Earth Engine el año de la última quema de MCD64A1,
+  de 2001 a 2026-07. Se corre con el venv de `../mask-dataset-gen`.
+- **`scripts/anio_quema.py`** lo combina con Hansen y las máscaras dNBR vigentes, en las grillas
+  `aoi` y `ext`. En bosque (cobertura de Hansen 2000 ≥ 30 %) sólo decide Hansen mientras haya
+  publicado ese año.
+- **En la grilla `ext`**, para una simulación de 2026, la regla con la capa cambia 33.454 ha,
+  contra 15.225 ha con Hansen solo; en 2027, 74.517 ha.
+- **2026:** 51.042 ha, la mitad con huella dNBR y la otra mitad sólo de MCD64A1.
+
+### 10.2 LYQ-2: no regresión con la capa
+
+**Cómo se midió.** La misma receta (`lw100-quema-edad-001`) sobre casos `-q`. Son los `-p` byte a
+byte, con la capa construida **sin las máscaras de los 4 incendios de prueba**
+(`--sin-prueba`) en lugar de Hansen. Las 7 iteraciones tienen sha `5427218` y `sucio: false`.
+
+| Incendio | modelo-v0 | LYQ-1 (Hansen) | LYQ-2 (capa) |
+|---|---|---|---|
+| Alerces 2023 (h54) | 0,528 | 0,522 | 0,522 |
+| **Epuyén 2025** | 0,501 / 1,41 | 0,501 / 1,41 | **0,453 / 1,79** |
+| Alerces 2024 | 0,635 | 0,635 | 0,635 |
+| Patriada 2026 | 0,496 | 0,505 | 0,499 |
+| Las Golondrinas (límite) | 0,012 | 0,012 | 0,012 |
+| Alerces 2016 | 0,389 | 0,391 | 0,389 |
+| Cholila 2015 | 0,513 | 0,514 | 0,514 |
+| Media / mediana | 0,439 / 0,501 | 0,440 / 0,505 | 0,432 / 0,499 |
+
+**No pasa.** Epuyén pierde 0,048, más que el máximo de 0,02 por caso. **La capa no se adopta.**
+La app sigue usando Hansen solo, que es la versión que pasó LYQ-1. Los scripts quedan para una
+variante corregida.
+
+**Diagnóstico.** En el dominio de Epuyén, la capa reasigna:
+
+- ~1.500 ha de **plantaciones de pino** (TL8) a SH3 y GS3: quemas de 2019 y 2021 que ven el dNBR o
+  MCD64A1 y no Hansen;
+- 1.100 ha de ñire, coihue y TL2 a GS3.
+
+La simulación quema 904 ha más, casi todo falso positivo: 67 ha caen en la cicatriz y sólo 84 ha
+sobre las celdas cambiadas. El GS3 abre un corredor y el fuego sigue más allá.
+
+**La causa es un error de diseño, no la premisa.** El bosque se decide en dos lugares con dos
+criterios distintos:
+
+- la capa lo decide por la cobertura de Hansen 2000;
+- la regla, por el código de combustible (TL/TU).
+
+Una plantación posterior a 2000 tiene poca cobertura en 2000, así que la capa la admite como "no
+bosque". La regla, en cambio, la trata como bosque. Así pasa justamente lo que el diseño quería
+evitar: un bosque que Hansen no vio reemplazado se reasigna.
+
+### 10.3 Prueba de la premisa (`scripts/premisa_lo_ya_quemado.py`)
+
+**Cómo se midió.**
+
+- Sólo con MCD64A1 (~463 m), por temporada (julio–junio), en la caja extendida, de 2006 a 2026.
+- Sin los incendios de prueba: se saca su máscara dNBR dilatada una celda.
+- **Reincendio relativo** = lo observado contra lo esperado con la tasa de cada temporada.
+- **Borde** = la fracción de la cicatriz tocada que queda en el anillo de una celda alrededor del
+  fuego. La base es ~0,30.
+
+| Edad de la cicatriz | Reincendio relativo, 2006–2026 | Sin 2026 | Borde, 2006–2026 / sin 2026 |
+|---|---|---|---|
+| 1–2 años | 0,64 (18 celdas; 27,9 esperadas) | 1,30 (13; 10,0) | 0,55 / 0,55 |
+| 3–5 años | **0,13** (7; 53,1) | **0,27** (6; 22,4) | 0,56 / 0,54 |
+| 6–15 años | **3,27** (397; 121,4) | **1,39** (88; 63,3) | 0,27 / 0,39 |
+
+Lectura:
+
+- **6–15 años: confirmada.** Las cicatrices arden más que el resto, con 2026 y sin 2026. El SH3
+  para el bosque de esa edad tiene respaldo.
+- **1–2 años: débil.** El fuego llega al borde y no entra (0,55 contra 0,30), pero el reincendio
+  es 0,64 o 1,30 según la ventana, con 13–18 celdas.
+- **3–5 años: no estaba en las hipótesis, y es la señal más robusta.** Estas cicatrices casi no
+  vuelven a arder (0,13 y 0,27) y frenan al fuego en el borde. Eso **contradice** reasignar el
+  bosque de esa edad a GS3, que propaga más rápido que el bosque. Es coherente con la PT-37 A2,
+  donde los entreparches amplios "dificultan la continuidad horizontal".
+- **Límites.**
+  - La resolución es de 500 m, y MCD64A1 omite los fuegos chicos.
+  - Hay autocorrelación espacial: las cicatrices de 6–15 años están en paisajes propensos al
+    fuego.
+  - 2026 pesa mucho. Patriada, un caso de calibración, entra en las cicatrices de 2012 y 2015 y no
+    en la de 2021. La prueba usa MCD64A1 y no las referencias del benchmark, pero los incendios
+    son los mismos.
+
+### 10.4 Decisión pendiente
+
+Dos cambios, que se miden juntos en un protocolo LYQ-3, con una sola variante fijada antes:
+
+1. **Arreglo del diseño.** La capa lleva dos bandas, el año de Hansen y el año de las otras
+   fuentes. La regla decide el bosque con el código del mapa, en el mismo lugar:
+   - un TL/TU sólo se reasigna con Hansen, o con otras fuentes después del último año de Hansen;
+   - lo demás, con cualquier fuente.
+2. **3–5 años.** Las opciones son:
+   - **(a)** mantener GS3 para el bosque, como está hoy;
+   - **(b)** extender GR1 a 1–5 años para todo combustible, que es lo que sugiere §10.3.
+
+   (b) usa evidencia externa nueva, obtenida sin la prueba del benchmark. Pero esa evidencia se vio
+   antes de fijar la variante, y eso se declara.
+
+Mientras tanto, la app aplica la regla de §4 con Hansen solo (LYQ-1).
 
 ## Fuentes
 
