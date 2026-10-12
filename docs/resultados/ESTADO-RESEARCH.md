@@ -101,7 +101,10 @@ sobre los once casos. Los controles CCS-BAP reprodujeron modelo-v0 byte a byte.
 - Prueba: 0,191 CCS-BAP, 0,272 WorldCover y 0,284 MapBiomas.
 
 WorldCover queda descartado como fuente principal. CCS-BAP permanece en modelo-v0; MapBiomas es
-competitivo y no hay evidencia para afirmar superioridad general de CCS-BAP sobre él. El holdout
+competitivo y no hay evidencia para afirmar superioridad general de CCS-BAP sobre él, pero sí
+no inferioridad: con 95 % de confianza (Hodges-Lehmann, cota exacta de Wilcoxon), CCS-BAP no
+pierde más de 0,098 de Dice en los seis casos sin fuga, dentro de un margen de 0,130 (la mitad
+de la ventaja de MapBiomas sobre WorldCover, fijado después de ver los datos). El holdout
 no se usa retrospectivamente para cambiar el modelo. Resultado completo:
 `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
 
