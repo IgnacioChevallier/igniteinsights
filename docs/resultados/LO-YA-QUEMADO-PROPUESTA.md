@@ -1,12 +1,20 @@
 # Lo ya quemado: propuesta para la app
 
-> Corte: 2026-10-11; resultados de LYQ-1 (§9), del paso 2, de LYQ-2 y de la prueba de la premisa
-> (§10) el 2026-10-12. Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
+> Corte: 2026-10-11. Resultados del 2026-10-12: LYQ-1 (§9); paso 2, LYQ-2 y prueba de la premisa
+> (§10); LYQ-3, la versión adoptada (§11). Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
 > histórica de FIRMS). Es una propuesta: no cambia código ni `modelo-v0`. Todos los números de
 > los §3 y §4 salen de diagnósticos sin ELMFIRE sobre los paquetes `-p` de **calibración** (v6 +
 > Hansen `lossyear`). No se abrió ningún resultado del conjunto de prueba.
 
 ## Resumen
+
+> **Versión adoptada: §11 (LYQ-3).**
+>
+> - Quemas de 1–5 años → GR1 en todo combustible; bosque de 6–15 años → SH3.
+> - Fuentes: Hansen más dNBR ∪ MCD64A1. En bosque, las otras fuentes sólo cuentan después del
+>   último año de Hansen.
+>
+> Los §1–§10 conservan el razonamiento y las mediciones intermedias (LYQ-1 y LYQ-2).
 
 - **El hueco es más chico de lo que se suponía.** El Hansen que usa la app
   (`Hansen_GFC-2025-v1.13`) ya trae la pérdida de 2025: 3.742 ha en el AOI. El hueco real son
@@ -139,6 +147,8 @@ alarma.
 En la cicatriz de Patriada, la regla cambia **16 ha** (0,3 %); el loop M cambiaba ~1.313 ha.
 
 ## 4. Regla de reasignación propuesta
+
+> Regla original, medida en LYQ-1. La adoptada cambia el tramo de 3–5 años: ver §11.
 
 **Dónde se aplica:** en las celdas con año de quema `a` tal que `año del mapa < a < año de la
 simulación`. Para Hansen, `a ≤ año de la simulación − 1`, la misma condición que ya usa
@@ -483,6 +493,9 @@ variante corregida.
 La simulación quema 904 ha más, casi todo falso positivo: 67 ha caen en la cicatriz y sólo 84 ha
 sobre las celdas cambiadas. El GS3 abre un corredor y el fuego sigue más allá.
 
+**Nota posterior (§11).** Además, MCD64A1 estaba corrido ~18,6 km al sur por un error de CRS, así
+que parte de lo que la capa reasignó en LYQ-2 ni siquiera era una quema en ese lugar.
+
 **La causa es un error de diseño, no la premisa.** El bosque se decide en dos lugares con dos
 criterios distintos:
 
@@ -494,6 +507,11 @@ bosque". La regla, en cambio, la trata como bosque. Así pasa justamente lo que 
 evitar: un bosque que Hansen no vio reemplazado se reasigna.
 
 ### 10.3 Prueba de la premisa (`scripts/premisa_lo_ya_quemado.py`)
+
+> Los números de esta tabla son de la primera corrida, con el CRS de MODIS mal leído. Con el CRS
+> corregido (§11) cambia sólo la exclusión de los incendios de prueba, y las conclusiones se
+> mantienen: 1–2 años 0,83 / 1,31; 3–5 años 0,20 / 0,29; 6–15 años 3,88 / 1,41 (2006–2026 / sin
+> 2026).
 
 **Cómo se midió.**
 
@@ -543,6 +561,80 @@ Dos cambios, que se miden juntos en un protocolo LYQ-3, con una sola variante fi
    antes de fijar la variante, y eso se declara.
 
 Mientras tanto, la app aplica la regla de §4 con Hansen solo (LYQ-1).
+
+## 11. LYQ-3: la versión adoptada (2026-10-12)
+
+**Qué cambió respecto de LYQ-1 y LYQ-2.**
+
+- **Regla.** Las quemas de 1–5 años pasan a GR1 en todo combustible, por la prueba de la premisa
+  (§10.3). El bosque de 6–15 años sigue pasando a SH3, y el matorral y el pastizal conservan su
+  clase después de los 5 años.
+- **El bosque se decide en un solo lugar.** Lo decide `reassign_burns_by_age`, con el mapa: un
+  TL/TU sólo toma una quema de otras fuentes si es posterior a `HANSEN_LAST_YEAR` (2025). Es el
+  arreglo de LYQ-2.
+- **Las otras fuentes van por separado.** `settings.otras_quemas_path` y
+  `scripts/anio_quema.py` las guardan como una máscara de bits uint32, con un bit por año desde
+  2001 (`last_burn_before`). Con un solo año por celda, la cicatriz del propio incendio, o una de
+  su misma temporada, tapaba las quemas anteriores. En Alerces 2016 se perdían así las quemas de
+  2015 que Hansen sí veía.
+- **Una quema de Hansen del año de la simulación** no cuenta ni tapa a las anteriores.
+- **El dosel** sigue saliendo de Hansen solo, igual que en LYQ-1.
+
+**Error de CRS en MCD64A1.** Earth Engine escribe la sinusoidal de MODIS con datum WGS84, y MODIS
+usa una esfera de 6.371.007 m. A −42° eso lleva todo ~18,6 km al sur. Lo delató el pre-chequeo: el
+"2021" de MCD64A1 caía sobre la cicatriz de Epuyén 2025, y su "2025" no la tocaba.
+
+- **Corrección.** Los dos scripts reescriben el CRS al bajar. Con el CRS corregido, MCD64A1
+  confirma el 92 % de la cicatriz de Epuyén 2025, el 90 % de Alerces 2024 y el 86 % de Patriada,
+  en línea con `../mask-dataset-gen`.
+- **A qué afectó.** A LYQ-2 (§10.2) y a la exclusión de la prueba en la premisa (§10.3).
+
+**Pre-chequeo sin ELMFIRE.** En cada caso de calibración, la regla toca como mucho 22 ha de lo que
+quema modelo-v0 y 8 ha de la cicatriz.
+
+**Resultado.** `lw100-quema-edad-002` sobre los casos `-r`: los `-p` byte a byte más
+`otras_quemas.tif`, construido sin las máscaras de los incendios de prueba.
+
+| Incendio | modelo-v0 (`lw-100-001`) | LYQ-3 | Δ |
+|---|---|---|---|
+| Alerces 2023 (h54) | 0,528 / 1,86 | 0,522 / 1,84 | −0,006 |
+| Epuyén 2025 | 0,501 / 1,41 | 0,501 / 1,41 | 0,000 |
+| Alerces 2024 | 0,635 / 1,35 | 0,635 / 1,35 | 0,000 |
+| Patriada 2026 | 0,496 / 0,70 | 0,499 / 0,70 | +0,003 |
+| Las Golondrinas (límite) | 0,012 / 0,02 | 0,012 / 0,02 | 0,000 |
+| Alerces 2016 | 0,389 / 1,69 | 0,391 / 1,68 | +0,002 |
+| Cholila 2015 | 0,513 / 0,87 | 0,514 / 0,87 | +0,001 |
+| **Media / mediana** | **0,439 / 0,501** | **0,439 / 0,501** | **0,000 / 0,000** |
+
+**Criterios del §6: los tres se cumplen.**
+
+- No aparece ninguna alarma nueva.
+- |Δ media| y |Δ mediana| = 0.
+- El peor caso es Alerces 2023, con −0,006.
+
+**Decisión: la app adopta esta versión** (Hansen + otras fuentes). Reemplaza a la de LYQ-1 (§9).
+modelo-v0 no cambia.
+
+**Procedencia.** Las 7 iteraciones tienen sha `0e5b798` y `sucio: false`. `verificar` reproduce
+Alerces 2016 byte a byte (3 de 3 ventanas).
+
+**Humo de la app** (sin ELMFIRE, mapa CCS-BAP 2017):
+
+| Simulación | Hansen solo | Hansen + otras fuentes | Lo que cambia |
+|---|---|---|---|
+| 2026 | 17.195 ha | 43.574 ha | 43.135 ha a GR1, 439 a SH3 |
+| 2027 | 15.688 ha | 66.237 ha | 61.280 a GR1: ya incluye la temporada 2026 |
+
+**Límites declarados.**
+
+- **La resolución.** MCD64A1 trabaja en celdas de 500 m, así que engorda los bordes de las quemas
+  que no tienen dNBR. Por ejemplo, Los Alerces 2026.
+- **El dosel.** El dosel de una quema forestal de 2026 sigue siendo el de Hansen 2000 / ETH 2020
+  hasta que Hansen publique 2026. Esa quema queda en GR1, pero bajo el viento de bosque.
+- **La validación.** El benchmark sólo garantiza que la regla no rompe nada. La premisa se apoya en
+  MCD64A1, a 500 m y con pocas celdas para 1–5 años.
+- **La actualización.** La capa hay que regenerarla cada temporada: `exportar_mcd64a1.py` +
+  `anio_quema.py`.
 
 ## Fuentes
 

@@ -94,11 +94,17 @@ prueba.
   alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
   lenga achaparrada sigue en SH8, con su limitación declarada
   (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
-- Ingesta histórica de la app: FIRMS NRT no sustituye las fuentes SP.
 
 Estos puntos se reportan como límites; el detalle de cada uno está en
 `docs/resultados/RIESGOS_Y_SUPOSICIONES.md`. No bloquean la comparación de mapas condicionada a
 modelo-v0.
+
+Dos problemas de la app quedaron resueltos el 2026-10-12, sin cambiar modelo-v0
+(`docs/resultados/LO-YA-QUEMADO-PROPUESTA.md`):
+
+- Lo ya quemado: la app reasigna por edad el combustible de las quemas posteriores al mapa
+  (protocolo de no regresión LYQ-3: 0,439 / 0,501).
+- Ingesta histórica de FIRMS: la app pide las fuentes SP y las NRT.
 
 ## 7. Comparación final de mapas
 
