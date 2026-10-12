@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db import repository
 
-from .client import FIRMSClient
+from .client import FIRMS_SOURCES, FIRMS_SOURCES_ARCHIVE, FIRMSClient
 from .errors import FIRMSClientError
 from .normalizer import normalize_firms_response
 
@@ -45,12 +45,15 @@ async def run_firms_ingestion(
             north=settings.aoi_north,
             day_range=day_range,
             start_date=start_date,
+            # SP and NRT cover disjoint dates (SP lags ~3 months): asking both serves a past
+            # fire and a live one alike (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §8).
+            sources=FIRMS_SOURCES + FIRMS_SOURCES_ARCHIVE,
         )
 
         # Persist raw CSV for auditing
         raw_dir = Path(settings.raw_data_dir) / "firms" / datetime.now(UTC).strftime("%Y-%m-%d")
         raw_dir.mkdir(parents=True, exist_ok=True)
-        raw_path = raw_dir / "viirs_nrt_los_alerces.csv"
+        raw_path = raw_dir / "viirs_los_alerces.csv"
         if not df.empty:
             await asyncio.to_thread(df.to_csv, raw_path, index=False)
 

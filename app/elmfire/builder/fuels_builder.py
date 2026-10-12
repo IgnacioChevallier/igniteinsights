@@ -319,6 +319,62 @@ CCSBAP_N3_OVERRIDES: dict[str, int] = {
 # Alerces 2024 0,562 → 0,614).
 CCSBAP_SOBRE_LIMITE_BOSQUE: dict[str, tuple[float, int]] = {"Estepa": (1300.0, 99)}
 
+# Año que observa cada mapa de cobertura: las quemas posteriores no están en él.
+COVER_MAP_YEAR: dict[str, int] = {"ccsbap": 2017, "mapbiomas": 2024, "worldcover": 2021}
+
+# Lo ya quemado que el mapa no vio (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §4), por edad de
+# la quema: (desde, hasta, modelo, sólo bosque TL/TU). 1-2 años: rebrote ralo (PT-37 A2;
+# Landesmann et al. 2021). 3-5: el bosque es pastizal-arbustal de rebrote (GS3, PT-37 A2) y el
+# matorral rebrota a su propia clase (Tiribelli et al. 2018). 6-15: el bosque es matorral
+# rebrotante, como el remanente de CCS-BAP (DECISIONES-MODELO-V0 §4). Más viejo: el mapa, como
+# LANDFIRE FDist.
+FUEL_BY_BURN_AGE: list[tuple[int, int, int, bool]] = [
+    (1, 2, 101, False),   # GR1
+    (3, 5, 123, True),    # GS3
+    (6, 15, 143, True),   # SH3
+]
+
+
+def reassign_burns_by_age(
+    fbfm40: np.ndarray, burn_year: np.ndarray, simulation_year: int, map_year: int
+) -> np.ndarray:
+    """Fuel of the burns the cover map never saw, by burn age (FUEL_BY_BURN_AGE).
+
+    `burn_year` is encoded like Hansen GFC `lossyear` (0 = none, n = 2000 + n). Burns the map
+    already saw are left alone: a burnt forest the map still calls forest most likely burnt at
+    low severity. Never a burn of the simulation year itself, which can be the fire being
+    simulated. Non-burnable codes (NB) never change.
+    """
+    year = 2000 + burn_year.astype(np.int32)
+    age = np.where(burn_year > 0, simulation_year - year, 0)
+    unseen = (burn_year > 0) & (year > map_year)
+    burnable = (fbfm40 >= 101) & (fbfm40 <= 204)   # GR to SB; NB is 91-99 and 256
+    forest = ((fbfm40 >= 161) & (fbfm40 <= 165)) | ((fbfm40 >= 181) & (fbfm40 <= 189))
+    out = fbfm40.copy()
+    for low, high, code, forest_only in FUEL_BY_BURN_AGE:
+        band = unseen & (age >= low) & (age <= high)
+        out[band & (forest if forest_only else burnable)] = code
+    assert_codes_are_defined(out)
+    return out
+
+
+def reassign_burns_in_raster(
+    fbfm40_path: Path, lossyear_path: Path, simulation_year: int, map_year: int
+) -> float:
+    """reassign_burns_by_age on an fbfm40.tif in place (same grid as the lossyear raster).
+    Returns the hectares that changed."""
+    with rasterio.open(fbfm40_path) as src:
+        fbfm40, profile = src.read(1), src.profile
+        cell_ha = abs(src.res[0] * src.res[1]) / 1e4
+    with rasterio.open(lossyear_path) as src:
+        burn_year = src.read(1)
+    out = reassign_burns_by_age(fbfm40, burn_year, simulation_year, map_year)
+    with rasterio.open(fbfm40_path, "w", **profile) as dst:
+        dst.write(out, 1)
+    hectares = float((out != fbfm40).sum() * cell_ha)
+    logger.info("Burns after %d reassigned by age: %.0f ha", map_year, hectares)
+    return hectares
+
 
 def ccsbap_fuel_code(ley_n1: str, ley_n2: str, ley_n3: str) -> int:
     """Fuel model for one CCS-BAP polygon. Raises if the legend class is unknown —

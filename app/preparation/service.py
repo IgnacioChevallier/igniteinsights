@@ -94,6 +94,25 @@ async def run_preparation(
         )
         generated.append("adj.tif")
 
+    # Hansen GFC lossyear on the grid: what burned (lost its canopy) before the simulation year.
+    # Used twice — the fuel of burns the cover map never saw (step 2) and no canopy over any
+    # earlier loss (step 5): docs/resultados/LO-YA-QUEMADO-PROPUESTA.md,
+    # docs/crosswalk/DECISIONES-MODELO-V0.md §3.
+    simulation_year = (gfs_at or fires_until or datetime.now(UTC)).year
+    lossyear: Path | None = None
+    lossyear_raw = _resolve(settings.hansen_lossyear_path)
+    if lossyear_raw.exists() and reference is not None:
+        lossyear = await asyncio.to_thread(
+            canopy_builder.reproject_canopy,
+            lossyear_raw, reference, static_dir / "hansen_lossyear.tif", 1.0, "nearest",
+        )
+    elif reference is not None:
+        msg = (f"Sin Hansen lossyear en {lossyear_raw}: las quemas posteriores al mapa conservan "
+               "el combustible y el dosel del bosque previo")
+        logger.warning("Preparation %s: %s", prep_id, msg)
+        warnings.append(msg)
+    burns_reassigned_ha = 0.0
+
     # ── 2. Fuel model (static, cached) ────────────────────────────────────────
     # Which cover product feeds fbfm40.tif is configuration, not code (ETAPA-B §B3): the
     # thesis has to be able to regenerate any of the three maps to compare them. The
@@ -140,10 +159,17 @@ async def run_preparation(
             fuels_builder.build_fbfm40, source, source_path, reference, fbfm_cached, fill_path
         )
         shutil.copy2(fbfm_cached, inputs_dir / "fbfm40.tif")
+        # Después del caché: depende del año de la simulación, no sólo de la fuente.
+        if lossyear is not None:
+            burns_reassigned_ha = await asyncio.to_thread(
+                fuels_builder.reassign_burns_in_raster,
+                inputs_dir / "fbfm40.tif", lossyear, simulation_year,
+                fuels_builder.COVER_MAP_YEAR[source],
+            )
         # El caché es por fuente (fbfm40_<fuente>.tif) para que alternar entre mapas no
-        # obligue a reconstruir; este segundo destino es "el mapa vigente", que es lo que
-        # sirve el dashboard.
-        shutil.copy2(fbfm_cached, static_dir / "fbfm40.tif")
+        # obligue a reconstruir; este segundo destino es "el mapa vigente" (el que corrió,
+        # con las quemas reasignadas), que es lo que sirve el dashboard.
+        shutil.copy2(inputs_dir / "fbfm40.tif", static_dir / "fbfm40.tif")
         generated.append("fbfm40.tif")
     else:
         missing.append("fbfm40.tif")
@@ -331,18 +357,6 @@ async def run_preparation(
     # (the fuel map stands in for the CCS-BAP class) and no canopy where Hansen saw loss before
     # the simulation year (docs/crosswalk/DECISIONES-MODELO-V0.md §2 and §3).
     if "cc.tif" in generated and "ch.tif" in generated:
-        lossyear = None
-        lossyear_raw = _resolve(settings.hansen_lossyear_path)
-        if lossyear_raw.exists() and reference is not None:
-            lossyear = await asyncio.to_thread(
-                canopy_builder.reproject_canopy,
-                lossyear_raw, reference, static_dir / "hansen_lossyear.tif", 1.0, "nearest",
-            )
-        else:
-            msg = (f"Sin Hansen lossyear en {lossyear_raw}: el dosel queda el de 2000 también "
-                   "sobre los incendios posteriores")
-            logger.warning("Preparation %s: %s", prep_id, msg)
-            warnings.append(msg)
         await asyncio.to_thread(
             canopy_builder.derive_cbh_cbd,
             inputs_dir / "cc.tif",
@@ -351,7 +365,7 @@ async def run_preparation(
             inputs_dir / "cbd.tif",
             inputs_dir / "fbfm40.tif" if "fbfm40.tif" in generated else None,
             lossyear,
-            (gfs_at or fires_until or datetime.now(UTC)).year,
+            simulation_year,
         )
         generated.extend(["cbh.tif", "cbd.tif"])
     else:
@@ -394,6 +408,7 @@ async def run_preparation(
         "warnings": warnings,
         "ignition_datetime": ignition_datetime,
         "fuels_source": source,
+        "burns_reassigned_ha": burns_reassigned_ha,
     }
 
 
