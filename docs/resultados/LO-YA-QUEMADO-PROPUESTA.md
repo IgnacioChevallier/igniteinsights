@@ -1,6 +1,6 @@
 # Lo ya quemado: propuesta para la app
 
-> Corte: 2026-10-11. Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
+> Corte: 2026-10-11; resultado de LYQ-1 el 2026-10-12 (§9). Responde a `RIESGOS_Y_SUPOSICIONES.md` §5 (lo ya quemado) y §6 (ingesta
 > histórica de FIRMS). Es una propuesta: no cambia código ni `modelo-v0`. Todos los números de
 > los §3 y §4 salen de diagnósticos sin ELMFIRE sobre los paquetes `-p` de **calibración** (v6 +
 > Hansen `lossyear`). No se abrió ningún resultado del conjunto de prueba.
@@ -375,6 +375,69 @@ Lo que muestra la tabla:
 
 El benchmark no cambia: pasa `sources` explícitas. El normalizador acepta la confianza `n`/`h`,
 que los productos SP también usan.
+
+## 9. Resultado del protocolo LYQ-1 (2026-10-12)
+
+**Implementado** en `feat/lo-ya-quemado`, commit `547cd10`:
+
+- **la regla** (`fuels_builder.reassign_burns_by_age` / `reassign_burns_in_raster`), con
+  `COVER_MAP_YEAR` por fuente;
+- **la preparación de la app**: la reasignación va sobre la copia de la preparación y el
+  dashboard muestra el mapa efectivo; la respuesta trae `burns_reassigned_ha`;
+- **la perilla `combustible_por_edad_quema`** en `cadena.py` y `definiciones.py`, y la receta
+  `lw100-quema-edad-001`;
+- **FIRMS**: SP + NRT, con `drop_nrt_covered_by_sp`;
+- **las pruebas** `tests/test_burn_age_fuels.py` y `tests/test_firms_sources.py`.
+
+`make check` pasa.
+
+**No regresión en calibración.** `lw100-quema-edad-001` sobre los `-p` contra `lw-100-001` sobre
+v6, que es el mismo paquete byte a byte sin `lossyear`:
+
+| Incendio | `lw-100-001` (Dice / sesgo) | `lw100-quema-edad-001` (Dice / sesgo) | Δ Dice |
+|---|---|---|---|
+| Alerces 2023 (h54) | 0,528 / 1,86 | 0,522 / 1,84 | −0,006 |
+| Epuyén 2025 | 0,501 / 1,41 | 0,501 / 1,41 | 0,000 |
+| Alerces 2024 | 0,635 / 1,35 | 0,635 / 1,35 | 0,000 |
+| Patriada 2026 | 0,496 / 0,70 | 0,505 / 0,71 | +0,009 |
+| Las Golondrinas (límite) | 0,012 / 0,02 | 0,012 / 0,02 | 0,000 |
+| Alerces 2016 | 0,389 / 1,69 | 0,391 / 1,68 | +0,002 |
+| Cholila 2015 | 0,513 / 0,87 | 0,514 / 0,87 | +0,001 |
+| **Media / mediana** | **0,439 / 0,501** | **0,440 / 0,505** | **+0,001 / +0,004** |
+
+**Criterios fijados en el §6: los tres se cumplen.**
+
+- No aparece ninguna alarma nueva: sólo sigue la del caso límite, y el sesgo máximo es 1,84.
+- |Δ media| = 0,001 y |Δ mediana| = 0,004, los dos ≤ 0,01.
+- La peor pérdida por caso es Alerces 2023, con −0,006, por debajo de 0,02.
+
+**Decisión: se adopta en la app.** modelo-v0 no cambia. Como se esperaba en el §6, el benchmark
+no mide si la regla es buena, sólo que no rompe nada.
+
+**Procedencia.** Las 7 iteraciones tienen sha `547cd10` y `sucio: false`. Se corrieron desde un
+worktree limpio, con el runner solo y un ELMFIRE por vez. `verificar` reproduce Alerces 2016 byte
+a byte (3 de 3 ventanas).
+
+**Humo de la app** (punto 4 del §6, sin ELMFIRE). Para una simulación de 2026, la regla cambia
+15.225 ha del AOI:
+
+| Año de la quema | Edad | Hectáreas | Pasan a |
+|---|---|---|---|
+| 2025 | 1 | 3.719 | GR1 |
+| 2024 | 2 | 5.343 | GR1 |
+| 2023 | 3 | 989 | GS3 |
+| 2022 | 4 | 209 | GS3 |
+| 2021 | 5 | 4.526 | GS3 |
+| 2018–2020 | 6–8 | 439 | SH3 |
+
+No se corrió una preparación completa por la API.
+
+**Queda pendiente:**
+
+- el paso 2 (capa de año de quema con MCD64A1 y dNBR, para las quemas de 2026 y las no
+  forestales);
+- la prueba de la premisa del §6, punto 3;
+- la lectura descriptiva del conjunto de prueba.
 
 ## Fuentes
 
