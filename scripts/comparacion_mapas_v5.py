@@ -81,6 +81,24 @@ def signos(difs: list[float]) -> tuple[int, int, int, float]:
     return g, p_, len(difs) - n, pv
 
 
+def cota_inferior(difs: list[float], alfa: float = 0.05) -> tuple[float, float, float | None]:
+    """Hodges-Lehmann y su cota inferior unilateral exacta (Wilcoxon de rangos con signo):
+    la c+1-ésima media de Walsh, con c el mayor valor tal que P(T <= c) <= alfa. Devuelve
+    (estimador, nivel exacto alcanzado, cota); la cota es None si n es tan chico que ningún
+    c cumple."""
+    n = len(difs)
+    cuentas = [1]  # cuentas[t]: asignaciones de signo con T = t bajo H0
+    for r in range(1, n + 1):
+        cuentas = [a + (cuentas[i - r] if i >= r else 0)
+                   for i, a in enumerate(cuentas + [0] * r)]
+    acum = c = 0
+    while acum + cuentas[c] <= alfa * 2 ** n:
+        acum += cuentas[c]
+        c += 1
+    walsh = sorted((a + b) / 2 for i, a in enumerate(difs) for b in difs[i:])
+    return median(walsh), 1 - acum / 2 ** n, walsh[c - 1] if c else None
+
+
 def _f(v, nd=3) -> str:
     return "—" if v is None else f"{v:.{nd}f}".replace(".", ",")
 
@@ -333,6 +351,41 @@ def main() -> None:
     def media(sel: list[dict], mapa: str) -> float:
         return mean(f["m"][mapa]["dice"] for f in sel)
 
+    # Margen: conservar al menos la mitad de lo que MapBiomas gana sobre el baseline
+    # (WorldCover) donde la comparación es limpia; convención de no inferioridad (FDA M2).
+    margen = (media(sin_fuga, "MapBiomas") - media(sin_fuga, "WorldCover")) / 2
+    print("\n## No inferioridad frente a MapBiomas\n")
+    print(
+        "Δ = CCS-BAP − MapBiomas por incendio. Estimador de Hodges-Lehmann y cota inferior "
+        "unilateral exacta al 95 % (Wilcoxon de rangos con signo). CCS-BAP es no inferior "
+        f"si la cota supera −{_f(margen)}: la mitad de la ventaja media de MapBiomas sobre "
+        f"WorldCover en los casos sin fuga ({_f(media(sin_fuga, 'MapBiomas'))} − "
+        f"{_f(media(sin_fuga, 'WorldCover'))}). El margen se fijó después de ver las "
+        "diferencias por incendio; por eso la cota se lee también por sí misma: su valor "
+        "absoluto es el margen más chico que los datos sostienen, sin depender de esa "
+        "elección.\n"
+    )
+    print("| Conjunto | Métrica | n | Δ HL | Cota inferior | Nivel exacto | No inferior |")
+    print("|---|---|---|---|---|---|---|")
+    cotas = {}
+    for titulo, sel in (("Sin fuga (6)", sin_fuga), ("Todos sin el límite", sin_limite),
+                        ("Calibración", calibracion), ("Prueba", prueba)):
+        for metrica in ("dice", "forma"):
+            difs = [f["m"]["CCS-BAP"][metrica] - f["m"]["MapBiomas"][metrica] for f in sel
+                    if f["m"]["CCS-BAP"][metrica] is not None
+                    and f["m"]["MapBiomas"][metrica] is not None]
+            hl, nivel, cota = cota_inferior(difs)
+            cotas[titulo, metrica] = cota
+            veredicto = "n insuficiente" if cota is None else ("sí" if cota > -margen else "no")
+            print(f"| {titulo} | {metrica} | {len(difs)} | {_f(hl)} | {_f(cota)} | "
+                  f"{_f(100 * nivel, 1) if cota is not None else '—'} % | {veredicto} |")
+    sin_el_turbio = [f["m"]["CCS-BAP"]["dice"] - f["m"]["MapBiomas"]["dice"] for f in sin_fuga
+                     if not f["base"].startswith("el-turbio")]
+    print(
+        f"\nSensibilidad: sin El Turbio, la cota de Dice en los casos sin fuga pasa a "
+        f"{_f(cota_inferior(sin_el_turbio)[2])} (n = {len(sin_el_turbio)}).\n"
+    )
+
     print("\n## Conclusión\n")
     print(
         f"En los seis casos sin fuga temporal, CCS-BAP obtiene Dice medio "
@@ -361,6 +414,15 @@ def main() -> None:
         "evidencia suficiente para afirmar que CCS-BAP lo supera de forma general. Un eventual "
         "cambio exige un modelo-v1 predefinido y datos independientes nuevos, no otro ajuste "
         "sobre estos once incendios."
+    )
+    print(
+        f"\nNo inferioridad: con 95 % de confianza, CCS-BAP no pierde contra MapBiomas más de "
+        f"{_f(-cotas['Sin fuga (6)', 'dice'])} de Dice en los casos sin fuga "
+        f"({_f(-cotas['Todos sin el límite', 'dice'])} con los diez), dentro del margen de "
+        f"{_f(margen)}. La afirmación que se sostiene es \"no inferior a MapBiomas\", no "
+        "\"equivalente\": la cota depende casi entera de El Turbio, y una pérdida de hasta "
+        "0,1 de Dice no es despreciable. El conjunto de prueba (4) es demasiado chico para "
+        "una cota exacta al 95 %."
     )
 
 if __name__ == "__main__":
