@@ -94,17 +94,19 @@ async def run_preparation(
         )
         generated.append("adj.tif")
 
-    # Hansen GFC lossyear on the grid: what burned (lost its canopy) before the simulation year.
-    # Used twice — the fuel of burns the cover map never saw (step 2) and no canopy over any
-    # earlier loss (step 5): docs/resultados/LO-YA-QUEMADO-PROPUESTA.md,
-    # docs/crosswalk/DECISIONES-MODELO-V0.md §3.
+    # Year of the last burn on the grid: the combined scar layer (Hansen ∪ dNBR ∪ MCD64A1,
+    # scripts/anio_quema.py) when present, else Hansen GFC lossyear alone. Used twice — the fuel
+    # of burns the cover map never saw (step 2) and no canopy over any earlier burn (step 5):
+    # docs/resultados/LO-YA-QUEMADO-PROPUESTA.md, docs/crosswalk/DECISIONES-MODELO-V0.md §3.
     simulation_year = (gfs_at or fires_until or datetime.now(UTC)).year
     lossyear: Path | None = None
-    lossyear_raw = _resolve(settings.hansen_lossyear_path)
+    lossyear_raw = _resolve(settings.cicatrices_path)
+    if not lossyear_raw.exists():
+        lossyear_raw = _resolve(settings.hansen_lossyear_path)
     if lossyear_raw.exists() and reference is not None:
         lossyear = await asyncio.to_thread(
             canopy_builder.reproject_canopy,
-            lossyear_raw, reference, static_dir / "hansen_lossyear.tif", 1.0, "nearest",
+            lossyear_raw, reference, static_dir / "anio_quema.tif", 1.0, "nearest",
         )
     elif reference is not None:
         msg = (f"Sin Hansen lossyear en {lossyear_raw}: las quemas posteriores al mapa conservan "
