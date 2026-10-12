@@ -1,0 +1,81 @@
+{
+  "descripcion": "P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `puerto-patriada-2026/calibracion-v6`: la ventana 0 del caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado. Estáticos, mapas, dosel, cicatriz y clima son los del caso base.",
+  "anio_fuego": 2026,
+  "caja_wgs84": [
+    -71.638,
+    -42.454,
+    -71.155,
+    -42.029
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.53471,
+    "lat": -42.14589,
+    "hora": "2026-01-05T17:00:00+00:00",
+    "fuente": "Wikipedia 'Incendios forestales en Argentina de 2026' e Infobae (16-ene-2026): 'alrededor de la tarde del lunes 5 de enero ... con foco en Puerto Patriada'; intencional, con combustible (fiscalía). Lugar: localidad Puerto Patriada (OSM -42.1478/-71.5347). Primera detección VIIRS: 18:59 UTC, 267 m al norte.",
+    "ajuste": "La semilla de mask-dataset-gen (la localidad) cae 150 m fuera de la cicatriz, a 321 m. Se toma la celda de la cicatriz a más de 90 m del borde más cercana a ella: 240 m, 343 m de altura, SH4. Hora: 14 ART, antes de la primera pasada (15:59 ART) que ya ve 4 píxeles."
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-patriada-2026/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "ventanas": [
+    {
+      "t0": "2026-01-05T17:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-05T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1200.0
+    },
+    {
+      "t0": "2026-01-06T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2640.0
+    },
+    {
+      "t0": "2026-01-06T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 60.0
+    },
+    {
+      "t0": "2026-01-07T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1500.0
+    },
+    {
+      "t0": "2026-01-07T20:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 120.0
+    },
+    {
+      "t0": "2026-01-08T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 360.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "puerto-patriada-2026/calibracion-v6",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "puerto-patriada-2026/calibracion-v6",
+    "receta": "lw-100-001"
+  }
+}
