@@ -548,7 +548,7 @@ contra `base-001` v4.
   nada: sus igniciones caen en TL8/matorral sin dosel bajo que se encienda.
 - **Conclusión:** la estructura del dosel (el CBH derivado como 0,2–0,5 × CH) pasa a ser la
   incertidumbre de insumos más grande que queda. No se calibra (no es un parámetro de esta
-  tesis); va al director (§7.2).
+  tesis); se resolvió con CBH de literatura por tipo de bosque (loop L, §7.2).
 
 ### Loop G — la dirección del viento con el modelo a su velocidad
 
@@ -1115,7 +1115,7 @@ original.
 - **Dosel (hallazgo 4):** corregido (también con CH sin dato) y en el benchmark desde los
   protocolos v5 (loop I); efecto ≤ 0,001 en el Dice.
 
-### 7.2 Para el director (combustible y dosel)
+### 7.2 Combustible y dosel
 
 - **Matorral con dosel de bosque (sospecha 6).** Ñire bajo, lenga baja/achaparrada y parte del
   arbustal nativo se asignan a SH (matorral abierto), pero Hansen 2000 + ETH 2020 les dan
@@ -1142,8 +1142,11 @@ original.
   por el límite del bosque) con un modelo más ralo o no quemable?
 - **Humedad muerta sin gradiente de altura.** Con ERA5 a 0,25° (y GFS) el m1 es el mismo a 500
   y a 1.500 m. `altura-001` lo corrige por temperatura y casi no cambia nada. En Los Alerces el
-  cinturón de lenga no ardió y el modelo lo quema tan seco como la costa. Dato que haría falta:
-  humedad de combustibles por altura (o estaciones de montaña).
+  cinturón de lenga no ardió y el modelo lo quema tan seco como la costa. **Cerrado como límite
+  el 2026-10-12** (`HUMEDAD-ALTURA-PROPUESTA.md`). No hay una medición de humedad de hojarasca
+  bajo lenga, el efecto de la altura es común a todos los tipos de vegetación y el bosque de
+  lenga no está sesgado en calibración. Lo reabre una medición de humedad de hojarasca por
+  altura.
 
 ### 7.3 Límites que ninguna corrección resuelve
 
@@ -1162,6 +1165,21 @@ original.
   en v3 corría 24 h con la tarde congelada.
 
 ### 7.4 Cambios pendientes en el documento de combustibles (`docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
+
+**Aplicado el 2026-10-12**, a pedido del autor: §5.5 (lenga achaparrada → SH8) queda decidido.
+SH8 se mantiene como la mejor asignación medida en el benchmark; SH3 rompe Cholila en el loop L.
+Se declara la limitación: analogía sin carga medida, la clase arde 0,41× sus vecinas en la región y
+modelo-v0 la sobrequema en calibración (sesgo 1,73). Se anotó también en la lista de decisiones del crosswalk
+(`HUMEDAD-ALTURA-PROPUESTA.md` §3–§4). En el mismo día, §5.1 (bosque de lenga → TL6) también queda
+decidido: se mantiene, con sesgo 0,99 en calibración y la lenga ardiendo en la región como el
+coihue (0,97×). Quedan decididas también las otras dos de esa lista:
+
+- **§5.7, remanente → SH3:** se mantiene. La estructura medida del rebrote (tesis de Tiribelli
+  2019; Blackhall et al. 2017) descarta GS3 y se parece más a SH8. Se corrió `lw100-remsh8-001`
+  (143 → 148) con un criterio fijado antes de correr: Patriada da 0,489 contra 0,496 (no pasa) y
+  sesgo 0,92 contra 0,70; Alerces 2016 sale igual. No se adopta.
+- **§7, limitación 1, época 2017:** se acepta. MapBiomas, sin desfase, pierde con CCS-BAP 2017 en
+  5 de 6 incendios de calibración. Las quemas posteriores a 2017 quedan como limitación.
 
 **Aplicado el 2026-10-03 (loop L)**, a pedido del autor ("nosotros somos el director"): la tabla
 de §4 cambia en dos clases (Estepa → GR2 y sobre 1.300 m → NB9; remanente → SH3), con nota al
@@ -1265,15 +1283,15 @@ sección:
   declarar la interacción con el dosel (sospecha 6): Hansen 2000 + ETH 2020 les dan cobertura de
   bosque cerrado (mediana 78–91 %, 13–18 m), y ELMFIRE aplica entonces el WAF de un bosque (~0,08
   en vez del 0,46 de un matorral abierto). En Alerces 2024, dos tercios del matorral quemado es
-  ñire bajo. Para el director: ¿son combustible arbustivo expuesto al viento (sin dosel) o
-  sotobosque bajo dosel?
-- **§5.8 OT Herb-Subarb Estepa → GR3 (loop K, pendiente; no aplicado):** declarar que la clase
+  ñire bajo. Decidido en el loop L (`DECISIONES-MODELO-V0.md` §1): se mantiene el dosel. Sin dosel,
+  Alerces 2023 y 2024 se pasan.
+- **§5.8 OT Herb-Subarb Estepa → GR3 (loop K; aplicado en el loop L):** declarar que la clase
   incluye vegetación altoandina sobre el límite del bosque, no sólo estepa de coirón. En el caso
   Alerces 2015 (Cordón Situación) los polígonos de Estepa están a 1.484 m de mediana, el 73 % del
   GR3 del caso está sobre 1.300 m, y es el 12 % del falso positivo de `lw-100-001` (158 de
   1.284 ha). Cuantificado con `reasignar_combustible` (`diag-lw100-gr3-nb-001`, GR3 → NB9): falso
   positivo 1.284 → 907 ha, Dice 0,298 → 0,342. Es un caso de prueba, así que la cifra describe el
-  efecto, no fija una corrección; la asignación no cambia sin decisión del director (§7.2).
+  efecto, no fija una corrección. Decidido en el loop L: Estepa → GR2, y sobre 1.300 m → NB9.
 - **§5.7 Rem Dist Rec → GS3:** sumar la evidencia de El Turbio 2025 (RESULTADOS-CSS-BAP §7.2)
   y que Hansen 2000 todavía ve bosque cerrado en el 83 % de esa cicatriz.
 - **§7 Limitaciones:** agregar la edad del dosel (Hansen 2000, 17–25 años antes de los

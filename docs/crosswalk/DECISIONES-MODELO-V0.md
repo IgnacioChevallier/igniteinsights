@@ -1,8 +1,8 @@
 # Decisiones de combustible y dosel de modelo-v0
 
 > Estado: **adoptadas técnicamente e implementadas en v6** desde el 2026-10-03; promovidas con
-> `modelo-v0` el 2026-10-04. Queda la conformidad académica del director, no una decisión de
-> implementación. El detalle reproducible está en `docs/resultados/AUDITORIA-FISICA.md`.
+> `modelo-v0` el 2026-10-04. Las asignaciones que quedaban abiertas en el crosswalk se cerraron
+> el 2026-10-12 (`IGN-20B-FINAL-CROSSWALK-CCSBAP.md`, al final). El detalle reproducible está en `docs/resultados/AUDITORIA-FISICA.md`.
 
 ## Contexto: qué cambió
 

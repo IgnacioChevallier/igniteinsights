@@ -90,6 +90,10 @@ prueba.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja.
 - Las Golondrinas: evento meteorológico ausente en GFS.
+- Humedad en altura: la lenga de altura arde tan seca como el valle. Las correcciones del aire no
+  alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
+  lenga achaparrada sigue en SH8, con su limitación declarada
+  (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
 - Ingesta histórica de la app: FIRMS NRT no sustituye las fuentes SP.
 
 Estos puntos se reportan como límites; el detalle de cada uno está en
