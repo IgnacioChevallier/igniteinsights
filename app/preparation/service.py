@@ -111,6 +111,11 @@ async def run_preparation(
                "el combustible y el dosel del bosque previo")
         logger.warning("Preparation %s: %s", prep_id, msg)
         warnings.append(msg)
+    # What other sources saw burn (dNBR, MCD64A1; a per-year bit mask the fuel rule reads
+    # straight onto the grid). The canopy still comes from Hansen alone.
+    other_burns: Path | None = _resolve(settings.otras_quemas_path)
+    if other_burns is not None and not other_burns.exists():
+        other_burns = None
     burns_reassigned_ha = 0.0
 
     # ── 2. Fuel model (static, cached) ────────────────────────────────────────
@@ -164,7 +169,7 @@ async def run_preparation(
             burns_reassigned_ha = await asyncio.to_thread(
                 fuels_builder.reassign_burns_in_raster,
                 inputs_dir / "fbfm40.tif", lossyear, simulation_year,
-                fuels_builder.COVER_MAP_YEAR[source],
+                fuels_builder.COVER_MAP_YEAR[source], other_burns,
             )
         # El caché es por fuente (fbfm40_<fuente>.tif) para que alternar entre mapas no
         # obligue a reconstruir; este segundo destino es "el mapa vigente" (el que corrió,

@@ -157,9 +157,15 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -p)")
         with rasterio.open(almacen.abrir(archivos["lossyear.tif"])) as src:
             anio_quema = src.read(1)
+        # Protocolo LYQ-3: lo que vieron otras fuentes, todos los años (dNBR sin la prueba ∪
+        # MCD64A1; máscara de bits de scripts/anio_quema.py).
+        otras = None
+        if "otras_quemas.tif" in archivos:
+            with rasterio.open(almacen.abrir(archivos["otras_quemas.tif"])) as src:
+                otras = src.read(1)
         anio_mapa = receta.anio_combustible(caso)
         _reescribir(insumos / "fbfm40.tif", lambda a: fuels_builder.reassign_burns_by_age(
-            a[0], anio_quema, caso.anio_fuego, anio_mapa)[np.newaxis])
+            a[0], anio_quema, caso.anio_fuego, anio_mapa, otras)[np.newaxis])
     if par.get("dosel_sin_perdida_previa"):
         # docs/crosswalk/DECISIONES-MODELO-V0 §3: el dosel es Hansen 2000 + ETH 2020 y los
         # dos siguen viendo bosque en las quemas de 2015 (fustes en pie). Sin dosel donde

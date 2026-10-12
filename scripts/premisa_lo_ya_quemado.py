@@ -33,6 +33,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 PROYECTO = "ee-nachochevallier"
+SINUSOIDAL_MODIS = "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +R=6371007.181 +units=m +no_defs"
 AOI = (-72.18, -43.24, -71.04, -41.86)   # la de scripts/exportar_mcd64a1.py
 TEMPORADAS = range(2002, 2027)           # temporada T = julio de T-1 a junio de T
 PILA = Path("data/raw/mcd64a1/mcd64a1_temporadas_aoi.tif")
@@ -57,6 +58,10 @@ def bajar_pila() -> None:
                                  "format": "GEO_TIFF"})
     PILA.parent.mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(url, PILA)
+    # Earth Engine escribe la sinusoidal de MODIS con datum WGS84; MODIS usa una esfera de
+    # R = 6.371.007,181 m. Sin esto todo queda ~18,6 km al sur a -42° (LO-YA-QUEMADO §11).
+    with rasterio.open(PILA, "r+") as dst:
+        dst.crs = SINUSOIDAL_MODIS
 
 
 def mascaras_prueba(perfil) -> dict[int, np.ndarray]:

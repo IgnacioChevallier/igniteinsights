@@ -322,34 +322,58 @@ CCSBAP_SOBRE_LIMITE_BOSQUE: dict[str, tuple[float, int]] = {"Estepa": (1300.0, 9
 # Año que observa cada mapa de cobertura: las quemas posteriores no están en él.
 COVER_MAP_YEAR: dict[str, int] = {"ccsbap": 2017, "mapbiomas": 2024, "worldcover": 2021}
 
-# Lo ya quemado que el mapa no vio (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §4), por edad de
-# la quema: (desde, hasta, modelo, sólo bosque TL/TU). 1-2 años: rebrote ralo (PT-37 A2;
-# Landesmann et al. 2021). 3-5: el bosque es pastizal-arbustal de rebrote (GS3, PT-37 A2) y el
-# matorral rebrota a su propia clase (Tiribelli et al. 2018). 6-15: el bosque es matorral
-# rebrotante, como el remanente de CCS-BAP (DECISIONES-MODELO-V0 §4). Más viejo: el mapa, como
-# LANDFIRE FDist.
+# Lo ya quemado que el mapa no vio (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §4 y §11), por
+# edad de la quema: (desde, hasta, modelo, sólo bosque TL/TU). 1-5 años: rebrote ralo con
+# entreparches amplios (PT-37 A2; Landesmann et al. 2021); las cicatrices de 1-5 años casi no
+# vuelven a arder y frenan al fuego en el borde (MCD64A1, §10.3). 6-15: el bosque es matorral
+# rebrotante, más inflamable (Paritsis et al. 2015; §10.3), como el remanente de CCS-BAP
+# (DECISIONES-MODELO-V0 §4). Más viejo: el mapa, como LANDFIRE FDist.
 FUEL_BY_BURN_AGE: list[tuple[int, int, int, bool]] = [
-    (1, 2, 101, False),   # GR1
-    (3, 5, 123, True),    # GS3
+    (1, 5, 101, False),   # GR1
     (6, 15, 143, True),   # SH3
 ]
+# Último año de Hansen GFC lossyear en settings.hansen_lossyear_path (v1.13 = GFC-2025).
+HANSEN_LAST_YEAR = 2025
+
+
+def last_burn_before(burn_bits: np.ndarray, year: int) -> np.ndarray:
+    """Last burn year before `year` (lossyear encoding) from a uint32 mask where bit i is a
+    burn in 2001 + i (scripts/anio_quema.py). Keeping every year, not only the last, is what
+    stops a fire's own scar from hiding the earlier burns of those cells."""
+    out = np.zeros(burn_bits.shape, dtype=np.uint8)
+    for y in range(2001, min(year, 2033)):
+        out[((burn_bits >> (y - 2001)) & 1) == 1] = y - 2000
+    return out
 
 
 def reassign_burns_by_age(
-    fbfm40: np.ndarray, burn_year: np.ndarray, simulation_year: int, map_year: int
+    fbfm40: np.ndarray, burn_year: np.ndarray, simulation_year: int, map_year: int,
+    other_burn_bits: np.ndarray | None = None,
 ) -> np.ndarray:
     """Fuel of the burns the cover map never saw, by burn age (FUEL_BY_BURN_AGE).
 
-    `burn_year` is encoded like Hansen GFC `lossyear` (0 = none, n = 2000 + n). Burns the map
-    already saw are left alone: a burnt forest the map still calls forest most likely burnt at
-    low severity. Never a burn of the simulation year itself, which can be the fire being
-    simulated. Non-burnable codes (NB) never change.
+    `burn_year` is Hansen GFC `lossyear` (0 = none, n = 2000 + n); `other_burn_bits` is what
+    other sources saw burn, every year (dNBR, MCD64A1: last_burn_before). A forest
+    cell (TL/TU in this map) only takes another source's burn after HANSEN_LAST_YEAR: until
+    then only Hansen says the stand was replaced, and a burn that left it standing does not
+    change the fuel (Landesmann et al. 2021). Other cells take the latest of both.
+
+    Burns the map already saw are left alone: a burnt forest the map still calls forest most
+    likely burnt at low severity. Never a burn of the simulation year itself, which can be the
+    fire being simulated. Non-burnable codes (NB) never change.
     """
+    burnable = (fbfm40 >= 101) & (fbfm40 <= 204)   # GR to SB; NB is 91-99 and 256
+    forest = ((fbfm40 >= 161) & (fbfm40 <= 165)) | ((fbfm40 >= 181) & (fbfm40 <= 189))
+    # A burn of the simulation year (maybe the fire itself) never counts, nor hides older ones.
+    burn_year = np.where(2000 + burn_year.astype(np.int32) < simulation_year, burn_year, 0)
+    if other_burn_bits is not None:
+        other_burn_year = last_burn_before(other_burn_bits, simulation_year)
+        unpublished = other_burn_year > HANSEN_LAST_YEAR - 2000
+        latest = np.maximum(burn_year, other_burn_year)
+        burn_year = np.where(forest & ~unpublished, burn_year, latest)
     year = 2000 + burn_year.astype(np.int32)
     age = np.where(burn_year > 0, simulation_year - year, 0)
     unseen = (burn_year > 0) & (year > map_year)
-    burnable = (fbfm40 >= 101) & (fbfm40 <= 204)   # GR to SB; NB is 91-99 and 256
-    forest = ((fbfm40 >= 161) & (fbfm40 <= 165)) | ((fbfm40 >= 181) & (fbfm40 <= 189))
     out = fbfm40.copy()
     for low, high, code, forest_only in FUEL_BY_BURN_AGE:
         band = unseen & (age >= low) & (age <= high)
@@ -359,16 +383,24 @@ def reassign_burns_by_age(
 
 
 def reassign_burns_in_raster(
-    fbfm40_path: Path, lossyear_path: Path, simulation_year: int, map_year: int
+    fbfm40_path: Path, lossyear_path: Path, simulation_year: int, map_year: int,
+    other_burns_path: Path | None = None,
 ) -> float:
-    """reassign_burns_by_age on an fbfm40.tif in place (same grid as the lossyear raster).
+    """reassign_burns_by_age on an fbfm40.tif in place (same grid as the burn rasters).
     Returns the hectares that changed."""
     with rasterio.open(fbfm40_path) as src:
         fbfm40, profile = src.read(1), src.profile
         cell_ha = abs(src.res[0] * src.res[1]) / 1e4
     with rasterio.open(lossyear_path) as src:
-        burn_year = src.read(1)
-    out = reassign_burns_by_age(fbfm40, burn_year, simulation_year, map_year)
+        burn_year = np.clip(src.read(1), 0, None)   # reproject_canopy writes nodata -9999
+    other = None
+    if other_burns_path is not None:   # uint32 bit mask: nearest onto the fuel grid, no int16
+        with rasterio.open(other_burns_path) as src:
+            other = np.zeros(fbfm40.shape, dtype=np.uint32)
+            reproject(src.read(1), other, src_transform=src.transform, src_crs=src.crs,
+                      dst_transform=profile["transform"], dst_crs=profile["crs"],
+                      resampling=Resampling.nearest)
+    out = reassign_burns_by_age(fbfm40, burn_year, simulation_year, map_year, other)
     with rasterio.open(fbfm40_path, "w", **profile) as dst:
         dst.write(out, 1)
     hectares = float((out != fbfm40).sum() * cell_ha)
