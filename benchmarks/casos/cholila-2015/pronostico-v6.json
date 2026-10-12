@@ -1,0 +1,85 @@
+{
+  "descripcion": "P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `cholila-2015/calibracion-era5-v6`: la ventana 0 del caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado. Estáticos, mapas, dosel, cicatriz y clima son los del caso base.",
+  "anio_fuego": 2015,
+  "caja_wgs84": [
+    -72.049,
+    -42.611,
+    -71.393,
+    -42.286
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.91938,
+    "lat": -42.48075,
+    "hora": "2015-02-16T18:00:00+00:00",
+    "fuente": "Wikipedia 'Incendios forestales en Chubut de 2015': origen atribuido a la caída de un rayo en las nacientes del Río Tigre, zona de difícil acceso (versión oficial discutida). El lugar es el de la primera detección VIIRS SP (16-feb 18:09 UTC, 1.254 m), coherente con nacientes en la montaña.",
+    "ajuste": "La semilla de mask-dataset-gen (-42.45/-71.7333) está sobre el lago (NB8), 350 m fuera de la cicatriz y 15 km de las primeras detecciones: es la coordenada del valle, no del foco. Se toma la celda de la cicatriz a más de 90 m del borde más cercana a la primera detección: 30 m, 1.234 m de altura, TL6 (lenga)."
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/cholila-2015/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "era5 horario de Open-Meteo, celda de 0,25° sin reducción de escala (T, HR, viento 10 m y terreno de la celda)",
+  "ventanas": [
+    {
+      "t0": "2015-02-16T18:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2015-02-16T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 540.0
+    },
+    {
+      "t0": "2015-02-17T05:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1980.0
+    },
+    {
+      "t0": "2015-02-17T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1860.0
+    },
+    {
+      "t0": "2015-02-18T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3300.0
+    },
+    {
+      "t0": "2015-02-18T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 720.0
+    },
+    {
+      "t0": "2015-02-19T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3180.0
+    },
+    {
+      "t0": "2015-02-20T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1020.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "cholila-2015/calibracion-era5-v6",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "cholila-2015/calibracion-era5-v6",
+    "receta": "lw-100-001"
+  }
+}
