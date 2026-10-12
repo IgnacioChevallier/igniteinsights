@@ -73,6 +73,28 @@ class FIRMSClient:
         if not frames:
             return pd.DataFrame()
 
-        df = pd.concat(frames, ignore_index=True)
+        df = drop_nrt_covered_by_sp(pd.concat(frames, ignore_index=True))
         logger.info("FIRMS returned %d raw rows across %d source(s)", len(df), len(frames))
         return df
+
+
+def drop_nrt_covered_by_sp(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop NRT rows on dates the same satellite already has in SP.
+
+    FIRMS serves SP up to its last processed day and NRT from the next one, so a request that
+    asks both normally gets disjoint dates. While a new SP month is being published they can
+    overlap; SP is the reprocessed product and wins. Matched by date, not coordinates: the
+    reprocessing moves the points.
+    """
+    if df.empty or "source" not in df:
+        return df
+    is_sp = df["source"].str.endswith("_SP")
+    satellite = df["source"].str.rsplit("_", n=1).str[0]   # VIIRS_SNPP_SP → VIIRS_SNPP
+    last_sp = df[is_sp].groupby(satellite[is_sp])["acq_date"].max()
+    if last_sp.empty:
+        return df
+    cutoff = satellite.map(last_sp)
+    covered = ~is_sp & cutoff.notna() & (df["acq_date"] <= cutoff)
+    if covered.any():
+        logger.info("Dropped %d NRT rows already covered by SP", int(covered.sum()))
+    return df[~covered].reset_index(drop=True)

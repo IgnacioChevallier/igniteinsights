@@ -17,8 +17,8 @@ incendios.
 | 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–3,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
 | 3 | Viento de superficie | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago | Límite de datos |
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
-| 5 | Lo ya quemado | La app usa el mapa de 2017: no ve las quemas posteriores como combustible distinto | Abierto en la app |
-| 6 | Ingesta histórica de FIRMS | La app no puede preparar incendios viejos | Abierto en la app |
+| 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
+| 6 | Ingesta histórica de FIRMS | La app no podía preparar incendios viejos | Resuelto en la app |
 | 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas | Declarado |
 
 ## 1. Supresión
@@ -338,29 +338,50 @@ original.
   Hansen registra pérdida de bosque anterior al incendio, se quita el dosel. Asignar además un
   combustible de matorral a esa pérdida se probó en el loop M y no se adoptó: Patriada se frena de
   más.
-- **En la app el riesgo es mayor.** La app usa CCS-BAP 2017 para cualquier fecha. Las quemas de
-  2018 en adelante (por ejemplo Alerces 2023 y 2024) aparecen con el combustible de superficie del
-  bosque previo; sólo se les quita el dosel si Hansen ya registró la pérdida. Hansen v1.13 llega
-  hasta 2024, así que una quema de 2025 o 2026 no se ve en absoluto. Una simulación en 2026 puede
-  propagar fuego sobre una cicatriz reciente como si fuera bosque intacto.
+- **En la app.** La app usa CCS-BAP 2017 para cualquier fecha, así que no ve las quemas de 2018 en
+  adelante. Desde el 2026-10-12 (`LO-YA-QUEMADO-PROPUESTA.md` §11) se combinan dos fuentes:
+  - Hansen GFC v1.13, que llega hasta 2025;
+  - los años con quema de otras fuentes: dNBR ∪ MCD64A1, en `settings.otras_quemas_path`, con
+    MCD64A1 hasta 2026-07.
 
-**Qué permitiría reducirlo.** Una capa de cicatrices recientes independiente del mapa de
-vegetación: las cicatrices dNBR que el benchmark ya calcula, o un producto de área quemada
-(MODIS MCD64A1, FIRMS SP). Las cicatrices de 0–2 años deberían quedar poco o nada quemables, y
-las más viejas como remanente de disturbio. Es un cambio de la app, no de modelo-v0, pero su
-regla de reasignación necesita una medición propia antes de adoptarse.
+  Con eso, la preparación reasigna el combustible de las quemas posteriores al mapa:
+  - de 1–5 años, a GR1;
+  - el bosque de 6–15 años, a SH3;
+  - el matorral y el pastizal conservan su clase después de los 5 años.
+
+  En bosque sólo cuenta Hansen mientras haya publicado ese año. El dosel sigue saliendo de Hansen.
+  Para una simulación de 2026 cambian 43.574 ha del AOI.
+
+**Qué se midió.**
+
+- **Prueba de la premisa con MCD64A1** (2006–2026, sin los incendios de prueba):
+  - las cicatrices de 1–2 años no vuelven a arder más que el resto (0,83 / 1,31);
+  - las de 3–5 años casi no vuelven a arder (0,20; sin 2026, 0,29);
+  - las de 6–15 años arden más que el resto (3,88; sin 2026, 1,41).
+- **Protocolo de no regresión LYQ-3** sobre los siete de calibración: 0,439 / 0,501, igual que
+  modelo-v0; el peor caso es Alerces 2023, con −0,006.
+- **LYQ-2 no pasó:** la capa decidía el bosque por la cobertura de 2000 y reasignaba plantaciones.
+
+**Lo que queda.**
+
+- MCD64A1 trabaja en celdas de 500 m.
+- La quema forestal de 2026 conserva el dosel hasta que Hansen publique ese año.
+- La capa se regenera cada temporada (`scripts/exportar_mcd64a1.py`, `scripts/anio_quema.py`).
+- El benchmark sólo garantiza que la regla no rompe la calibración.
 
 ## 6. Ingesta histórica de FIRMS en la app
 
-**Suposición.** La app trae las detecciones de FIRMS de los productos casi en tiempo real (NRT),
-que sólo cubren los últimos meses (`app/ingestion/satellite/firms/client.py`).
+**Antes.** La app traía las detecciones de FIRMS sólo de los productos casi en tiempo real (NRT),
+que cubren los últimos meses. Un incendio de hace más de unos meses quedaba sin ignición.
 
-**Efecto.** Si se prepara desde la app un incendio de hace más de unos meses, FIRMS NRT no
-devuelve detecciones y la simulación queda sin ignición. El benchmark no tiene el problema
-porque pide los productos de archivo (SP).
+**Resuelto el 2026-10-12** (`LO-YA-QUEMADO-PROPUESTA.md` §8).
 
-**Qué permitiría reducirlo.** Que la app use las fuentes de archivo (`FIRMS_SOURCES_ARCHIVE`)
-cuando la fecha pedida está fuera de la cobertura NRT. Es un cambio acotado de la app.
+- `run_firms_ingestion` pide juntas las fuentes NRT y las de archivo (SP).
+- `drop_nrt_covered_by_sp` descarta las filas NRT de los días que SP ya cubre para el mismo
+  satélite.
+- Según `data_availability`, SP llega hasta el mes anterior a ~3 meses y NRT empieza al día
+  siguiente, así que no se solapan.
+- NOAA-21 no tiene producto SP y entra siempre por NRT.
 
 ## 7. Transferencia
 

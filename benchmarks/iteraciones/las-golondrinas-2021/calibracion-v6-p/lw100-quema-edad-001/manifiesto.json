@@ -1,0 +1,67 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v6-p",
+  "caso_sha": "808070acefa6169300f652804f7c8cda1dcc683712a7e49017991a9aa8a742e6",
+  "receta": "lw100-quema-edad-001",
+  "receta_sha": "b15c18dd2a89352f45201aac4e44b88c9f2647eb85b95de6901f07309b259676",
+  "padre": "lw-100-001",
+  "motivo": "Protocolo LYQ-1 (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §6): no regresión de la regla de la app para lo ya quemado que el mapa no vio. Quemas de Hansen posteriores al año del mapa del caso: 1-2 años → GR1; bosque (TL/TU) de 3-5 años → GS3 y de 6-15 años → SH3; el matorral y el pastizal conservan su clase después de los 2 años. Variante única, fijada antes de correr; no se elige entre variantes. Adopción en la app si no hay alarmas nuevas, |Δ media| y |Δ mediana| ≤ 0,01 y ningún caso pierde más de 0,02. No cambia modelo-v0. Protocolos -p (v6 + lossyear).",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0,
+    "combustible_por_edad_quema": true
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "547cd10829286b400496e5dde3b2a328561b52d4",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "c7a7df07a251faf9df45401102ec0b0f111acb2413aa4384c637c3d0a5ad078a",
+        "cbh.tif": "33a78ae406065dfe742325076df0fb2617566e8d1469946682e4a8dc5d081429",
+        "cc.tif": "6f4638a427a5185ea6b1b6c5186168528c5b9017376401ea10628b87338b15c3",
+        "ch.tif": "d996a9072073ff3248cb44f93db3e4b6d50dccf5ce25d2e575bb16ddba128211",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "17e5c291aaf231acb14d75cf2320fe39f2fa9652ff59ffc83635b77a555cc0ac",
+        "fbfm40.tif": "18bc42acb4e789240149d6e73b8b98a983f9be3bab18e99e449bd3d0f530451a",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "6b9e9bcb1eb52d18cdb6d3896599cd7e517f7b3fe18feaa2b2e01f323230b679",
+        "m10.tif": "ae50da8a1e581532bcad63e58384fdbf8a44e5cef0d4cc6ca3d47e8fdc7addb1",
+        "m100.tif": "89003f0a7218eba0dd9bf2030e2efbccf9600ca5b6a971cc5dbb34f1c1eaa849",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "e2c150cc99c057a7eb663a3674c52710f4646d59de6fdceab6dc614481349cab",
+        "ws.tif": "69d2214473a31c6aa9f080101b88f58ee173be524f6058b29752e9fc3cdb9bb8"
+      },
+      "namelist_sha": "4a0d021398d9de3cc27985156044add3d7b2f97f7c1517d24d27e3486d3a6a6c",
+      "salidas": {
+        "fire_size_stats.csv": "7777d904e18fe00333fedf9c13c97e61137d783c266e617d51e050b8341eca15",
+        "flin_0000001_0086532.tif": "211814809f2fe676e7730fbb0873cf3d718dd5265f4931b47866bd5c92bd0a91",
+        "hourly_isochrones.dbf": "b4b14b843fbbbd9eadc7b33d8e692b41c6e739c2bdab2b978ad5bbf6d5261608",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "75d0bba22dd9a8b343a2fe2306d72e5e14939112147d010967a284ed1cb4615d",
+        "hourly_isochrones.shx": "57b20cdfb198ba054e6d2d81e100c32b5143251cdf7c6a37cc8cf621a244e5a2",
+        "time_of_arrival_0000001_0086532.tif": "87f5bb2677c78abf25dad13f2b7520a381318f7eed22174ef29c67b998cc4104",
+        "vs_0000001_0086532.tif": "9dbe43690210f17d8669d7a3caed1043fccd343f90bfe4e78381c123e7e2b84a"
+      },
+      "git": {
+        "sha": "547cd10829286b400496e5dde3b2a328561b52d4",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-12T14:25:09.324358+00:00",
+        "minutos": 0.4
+      }
+    }
+  ]
+}

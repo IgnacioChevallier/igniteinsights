@@ -23,7 +23,12 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from app.elmfire.builder import ignition_builder, namelist_writer, weather_builder
+from app.elmfire.builder import (
+    fuels_builder,
+    ignition_builder,
+    namelist_writer,
+    weather_builder,
+)
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
 from app.validation import almacen, humedad, viento
@@ -145,6 +150,22 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
             reciente = perdida_previa(src.read(1), caso.anio_fuego,
                                       desde=caso.anio_fuego - cfg["anios"])
         _reescribir(insumos / "fbfm40.tif", lambda a: np.where(reciente, cfg["codigo"], a))
+    if par.get("combustible_por_edad_quema"):
+        # docs/resultados/LO-YA-QUEMADO-PROPUESTA §4 y §6 (protocolo LYQ-1): la misma regla que
+        # la preparación de la app, sobre las quemas de Hansen posteriores al mapa del caso.
+        if "lossyear.tif" not in archivos:
+            raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -p)")
+        with rasterio.open(almacen.abrir(archivos["lossyear.tif"])) as src:
+            anio_quema = src.read(1)
+        # Protocolo LYQ-3: lo que vieron otras fuentes, todos los años (dNBR sin la prueba ∪
+        # MCD64A1; máscara de bits de scripts/anio_quema.py).
+        otras = None
+        if "otras_quemas.tif" in archivos:
+            with rasterio.open(almacen.abrir(archivos["otras_quemas.tif"])) as src:
+                otras = src.read(1)
+        anio_mapa = receta.anio_combustible(caso)
+        _reescribir(insumos / "fbfm40.tif", lambda a: fuels_builder.reassign_burns_by_age(
+            a[0], anio_quema, caso.anio_fuego, anio_mapa, otras)[np.newaxis])
     if par.get("dosel_sin_perdida_previa"):
         # docs/crosswalk/DECISIONES-MODELO-V0 §3: el dosel es Hansen 2000 + ETH 2020 y los
         # dos siguen viendo bosque en las quemas de 2015 (fustes en pie). Sin dosel donde
@@ -260,7 +281,7 @@ RASTERS_TRANSFORMADOS = {"adj", "adj_grupos", "factor_viento", "humedad_muerta_d
                          "reasignar_combustible", "dosel_coherente", "sin_dosel",
                          "cbh_por_combustible", "cbd_por_combustible",
                          "dosel_sin_perdida_previa", "combustible_perdida_reciente",
-                         "viento_diurno"}
+                         "combustible_por_edad_quema", "viento_diurno"}
 # Códigos FBFM40 de cada grupo de Scott y Burgan (2005), para el ADJ por grupo.
 GRUPOS_COMBUSTIBLE = {"GR": (101, 109), "GS": (121, 124), "SH": (141, 149),
                       "TU": (161, 165), "TL": (181, 189), "SB": (201, 204)}

@@ -1,0 +1,13 @@
+{
+  "padre": "lw-100-001",
+  "motivo": "Protocolo LYQ-3 (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §11): no regresión de la regla corregida. Quemas posteriores al año del mapa del caso: 1-5 años → GR1 para todo combustible (las cicatrices de 3-5 años casi no vuelven a arder: MCD64A1, §10.3); bosque (TL/TU) de 6-15 años → SH3; el matorral y el pastizal conservan su clase después de los 5 años. Fuentes: Hansen (lossyear.tif) y otras_quemas.tif (dNBR sin los incendios de prueba ∪ MCD64A1, todos los años); un TL/TU sólo toma otras fuentes después del último año de Hansen. Variante única, fijada antes de correr. Adopción en la app si no hay alarmas nuevas, |Δ media| y |Δ mediana| ≤ 0,01 y ningún caso pierde más de 0,02. No cambia modelo-v0. Protocolos -r (-p + otras_quemas.tif).",
+  "combustible": {
+    "fuente": "ccsbap",
+    "anio": "anterior_al_fuego"
+  },
+  "semilla": "prediccion",
+  "parametros": {
+    "lw_moisture_pct": 100.0,
+    "combustible_por_edad_quema": true
+  }
+}
