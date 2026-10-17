@@ -167,6 +167,9 @@ export function startWindParticles(
     timeHours?: number;
     surfaceCanvas?: HTMLCanvasElement | null;
     surfaceVisible?: boolean;
+    /** false keeps only the speed surface. Over 3D terrain every `unproject` is a GPU
+     *  readback, and advecting particles needs one per particle per frame. */
+    showParticles?: boolean;
   } = {},
 ): WindParticleController {
   const context = canvas.getContext("2d");
@@ -181,7 +184,7 @@ export function startWindParticles(
   let frame = 0;
   // Fixed for the controller's lifetime: zooming changes the projected size of the
   // domain, not the amount of wind information it contains.
-  let particleTarget: number | null = null;
+  let particleTarget: number | null = options.showParticles === false ? 0 : null;
   let timeHours = options.timeHours ?? 0;
   let surfaceVisible = options.surfaceVisible ?? false;
   let surfaceDirty = true;

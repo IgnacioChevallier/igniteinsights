@@ -31,6 +31,10 @@ const WIND_SURFACE_LAYER_ID = `${WIND_SURFACE_SOURCE_ID}-layer`;
 const STREET_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const SATELLITE_TILES =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+// Tokenless elevation for the optional 3D view. Fetched only while terrain is on: a source
+// no layer uses loads no tiles, so the 2D map never touches it.
+const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+const TERRAIN_EXAGGERATION = 1.5;
 
 const STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -41,6 +45,14 @@ const STYLE: maplibregl.StyleSpecification = {
       tiles: [SATELLITE_TILES],
       tileSize: 256,
       attribution: "Teselas © Esri - Fuente: Esri, Maxar, Earthstar Geographics",
+    },
+    terrain: {
+      type: "raster-dem",
+      tiles: [TERRAIN_TILES],
+      encoding: "terrarium",
+      tileSize: 256,
+      maxzoom: 15,
+      attribution: "Relieve: Mapzen Terrain Tiles (SRTM y otras fuentes)",
     },
   },
   layers: [
@@ -168,6 +180,9 @@ export function FireMap({
   // handler could only see the props captured when the map was created (all null).
   const [loaded, setLoaded] = useState(false);
   const [basemap, setBasemap] = useState<Basemap>(initialBasemap);
+  // Off whenever the basemap is synthetic: that scenario assumes flat ground, and draping
+  // it over real relief would deny it. The 3D button is disabled there.
+  const [terrain3d, setTerrain3d] = useState(false);
   const windCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const windControllerRef = useRef<WindParticleController | null>(null);
   const windTimeRef = useRef(windTimeHours);
@@ -522,6 +537,7 @@ export function FireMap({
       timeHours: windTimeRef.current,
       surfaceCanvas,
       surfaceVisible: windSurfaceVisible,
+      showParticles: !terrain3d,
     });
     windControllerRef.current = controller;
     return () => {
@@ -535,7 +551,7 @@ export function FireMap({
     };
     // Visibility and time update the live controller in the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windField, loaded]);
+  }, [windField, loaded, terrain3d]);
 
   useEffect(() => {
     windControllerRef.current?.setTime(windTimeHours);
@@ -590,12 +606,24 @@ export function FireMap({
     }
   }, [basemap, loaded]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!loaded || !map) return;
+    if (terrain3d) {
+      map.setTerrain({ source: "terrain", exaggeration: TERRAIN_EXAGGERATION });
+      map.easeTo({ pitch: 60 });
+    } else if (map.getTerrain()) {
+      map.setTerrain(null);
+      map.easeTo({ pitch: 0, bearing: 0 });
+    }
+  }, [terrain3d, loaded]);
+
   useImageOverlay(mapRef, loaded, TOA_SOURCE_ID, timeOfArrivalOverlay);
   useImageOverlay(mapRef, loaded, FLIN_SOURCE_ID, firelineIntensityOverlay);
   useImageOverlay(mapRef, loaded, FUELS_SOURCE_ID, fuelsOverlay);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" data-terrain={terrain3d ? "on" : "off"}>
       <div ref={containerRef} className="h-full w-full" />
       {/* Above the map, below every control. Nothing here is interactive. */}
       <canvas
@@ -630,12 +658,28 @@ export function FireMap({
         {syntheticLayers && (
           <button
             className={`px-2 py-1 ${basemap === "synthetic" ? "bg-primary text-primary-foreground" : ""}`}
-            onClick={() => setBasemap("synthetic")}
+            onClick={() => {
+              setBasemap("synthetic");
+              setTerrain3d(false);
+            }}
             title="Representa lo que el escenario asume: suelo uniforme, una sola clase de combustible"
           >
             Esquemático
           </button>
         )}
+        <button
+          className={`border-l px-2 py-1 disabled:opacity-50 ${terrain3d ? "bg-primary text-primary-foreground" : ""}`}
+          onClick={() => setTerrain3d((on) => !on)}
+          disabled={basemap === "synthetic"}
+          aria-pressed={terrain3d}
+          title={
+            basemap === "synthetic"
+              ? "El escenario sintético asume suelo plano"
+              : `Relieve 3D (exagerado ×${TERRAIN_EXAGGERATION.toLocaleString("es")})`
+          }
+        >
+          3D
+        </button>
       </div>
 
       {/* A5 · a run whose isochrones are empty must not look like a broken map. */}
