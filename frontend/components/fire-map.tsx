@@ -31,9 +31,10 @@ const WIND_SURFACE_LAYER_ID = `${WIND_SURFACE_SOURCE_ID}-layer`;
 const STREET_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const SATELLITE_TILES =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-// Tokenless elevation for the optional 3D view. Fetched only while terrain is on: a source
-// no layer uses loads no tiles, so the 2D map never touches it.
-const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+// Elevation for the optional 3D view: Copernicus GLO-30 served by our API (app/api/v1/terrain.py)
+// rather than the public Terrarium tiles, whose SRTM voids over lakes render as km-high spikes.
+// Fetched only while terrain is on: a source no layer uses loads no tiles.
+const TERRAIN_TILES = "/api/v1/terrain/{z}/{x}/{y}.png";
 const TERRAIN_EXAGGERATION = 1.5;
 
 const STYLE: maplibregl.StyleSpecification = {
@@ -51,8 +52,10 @@ const STYLE: maplibregl.StyleSpecification = {
       tiles: [TERRAIN_TILES],
       encoding: "terrarium",
       tileSize: 256,
-      maxzoom: 15,
-      attribution: "Relieve: Mapzen Terrain Tiles (SRTM y otras fuentes)",
+      // The API's range: below 6 MapLibre draws flat ground, above 12 it overzooms (≈ 30 m).
+      minzoom: 6,
+      maxzoom: 12,
+      attribution: "Relieve: Copernicus DEM GLO-30 © DLR e.V., Airbus DS (Copernicus UE/ESA)",
     },
   },
   layers: [

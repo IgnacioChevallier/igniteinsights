@@ -182,7 +182,7 @@ export function startWindParticles(
   let width = 0;
   let height = 0;
   let frame = 0;
-  // Fixed for the controller's lifetime: zooming changes the projected size of the
+  // Fixed once the domain is first visible: zooming changes the projected size of the
   // domain, not the amount of wind information it contains.
   let particleTarget: number | null = options.showParticles === false ? 0 : null;
   let timeHours = options.timeHours ?? 0;
@@ -272,11 +272,17 @@ export function startWindParticles(
     }
     if (particleTarget === null) {
       const visibleArea = Math.min(box.w * box.h, width * height);
-      particleTarget = visibleArea > 0
-        ? Math.min(MAX_PARTICLES, Math.max(80, Math.round(visibleArea / PARTICLE_DENSITY)))
-        : 0;
+      // No visible domain yet (a container not laid out, or a camera still easing down from
+      // 3D, where the area comes out 0 or NaN): leave it unset and retry on the next move,
+      // instead of fixing the count at zero for good.
+      if (visibleArea > 0) {
+        particleTarget = Math.min(
+          MAX_PARTICLES,
+          Math.max(80, Math.round(visibleArea / PARTICLE_DENSITY)),
+        );
+      }
     }
-    if (!particles.length && particleTarget > 0) {
+    if (!particles.length && particleTarget) {
       particles = Array.from({ length: particleTarget }, () => spawn(true));
     }
     canvas.dataset.particleCount = String(particles.length);

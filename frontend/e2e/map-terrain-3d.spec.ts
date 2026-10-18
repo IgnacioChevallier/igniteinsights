@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
  */
 test.beforeEach(async ({ page }) => {
   // Empty bodies: the elevation tiles fail to decode, which must not break the map either.
-  await page.route(/tile\.openstreetmap|arcgisonline|elevation-tiles-prod/, (route) =>
+  await page.route(/tile\.openstreetmap|arcgisonline|\/api\/v1\/terrain\//, (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: Buffer.alloc(0) }),
   );
   await page.goto("/");
