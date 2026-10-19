@@ -2,9 +2,14 @@
 Renders a GeoTIFF (ELMFIRE outputs time_of_arrival_*.tif / flin_*.tif, or the
 fbfm40.tif fuel-model input) as a colorized, web-mercator-ready PNG overlay.
 
-Reprojects to EPSG:4326, maps values through a fixed sequential color ramp
-(ColorBrewer YlOrRd, 5 stops), and returns the corner coordinates MapLibre's
+Reprojects to EPSG:3857, maps values through a fixed sequential color ramp
+(ColorBrewer YlOrRd, 5 stops), and returns the corner coordinates (lon/lat) MapLibre's
 `image` source expects: [top-left, top-right, bottom-right, bottom-left].
+
+The PNG must be on a Web Mercator grid, not EPSG:4326: MapLibre pins the four corners
+and stretches the image linearly in Mercator between them. An EPSG:4326 image has rows
+equally spaced in latitude, so at Los Alerces (~1.2° tall) its middle was drawn ~300 m
+(~10 px) south of where it belongs, while the corners stayed exact.
 """
 import base64
 import io
@@ -14,6 +19,7 @@ import numpy as np
 import rasterio
 from PIL import Image
 from rasterio.warp import Resampling, calculate_default_transform, reproject
+from rasterio.warp import transform as warp_transform
 
 # ColorBrewer YlOrRd (5-class) — a standard sequential "heat" ramp for hazard data.
 _RAMP_STOPS = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
@@ -29,10 +35,10 @@ _RAMP_COLORS = np.array(
 )
 
 
-def _reproject_to_wgs84(tif_path: Path, resampling: Resampling):
-    """Reproject band 1 to EPSG:4326. Returns (array with NaN nodata, transform)."""
+def _reproject_to_web_mercator(tif_path: Path, resampling: Resampling):
+    """Reproject band 1 to EPSG:3857. Returns (array with NaN nodata, transform)."""
     with rasterio.open(tif_path) as src:
-        dst_crs = "EPSG:4326"
+        dst_crs = "EPSG:3857"
         transform, width, height = calculate_default_transform(
             src.crs, dst_crs, src.width, src.height, *src.bounds
         )
@@ -58,20 +64,21 @@ def _encode_png(rgba: np.ndarray) -> str:
 
 
 def _corner_coordinates(height: int, width: int, transform) -> list[list[float]]:
-    """Corners in the order MapLibre's `image` source expects."""
+    """Corners (lon/lat) of an EPSG:3857 grid, in the order MapLibre's `image` source expects."""
     west, south, east, north = rasterio.transform.array_bounds(height, width, transform)
-    return [[west, north], [east, north], [east, south], [west, south]]
+    lons, lats = warp_transform("EPSG:3857", "EPSG:4326", [west, east], [south, north])
+    return [[lons[0], lats[1]], [lons[1], lats[1]], [lons[1], lats[0]], [lons[0], lats[0]]]
 
 
 def render_raster_overlay(
     tif_path: Path, unit_divisor: float = 1.0, unit_label: str = ""
 ) -> dict | None:
     """Return {image_base64, coordinates, value_range, unit} for `tif_path`,
-    reprojected to EPSG:4326 and colorized. Returns None if the file doesn't exist."""
+    reprojected to EPSG:3857 and colorized. Returns None if the file doesn't exist."""
     if not tif_path.exists():
         return None
 
-    dst, transform = _reproject_to_wgs84(tif_path, Resampling.bilinear)
+    dst, transform = _reproject_to_web_mercator(tif_path, Resampling.bilinear)
     height, width = dst.shape
 
     valid_mask = ~np.isnan(dst)
@@ -108,7 +115,7 @@ def render_categorical_overlay(
     if not tif_path.exists():
         return None
 
-    dst, transform = _reproject_to_wgs84(tif_path, Resampling.nearest)
+    dst, transform = _reproject_to_web_mercator(tif_path, Resampling.nearest)
     height, width = dst.shape
 
     classes = np.where(np.isnan(dst), -1, dst).round().astype(np.int32)

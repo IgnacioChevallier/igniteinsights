@@ -83,7 +83,7 @@ prueba.
 
 - Día 1 explosivo: casi todo el déficit está antes de la primera pasada VIIRS. Desde ahí, el
   pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24) mejora a la cadena en 6 de
-  6 incendios a 12 h y 5 de 6 a 24 h. El residuo (2–3,5× en Patriada y Alerces 2024) coincide
+  6 incendios a 12 h y 5 de 6 a 24 h. El residuo (2–4,5× en Patriada y Alerces 2024) coincide
   con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
   (`docs/resultados/DIA-1-PROPUESTA.md` §7).
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
@@ -98,6 +98,19 @@ prueba.
 Estos puntos se reportan como límites; el detalle de cada uno está en
 `docs/resultados/RIESGOS_Y_SUPOSICIONES.md`. No bloquean la comparación de mapas condicionada a
 modelo-v0.
+
+El ensamble meteorológico GEFS se cerró el 2026-10-17 con 23/23 backtests contemporáneos de
+calibración, de cuatro incendios, con 31/31 miembros cada uno. Todos pasaron la integridad, sin
+sustituciones ni fallos científicos. La capa **“Acuerdo del ensamble”** se adopta con
+limitaciones como comunicación de sensibilidad meteorológica y ya está en el sidebar, apagada
+por defecto. No mejora predictivamente a c00 de forma consistente: en medianas por incendio,
+≥0,80 gana en 2/4 incendios a 12 h y en 3/4 a 24 h por ≤0,003 de IoU, ≥0,50 es equivalente y
+≥0,10 gana recall a costa de área. La banda es angosta (4–14 % del área de c00) y queda
+crecimiento observado fuera de ≥0,10, así que la leyenda lo advierte. No es probabilidad. Falta
+la evaluación con usuarios reales. Los resultados están en
+`docs/resultados/ENSAMBLE-BACKTESTS-CONSOLIDADO.md`, el método en
+`docs/resultados/ENSAMBLE-METEOROLOGICO-POC.md` y la semántica en
+`docs/resultados/DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`.
 
 Dos problemas de la app quedaron resueltos el 2026-10-12, sin cambiar modelo-v0
 (`docs/resultados/LO-YA-QUEMADO-PROPUESTA.md`):
@@ -123,9 +136,43 @@ de la ventaja de MapBiomas sobre WorldCover, fijado después de ver los datos). 
 no se usa retrospectivamente para cambiar el modelo. Resultado completo:
 `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
 
-## 8. Mapa documental
+## 8. Diagnóstico de precisión (2026-10-18)
+
+Un diagnóstico e2e, sin ELMFIRE y sin tocar modelo-v0, buscó por qué la predicción no es mejor
+(`docs/resultados/DIAGNOSTICO-PRECISION-E2E.md`, notas en `docs/resultados/diagnostico-e2e/`).
+Encontró que el Dice lo decide **la forma, no el área**. En P-24 el crecimiento sale ×4 errado de
+área, pero igualar el área no sube el Dice: el modelo crece casi isótropo alrededor de la semilla
+(elongación 1,5 contra 2,9–3,2 observada) y con el rumbo errado en ~60°. La referencia no explica
+la brecha: el techo está en ~0,7–0,9 y la corrección de las islas no vistas deja modelo-v0 en
+0,440. Tampoco el ensamble GEFS prueba que la meteorología no domine: está sub-dispersado de
+entrada (3–11° contra un error del GFS en estaciones de σ 30–41°). Se corrigió un sesgo a favor de
+P-24: el anillo ya visto al reiniciar contaba como crecimiento. Sin él, P-24 sigue ganando a la
+cadena en 6 de 6 a 12 h, pero por +0,096 y no por +0,168. Desde el 2026-10-18,
+`pronostico.puntuar` excluye ese anillo y las cifras de `DIA-1-PROPUESTA.md` §7, RIESGOS y
+PENDING quedaron corregidas. La versión anterior además tenía invertidas las semillas FIRMS y
+oráculo. El residuo del día 1 pasa de 2–3,5× a 2–4,5×. La severidad dNBR no permitió
+afirmar copa en el día 1 (indiscriminado). La puerta meteorológica (frente 4) se cerró el
+2026-10-18 con "no pasa": contra SYNOP crudo, SMN WRF 4 km mejora al GFS sólo en El Bolsón
+(n = 21) y empeora la dirección en Esquel y Futaleufú, así que no se ingiere
+(`diagnostico-e2e/notas/W-viento-estaciones.md`). El diagnóstico de isotropía (frente 2) también se
+cerró el 2026-10-18, con "método" y no "abrigo". Bajo el dosel el crecimiento predicho no es más
+redondo que en lo abierto, pero el 70 % brota de semilla fuera de la cicatriz, y ahí está casi todo
+el exceso de flanco (`diagnostico-e2e/notas/I-isotropia.md`). Por eso el abrigo del dosel
+(`CROWN_RATIO`, frente 3) no se abre. La semilla de afuera se descompuso el 2026-10-18
+(`diagnostico-e2e/notas/T-semilla.md`). El 26 % son detecciones de otros incendios, casi todas en
+Cholila, y se resuelve con un filtro de conexión a la ignición. El resto es el píxel de 375 m, el
+relleno del casco y quema que la cicatriz no marca. El filtro no mueve la mediana de P-24. Falta que
+el usuario decida si se adopta (decisión 2 del diagnóstico) y si entra el ensamble paramétrico.
+
+## 9. Mapa documental
 
 - `docs/resultados/`: estado vigente, modelo promovido, auditoría y comparaciones.
+- `docs/resultados/DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`: afirmación central de la
+  tesis, alcance operacional, definición de acuerdo del ensamble, presentación en la interfaz y
+  protocolo congelado de evaluación con usuarios.
 - `docs/crosswalk/`: tablas activas y decisiones de combustible/dosel.
 - `docs/historico/`: planes, propuestas y resultados superados que se conservan como registro.
 - raíz: documentación operativa o transversal que no pertenece a esas categorías.
+- Informe de tesis: repositorio aparte, `../informe` (`github.com/IgnacioChevallier/informe`).
+  Se encuadra como producto y se evalúa con su rúbrica de productos. Los resultados de este repo
+  se incorporan allí.

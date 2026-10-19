@@ -6,6 +6,7 @@ GET  /simulations/{id} — poll simulation status
 """
 import asyncio
 import functools
+import json
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -486,3 +487,38 @@ async def get_simulation_raster(
         render_raster_overlay, matches[-1], unit_divisor, unit_label
     )
     return _envelope("success", overlay)
+
+
+@router.get(
+    "/{simulation_id}/ensemble-agreement",
+    summary="Get the GEFS ensemble agreement contract for a run, if one was produced",
+    description=(
+        "Returns the run's ensemble_agreement.json as written by app.ensemble.agreement: "
+        "agreement bands (>= 0.10 / 0.50 / 0.80) as GeoJSON plus valid/expected members, "
+        "weather cycle, forecast start, horizon and validity. Agreement is the fraction of "
+        "valid members that burned a pixel, not a calibrated probability. 404 when the run "
+        "has no ensemble artifact; the map treats that as 'not available'."
+    ),
+)
+async def get_simulation_ensemble_agreement(
+    simulation_id: uuid.UUID = FPath(
+        ...,
+        description="The simulation run ID returned by POST /api/v1/simulations/run.",
+    ),
+    session: AsyncSession = Depends(get_db),
+):
+    run = await repository.get_simulation_run(session, simulation_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+    path = _resolve(run.output_dir) / "ensemble_agreement.json" if run.output_dir else None
+    if path is None or not path.is_file():
+        raise HTTPException(
+            status_code=404, detail="No ensemble agreement artifact for this simulation"
+        )
+    try:
+        contract = json.loads(await asyncio.to_thread(path.read_text, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422, detail="Ensemble agreement artifact is unreadable"
+        ) from exc
+    return _envelope("success", contract)

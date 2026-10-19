@@ -50,6 +50,17 @@ def test_lo_no_visto_y_la_semilla_no_cuentan():
     assert (m["tp"], m["fp"], m["fn"]) == (1, 1, 0)
 
 
+def test_el_anillo_ya_visto_al_reiniciar_no_cuenta():
+    semilla = np.array([1, 0, 0, 0], dtype=bool)
+    cicatriz = np.array([1, 1, 1, 0], dtype=bool)
+    vistas = np.array([-1, 0, 5, np.inf])     # la celda 1 ya estaba vista al reiniciar
+    pred = np.array([1, 1, 0, 0], dtype=bool)
+    m = pronostico.puntuar(pred, semilla, cicatriz, np.zeros(4, bool), vistas,
+                           np.full(4, -1.0), 12, HA)["cicatriz"]
+    # la 1 no es acierto ni error; la 2, vista a las 5 h y no predicha, es un falso negativo
+    assert (m["tp"], m["fp"], m["fn"]) == (0, 0, 1)
+
+
 def test_la_cadena_a_una_hora_dada():
     semilla = np.array([1, 0, 0], dtype=bool)
     horas = np.array([0.0, 10.0, np.nan])

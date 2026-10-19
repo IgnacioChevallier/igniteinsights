@@ -10,7 +10,9 @@ from app.elmfire.runner import client as runner_client
 from app.elmfire.runner.schemas import SimulationRequest
 
 
-def _run(monkeypatch, tmp_path: Path, transfer: bool) -> tuple[list[str], Path]:
+def _run(
+    monkeypatch, tmp_path: Path, transfer: bool, separate_remote: bool = False
+) -> tuple[list[str], Path]:
     inputs, outputs = tmp_path / "inputs", tmp_path / "outputs"
     inputs.mkdir()
     (inputs / "dem.tif").write_text("dem")
@@ -39,10 +41,19 @@ def _run(monkeypatch, tmp_path: Path, transfer: bool) -> tuple[list[str], Path]:
     )
     monkeypatch.setattr(settings, "elmfire_runner_transfer_files", transfer)
     outputs.mkdir()
-    asyncio.run(runner_client.ELMFIRERunnerClient().run_simulation(SimulationRequest(
-        elmfire_data_path=str(inputs / "elmfire.data"),
-        inputs_dir=str(inputs), outputs_dir=str(outputs),
-    )))
+    remote_inputs = "/app/data/inputs" if separate_remote else str(inputs)
+    remote_outputs = "/app/data/outputs" if separate_remote else str(outputs)
+    asyncio.run(
+        runner_client.ELMFIRERunnerClient().run_simulation(
+            SimulationRequest(
+                elmfire_data_path=f"{remote_outputs}/elmfire.data",
+                inputs_dir=remote_inputs,
+                outputs_dir=remote_outputs,
+            ),
+            local_inputs_dir=str(inputs),
+            local_outputs_dir=str(outputs),
+        )
+    )
     return calls, outputs
 
 
@@ -52,6 +63,13 @@ def test_shared_volume_only_calls_simulate(monkeypatch, tmp_path):
 
 
 def test_transfer_uploads_simulates_downloads_and_cleans(monkeypatch, tmp_path):
-    calls, outputs = _run(monkeypatch, tmp_path, transfer=True)
-    assert calls == ["PUT /files", "POST /simulate", "GET /files", "DELETE /files", "DELETE /files"]
+    calls, outputs = _run(monkeypatch, tmp_path, transfer=True, separate_remote=True)
+    assert calls == [
+        "PUT /files",
+        "PUT /files",
+        "POST /simulate",
+        "GET /files",
+        "DELETE /files",
+        "DELETE /files",
+    ]
     assert (outputs / "time_of_arrival_001.tif").read_text() == "toa"

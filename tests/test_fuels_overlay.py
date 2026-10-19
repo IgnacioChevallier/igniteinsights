@@ -96,3 +96,38 @@ def test_fuels_map_serves_the_requested_source_and_lists_the_built_ones(tmp_path
     with pytest.raises(HTTPException) as exc:
         asyncio.run(fuels.get_fuels_map(source="mapbiomas"))
     assert exc.value.status_code == 404
+
+
+def test_categorical_overlay_rows_land_where_maplibre_draws_them(tmp_path):
+    """MapLibre stretches the PNG linearly in Web Mercator between its corners.
+
+    A stripe in the middle of a ~1.2°-tall raster (Los Alerces' extent) must be drawn at
+    its true latitude; an EPSG:4326 PNG put it ~300 m south.
+    """
+    import math
+
+    from rasterio.warp import transform as warp_transform
+
+    rows, cell = 1350, 100  # 135 km tall, 100 m cells
+    array = np.full((rows, 4), 99, dtype=np.int16)
+    array[rows // 2] = 183
+    tif = tmp_path / "fbfm40.tif"
+    with rasterio.open(
+        tif, "w", driver="GTiff", height=rows, width=4, count=1, dtype="int16",
+        crs="EPSG:32719", transform=from_origin(500000, 5300000, cell, cell), nodata=99,
+    ) as dst:
+        dst.write(array, 1)
+
+    overlay = render_categorical_overlay(tif, {183: "#1b5e20"})
+    png = np.array(
+        Image.open(io.BytesIO(base64.b64decode(overlay["image_base64"].split(",", 1)[1])))
+    )
+    stripe = np.flatnonzero(png[:, :, 3].any(axis=1)).mean() + 0.5
+    merc = lambda lat: math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))  # noqa: E731
+    inv = lambda y: math.degrees(2 * math.atan(math.exp(y)) - math.pi / 2)  # noqa: E731
+    north, south = overlay["coordinates"][0][1], overlay["coordinates"][3][1]
+    drawn = inv(merc(north) + (merc(south) - merc(north)) * stripe / png.shape[0])
+
+    true_y = 5300000 - (rows // 2 + 0.5) * cell
+    _, (true_lat,) = warp_transform("EPSG:32719", "EPSG:4326", [500200], [true_y])
+    assert abs(drawn - true_lat) * 111_320 < cell

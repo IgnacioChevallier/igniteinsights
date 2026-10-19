@@ -45,17 +45,21 @@ def _waf_sin_dosel(profundidad_ft: float) -> float:
     return float(term1 * (np.log((1.0 + 0.36) / 0.13) - 1.0))
 
 
-def waf_elmfire(cc_frac, ch_m, profundidad_ft: float) -> np.ndarray:
-    """CALC_WIND_ADJUSTMENT_FACTOR_EVERYWHERE (CROWN_RATIO = 1): con F = CC/3 ≥ 0,05, el WAF
-    bajo dosel de Albini y Baughman; por debajo, la mezcla con el WAF del lecho."""
+def waf_elmfire(cc_frac, ch_m, profundidad_ft: float, crown_ratio: float = 1.0) -> np.ndarray:
+    """CALC_WIND_ADJUSTMENT_FACTOR_EVERYWHERE (`elmfire_init.f90:523-571`): con F = CC/3 ·
+    CROWN_RATIO ≥ 0,05, el WAF bajo dosel de Albini y Baughman; por debajo, la mezcla con el WAF
+    del lecho. La tabla va por CC entero en % y CH entero en m, y vale 0 sin dosel (`:121-127`).
+    `crown_ratio`: el de `&SIMULATOR` (default de ELMFIRE 1,0; el repo no lo escribe)."""
     cc = np.asarray(cc_frac, dtype="float64")
-    ch = np.clip(np.rint(np.asarray(ch_m, dtype="float64")), 0, 120)   # la tabla va por metro
+    icc = np.clip(np.rint(cc * 100), 0, 100) / 100
+    ich = np.clip(np.rint(np.asarray(ch_m, dtype="float64")), 0, 120)
     libre = _waf_sin_dosel(profundidad_ft)
-    hft = ch / PIE_M
-    f = 0.3333 * cc
+    hft = ich / PIE_M
     with np.errstate(divide="ignore", invalid="ignore"):
-        protegido = (1.0 / np.log((20.0 + 0.36 * hft) / (0.13 * hft))) * (0.555 / np.sqrt(f * hft))
-    protegido = np.where((cc > 1e-4) & (ch > 1e-4), np.minimum(protegido, libre), libre)
+        protegido = (1.0 / np.log((20.0 + 0.36 * hft) / (0.13 * hft))) \
+            * (0.555 / np.sqrt(0.3333 * icc * crown_ratio * hft))
+    protegido = np.where((icc > 1e-4) & (ich > 1e-4), np.minimum(protegido, libre), 0.0)
+    f = 0.3333 * cc * crown_ratio
     fraccion_libre = 1.0 - 20.0 * f
     waf = np.where(f >= 0.05, protegido, fraccion_libre * libre + (1 - fraccion_libre) * protegido)
     return np.where(cc < 0, 0.0, waf)

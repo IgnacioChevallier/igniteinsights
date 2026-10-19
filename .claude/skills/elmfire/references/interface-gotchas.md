@@ -257,3 +257,49 @@ east to 161 columns, moves 879 m.
   fails with "la corrida no dejó time_of_arrival".
 - With the vendor suppression template (120 %/day) a 24-h window can reach full containment, so
   the benchmark uses rates below 100 %/day (each window restarts at 0 %).
+
+## Live and foliar moisture CAN be per-cell rasters; the scalar defaults hide two floors and a crown input
+
+Added 2026-10-17 from the 2025.0212 source (tag `2025.0212`); full detail in
+`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §3, §6. `namelist_writer.py` says "there is no
+live-moisture raster": that is wrong for this version.
+
+- `USE_CONSTANT_LH` / `USE_CONSTANT_LW` / `USE_CONSTANT_FMC` default `.TRUE.`; with `.FALSE.` ELMFIRE reads
+  `MLH_FILENAME` / `MLW_FILENAME` / `FMC_FILENAME` as multiband rasters with the same band count as the
+  weather (`elmfire_namelists.f90:92,143-144,152-154`; `elmfire_io.f90:202-241`).
+- `FOLIAR_MOISTURE_CONTENT` defaults to **90 %** (`elmfire_namelists.f90:123`) and this repo never writes
+  it. It sets Van Wagner's critical intensity `(0.01·CBH·(460+26·FMC))^1.5`
+  (`elmfire_spread_rate.f90:167-169`), computed once per cell.
+- Interpolation floors live moisture: **MLH ≥ 30 %, MLW ≥ 60 %** (`elmfire_subs.f90:467,476,934,938`),
+  and m1/m10/m100 ≥ 1 %. A `LW_MOISTURE_CONTENT` below 60 behaves as 60, silently.
+
+## Monte Carlo perturbations in 2025.0212 are global additive deltas only
+
+- `PERTURB_RASTERS` (`elmfire_subs.f90:156-190`) draws one uniform delta per case and adds it where the
+  quantity is used (`ADJ` is `ADJ + delta`, not a product). It handles `ADJ, CBD, CBH, FMC, M1, M10, M100,
+  MLH, MLW, WAF, WD, WS`.
+- `SPATIAL_PERTURBATION` ('PIXEL') and `TEMPORAL_PERTURBATION` ('DYNAMIC') are validated
+  (`elmfire_namelists.f90:484-491`) and then used nowhere in the source. `CC`, `CH` and `FBFM` are accepted
+  in `RASTER_TO_PERTURB` and silently ignored (no `PERTURB_*` variable, `elmfire_vars.f90:76-77`).
+- There is no calibration/assimilation: `elmfire_calibration.f90` only loads per-pyrome tables.
+
+## The 2025.0212 documentation disagrees with its own code in several places
+
+Trust the code (`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §11 has the full list). The ones that bite:
+
+- L/W (Anderson) is fed the effective midflame wind **in m/s** (`WSMFEFF_LOW_MULT = 5.07955E-3`,
+  `elmfire_namelists.f90:620`); the docs say mph (`tech_ref.rst:176`). At 10 mph that is L/W 2.8, not 8.
+- Backing speed comes from the ellipse (`VBACK = BOH · V_DMS`, `elmfire_level_set.f90:1744-1749`), not
+  `V_s0` as `tech_ref.rst:230-236` says; there is no switch.
+- `WIND_DIRECTION_FLUCTUATION_INTENSITY` is a fraction of 360° (`elmfire_subs.f90:1018-1022`), not degrees.
+- Keywords the docs mention that do not exist: `DUMP_ISOCHRONE_SHAPEFILES`, `CALCULATE_BURN_PROBABILITY`,
+  `DT_INTERPOLATE_WS`/`_WD` (the real one is `DT_INTERPOLATE_WIND`). `STOCHASTIC_SPOTTING` is "not
+  currently used" (`elmfire_namelists.f90:726`).
+- `elmfire-docs/ELMFIRE_Guide.pdf` is the **ELMFIRE 1.1** guide (title page, June 2026): `SURFACE_SPREAD_MODEL`,
+  `WS_IN_KPH` and `LANDSCAPE_FILENAME` are not in the 2025.0212 source. Do not take keywords from it.
+
+## CFL control only starts at the 6th time step
+
+`CALC_CFL` runs only when `ITIMESTEP > 5` (`elmfire_level_set.f90:674`); the first five steps use
+`SIMULATION_DT` as is (`namelist_writer.py`: 30 s). Later `DT = min(TARGET_CFL·DT/CFL, SIMULATION_DTMAX)` with
+`TARGET_CFL = 0.4` (default, not written by this repo).

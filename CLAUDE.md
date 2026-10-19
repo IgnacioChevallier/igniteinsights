@@ -35,7 +35,7 @@ single current status; `docs/resultados/MODELO-V0.md` defines the promoted model
 `PENDING_PARAMETERS.md` separates frozen decisions from non-blocking uncertainties. Active
 crosswalk material is in `docs/crosswalk/`. Finished or superseded documents are in
 `docs/historico/`, deferred scope in `docs/out-of-scope/`, and converted source material in
-`docs/referencias/`.
+`docs/referencias/`. The thesis report itself is written in the sibling repo `../informe`.
 
 Benchmark vocabulary is strict: a **recipe** configures experimental iterations, an
 **iteration** is recipe × case, and a **model** under `benchmarks/modelos/` is an immutable

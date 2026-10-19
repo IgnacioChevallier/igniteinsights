@@ -510,6 +510,24 @@ def _puntos_ignicion(semilla: dict) -> list[tuple[float, float]]:
     raise ValueError(f"semilla de tipo desconocido: {semilla['tipo']}")
 
 
+def _semilla_conexa(puntos: list[tuple[float, float]], semilla: dict,
+                    grilla: p.Grilla) -> list[tuple[float, float]]:
+    """Las detecciones que siembran. Con `semilla_inicial.filtro_conexo_m`, sólo las del
+    incendio que arrancó en la ignición (`perimeter_reconstruction.connected_to_anchors`, la
+    regla de tiempo real); sin él, todo lo detectado en la caja, otros incendios incluidos
+    (diagnostico-e2e/notas/T-semilla.md §2.2)."""
+    salto = semilla.get("filtro_conexo_m")
+    if not salto or not puntos:
+        return puntos
+    anclas = _puntos_ignicion(semilla)
+    if not anclas:
+        raise ValueError("`filtro_conexo_m` necesita puntos de ignición (tipo punto o puntos)")
+    tr = Transformer.from_crs("EPSG:4326", str(grilla.crs), always_xy=True)
+    quedan = perimeter_reconstruction.connected_to_anchors(
+        [tr.transform(*pt) for pt in puntos], [tr.transform(*pt) for pt in anclas], float(salto))
+    return [pt for pt, q in zip(puntos, quedan) if q]
+
+
 def _firms_gfs(caso: d.Caso) -> dict:
     datos = caso.datos
     caja = tuple(datos["caja_wgs84"])
@@ -563,7 +581,7 @@ def _firms_gfs(caso: d.Caso) -> dict:
         if n == 0 and semilla["tipo"] != "firms":
             observado = ignicion
         else:   # lo observado hasta el inicio: FIRMS más los puntos de ignición
-            observado = ignicion | _mascara(antes, dem)
+            observado = ignicion | _mascara(_semilla_conexa(antes, semilla, grilla), dem)
         with tempfile.TemporaryDirectory() as tmp:
             phi = ignition_builder.build_ignition_from_mask(observado, dem, Path(tmp))
             archivos = {"phi.tif": almacen.guardar(phi)}
@@ -736,7 +754,8 @@ def _pronostico(caso: d.Caso) -> dict:
                                            perimeter_reconstruction.VIIRS_PIXEL_M)
                 observado = ignicion | (cicatriz & np.isfinite(vistas))
             else:
-                observado = previo | ignicion | _mascara(antes, dem)
+                observado = previo | ignicion | _mascara(_semilla_conexa(antes, semilla, grilla),
+                                                         dem)
             with tempfile.TemporaryDirectory() as tmp:
                 archivos["phi.tif"] = almacen.guardar(
                     ignition_builder.build_ignition_from_mask(observado, dem, Path(tmp)))

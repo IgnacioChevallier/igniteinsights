@@ -611,34 +611,41 @@ uv run python scripts/benchmark.py copa epuyen-2025/calibracion-v6
 
 ### 7.2 P-24: el reinicio mejora el pronóstico a 12 y 24 h
 
+> **Corrección 2026-10-18** (`DIAGNOSTICO-PRECISION-E2E.md` §4). Las cifras de esta sección y de
+> §7.3 y §7.6 se re-puntuaron sin el anillo ya visto al reiniciar. `vistas` usa discos de 375 m y
+> la semilla de 187,5 m, y ese anillo, pegado a la semilla, contaba como crecimiento acertado.
+> `pronostico.puntuar` ahora lo excluye. Además, la versión anterior tenía invertidas las semillas
+> FIRMS y oráculo en el resultado principal. Las tablas viejas quedaron en
+> `data/benchmark/p24/tabla-pronostico*-v6-con-anillo.md`. Ninguna corrida cambió.
+
 Dice del crecimiento contra la cicatriz ya vista por VIIRS. Es la media por incendio de los
 reinicios k ≥ 1, con semilla FIRMS acumulada, que es lo que la app puede hacer:
 
 | Incendio | Reinicios | 12 h: P-24 / cadena v0 | 24 h: P-24 / cadena v0 |
 |---|---:|---|---|
-| Alerces 2023 | 3 | 0,308 / 0,249 | 0,339 / 0,352 |
-| Epuyén 2025 | 6 | 0,217 / 0,017 | 0,222 / 0,046 |
-| Alerces 2024 | 8 | 0,466 / 0,196 | 0,476 / 0,274 |
-| Patriada 2026 | 6 | 0,202 / 0,018 | 0,231 / 0,046 |
-| Alerces 2016 | 4 | 0,152 / 0,000 | 0,151 / 0,000 |
-| Cholila 2015 | 7 | 0,214 / 0,100 | 0,297 / 0,218 |
+| Alerces 2023 | 3 | 0,239 / 0,204 | 0,324 / 0,330 |
+| Epuyén 2025 | 6 | 0,122 / 0,017 | 0,189 / 0,049 |
+| Alerces 2024 | 8 | 0,342 / 0,152 | 0,443 / 0,253 |
+| Patriada 2026 | 6 | 0,149 / 0,018 | 0,208 / 0,043 |
+| Alerces 2016 | 4 | 0,087 / 0,000 | 0,122 / 0,000 |
+| Cholila 2015 | 7 | 0,070 / 0,056 | 0,262 / 0,205 |
 
 **Resultado principal (fijado en §2.4).**
 
 | Plazo | Mediana ΔDice contra la cadena de modelo-v0 | Mejoran | Mediana ΔDice contra la persistencia | Mejoran |
 |---|---:|---:|---:|---:|
-| 12 h | **+0,107** | **6 de 6** | +0,062 | 6 de 6 |
-| 24 h | **+0,141** | 5 de 6 | +0,107 | 6 de 6 |
+| 12 h | **+0,096** | **6 de 6** | +0,060 | 6 de 6 |
+| 24 h | **+0,131** | 5 de 6 | +0,142 | 6 de 6 |
 
-Con la semilla oráculo: +0,168 (6 de 6) y +0,163 (5 de 6) contra la cadena.
+Con la semilla oráculo: +0,155 (6 de 6) y +0,185 (6 de 6) contra la cadena.
 
 - Con 6 de 6, la prueba de signos da p = 0,03 a 12 h. A 24 h, 5 de 6 da p ≈ 0,11.
 - La única excepción es Alerces 2023 a 24 h. Es el incendio cuyo día 1 la cadena ya reproducía
   (§1.1), y después lo frenó el combate.
 - **ELMFIRE le gana a la extrapolación ingenua en los seis incendios.** Sin ese comparador no se
   podía afirmar que el modelo aporte al pronóstico operativo.
-- En los reinicios tardíos el crecimiento predicho supera al observado: hasta 18–26× en Alerces
-  2016 desde las 13 h, y 22× en Alerces 2023 a las 30 h. Es el límite de supresión
+- En los reinicios tardíos el crecimiento predicho supera al observado: 25–47× a 24 h en Alerces
+  2016 desde las 13 h. En Alerces 2023, a las 30 h, el crecimiento observado a 12 h es casi nulo. Es el límite de supresión
   (RIESGOS §1): el incendio ya estaba contenido. Ahí la persistencia, que no crece si el incendio
   no creció, a veces gana.
 
@@ -652,12 +659,12 @@ El primer reinicio de cada incendio, a 24 h. Sesgo = crecimiento predicho / obse
 
 | Incendio | Primera pasada (h desde la ignición) | Semilla FIRMS / oráculo | Crecimiento observado | Sesgo P-24 (FIRMS / oráculo) | Sesgo cadena v0 |
 |---|---:|---|---:|---|---:|
-| Alerces 2016 | 1,8 | 482 / 408 ha | 943 ha | **1,16 / 1,01** | 0,03 |
-| Epuyén 2025 | 4,5 | 1.964 / 1.121 ha | 771 ha | **2,06 / 2,68** | 0,00 |
-| Alerces 2023 | 5,1 | 74 / 64 ha | 558 ha | 1,21 / 1,22 | 1,02 |
-| Cholila 2015 | 0,1 | 44 / 36 ha | 220 ha | 2,66 / 2,61 | 1,65 |
-| Patriada 2026 | 2,3 | 161 / 222 ha | 2.641 ha | **0,47 / 0,51** | 0,22 |
-| Alerces 2024 | 5,8 | 70 / 91 ha | 1.113 ha | **0,28 / 0,35** | 0,09 |
+| Alerces 2016 | 1,8 | 482 / 408 ha | 865 ha | **1,08 / 0,77** | 0,01 |
+| Epuyén 2025 | 4,5 | 1.964 / 1.121 ha | 693 ha | **2,06 / 1,81** | 0,00 |
+| Alerces 2023 | 5,1 | 74 / 64 ha | 532 ha | 1,15 / 1,11 | 1,03 |
+| Cholila 2015 | 0,1 | 44 / 36 ha | 220 ha | 2,66 / 2,57 | 1,65 |
+| Patriada 2026 | 2,3 | 161 / 222 ha | 2.555 ha | **0,45 / 0,50** | 0,22 |
+| Alerces 2024 | 5,8 | 70 / 91 ha | 1.070 ha | **0,22 / 0,30** | 0,06 |
 
 Tres lecturas, según el criterio fijado en §2.4:
 
@@ -668,7 +675,7 @@ Tres lecturas, según el criterio fijado en §2.4:
    primera detección, el modelo crece lo observado o más. El déficit de 21× y 8× está entero en
    las primeras 2–5 h. La hipótesis de §2.4, que esperaba un déficit de velocidad en Epuyén, no se
    cumplió.
-3. **En Patriada y Alerces 2024 queda un déficit de velocidad de 2–3,5×.** Ninguno cae por debajo
+3. **En Patriada y Alerces 2024 queda un déficit de velocidad de 2–4,5×.** Ninguno cae por debajo
    del umbral de 0,2 que se había fijado para declarar "proceso". Es mucho menor que el 6× de la
    cadena, pero existe.
 
@@ -717,7 +724,7 @@ CBH de 1–1,5 m. CFIS la enciende en el 99–100 %. Sólo el coihue/ciprés con
 ### 7.5 Qué sigue
 
 - **P-24 queda como el protocolo del pronóstico operativo.** Podría reportarse en la tesis junto
-  a modelo-v0, como otra afirmación: "pronóstico a 12–24 h desde la última pasada", +0,11/+0,14
+  a modelo-v0, como otra afirmación: "pronóstico a 12–24 h desde la última pasada", +0,10/+0,13
   de Dice contra la cadena y por encima de la persistencia en los seis incendios.
 - **No se agrega la opción 2 (ajuste asimilado).** El ΔDice no es chico. Y en los reinicios
   tardíos el error es sobre-propagación por supresión, que un ADJ asimilado absorbería como si
@@ -734,9 +741,9 @@ no convertirla en una receta.** Las razones, de la más fuerte a la más débil:
 
 1. **El residuo dura un solo reinicio, y después el modelo ya se pasa.** Sesgo del crecimiento a
    24 h, reinicio por reinicio:
-   - Patriada: 0,47 → 0,80 → 1,08 → 30 → 19 → 3,9.
-   - Alerces 2024: 0,28 → 1,3 → 2,0 → 2,3 → 1,4 → 1,5 → 3,0 → 4,1.
-   - Epuyén, que no tiene residuo: 2,1 → 9,6 → 22 → 28.
+   - Patriada: 0,45 → 0,71 → 0,98 → 110 → 28 → 3,9.
+   - Alerces 2024: 0,22 → 1,2 → 2,0 → 2,4 → 1,3 → 1,4 → 2,9 → 4,5.
+   - Epuyén, que no tiene residuo: 2,1 → 13 → 49 → 94 → 6,7 → 5,6.
 
    Cualquier cambio que encienda más copa actúa en todas las horas, no sólo en la primera
    (Rothermel + Van Wagner con WAF bajo dosel apenas cambia de un día a otro), y agrandaría la

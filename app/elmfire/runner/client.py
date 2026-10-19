@@ -53,24 +53,30 @@ class ELMFIRERunnerClient:
     def __init__(self) -> None:
         self._base_url = settings.elmfire_runner_url
 
-    async def _upload_dir(self, client: httpx.AsyncClient, path: str) -> None:
+    async def _upload_dir(
+        self, client: httpx.AsyncClient, local_path: str, remote_path: str
+    ) -> None:
         with tempfile.TemporaryFile() as tmp:
-            await asyncio.to_thread(pack_dir, path, tmp)
+            await asyncio.to_thread(pack_dir, local_path, tmp)
             response = await client.put(
-                f"{self._base_url}/files", params={"path": path}, content=_chunks(tmp)
+                f"{self._base_url}/files", params={"path": remote_path}, content=_chunks(tmp)
             )
             response.raise_for_status()
 
-    async def _download_dir(self, client: httpx.AsyncClient, path: str) -> None:
+    async def _download_dir(
+        self, client: httpx.AsyncClient, remote_path: str, local_path: str
+    ) -> None:
         with tempfile.TemporaryFile() as tmp:
-            async with client.stream("GET", f"{self._base_url}/files", params={"path": path}) as r:
+            async with client.stream(
+                "GET", f"{self._base_url}/files", params={"path": remote_path}
+            ) as r:
                 if r.is_error:
                     await r.aread()  # so the error handler can read the body
                 r.raise_for_status()
                 async for chunk in r.aiter_bytes():
                     tmp.write(chunk)
             tmp.seek(0)
-            await asyncio.to_thread(unpack_dir, tmp, path)
+            await asyncio.to_thread(unpack_dir, tmp, local_path)
 
     async def _cleanup(self, client: httpx.AsyncClient, request: SimulationRequest) -> None:
         for path in (request.inputs_dir, request.outputs_dir):
@@ -79,7 +85,13 @@ class ELMFIRERunnerClient:
             except httpx.HTTPError as exc:
                 logger.warning("could not delete %s on elmfire-runner: %s", path, exc)
 
-    async def run_simulation(self, request: SimulationRequest) -> SimulationResult:
+    async def run_simulation(
+        self,
+        request: SimulationRequest,
+        *,
+        local_inputs_dir: str | None = None,
+        local_outputs_dir: str | None = None,
+    ) -> SimulationResult:
         logger.info(
             "Sending simulation request to %s (inputs=%s)",
             self._base_url,
@@ -93,7 +105,12 @@ class ELMFIRERunnerClient:
         async with httpx.AsyncClient(timeout=httpx.Timeout(float(timeout_s))) as client:
             try:
                 if transfer:
-                    await self._upload_dir(client, request.inputs_dir)
+                    await self._upload_dir(
+                        client, local_inputs_dir or request.inputs_dir, request.inputs_dir
+                    )
+                    await self._upload_dir(
+                        client, local_outputs_dir or request.outputs_dir, request.outputs_dir
+                    )
                 response = await client.post(
                     f"{self._base_url}/simulate",
                     json=request.model_dump(),
@@ -101,7 +118,9 @@ class ELMFIRERunnerClient:
                 response.raise_for_status()
                 result = SimulationResult(**response.json())
                 if transfer:
-                    await self._download_dir(client, request.outputs_dir)
+                    await self._download_dir(
+                        client, request.outputs_dir, local_outputs_dir or request.outputs_dir
+                    )
                 return result
             except httpx.TimeoutException as exc:
                 raise ELMFIRERunnerTimeoutError(

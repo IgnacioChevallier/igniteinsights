@@ -87,6 +87,7 @@ function runKindLabel(kind: Run["kind"]) {
 
 function dataTypeLabel(value: string) {
   const labels: Record<string, string> = {
+    ensemble_agreement: "Acuerdo del ensamble",
     fireline_intensity: "Intensidad del frente de fuego",
     isochrones: "Isócronas",
     time_of_arrival: "Tiempo de llegada",

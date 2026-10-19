@@ -14,7 +14,7 @@ incendios.
 | # | Riesgo | Efecto sobre el resultado | Estado |
 |---|---|---|---|
 | 1 | Sin supresión | Sobre-propaga los incendios combatidos: 5–16× en El Turbio y Epuyén 2019 | Probado y no adoptado |
-| 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–3,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
+| 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–4,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
 | 3 | Viento de superficie | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago | Límite de datos |
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
@@ -150,7 +150,7 @@ ignición. Sesgo = crecimiento predicho / observado a 24 h:
   482 ha), porque dibuja cada píxel aislado como 44 ha y en Epuyén suma dos satélites que pasaron
   con 23 min de diferencia. En Alerces 2016 pesa además la hora de la ignición ("cerca de las
   14 h", con dos focos).
-- **En Patriada y Alerces 2024 queda un déficit de 2–3,5×, pero sólo en el primer reinicio.**
+- **En Patriada y Alerces 2024 queda un déficit de 2–4,5×, pero sólo en el primer reinicio.**
   Desde el segundo (13–19 h), los dos ya crecen lo observado o más.
 - Reiniciar desde la cicatriz real en vez de desde la reconstrucción FIRMS da casi lo mismo: la
   reconstrucción no es la causa.
@@ -198,8 +198,8 @@ abierto. Pero no es la explicación principal que muestran estos datos.
 **Consecuencia para el uso.** Hay que pronosticar desde la última pasada VIIRS, no desde la
 ignición. Con el protocolo P-24 el Dice del crecimiento mejora frente a la cadena de modelo-v0:
 
-- a 12 h, +0,107 de mediana, en 6 de 6 incendios;
-- a 24 h, +0,141, en 5 de 6;
+- a 12 h, +0,096 de mediana, en 6 de 6 incendios;
+- a 24 h, +0,131, en 5 de 6;
 - en los dos plazos, ELMFIRE le gana a la extrapolación ingenua en los 6.
 
 Las primeras 2–6 h, antes de la primera detección, quedan como límite: no son pronosticables con
@@ -231,7 +231,16 @@ está en el GFS.
 **Qué se midió.** WindNinja (atlas y flujos diurnos), rotación empírica y viento de la estación El
 Bolsón. Ninguno cambia la dirección dominante. Con la estación de El Bolsón, la ráfaga de Las
 Golondrinas entra (29 mph), pero dura una hora y el resto de la tarde el viento es flojo: el Dice
-pasa de 0,029 a 0,020.
+pasa de 0,029 a 0,020. **Salvedad (2026-10-18):** en esa ventana sólo 27 de las 145 horas de
+Meteostat son SYNOP reales; el resto es relleno, así que "el resto de la tarde flojo" no está
+observado. La ráfaga (53,6 km/h a 10 m, 10-03 00Z) sí es real. La prueba no mide el viento de la
+estación y no se re-corre.
+
+**Puerta SMN WRF (frente 4, 2026-10-18).** Se comparó GFS y SMN WRF 4 km contra SYNOP crudo en las
+horas de corrida P-24 de los 4 incendios 2023–2026. WRF no pasa: empeora la dirección en Esquel
+(26,8° → 30,7°) y Futaleufú (19,1° → 39,1°), y sólo mejora en El Bolsón (81° → 12°, n = 21, horas
+diurnas). Eso último es la mejor pista de que la escala de valle importa en Epuyén y Patriada, y
+refuerza el pedido de las estaciones de la tabla siguiente (`diagnostico-e2e/notas/W-viento-estaciones.md`).
 
 **Estaciones disponibles.** El benchmark ya usa, vía Meteostat, El Bolsón (87800), Esquel
 (87803, 40 km al E de Los Alerces) y Futaleufú, Chile (85832). Fuentes adicionales identificadas
@@ -239,14 +248,15 @@ pasa de 0,029 a 0,020.
 
 | Fuente | Estaciones relevantes | Acceso | Prioridad |
 |---|---|---|---|
-| INTA SIPAS, red de la Dirección de Bosques de Chubut | Las Golondrinas, Epuyén, Corcovado, Río Pico; Trevelin (Central de Incendios); Lago Puelo (Campo Forestal); El Hoyo; El Maitén | Boletines por estación en `sipas.inta.gob.ar` (IDs 64, 63, 62, 65, 67, 68, 5, 6). SIPAS y SIGA no respondían el 2026-10-11. Las series públicas de SIGA son diarias (paquete R `AgRoMeteorologiaINTA/siga`); los datos horarios hay que pedirlos al INTA o a la Dirección de Bosques | **Alta**: Las Golondrinas y Epuyén están sobre dos incendios del benchmark |
+| INTA SIPAS, red de la Dirección de Bosques de Chubut | Las Golondrinas, Epuyén, Corcovado, Río Pico; Trevelin (Central de Incendios); Lago Puelo (Campo Forestal); El Hoyo; El Maitén | Boletines por estación en `sipas.inta.gob.ar` (IDs 64, 63, 62, 65, 67, 68, 5, 6). Consultado el 2026-10-19: lo público son **boletines diarios** (viento medio, dirección dominante y ráfaga máxima en km/h); la exportación a Excel da error 500 y no hay serie horaria. Las Golondrinas y Epuyén (dir. bosques) terminan en 2016-10 y 2017. Trevelin C. Incendios no tiene boletines. Río Percey, Futaleufú, Huemul y Bustillo no registran dirección. **Alerces 2015** (20–26 mar): todas las estaciones casi en calma (Trevelin Agroforestal 0,2–2 km/h, NNE, ráfagas ≤ 26 km/h; Corcovado SE con ráfaga de 32 km/h el 24): ninguna muestra el viento del sur de ≥ 27 km/h (17 mph) que haría falta, aunque un flujo de lago dentro del parque no se vería desde ahí. **Las Golondrinas 2021**: sólo El Maitén y Cushamen (estepa, al E), con NW–NNW y ráfagas de 40–58 km/h el 9 y 10 de marzo; corrobora un evento ventoso regional, pero no la hora ni el valle | **Alta** si el INTA (EEA Esquel) entrega la serie horaria de Trevelin Agroforestal (22–24 mar 2015) y de El Maitén (9–10 mar 2021); lo público no alcanza |
+| INTA SIGA (EEA, red propia) | Trevelin – EEA Esquel (id 690; −43,12, −71,55; desde 2021-05); P. Golondrinas – EEA Bariloche (id 281; −42,00, −71,52; desde 2011-10) | Consultado el 2026-10-19. Datos **cada 10 min** por `siga.inta.gob.ar/CdnaUV0iiERRpFQE.php?param_type=datosestaciones&param_value=<id>/<D-M-AAAA>%2000:00:00/<D-M-AAAA>%2023:59:59` (pide `Referer` y `User-Agent` de navegador). Viento a **2 m en km/h**, dirección en rumbo de 16 puntos. **Golondrinas no tiene anemómetro** (sólo T, HR, lluvia, suelo) y no tiene datos de 2020-02 a 2021-10, así que no cubre Las Golondrinas 2021. Trevelin queda a 23–36 km de Alerces 2023 y 2024 (no cubre 2015/2016): tarde con viento W (~75 %) y SO (~18 %) | Media: Trevelin es una estación nueva para Alerces; Golondrinas sólo aporta HR y T para Epuyén y Patriada |
 | DMC Chile, Futaleufú Ad. (430002) | Viento a 10 m desde 1953, ráfaga desde 1969 | `climatologia.meteochile.gob.cl`; descarga a confirmar | Media: ya está en Meteostat |
 | SMN Argentina | Esquel Aero y otras sinópticas | Pedido formal como estudiante (`argentina.gob.ar/smn/institucional/contacto`) | Media: Esquel ya está en Meteostat |
 | Weather Underground | Estaciones personales en El Bolsón y Lago Puelo | Historial por estación, sin control de calidad | Baja |
 
 No se encontró ninguna estación dentro del Parque Nacional Los Alerces ni en Cholila. Para
-Alerces 2015 y 2016 la estación más útil sigue siendo Trevelin (Central de Incendios), si su
-serie cubre esas fechas.
+Alerces 2015 y 2016 la estación más útil es Trevelin (Agroforestal), que en SIPAS sólo tiene datos
+diarios; Trevelin (Central de Incendios) no tiene boletines públicos.
 
 **Qué permitiría reducirlo.** Una serie horaria (o mejor, de 10 minutos) de una estación a menos
 de 10 km del incendio durante el evento. Con eso se mide el error del reanálisis en vez de

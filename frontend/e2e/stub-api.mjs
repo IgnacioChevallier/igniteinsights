@@ -116,6 +116,35 @@ function windField() {
   };
 }
 
+// Three nested bands, low to high, shaped like app.ensemble.agreement's contract.
+function ensembleAgreement() {
+  const band = (value, label, fill, line, r) => {
+    const coords = [];
+    for (let i = 0; i <= 32; i += 1) {
+      const a = (i / 32) * 2 * Math.PI;
+      coords.push([CENTRE[0] + Math.cos(a) * r * 0.75, CENTRE[1] - r * 0.5 + Math.sin(a) * r * 1.3]);
+    }
+    return {
+      value, operator: ">=", label, fill_color: fill, line_color: line,
+      geojson: { type: "FeatureCollection", features: [{ type: "Feature", properties: { agreement_threshold: value, agreement_label: label }, geometry: { type: "Polygon", coordinates: [coords] } }] },
+    };
+  };
+  return {
+    schema_version: 1,
+    layer: { id: "ensemble_agreement", name: "Acuerdo del ensamble", legend_label: "acuerdo entre simulaciones", default_visible: false, geometry: "polygon" },
+    metadata: {
+      valid_members: 31, expected_members: 31, valid_member_ids: [], failed_members: {},
+      weather_cycle: "2026090600", forecast_start: "2026-09-06T12:00:00+00:00", horizon_hours: 12,
+      generated_at: "2026-09-06T13:00:00+00:00", forecast_valid_at: "2026-09-07T00:00:00+00:00",
+    },
+    thresholds: [
+      band(0.1, "≥ 0,10", "#fed976", "#b45309", 0.05),
+      band(0.5, "≥ 0,50", "#fd8d3c", "#c2410c", 0.038),
+      band(0.8, "≥ 0,80", "#bd0026", "#881337", 0.026),
+    ],
+  };
+}
+
 const RUN = {
   id: SIM_ID,
   kind: "simulation",
@@ -159,6 +188,7 @@ http
     else if (path.endsWith("/ignition")) body = ok(ignition());
     else if (path.endsWith("/stats")) body = ok({ rows: [] });
     else if (path.endsWith("/wind")) body = ok(windField());
+    else if (path.endsWith("/ensemble-agreement")) body = ok(ensembleAgreement());
     else if (path.startsWith("/api/v1/fires/active")) body = ok({ type: "FeatureCollection", features: [] });
     else body = ok(null);
     res.writeHead(200, { "Content-Type": "application/json" });

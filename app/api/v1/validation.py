@@ -283,7 +283,7 @@ async def list_cases():
     "/cases/{harness}/{caso}/overlay",
     summary="Get the confusion raster of one case and fuel map as a colorized overlay",
     description=(
-        "Renders confusion.tif as a base64 PNG in EPSG:4326: seed, hit, predicted without "
+        "Renders confusion.tif as a base64 Web Mercator PNG: seed, hit, predicted without "
         "observation, and observed but not predicted. Cells outside the reference coverage "
         "carry no colour and are drawn transparent."
     ),

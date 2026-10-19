@@ -57,13 +57,17 @@ def puntuar(pred: np.ndarray, semilla: np.ndarray, cicatriz: np.ndarray, excluid
 
     - `cicatriz`: la cicatriz ya vista por VIIRS al plazo, fuera de la semilla. Lo de la
       cicatriz que todavía no se vio ardió después (o no se vio) y se excluye, como
-      `hasta_horizonte` en el empaquetado.
+      `hasta_horizonte` en el empaquetado. También se excluye el anillo ya visto al
+      reiniciar (`vistas_h <= 0` fuera de la semilla): `vistas` usa discos de 375 m y la
+      semilla 187,5 m, y ese anillo, pegado a la semilla, no es crecimiento a pronosticar
+      (DIAGNOSTICO-PRECISION-E2E §4: inflaba el ΔDice de P-24 a 12 h de +0,096 a +0,168).
     - `firms`: las detecciones nuevas hasta el plazo. Sólo el recall es fiable.
     """
     crecimiento = pred & ~semilla
     vistos = vistas_h <= plazo_h
-    cic = p.metricas(crecimiento, cicatriz & vistos & ~semilla, celda_ha,
-                     excluido | semilla | (cicatriz & ~vistos))
+    anillo = (vistas_h <= 0) & ~semilla
+    cic = p.metricas(crecimiento, cicatriz & vistos & ~semilla & ~anillo, celda_ha,
+                     excluido | semilla | anillo | (cicatriz & ~vistos))
     nuevas = (deteccion_h >= 0) & (deteccion_h <= plazo_h) & ~semilla
     fir = p.metricas(crecimiento, nuevas, celda_ha, semilla)
     return {"cicatriz": cic, "firms": {k: fir[k] for k in ("recall", "observado_ha")}}

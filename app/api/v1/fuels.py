@@ -68,10 +68,11 @@ def _class_areas(tif_path: Path, source: str | None = None) -> tuple[list[dict],
     summary="Get a fuel-model (FBFM40) map as a colorized overlay",
     description=(
         "Renders the cached fbfm40_<source>.tif — the raster preparation built from that "
-        "cover product, i.e. exactly what ELMFIRE receives — as a base64 PNG overlay in "
-        "EPSG:4326, with the per-class area breakdown and the cover classes each fuel model "
-        "came from. `source` defaults to settings.fuels_source. NB9 (99) is the raster's "
-        "nodata value: it is counted in the breakdown but drawn transparent. "
+        "cover product, i.e. exactly what ELMFIRE receives — as a base64 Web Mercator "
+        "PNG overlay with corners in lon/lat, with the per-class area breakdown and the "
+        "cover classes each fuel model came from. `source` defaults to "
+        "settings.fuels_source. NB9 (99) is the raster's nodata value: it is counted in "
+        "the breakdown but drawn transparent. "
         "`available_sources` lists the sources whose raster is already built. 404 until a "
         "run with that source has built it (POST /api/v1/ingestion/run)."
     ),

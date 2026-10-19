@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import {
+  agreementFeatureCollection,
+  type EnsembleAgreementContract,
+} from "@/lib/ensemble-agreement";
 import { FUEL_PATTERN_IDS, fuelPatternImage } from "@/lib/fuel-pattern";
 import {
   compassPoint,
@@ -22,6 +26,7 @@ const IGNITION_SOURCE_ID = "ignition-perimeter";
 const TOA_SOURCE_ID = "time-of-arrival-overlay";
 const FLIN_SOURCE_ID = "fireline-intensity-overlay";
 const FUELS_SOURCE_ID = "fuels-overlay";
+const AGREEMENT_SOURCE_ID = "ensemble-agreement";
 const SYNTHETIC_SOURCE_ID = "synthetic-scenario";
 const WIND_SURFACE_SOURCE_ID = "wind-speed-surface";
 const WIND_SURFACE_LAYER_ID = `${WIND_SURFACE_SOURCE_ID}-layer`;
@@ -122,6 +127,7 @@ export function FireMap({
   ignitionPerimeter = null,
   timeOfArrivalOverlay = null,
   firelineIntensityOverlay = null,
+  ensembleAgreement = null,
   fuelsOverlay = null,
   fitTo = null,
   clock = null,
@@ -137,6 +143,8 @@ export function FireMap({
   ignitionPerimeter?: GeoJSON.FeatureCollection | null;
   timeOfArrivalOverlay?: RasterOverlayData | null;
   firelineIntensityOverlay?: RasterOverlayData | null;
+  /** GEFS agreement bands. Drawn under the isochrones; `null` removes source and layers. */
+  ensembleAgreement?: EnsembleAgreementContract | null;
   fuelsOverlay?: ImageOverlay | null;
   /** Zoom to this collection when it changes. The initial view frames the whole AOI,
    *  which leaves a 12 km synthetic playground domain as a speck. */
@@ -593,6 +601,46 @@ export function FireMap({
   useImageOverlay(mapRef, loaded, TOA_SOURCE_ID, timeOfArrivalOverlay);
   useImageOverlay(mapRef, loaded, FLIN_SOURCE_ID, firelineIntensityOverlay);
   useImageOverlay(mapRef, loaded, FUELS_SOURCE_ID, fuelsOverlay);
+
+  // Below the isochrones (inserted before the first of their layers) so the predicted
+  // fronts stay readable on top. Off means no source at all, exactly the map from before.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!loaded || !map) return;
+    const existing = map.getSource(AGREEMENT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!ensembleAgreement) {
+      if (existing) {
+        map.removeLayer(`${AGREEMENT_SOURCE_ID}-line`);
+        map.removeLayer(`${AGREEMENT_SOURCE_ID}-fill`);
+        map.removeSource(AGREEMENT_SOURCE_ID);
+      }
+      return;
+    }
+    const data = agreementFeatureCollection(ensembleAgreement);
+    if (existing) {
+      existing.setData(data);
+      return;
+    }
+    map.addSource(AGREEMENT_SOURCE_ID, { type: "geojson", data });
+    map.addLayer(
+      {
+        id: `${AGREEMENT_SOURCE_ID}-fill`,
+        type: "fill",
+        source: AGREEMENT_SOURCE_ID,
+        paint: { "fill-color": ["get", "fill_color"], "fill-opacity": 0.3 },
+      },
+      PENDING_LAYER,
+    );
+    map.addLayer(
+      {
+        id: `${AGREEMENT_SOURCE_ID}-line`,
+        type: "line",
+        source: AGREEMENT_SOURCE_ID,
+        paint: { "line-color": ["get", "line_color"], "line-width": 1 },
+      },
+      PENDING_LAYER,
+    );
+  }, [ensembleAgreement, loaded]);
 
   return (
     <div className="relative h-full w-full">

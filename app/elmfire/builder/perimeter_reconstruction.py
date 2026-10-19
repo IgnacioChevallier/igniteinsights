@@ -100,6 +100,39 @@ def reconstruct_burn_polygon(
     return burn_polygon
 
 
+def connected_to_anchors(
+    points_xy: list[tuple[float, float]],
+    anchors_xy: list[tuple[float, float]],
+    link_m: float,
+    anchor_m: float = 5000.0,
+) -> list[bool]:
+    """
+    Which detections belong to the fire started at `anchors_xy` (known ignition points):
+    the single-linkage components at hop `link_m` that contain a detection within
+    `anchor_m` of an anchor. Drops other fires in the same box without needing the
+    final scar, so it works in real time; fed everything detected so far it only grows.
+
+    `link_m` 3000 m reproduces a 2 km scar-distance oracle on the calibration fires;
+    shorter hops split a legitimate front across the gaps between overpasses, and
+    `anchor_m` 5000 m covers first detections landing 1.5-3 km from the reported
+    ignition (docs/resultados/diagnostico-e2e/notas/T-semilla.md §2.2).
+    """
+    if not points_xy:
+        return []
+    points = shapely.points(points_xy)
+    tree = shapely.STRtree(points)
+    near = set(tree.query(shapely.points(anchors_xy), predicate="dwithin",
+                          distance=anchor_m)[1].tolist())
+    union = unary_union(shapely.buffer(points, link_m / 2, quad_segs=16))
+    keep = [False] * len(points_xy)
+    for part in getattr(union, "geoms", [union]):
+        idx = tree.query(part, predicate="intersects").tolist()
+        if near.intersection(idx):
+            for i in idx:
+                keep[i] = True
+    return keep
+
+
 def _dedup(points_xy: list[tuple[float, float]]) -> list[tuple[float, float]]:
     """Collapse points that coincide within _DEDUP_GRID_M (re-ingested duplicates)."""
     seen: dict[tuple[int, int], tuple[float, float]] = {}

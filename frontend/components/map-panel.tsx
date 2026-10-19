@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
+import { EnsembleAgreementLegend } from "@/components/ensemble-agreement-legend";
 import { FireMap, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
@@ -26,6 +27,11 @@ import {
   type WindBand,
 } from "@/lib/wind-particles";
 import type { Run } from "@/lib/dashboard-types";
+import {
+  checkEnsembleAgreement,
+  ENSEMBLE_AGREEMENT_LAYER,
+  type EnsembleAgreementContract,
+} from "@/lib/ensemble-agreement";
 
 /** GET /api/simulations/{id}/wind — the run's own ws/wd rasters, per hourly band. */
 type WindFieldResponse = {
@@ -320,6 +326,13 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
   const [showFirelineIntensity, setShowFirelineIntensity] = useState(false);
   const [showWindSpeed, setShowWindSpeed] = useState(false);
+  const [showEnsembleAgreement, setShowEnsembleAgreement] = useState<boolean>(
+    ENSEMBLE_AGREEMENT_LAYER.defaultVisible,
+  );
+  const [ensembleAgreement, setEnsembleAgreement] = useState<EnsembleAgreementContract | null>(
+    null,
+  );
+  const [ensembleAgreementIssue, setEnsembleAgreementIssue] = useState<string | null>(null);
   const [timeOfArrivalOverlay, setTimeOfArrivalOverlay] = useState<RasterOverlayData | null>(null);
   const [firelineIntensityOverlay, setFirelineIntensityOverlay] = useState<RasterOverlayData | null>(
     null,
@@ -367,6 +380,8 @@ export function MapPanel({ runs }: { runs: Run[] }) {
 
     setTimeOfArrivalOverlay(null);
     setFirelineIntensityOverlay(null);
+    setEnsembleAgreement(null);
+    setEnsembleAgreementIssue(null);
     setIsochrones(null);
     setIgnitionPerimeter(null);
     setStatsRow(null);
@@ -487,6 +502,40 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     ).then(setFirelineIntensityOverlay);
   }, [showFirelineIntensity, selectedRunId, firelineIntensityOverlay]);
 
+  // Lazy like the two rasters: nothing is requested until the box is ticked. A missing or
+  // partial artifact becomes a sidebar note; the map keeps whatever it was showing.
+  useEffect(() => {
+    if (!showEnsembleAgreement || !selectedRunId || ensembleAgreement || ensembleAgreementIssue) {
+      return;
+    }
+    const controller = new AbortController();
+    fetchJsonOrThrow<unknown>(
+      `/api/simulations/${selectedRunId}/ensemble-agreement`,
+      controller.signal,
+    )
+      .then((data) => {
+        const checked = checkEnsembleAgreement(data);
+        if (typeof checked === "string") setEnsembleAgreementIssue(checked);
+        else setEnsembleAgreement(checked);
+      })
+      .catch((error) => {
+        if (!isAbortError(error)) {
+          setEnsembleAgreementIssue("No hay acuerdo del ensamble disponible para esta ejecución.");
+        }
+      });
+    return () => controller.abort();
+  }, [showEnsembleAgreement, selectedRunId, ensembleAgreement, ensembleAgreementIssue]);
+
+  // Thematic backgrounds share the map: agreement excludes both rasters and vice versa.
+  // Arrival and intensity together keep working as they did before this layer existed.
+  const toggleEnsembleAgreement = (checked: boolean) => {
+    setShowEnsembleAgreement(checked);
+    if (checked) {
+      setShowTimeOfArrival(false);
+      setShowFirelineIntensity(false);
+    }
+  };
+
   // The cold start told the operator to run a simulation without offering any way to do
   // it; the only button was on another section.
   if (!simulationRuns.length) {
@@ -511,6 +560,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           ignitionPerimeter={ignitionPerimeter}
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
+          ensembleAgreement={showEnsembleAgreement ? ensembleAgreement : null}
           fitTo={isochrones}
           windField={windField}
           windTimeHours={clock.t}
@@ -645,7 +695,10 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             <input
               type="checkbox"
               checked={showTimeOfArrival}
-              onChange={(e) => setShowTimeOfArrival(e.target.checked)}
+              onChange={(e) => {
+                setShowTimeOfArrival(e.target.checked);
+                if (e.target.checked) setShowEnsembleAgreement(false);
+              }}
             />
             Tiempo de llegada
           </label>
@@ -661,7 +714,10 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             <input
               type="checkbox"
               checked={showFirelineIntensity}
-              onChange={(e) => setShowFirelineIntensity(e.target.checked)}
+              onChange={(e) => {
+                setShowFirelineIntensity(e.target.checked);
+                if (e.target.checked) setShowEnsembleAgreement(false);
+              }}
             />
             Intensidad del frente de fuego
           </label>
@@ -671,6 +727,23 @@ export function MapPanel({ runs }: { runs: Run[] }) {
               valueRange={firelineIntensityOverlay.value_range}
               unit={firelineIntensityOverlay.unit}
             />
+          )}
+
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={showEnsembleAgreement}
+              onChange={(e) => toggleEnsembleAgreement(e.target.checked)}
+            />
+            {ENSEMBLE_AGREEMENT_LAYER.name}
+          </label>
+          {showEnsembleAgreement && ensembleAgreement && (
+            <EnsembleAgreementLegend contract={ensembleAgreement} />
+          )}
+          {showEnsembleAgreement && ensembleAgreementIssue && (
+            <p role="status" className="text-[11px] leading-snug text-muted-foreground">
+              {ensembleAgreementIssue}
+            </p>
           )}
         </div>
 
