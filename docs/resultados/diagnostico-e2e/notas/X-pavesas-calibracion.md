@@ -60,3 +60,54 @@ El loop L corrió la variante fuerte con CBH × 0,5 sobre `calibracion-v5` y dio
 
 Se corre la prueba (4 casos), sólo para informar. La promoción a modelo-v1 queda a decisión del
 usuario, con el protocolo de `benchmarks/modelos/`.
+
+## 2. Resultados (2026-10-23)
+
+Corrido de a un ELMFIRE, 7 casos en 29 min (01:18-01:47). Patriada fue el último.
+
+| Caso | `lw-100-001` Dice / sesgo | `lw-100-pavx10-001` Dice / sesgo |
+|---|---|---|
+| Alerces 2023 (h54) | 0,528 / 1,86 | 0,555 / **2,42** ⚠ |
+| Epuyén 2025 | 0,501 / 1,41 | 0,418 / **2,92** ⚠ |
+| Alerces 2024 | 0,635 / 1,35 | 0,658 / 1,50 |
+| Patriada 2026 | 0,496 / 0,70 | 0,574 / 0,85 |
+| Las Golondrinas (límite) | 0,012 / 0,021 | 0,012 / 0,022 |
+| Alerces 2016 (ERA5) | 0,389 / 1,69 | 0,309 / **2,42** ⚠ |
+| Cholila 2015 (ERA5) | 0,513 / 0,87 | 0,630 / 1,49 |
+| **media / mediana** | **0,439 / 0,501** | **0,451 / 0,555** |
+| alarmas (sin el límite) | 0 | **3** |
+
+La validación cruzada (`validar todas`) no elige `lw-100-pavx10-001` en ningún pliegue: en todos
+tiene alarmas entre los otros casos. Queda en 0,416 / 0,496, igual que antes.
+
+## 3. Veredicto
+
+**No pasa la puerta.** Falla dos de las tres condiciones de §1.1:
+1. media 0,451 < 0,459;
+2. tres alarmas nuevas: Alerces 2023, Epuyén y Alerces 2016 pasan de 2× el área.
+
+La tercera se cumple sólo porque la validación cruzada nunca la elige. modelo-v0 sigue igual, y las
+pavesas quedan como limitación declarada. El patrón es el del loop L: las pavesas ayudan a los
+incendios que se quedan cortos (Cholila +0,117, Patriada +0,078, Alerces 2024 +0,023) y desbordan a
+los que ya sobrequemaban (Epuyén −0,083, Alerces 2016 −0,080). Un escalar global no puede hacer las
+dos cosas a la vez.
+
+**Celda de interacción (§1.2): los dos mecanismos son necesarios a la vez.** Con el GFS, las pavesas
+dejan Las Golondrinas igual (sesgo 0,021 → 0,022, ×1,0; precisión 0,28 → 0,30):
+
+| | sin pavesas | con pavesas |
+|---|---:|---:|
+| GFS | 224 ha (×1) | ≈ 224 ha (×1,0) |
+| SYNOP hasta 03Z | 1.868 ha (×8,3) | 9.088 ha (×40) |
+
+La frase de G §7.4 «el GFS explica un factor ~10 y las pavesas el ~4,7 restante» supone efectos que se
+suman en ese orden, y no se suman. La lectura correcta: sin el viento y el aire seco que el GFS no
+tiene, el fuego no tiene la intensidad para lanzar pavesas. Con ese viento, sin pavesas, no cruza el
+agua ni la lenga en altura. Hace falta lo uno y lo otro. El loop L ya lo había sugerido sobre v5
+(Dice 0,020, sesgo 0,026).
+
+**Para la tesis.** En un evento de viento extremo faltan dos cosas a la vez: la meteorología de
+entrada (GFS) y las pavesas, que en modelo-v0 están apagadas porque, como escalar global, desbordan a
+tres de los seis incendios restantes. Una regla que encendiera las pavesas sólo en condiciones
+extremas sería una perilla nueva, elegida después de ver los resultados, y no se prueba con estos
+incendios.

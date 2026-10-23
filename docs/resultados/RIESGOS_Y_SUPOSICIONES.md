@@ -269,9 +269,16 @@ TL8 bajo dosel, según la decisión del loop L. Los focos de origen en la caja s
 pericia. FIRMS muestra el frente a 22,6-27,5 km a las 10-11 h, al menos 2,2 km/h. Con lo observado
 hasta 03Z más pavesas fuertes (10 % / 1 %, la variante del loop L, fijada antes de correr), el modelo
 llega a 24,6 km a la hora 9 y quema 9.088 ha (Dice 0,545, sesgo 0,82, precisión 0,60). Sin dosel no
-alcanza (sesgo 0,22). **El déficit se reparte así: la meteorología de entrada explica un factor ~10 y
-las pavesas el ~4,7 restante.** Las pavesas no entran en modelo-v0, porque empeoran otros
-incendios (loop L). Las 605 viviendas siguen sin modelo.
+alcanza (sesgo 0,22). **Los dos mecanismos son necesarios a la vez:** con el GFS, las mismas pavesas
+no cambian nada (sesgo 0,021 → 0,022), el SYNOP solo da ×8 y los dos juntos ×40
+(`diagnostico-e2e/notas/X-pavesas-calibracion.md`). Las pavesas no entran en modelo-v0: sobre los 7
+casos de calibración v6 dan media 0,451 con 3 alarmas nuevas (Alerces 2023, Epuyén, Alerces 2016) y
+no pasan la puerta. Las 605 viviendas siguen sin modelo.
+**Referencia y forma (G §8–§9, 2026-10-23).** La cicatriz es válida. No está sobredimensionada: es
+~2.300 ha más chica que el perímetro del SNMF (12.959 ha), por la estepa que `pre_nbr_min` no ve. No
+mezcla otro incendio: el lóbulo sureste está dentro del polígono oficial y MODIS lo fecha el 10-mar,
+como al cuerpo principal. Y ardió en la primera noche. Sin pavesas, darle 72 h al modelo no recupera
+el incendio: en `t*` = 27 h el Dice es 0,40, y no hay nada de la cicatriz más allá de 15 km.
 
 **Puerta SMN WRF (frente 4, 2026-10-18).** Se comparó GFS y SMN WRF 4 km contra SYNOP crudo en las
 horas de corrida P-24 de los 4 incendios 2023–2026. WRF no pasa: empeora la dirección en Esquel

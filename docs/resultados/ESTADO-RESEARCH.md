@@ -94,10 +94,12 @@ prueba.
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja.
-- Las Golondrinas: evento meteorológico ausente en GFS (un factor ~10 del área). Con el SYNOP
-  observado, el factor ~4,7 restante lo cierran las pavesas, que modelo-v0 no tiene: 9.088 ha y
-  Dice 0,545 con la variante fuerte del loop L, como diagnóstico
-  (`docs/resultados/diagnostico-e2e/notas/G-golondrinas-meteo-observada.md` §7).
+- Las Golondrinas: hacen falta a la vez el evento meteorológico que el GFS no tiene y las pavesas,
+  que modelo-v0 no tiene. Juntos dan 9.088 ha y Dice 0,545, como diagnóstico. Por separado, el
+  SYNOP da ×8 y las pavesas ×1,0
+  (`docs/resultados/diagnostico-e2e/notas/G-golondrinas-meteo-observada.md` §7,
+  `X-pavesas-calibracion.md`). Las pavesas fuertes sobre la calibración v6 dan media 0,451 con 3
+  alarmas nuevas y no pasan la puerta.
 - Humedad en altura: la lenga de altura arde tan seca como el valle. Las correcciones del aire no
   alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
   lenga achaparrada sigue en SH8, con su limitación declarada

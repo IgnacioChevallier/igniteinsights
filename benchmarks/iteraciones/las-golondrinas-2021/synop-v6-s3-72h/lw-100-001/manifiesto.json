@@ -1,0 +1,66 @@
+{
+  "caso": "las-golondrinas-2021/synop-v6-s3-72h",
+  "caso_sha": "b50689b0cce3a4d5897b90a866933fd9194cb45251c1f28e61ee3a1286c6b978",
+  "receta": "lw-100-001",
+  "receta_sha": "b903a55293b195067043f1cb3533a370721b87ee0256a0d6867df115eae4ecac",
+  "padre": "base-001",
+  "motivo": "Loop 6b: en Bianchi y Defossé (2015), 110 % es el UMBRAL de humedad viva por debajo del cual ocurren los grandes incendios en la Patagonia andina, no el valor de un día de gran incendio; LW 110 % es el borde húmedo. LW 90 % mejora mucho los incendios dominados por arbustal (Epuyén 0,160 → 0,331, sesgo 1,02) pero Alerces 2016 (ERA5) pasa a sesgo 2,14. LW 100 %: el valor más seco sin alarmas.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "85d25c63ea0c6037d3bef33af2e26bcefeab75b2",
+    "sucio": false
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 72,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "c7a7df07a251faf9df45401102ec0b0f111acb2413aa4384c637c3d0a5ad078a",
+        "cbh.tif": "33a78ae406065dfe742325076df0fb2617566e8d1469946682e4a8dc5d081429",
+        "cc.tif": "6f4638a427a5185ea6b1b6c5186168528c5b9017376401ea10628b87338b15c3",
+        "ch.tif": "d996a9072073ff3248cb44f93db3e4b6d50dccf5ce25d2e575bb16ddba128211",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "35f858b60f801de48067216a8d2f796824fd740da956d8bfdeff09e54d8931bd",
+        "fbfm40.tif": "37b90da5b58abb88ba96b708b51de29fbe421ec1f257103824122ad3a40b0e1f",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "47ab84d24e217c41efb64e0d7103577fcaeb9f8926fd10b82371fe0b153ccb9d",
+        "m10.tif": "8b248e9cce8f6b05fbc4827175bf2de368b4bfebc4114ba335a973001c22e3c1",
+        "m100.tif": "fc03592d5fa1e93333920f5a0384da3163b83239059593945771e9e24bd92eec",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "fd7d261cd115a629de88a5666125c71c6501af4847e285fa6b35e7b0a6ade497",
+        "ws.tif": "cfe3b7e8d90b65cf56094b61168be44964454f4ebeb334ef42435095d2febb6f"
+      },
+      "namelist_sha": "ea4d5af0fd63b5306c9ffee8917d97ffdccd4acef44a5578ba9c536be67d9d8c",
+      "salidas": {
+        "fire_size_stats.csv": "2d8e86a4b3470bf93e7c0c1172f75a86398147a42c4281b578b77c4489f780b2",
+        "flin_0000001_0259205.tif": "b4318cb7d4785476bfa159cfadb0bd799018a4d872cb6ce8452f5d2679b4cdb0",
+        "hourly_isochrones.dbf": "1d8a179d6526aa317bc9e33a3fc8c54128c2fae3f1318c806aeabcc5e2b9cc91",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "f8348c023e1cc8054a59489779697c05ead47ad3495df049befac285bc3d342b",
+        "hourly_isochrones.shx": "2734eb5eecd3d6e0b1ee63abfd965b2956ca11793e56ef93e4f29dd2a6d9c5bf",
+        "time_of_arrival_0000001_0259205.tif": "91cab4c087f5826c005f5776626b36ef6d2de1763e744684694bb09917991553",
+        "vs_0000001_0259205.tif": "5bc41498b9b8d6ca9d9265117e99595302ea54b423dfb5f7124a0467fe494b58"
+      },
+      "git": {
+        "sha": "85d25c63ea0c6037d3bef33af2e26bcefeab75b2",
+        "sucio": false
+      },
+      "corrida": {
+        "inicio": "2026-10-23T04:48:04.388625+00:00",
+        "minutos": 17.3
+      }
+    }
+  ]
+}

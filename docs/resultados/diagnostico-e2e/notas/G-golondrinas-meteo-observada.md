@@ -316,7 +316,8 @@ pasan. No reabre modelo-v0.
 de 2021) identifica cuatro focos de origen: Las Golondrinas (línea de media tensión sobre coníferas),
 Cerro Radal y dos cerca de Cholila, que quedan fuera de la caja (límite sur −42,2°). Bomberos:
 «después fueron cientos de focos, pero los puntos de origen fueron claramente dos». Esos «cientos»
-son pavesas. Las fuentes que cuentan 5 o 7 focos suman El Maitén, que es **Cuesta del Ternero**:
+son pavesas. Las fuentes que cuentan 5 o 7 focos suman El Maitén, que es **Cuesta del Ternero**
+(corregido en §9.3: es **El Boquete**):
 activo en FIRMS desde el 8-mar 04:30 UTC a 17-28 km al este, excluido como `otro_incendio_probable`
 (`component-001`, 3.255 ha) y a ≥ 3,5 km de cualquier celda de la cicatriz (mediana 7,8 km).
 
@@ -400,6 +401,12 @@ Lectura:
   **pavesas** (apagadas por diseño), no el dosel ni los combustibles. Las 605 viviendas siguen sin
   modelo y quedan como limitación aparte.
 
+> **Adenda (2026-10-23, §10).** El déficit no "se reparte". La celda que faltaba, GFS con pavesas,
+> da 231 ha y sesgo 0,022: las pavesas multiplican el área ×1,0 con el GFS y ×4,9 con lo observado.
+> Los dos mecanismos son **necesarios a la vez**. La descomposición de arriba (×~10 por la
+> meteorología y después ×4,7 por las pavesas) vale sólo en ese orden. Lo mismo registra
+> `X-pavesas-calibracion.md` §1.2 con la iteración `calibracion-v6 / lw-100-pavx10-001`.
+
 ## 8. Enmienda (2026-10-23): forma contra velocidad sin pavesas
 
 > Registrada antes de correr. La pregunta del autor: si la lengua de S3 va por el eje correcto,
@@ -432,3 +439,252 @@ Criterio (contra la cicatriz completa):
 - entre 0,3 y 0,5: se informa sin veredicto;
 - si `t*` no llega en 72 h, el déficit de velocidad es mayor que 4× (72/18) y se informa el Dice
   a las 72 h como cota de la forma.
+
+### 8.1 Resultados
+
+Corrido el 2026-10-23, después de §9 (la referencia es válida), con un solo ELMFIRE en el runner.
+Contra la cicatriz completa (10.622 ha; excluido 0 ha).
+
+**Control.** El TOA de las horas 0–18 coincide con el de S3-12Z: 45.304 celdas en las dos corridas,
+ninguna distinta, y diferencia máxima de llegada de 0 s.
+
+| hora | ha | sesgo | Dice | precisión | recall | frente (km) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 448 | 0,04 | 0,046 | 0,57 | 0,02 | 5,3 |
+| 12 | 1.964 | 0,18 | 0,208 | 0,67 | 0,12 | 8,6 |
+| 18 | 4.077 | 0,38 | 0,317 | 0,57 | 0,22 | 12,0 |
+| 24 | 7.412 | 0,70 | 0,401 | 0,49 | 0,34 | 17,2 |
+| 30 | 12.754 | 1,20 | 0,394 | 0,36 | 0,43 | 20,2 |
+| 36 | 16.324 | 1,54 | 0,375 | 0,31 | 0,48 | 22,1 |
+| 42 | 20.136 | 1,90 | 0,347 | 0,26 | 0,50 | 24,2 |
+| 48 | 23.994 | 2,26 | 0,337 | 0,24 | 0,55 | 25,0 |
+| 54 | 27.508 | 2,59 | 0,356 | 0,25 | 0,64 | 27,8 |
+| 60 | 31.703 | 2,98 | 0,359 | 0,24 | 0,72 | 35,9 |
+| 66 | 35.132 | 3,31 | 0,350 | 0,23 | 0,75 | 37,0 |
+| 72 | 38.259 | 3,60 | 0,349 | 0,22 | 0,80 | 37,0 |
+
+**`t*` = 27,2 h y forma (Dice en `t*`) = 0,401.** En `t*` las áreas son iguales, así que precisión y
+recall también son 0,40. `benchmark.py tabla` da lo mismo: forma 0,401 y `t*` 27 (redondeado a la
+hora). `puntuacion.area_igualada` saca la semilla (1,6 ha) de las llegadas y este cálculo no, pero la
+diferencia no se ve en tres decimales.
+
+**Qué compone la forma en `t*`:**
+
+| | |
+|---|---|
+| Recall por franja de distancia a los focos | 0–5 km 0,92 · 5–10 km 0,76 · 10–15 km 0,30 · **15–30 km 0,00** |
+| Falsos positivos (6.365 ha) | 1.844 ha a ≤ 500 m del borde de la cicatriz; a > 500 m, **3.714 ha al sur del eje** (rumbo 114°) y 807 ha al norte; 0 ha más allá del extremo SE |
+| En la estepa oficial que la máscara no ve (§9.2) | 664 ha |
+
+### 8.2 Veredicto (con el criterio de §8)
+
+**Entre 0,3 y 0,5: sin veredicto.** La forma en `t*` es 0,401. Como el criterio lo condiciona a una
+forma ≥ 0,5, no se informa un factor de velocidad.
+
+Lectura, que no cambia el veredicto:
+
+- **Sin pavesas, el modelo no dibuja este incendio más lento: dibuja otro.** La forma 0,40 está hecha
+  entera con los primeros 15 km. Más allá, recall 0. El modelo iguala el área ensanchándose alrededor
+  del origen, sobre todo hacia el sur del eje, y no siguiendo el corredor. La cicatriz llega a 27,6 km;
+  el frente pasa los 20 km recién a la hora 30, cuando el área ya es 1,2 veces la observada.
+- **El Dice nunca supera 0,401** (hora 24). Después baja porque el área crece más rápido que lo
+  acertado: a las 72 h, recall 0,80 con sesgo 3,6.
+- Con pavesas y la duración respaldada (§7.3), el Dice a 24 h es 0,545, con precisión 0,60 y el
+  frente a 24,6 km a la hora 9. Las pavesas no sólo aceleran: también **ponen el fuego en el
+  corredor**. El cruce de la franja de agua y de la lenga en altura (§6.4) es lo que, sin pavesas,
+  desvía el avance hacia los costados.
+- **Salvedad.** Desde la hora 19 el viento es uniforme en 303° y el clima es ficticio (§8). Parte del
+  ensanchamiento al sur puede venir de esa dirección fija. Pero la forma en `t*` se decide en las
+  primeras 27 h, y las primeras 18 son las de S3-12Z.
+
+## 9. Enmienda (2026-10-23): ¿la cicatriz mide este incendio?
+
+> Sin ELMFIRE. El autor ve algo raro: ~10.600 ha que, según la cronología, ardieron en una noche.
+> Hay tres hipótesis: (a) la máscara está sobredimensionada; (b) incluye otro incendio; (c) la
+> ventana de 24 h es corta. Si (a) o (b) se confirmaban, las corridas de §8 y §10 no se hacían.
+> Scripts de la sesión (no versionados): `lobulo.py`, `oficial.py`, `estepa.py`.
+
+### 9.1 Fuentes
+
+- **Perímetro oficial.** Informe de áreas quemadas MAyDS/SNMF, datos al 23-mar-2021
+  (`informe_aq_rio_negro_chubut_07may2021.pdf`, p. 15 y 17). Las Golondrinas: 12.959 ha.
+  El Boquete: 8.818 ha (4.511 en Bariloche, 2.518 en Ñorquinco y 1.789 en Cushamen). El polígono
+  sale del Mapa 1 (Sentinel-2 del 21-mar más puntos de terreno). Se georreferenció con cinco
+  localidades de OSM (El Bolsón, El Hoyo, Lago Puelo, El Maitén, Buenos Aires Chico) y la línea de
+  42° S del límite provincial. Residuo: 54–128 m por punto. Se compara con ±300 m de tolerancia.
+  El color del polígono extraído da 11.915 ha, un 8 % menos que el oficial: donde el relleno
+  semitransparente cae sobre bosque quemado oscuro, no se distingue.
+- **Fecha de quema por celda.** MODIS MCD64A1 (`BurnDate`, celdas de 463 m) de febrero a abril de
+  2021, bajado de Earth Engine. Se usó el 10-mar como día 69.
+- **Detecciones.** El FIRMS del caché (`las-golondrinas-2021_2021-03-06_2021-03-20.csv`): VIIRS
+  SNPP y NOAA-20, a ≤ 375 m de la cicatriz.
+- **Máscara.** El run `event-filter-001`, con sus tiles PRE/POST, `candidatos_cambio`,
+  `otro_incendio_probable`, `componentes.csv` y `hotspots.csv`.
+
+### 9.2 (a) ¿Sobredimensionada? No; es al revés en la estepa
+
+| | ha |
+|---|---:|
+| Superficie oficial (SNMF, 23-mar) | 12.959 |
+| Máscara del run / en la grilla | 10.656 / 10.622 |
+| Oficial fuera de la cicatriz (±300 m), a 25–40 km de los focos | 1.899 |
+| Oficial fuera de la cicatriz (±300 m), a 0–25 km | 347 |
+| Cicatriz fuera del oficial (±300 m), a ≥ 20 km | 123 |
+| Cicatriz fuera del oficial (±300 m), a 0–20 km | 2.286 (no interpretable: ahí falla la extracción del relleno) |
+
+- **La máscara es más chica que el oficial, no más grande.** Le faltan unas 2.300 ha. Casi todas
+  están en el extremo este, en la estepa entre el lóbulo de Cerro Coihue y la Ruta 40.
+- **La causa es el método de la máscara, no un error del run.** En esas 1.899 ha el NBR previo
+  tiene mediana −0,07 y el 93 % está por debajo de `pre_nbr_min` = 0,15. El dNBR tiene mediana
+  0,02: pasto de estepa que, a los 11+ días de la ventana POST, no deja señal. Sólo el 4 % es
+  candidato a cambio. Es el mismo sesgo que El Turbio (sotobosque bajo el umbral, RESULTADOS-CSS-BAP
+  §3.2). No es una decisión de este caso y no se corrige acá.
+- **Lo que está, ardió.** El 89 % de los píxeles de la cicatriz cae en celdas MODIS quemadas en marzo
+  (87 %, 91 % y 92 % a 0–10, 10–20 y 20–30 km). El 11 % restante (1.127 ha) es el borde que no llena
+  una celda de 463 m: no se concentra en ningún sector.
+- `cambio_no_confirmado`: 44,7 ha en cuatro componentes, todos fuera del objetivo y ninguno de más
+  de 15 ha. Observación válida ≥ 99,25 % en cada tile. No aparece ningún bloque con cambio sin fuego
+  (cosecha u otro disturbio): la confirmación MODIS es pareja en toda la cicatriz.
+
+### 9.3 (b) ¿Otro incendio dentro? No se confirma
+
+El candidato era el lóbulo sureste: 2.462 ha a ≥ 20 km de los focos, al pie de Cerro Coihue.
+
+| Prueba | Resultado |
+|---|---|
+| Perímetro oficial | 2.339 de 2.462 ha (95 %) dentro del polígono de Las Golondrinas (±300 m). El Boquete es otro polígono, al NE (Cerro de La Mujer–El Maitén), a ≥ 6 km del lóbulo |
+| FIRMS antes de la ignición | 12 pasadas del 7-mar 17:57Z al 9-mar 06:42Z, con 6–51 píxeles cada una, **todos** a latitud ≥ −42,004 (El Boquete). Ninguno a ≤ 375 m de la cicatriz |
+| Primera detección en el lóbulo | 10-mar 04:43Z (NOAA-20, 15 px, 23,1–27,5 km) y 05:32Z (SNPP, 35 px, 22,6–27,2 km): horas 10,7 y 11,5 |
+| Fecha MODIS en el lóbulo (22–30 km) | 83 % el 10-mar, como el cuerpo principal (81 % a 0–10 km). Tres celdas (~100 ha) el 8–9-mar, con incertidumbre de ±1 día |
+| Quema entre El Boquete y el lóbulo | Ninguna celda MODIS quemada en la franja −42,04 a −42,09 / −71,30 a −71,15 |
+| Conectividad (4-vecinos, dentro de la cicatriz) | 2.428 de 2.462 ha unidas a los focos; con dNBR ≥ 0,3: 2.256 de 2.286; con dNBR ≥ 0,44: 1.946 de 2.009. Recién se corta con dNBR ≥ 0,66 |
+| PRE de febrero y POST | Lóbulo con vegetación previa (NBR previo, mediana 0,45) y severidad alta (dNBR, mediana 0,73; ≥ 0,3 en el 93 %). Las 13 celdas MODIS de febrero quedan al NO, fuera de la cicatriz |
+| Crónicas | ANB, 9-mar: el incendio "cerca de El Maitén" (El Boquete) llegó casi al aeródromo y "avanzaba" hacia Buenos Aires Chico, a ~4 km del extremo del lóbulo. Ninguna crónica nombra un incendio en Cerro Coihue, El Coihue ni Cerro Pirque en esas fechas. La pericia da dos focos en la caja (§7.1) |
+
+Lo único que la evidencia no excluye es un salto de pavesas de ≥ 6 km desde El Boquete hacia el
+sur. Ninguna fuente lo documenta, el SNMF atribuye el lóbulo a Las Golondrinas y el lóbulo está
+unido por tierra al cuerpo principal con severidad alta. Se descarta como hipótesis de trabajo.
+
+**Corrección a §7.1.** El incendio activo en FIRMS desde el 7-mar al NE (`component-001`,
+3.255 ha, `otro_incendio_probable`) es **El Boquete**, no Cuesta del Ternero. Lo dicen el Mapa 1
+del SNMF (polígono entre Cerro de La Mujer y El Maitén) y su fecha de inicio (7-mar; la primera
+detección del caché es del 7-mar a las 17:57Z, en −71,32 / −41,98). Cuesta del Ternero ardió el
+24-ene, más al norte, y la ventana PRE de febrero lo deja afuera. Las conclusiones de §7.1 no
+cambian: el incendio vecino queda a ≥ 3,5 km de la cicatriz. Lo mismo vale para la mención en el
+README de `mask-dataset-gen`, que no se edita desde acá.
+
+### 9.4 (c) ¿Ventana corta? No
+
+| Fuente | Qué dice del fin del crecimiento |
+|---|---|
+| MODIS (píxeles de la cicatriz) | 8.180 ha (77 %) el 10-mar; 865 ha (8 %) el 11-mar, con incertidumbre de ±3 días (el 10-mar estuvo nublado); 369 ha (3,5 %) del 12 al 22-mar, dispersas; 102 ha el 8–9-mar |
+| VIIRS | Las detecciones lejanas son de las horas 10,7–11,5. En las pasadas diurnas del 10-mar no hay **ninguna** detección en toda la caja (8/8 nubes y 12 mm en el SYNOP de 12Z). Del 12 al 20-mar hay 1–9 píxeles por pasada, a 6,5–13 km y dentro de la cicatriz: rescoldo y borde (el clúster `thermal-004`, a 12 km, del 14 al 20-mar) |
+| Conteo VIIRS del SNMF (los dos incendios) | 541 focos el 9-mar y 415 el 10-mar; después, 3, 2, 14, 4, 1 y 1 |
+| Cronología | 605 viviendas "en un par de horas" (§0); calma y lluvia a las 12Z |
+| Área FIRMS del README | 162 ha el 9-mar y 1.355 el 10-mar: no sirve, porque el satélite estaba ciego |
+
+Entre el 85 % y el 90 % de la cicatriz ardió antes de la tarde del 10-mar. A lo sumo un 4 % se
+puede atribuir a crecimiento posterior. La ventana de 24 h (hasta el 10-mar a las 18Z) cubre el
+evento. Esto coincide con §6, que descartó la duración con el modelo.
+
+### 9.5 Veredicto
+
+**La referencia es válida.** (a) no se confirma: la máscara es ~2.300 ha más chica que el oficial,
+por la estepa que el umbral de NBR previo no ve. (b) no se confirma: el lóbulo sureste es de este
+incendio. (c) se descarta: el incendio ardió en la primera noche. El déficit del modelo-v0 es real
+y no un artefacto de la referencia. Las partes de §8 y §10 se corren.
+
+Un efecto lateral para leer las corridas que llegan lejos: si el modelo quema la estepa al este del
+lóbulo, esas celdas cuentan como falsos positivos, aunque ardieron. En la práctica pesa poco. La
+corrida con pavesas de §7.3 pone ahí 76 de sus 3.455 ha de falsos positivos, y S3-72h en `t*`
+pone 664 de 6.365 (§8.1 y §10).
+
+### 9.6 Memo de decisión para el autor
+
+Regla de método: un caso se saca o se corrige **por la validez de la referencia o por un alcance
+declarado, nunca por su resultado**. La partición se fijó antes del primer barrido
+(RESULTADOS-CSS-BAP §3.2), con Las Golondrinas en calibración como "viento extremo", y la regla
+de parada del modelo-v0 rige.
+
+| Opción | Qué implica | Documentos que habría que tocar |
+|---|---|---|
+| **1. Dejarlo en calibración como caso límite declarado y reportar la media con y sin él** (situación actual) | Nada cambia: 0,439 con él y 0,510 sin él, exento de la restricción de alarmas (decisión 12). La nota G pasa a respaldar que la referencia es válida | Ninguno es obligatorio. Opcional: una línea en RIESGOS §3 y en la fila de MODELO-V0 que remita a §9 |
+| 2. Sacarlo de la media como "fuera de alcance: evento dominado por pavesas" y reportarlo aparte | "Dominado por pavesas" es una **conclusión de §7**, sacada del resultado del modelo. Declarar ese alcance ahora sería sacarlo por su resultado. Para que sea un alcance, haría falta un criterio previo y sin el modelo (por ejemplo, viento observado ≥ X durante la corrida principal) aplicado a todos los casos, incluida la prueba. También reabre la selección de receta: con otro conjunto de calibración, la regla de parada habría que volver a evaluarla, aunque Las Golondrinas da ~0 con todas las recetas | `benchmarks/particion.json` (sacarlo de `calibracion.gfs`), MODELO-V0 (tabla y media), ESTADO-RESEARCH §3 (tabla de evidencia congelada), RIESGOS §3 |
+| 3. Corregir la referencia (por ejemplo, recortar el lóbulo sureste) | **No corresponde.** Ni (a) ni (b) se confirmaron. La única corrección que respalda la evidencia va al revés: sumar ~1.900 ha de estepa, lo que empeora apenas el caso. Además es una propiedad del método (`pre_nbr_min`) y habría que aplicarla en `mask-dataset-gen` a todos los incendios con estepa, no sólo a éste | `mask-dataset-gen` (run nuevo), re-empaquetado del caso, `particion.json` |
+
+**Recomendación: la opción 1.** La referencia pasó las tres pruebas, así que no hay motivo de
+validez para tocarla. El único alcance declarado antes del barrido es "viento extremo", y ya está
+cubierto por `limites`. Sacarlo de la media sería la decisión por el resultado que la regla
+prohíbe. La media con y sin el caso ya informa lo que el lector necesita.
+
+## 10. Enmienda (2026-10-23): la celda que falta del 2×2 de pavesas
+
+> Diseño y criterio registrados antes de correr.
+
+§7.4 dice que el déficit "se reparte": un factor ~10 por el GFS y ~4,7 por las pavesas. Eso supone
+efectos separables, y falta la celda **GFS con pavesas**. Un indicio en contra: en el loop L,
+`calibracion-v5 / lw100-cbh050-pavx10-001` dio Dice 0,020 y sesgo 0,026, casi lo mismo que sin
+pavesas. Pero era v5 y con CBH × 0,5, así que no es la celda exacta.
+
+**Corrida.** `synop-v6-s0` (= `calibracion-v6` byte a byte, §2) × `lw-100-pavx10-001`, contra la
+cicatriz completa. En `benchmarks/iteraciones/las-golondrinas-2021/calibracion-v6/` ya existe una
+iteración `lw-100-pavx10-001` (de otra sesión, 2026-10-23). Tiene los mismos insumos y no se miró
+antes de registrar esto. Se usa como **control de reproducibilidad**: la celda nueva tiene que dar
+el mismo TOA. Si no coincide, se informa y no se interpreta la celda.
+
+Criterio:
+
+- **sesgo ≥ 0,5 con precisión ≥ 0,5**: las pavesas solas alcanzan y la entrada meteorológica no es
+  necesaria. Cambia la lectura de §3 y §7;
+- **sesgo < 0,1**: los dos mecanismos son **necesarios a la vez**, y §7.4 tiene que dejar de decir
+  que "se reparten";
+- en el medio, sin veredicto.
+
+Se informa el 2×2 completo, {GFS, observado hasta 03Z} × {sin, con pavesas}: área, Dice, sesgo,
+precisión y alcance del frente a las 9 y a las 24 h. Las otras tres celdas ya están corridas:
+`synop-v6-s0 / lw-100-001`, `synop-v6-s3-03z / lw-100-001` y `synop-v6-s3-03z / lw-100-pavx10-001`.
+Como dato aparte, que no entra en el criterio, se informa cuánto de lo predicho cae en la estepa
+oficial que la máscara no ve (§9.2).
+
+### 10.1 Resultados
+
+Corrido el 2026-10-23, después de la de §8. Contra la cicatriz completa. El área es la del TOA a
+24 h (incluye la semilla), como en §7.3. Dice, sesgo, precisión y recall son los de `metricas.json`
+(`cicatriz` → `acumulado`).
+
+**Control de reproducibilidad.** `synop-v6-s0 / lw-100-pavx10-001` y la iteración previa
+`calibracion-v6 / lw-100-pavx10-001` dan el mismo TOA: ninguna celda distinta y diferencia de
+llegada de 0 s. Con pavesas y la semilla fija, ELMFIRE es determinista.
+
+| meteorología | pavesas | ha a 24 h | Dice | sesgo | precisión | recall | frente a 9 h | frente a 24 h |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| GFS (`synop-v6-s0`) | no | 226 | 0,012 | 0,021 | 0,28 | 0,01 | 1,4 km | 1,6 km |
+| GFS (`synop-v6-s0`) | **sí** | **231** | **0,012** | **0,022** | 0,29 | 0,01 | 1,4 km | 1,6 km |
+| observada hasta 03Z (`synop-v6-s3-03z`) | no | 1.868 | 0,205 | 0,176 | 0,69 | 0,12 | 8,0 km | 8,4 km |
+| observada hasta 03Z (`synop-v6-s3-03z`) | sí | 9.088 | 0,545 | 0,822 | 0,60 | 0,50 | 24,6 km | 31,6 km |
+
+Factores del área a 24 h:
+
+| | sin pavesas → con pavesas |
+|---|---:|
+| con el GFS | ×1,0 |
+| con lo observado | ×4,9 |
+| **GFS sin pavesas → observado con pavesas** | **×40** |
+| si los efectos fueran separables (×8,3 del clima × ×1,0 de las pavesas con el GFS) | ×8,5 |
+
+Lo predicho en la estepa oficial que la máscara no ve (§9.2): 10, 10, 11 y 76 ha. No cambia
+ninguna precisión en más de 0,01.
+
+### 10.2 Veredicto (con el criterio de §10)
+
+**Sesgo 0,022 < 0,1: los dos mecanismos son necesarios a la vez.** Con el GFS, las pavesas no
+cambian nada: mismo frente, +5 ha. Con la meteorología observada, multiplican el área ×4,9. Hay
+interacción, no suma: el efecto conjunto (×40) es casi cinco veces el que darían los efectos por
+separado (×8,5). §7.4 recibió una adenda y conserva su texto.
+
+Hipótesis, **no verificada acá**: la variante fuerte lanza pavesas desde el 10 % de las celdas en
+copa y el 1 % en superficie. Con el GFS el fuego no pasa de 1,6 km: apenas toca el TU5 donde, con
+lo observado, se encendía la copa (§7.1). Así casi no hay celdas que lancen. El viento y el aire seco hacen falta para que haya fuego de
+copa que lance pavesas, y las pavesas hacen falta para cruzar el agua y la lenga. Coincide con
+`X-pavesas-calibracion.md` §1.2. Allí, además, `lw-100-pavx10-001` no pasa la puerta del modelo:
+media 0,451 < 0,459 y tres alarmas nuevas (Alerces 2023 2,42; Epuyén 2,92; Alerces 2016 2,42).

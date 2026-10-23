@@ -1,0 +1,71 @@
+{
+  "caso": "las-golondrinas-2021/calibracion-v6",
+  "caso_sha": "7c25507047f03277036a1237002ffa05f118d2d0abf3d393dae65e6c5407fb68",
+  "receta": "lw-100-pavx10-001",
+  "receta_sha": "5bdb5f1d0d38eee374a3c3847915bb26b479cf3c74d81d3e0958054b36bc0894",
+  "padre": "lw-100-001",
+  "motivo": "Diagnóstico de Las Golondrinas (diagnostico-e2e/notas/G-golondrinas-meteo-observada.md §7.2, corrida A): pavesas en la variante fuerte del loop L (10 % en copa, 1 % en superficie) sobre v6, sin CBH × 0,5 porque v6 ya tiene el CBH de literatura. La plantilla de hindcast sola no enciende focos (loop L). No es candidata a modelo.",
+  "factores": {
+    "combustible": "ccsbap2017",
+    "semilla": "prediccion",
+    "lw_moisture_pct": 100.0,
+    "spotting": {
+      "CROWN_FIRE_SPOTTING_PERCENT": 10.0,
+      "GLOBAL_SURFACE_FIRE_SPOTTING_PERCENT": 1.0
+    }
+  },
+  "elmfire": "2025.0212",
+  "git": {
+    "sha": "743e42f617dc85077ed83c8c54019e5aae03d000",
+    "sucio": true
+  },
+  "ventanas": [
+    {
+      "n": 0,
+      "t0": "2021-03-09T18:00:00+00:00",
+      "inicio": "2021-03-09T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 0.0,
+      "semilla_desde": "caso",
+      "insumos": {
+        "adj.tif": "d607d5ec55e888fb21c87358d3b9130b1f770819076c98a684649ec0f5147d17",
+        "asp.tif": "25e200e03d21cdfd7834a5f21b897138aa0edfda595fb7e860252b9e2772ff88",
+        "cbd.tif": "c7a7df07a251faf9df45401102ec0b0f111acb2413aa4384c637c3d0a5ad078a",
+        "cbh.tif": "33a78ae406065dfe742325076df0fb2617566e8d1469946682e4a8dc5d081429",
+        "cc.tif": "6f4638a427a5185ea6b1b6c5186168528c5b9017376401ea10628b87338b15c3",
+        "ch.tif": "d996a9072073ff3248cb44f93db3e4b6d50dccf5ce25d2e575bb16ddba128211",
+        "dem.tif": "06d556df4e62387825ae18d41c8e33bbc7fa3a5d38966e933c957172fc880eaa",
+        "elmfire.data": "89a4dc1584e784854ec37c5d07bb001d1aa371d1666b2b59a29254ef56e5ce7d",
+        "fbfm40.tif": "37b90da5b58abb88ba96b708b51de29fbe421ec1f257103824122ad3a40b0e1f",
+        "fuel_models.csv": "c68fe34fdcac4df78b498af98585f40483e754eb1270c795f74699d4b25c05db",
+        "m1.tif": "6b9e9bcb1eb52d18cdb6d3896599cd7e517f7b3fe18feaa2b2e01f323230b679",
+        "m10.tif": "ae50da8a1e581532bcad63e58384fdbf8a44e5cef0d4cc6ca3d47e8fdc7addb1",
+        "m100.tif": "89003f0a7218eba0dd9bf2030e2efbccf9600ca5b6a971cc5dbb34f1c1eaa849",
+        "phi.tif": "9701249b3ca5c2b0b755372a500e63f2f06e9e0f4c71d704601885392229a320",
+        "slp.tif": "24c916adf0cc5c3713ddbb8e96f25e4bbabee97fbcb34714e7afc4fad53d5a89",
+        "wd.tif": "e2c150cc99c057a7eb663a3674c52710f4646d59de6fdceab6dc614481349cab",
+        "ws.tif": "69d2214473a31c6aa9f080101b88f58ee173be524f6058b29752e9fc3cdb9bb8"
+      },
+      "namelist_sha": "fd185a2a23a750b4d463e63788734ad43e4c1ce09f8d57a157173f9886091351",
+      "salidas": {
+        "coeffs.csv": "9a18e0fed64736298ac6b2ca9842c996193be18742602dd49815db161ab35120",
+        "fire_size_stats.csv": "34f5c276787f66817f6aa64064b436be185a5320ba28e87314c2b56b4dd1e85b",
+        "flin_0000001_0086541.tif": "39f10bfa81dc9d6960eee93ea2164dbf8e2aa51cbc3b5cdf4582103b6f0f5ab3",
+        "hourly_isochrones.dbf": "9b1ac6fd8ce760b77fb2a017d71784aa32dd6fe590fd6dc4787cc1852d652826",
+        "hourly_isochrones.prj": "f483310289839d4ac0abcdc3a974d7c1c374e072433ea1f3aca6617282250c04",
+        "hourly_isochrones.shp": "2791e79a7fe7132ac779de5f98af217af6d6e8609ec27a2cd99d212df24a5352",
+        "hourly_isochrones.shx": "ffdede3957681d6e29ec285f47d2a9348ab9a37141ceb1646f821bb14c2192b3",
+        "time_of_arrival_0000001_0086541.tif": "e0c30d6977e5b4f8fdae7edaf01e5c108884b555a2761d6d7ed5851c47376638",
+        "vs_0000001_0086541.tif": "db1b3ce75308b43fd0e2bc9ce0ced728d98a17b7fd18a780460c2c22c115de31"
+      },
+      "git": {
+        "sha": "743e42f617dc85077ed83c8c54019e5aae03d000",
+        "sucio": true
+      },
+      "corrida": {
+        "inicio": "2026-10-23T04:18:21.356573+00:00",
+        "minutos": 0.5
+      }
+    }
+  ]
+}
