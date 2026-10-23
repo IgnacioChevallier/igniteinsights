@@ -1546,6 +1546,64 @@ def tabla_pronostico(receta_id: str, casos: list[str]) -> None:
             r_path.write_text(json.dumps(r, indent=2, ensure_ascii=False))
 
 
+CORTES_H = (24, 48, 72, 96, 120)
+
+
+def curva_horizonte(modelo_id: str) -> list[dict]:
+    """Dice acumulado de un modelo si cada caso se hubiera cortado a 24, 48, … h. Lo predicho es
+    lo que la cadena daba por quemado al final de la ventana que termina en el corte (como
+    `cadena.puntuar`, incluye las llegadas que ELMFIRE deja apenas pasado TSTOP); la referencia,
+    la cicatriz a un píxel VIIRS de alguna detección hasta esa hora (`hasta_horizonte` con el
+    corte en vez del fin). Sin correr ELMFIRE. El corte igual al horizonte reproduce
+    `metricas.json` (se verifica)."""
+    modelo = json.loads((d.RAIZ / "modelos" / f"{modelo_id}.json").read_text())
+    filas = []
+    for conjunto, por_fuente in modelo["conjuntos"].items():
+        for caso_id in [c for casos in por_fuente.values() for c in casos]:
+            caso = d.Caso.cargar(caso_id)
+            comunes = caso.paquete()["comunes"]
+            grilla = p.Grilla(almacen.abrir(comunes["dem.tif"]))
+            ventanas = _ventanas_cadena(caso_id, modelo["receta"])
+            semilla = ventanas[0][2]
+            cicatriz = cadena._leer(comunes["cicatriz.tif"]).astype(bool)
+            excluido = cadena._leer(comunes["excluido.tif"]).astype(bool)
+            truncar = caso.datos["referencias"]["cicatriz"].get("hasta_horizonte")
+            df = pd.read_csv(almacen.abrir(comunes["firms.csv"]), parse_dates=["acq_datetime"])
+            total_h = (caso.ventanas[-1].fin - caso.ventanas[0].inicio).total_seconds() / 3600
+            fila = {"caso": caso_id, "conjunto": conjunto, "horizonte_h": total_h, "cortes": {}}
+            for h in [c for c in CORTES_H if c < total_h] + [total_h]:
+                t = caso.ventanas[0].inicio + timedelta(hours=h)
+                k = next(i for i, v in enumerate(ventanas) if v[1] == t)   # el corte es un fin
+                pred = (ventanas[k][2] | np.isfinite(ventanas[k][3])) & ~semilla
+                ref, excl = cicatriz, excluido
+                if truncar:
+                    vistas = _discos(_puntos(df, None, t), grilla,
+                                     perimeter_reconstruction.VIIRS_PIXEL_M)
+                    ref, excl = cicatriz & vistas, excluido | (cicatriz & ~vistas)
+                fila["cortes"][f"{h:g}"] = p.metricas(pred, ref & ~semilla, grilla.celda_ha, excl)
+            registrado = json.loads((d.ruta_iteracion(caso_id, modelo["receta"])
+                                     / "metricas.json").read_text())
+            dice = registrado["ventanas"][-1]["cicatriz"]["acumulado"]["dice"]
+            if abs(fila["cortes"][f"{total_h:g}"]["dice"] - dice) > 1e-9:
+                raise ValueError(f"{caso_id}: el corte al horizonte no reproduce metricas.json")
+            filas.append(fila)
+
+    print("| Caso | Conjunto | Horizonte | " + " | ".join(f"{c} h" for c in CORTES_H) + " |")
+    print("|---|---|---:|" + "---|" * len(CORTES_H))
+    for f in filas:
+        celdas = []
+        for c in CORTES_H:
+            m, nota = f["cortes"].get(f"{c:g}"), ""
+            if m is None and c - 24 < f["horizonte_h"] < c:   # horizonte fuera de los cortes
+                m, nota = f["cortes"][f"{f['horizonte_h']:g}"], f" ({f['horizonte_h']:g} h)"
+            celdas.append(f"{_fmt(m['dice'])} / {_fmt(m['sesgo_area'])}{nota}" if m else "—")
+        print(f"| {f['caso'].split('/')[0]} | {f['conjunto']} | {f['horizonte_h']:g} h | "
+              + " | ".join(celdas) + " |")
+    destino = d.RAIZ / "diagnosticos" / f"horizonte-{modelo_id}.json"
+    destino.write_text(json.dumps(filas, indent=2, ensure_ascii=False) + "\n")
+    return filas
+
+
 def diagnosticar_copa(caso: d.Caso, receta_id: str = "lw-100-001") -> dict:
     """§4: en las celdas de bosque (TU, TL) con dosel que la cicatriz y VIIRS dan por quemadas
     cada día, ¿qué parte hace copa según CFIS (ajustado en rodales de coníferas) y qué parte según
@@ -1660,6 +1718,8 @@ def main() -> None:
     s.add_argument("casos", nargs="+")
     s = sub.add_parser("copa", help="CFIS contra Van Wagner + Rothermel, sin correr nada")
     s.add_argument("caso")
+    sub.add_parser("horizonte", help="Dice acumulado por corte de horizonte, sin correr nada"
+                   ).add_argument("modelo")
     args = ap.parse_args()
 
     if args.cmd == "crear-pronostico":
@@ -1670,6 +1730,8 @@ def main() -> None:
         tabla_pronostico(args.receta, args.casos)
     elif args.cmd == "copa":
         diagnosticar_copa(caso)
+    elif args.cmd == "horizonte":
+        curva_horizonte(args.modelo)
     elif args.cmd == "resumen":
         resumen()
     elif args.cmd == "objetivo":
