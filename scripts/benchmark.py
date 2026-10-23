@@ -654,6 +654,100 @@ def _viento_diurno(caso: d.Caso) -> dict:
             "origen": base["origen"] | {"base": datos["base"], "viento_diurno": viento.IMAGEN}}
 
 
+KT_MS = 1852.0 / 3600.0
+HUMEDAD_RETARDO = ("m1_retardo.tif", "m10_retardo.tif", "m100_retardo.tif")
+
+
+def _meteo_en_ventana(archivos: dict[str, Path], dem: Path, t0: datetime, serie: list[dict],
+                      destino: Path, bandas: int | None = None) -> dict[str, Path]:
+    """Pisa las bandas horarias de una ventana (banda 0 = `t0`) con valores medidos, uniformes
+    en el dominio. Cada hora de `serie` es {"t", "ws10_kt", "wd", "t2m_c", "hr_pct"}; la
+    variable que falta queda la del GFS. El viento a 10 m se baja a 20 pies como en
+    `derive_wind`; con T o HR, m1/m10/m100 salen de `derive_moisture`. Devuelve sólo lo que
+    cambió, escrito en `destino`.
+
+    Con `bandas` mayor que las del paquete, la ventana se alarga hasta esa cantidad: las horas
+    que el GFS no tiene salen enteras de `serie` (las cuatro variables) o es un error."""
+    def leer(nombre: str) -> tuple[dict, np.ndarray]:
+        with rasterio.open(archivos[nombre]) as src:
+            return src.profile, src.read()
+
+    (_, ws), (_, wd) = leer("ws.tif"), leer("wd.tif")
+    (perfil, t2m), (_, rh) = leer("t2m_gfs.tif"), leer("rh_gfs.tif")
+    cambios = set()
+    gfs = ws.shape[0]
+    if bandas and bandas > gfs:
+        completas = {int((datetime.fromisoformat(h["t"]) - t0).total_seconds() // 3600)
+                     for h in serie if {"ws10_kt", "wd", "t2m_c", "hr_pct"} <= set(h)}
+        if faltan := sorted(set(range(gfs, bandas)) - completas):
+            raise ValueError(f"horas {faltan} fuera del GFS sin las cuatro variables medidas")
+        ws, wd, t2m, rh = (np.concatenate([a, np.repeat(a[-1:], bandas - gfs, axis=0)])
+                           for a in (ws, wd, t2m, rh))
+        perfil = perfil | {"count": bandas}
+        cambios |= {"ws", "wd", "humedad"}
+    for hora in serie:
+        dt = (datetime.fromisoformat(hora["t"]) - t0).total_seconds() / 3600
+        k = int(dt)
+        if k != dt or not 0 <= k < ws.shape[0]:
+            raise ValueError(f"{hora['t']}: no es una banda horaria de la ventana desde {t0}")
+        if "ws10_kt" in hora:
+            ws[k] = (hora["ws10_kt"] * KT_MS * weather_builder.wind_height_factor()
+                     * weather_builder.MS_TO_MPH)
+            cambios.add("ws")
+        if "wd" in hora:
+            wd[k] = hora["wd"] % 360.0
+            cambios.add("wd")
+        if "t2m_c" in hora:
+            t2m[k] = hora["t2m_c"] + 273.15
+            cambios.add("humedad")
+        if "hr_pct" in hora:
+            rh[k] = hora["hr_pct"]
+            cambios.add("humedad")
+    rutas = {}
+    if "ws" in cambios:
+        weather_builder._write_like_reference(dem, destino / "ws.tif", ws)
+        rutas["ws.tif"] = destino / "ws.tif"
+    if "wd" in cambios:   # desenrollado como el del paquete (AUDITORIA-FISICA, hallazgo 3)
+        weather_builder._write_like_reference(dem, destino / "wd.tif",
+                                              weather_builder.wd_for_elmfire(wd))
+        rutas["wd.tif"] = destino / "wd.tif"
+    if "humedad" in cambios:
+        for nombre, datos in (("t2m_gfs.tif", t2m), ("rh_gfs.tif", rh)):
+            with rasterio.open(destino / nombre, "w", **perfil) as dst:
+                dst.write(datos)
+            rutas[nombre] = destino / nombre
+        for ruta in weather_builder.derive_moisture(rutas["t2m_gfs.tif"], rutas["rh_gfs.tif"],
+                                                    dem, destino):
+            rutas[ruta.name] = ruta
+    return rutas
+
+
+def _meteo_observada(caso: d.Caso) -> dict:
+    """El paquete de otro caso, byte a byte, con las horas de `meteo_observada.serie` pisadas
+    por lo medido (diagnóstico, notas/G-golondrinas-meteo-observada.md). Con la humedad
+    cambiada salen los `m*_retardo.tif`: regenerarlos pide la serie previa, y una receta
+    `retardo` tiene que fallar antes que correr con la humedad vieja."""
+    datos = caso.datos["empaquetado"]
+    base = d.Caso.cargar(datos["base"]).paquete()
+    dem = almacen.abrir(base["comunes"]["dem.tif"])
+    serie = datos["meteo_observada"]["serie"]
+    ventanas = []
+    for v, archivos in zip(caso.ventanas, base["ventanas"], strict=True):
+        horas = [h for h in serie if v.t0 <= datetime.fromisoformat(h["t"]) <= v.fin]
+        with tempfile.TemporaryDirectory() as tmp:
+            nuevos = _meteo_en_ventana({n: almacen.abrir(s) for n, s in archivos.items()},
+                                       dem, v.t0, horas, Path(tmp), bandas=v.horas + 1)
+            archivos = archivos | {n: almacen.guardar(r) for n, r in nuevos.items()}
+        if "m1.tif" in nuevos:
+            archivos = {n: s for n, s in archivos.items() if n not in HUMEDAD_RETARDO}
+        ventanas.append(archivos)
+        print(f"  ventana {v.t0:%d-%m %H:%M}: {len(horas)} horas medidas, "
+              f"reemplaza {sorted(nuevos)}", flush=True)
+    return {"comunes": base["comunes"], "ventanas": ventanas,
+            "origen": base["origen"] | {"base": datos["base"],
+                                        "meteo_observada": datos["meteo_observada"]["fuente"]}}
+
+
 # ── P-24: pronóstico desde el perímetro observado (DIA-1-PROPUESTA §2) ──────────
 
 REFERENCIAS_VENTANA = {"phi.tif", "ref_firms.tif", "ref_firms_horas.tif", "alcance.tif"}
@@ -781,7 +875,8 @@ def _pronostico(caso: d.Caso) -> dict:
 
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
                   "firms_gfs": _firms_gfs, "ampliar_mapas": _ampliar_mapas,
-                  "viento_diurno": _viento_diurno, "pronostico": _pronostico}
+                  "viento_diurno": _viento_diurno, "pronostico": _pronostico,
+                  "meteo_observada": _meteo_observada}
 
 
 def empaquetar(caso: d.Caso) -> None:

@@ -1,0 +1,107 @@
+{
+  "descripcion": "Las Golondrinas y Cerro Radal, 9-mar-2021, sobre `calibracion-v6` (estáticos, combustibles, dosel, igniciones, cicatriz y GFS byte a byte). Diagnóstico de la entrada meteorológica (docs/resultados/diagnostico-e2e/notas/G-golondrinas-meteo-observada.md), escenario s2: sólo T y HR → m1/m10/m100 con derive_moisture, lo medido a las 00Z sostenido de 18Z a 03Z y después el GFS. Uniforme en el dominio. No es una receta ni un candidato a modelo.",
+  "anio_fuego": 2021,
+  "semilla_inicial": {
+    "tipo": "puntos",
+    "hora": "2021-03-09T18:00:00+00:00",
+    "puntos": [
+      {
+        "nombre": "Las Golondrinas",
+        "lon": -71.52181,
+        "lat": -42.01227
+      },
+      {
+        "nombre": "Cerro Radal",
+        "lon": -71.55865,
+        "lat": -42.03658
+      }
+    ],
+    "fuente": "Pericias citadas por elDiarioAR y Diario Río Negro (mar-2022): el foco de Las Golondrinas empezó a las 15 h del 9-mar-2021 por una línea aérea de media tensión sobre coníferas; el de Cerro Radal, 30-40 min después. Radio Nacional (9-mar-2021): 'alrededor de las 16 h' en Las Golondrinas y en Radal. Lugares: OSM (Escuela N° 41 'Las Golondrinas', -42.0152/-71.5329; Cerro Radal, -42.0328/-71.5658).",
+    "ajuste": "Los dos lugares documentados caen fuera de la cicatriz (816 m y 582 m; zona de viviendas, NB1): la cicatriz dNBR empieza al este de los poblados. Se toma para cada uno la celda de la cicatriz a más de 90 m del borde más cercana: Las Golondrinas → -42.01227/-71.52181 (969 m, 463 m de altura, TU3); Cerro Radal → -42.03658/-71.55865 (716 m, 349 m, TL8). Los dos a las 15 ART (Radal fue 30-40 min después). La semilla de mask-dataset-gen (-42.084/-71.371, centroide MODIS) está a 1.388 m, 7,9 km de las primeras detecciones (19:49 UTC, -42.014/-71.510, 602 m)."
+  },
+  "ventanas": [
+    {
+      "t0": "2021-03-09T18:00:00+00:00",
+      "horas": 24
+    }
+  ],
+  "caja_wgs84": [
+    -71.64,
+    -42.2,
+    -71.16,
+    -41.95
+  ],
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/las-golondrinas-2021/runs/event-filter-001",
+      "hasta_horizonte": false
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "empaquetado": {
+    "tipo": "meteo_observada",
+    "base": "las-golondrinas-2021/calibracion-v6",
+    "meteo_observada": {
+      "fuente": "SYNOP 87800 El Bolsón Aero, 10-mar-2021 00Z (Ogimet, data/benchmark/cache/synop/87800_2021030418_2021031018.txt): 23629 10239 20040 → desde 360° a 29 kt a 10 m, T 23,9 °C, Td 4,0 °C (HR 27,5 %). Único reporte de la noche; el 9-mar es todo NIL.",
+      "serie": [
+        {
+          "t": "2021-03-09T18:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-09T19:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-09T20:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-09T21:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-09T22:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-09T23:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-10T00:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-10T01:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-10T02:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        },
+        {
+          "t": "2021-03-10T03:00:00+00:00",
+          "t2m_c": 23.9,
+          "hr_pct": 27.5
+        }
+      ]
+    }
+  }
+}
