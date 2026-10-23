@@ -19,7 +19,7 @@ por evidencia externa nueva.
 | Entrada | Valor | Estado y criterio |
 |---|---:|---|
 | Fuente principal de combustible | CCS-BAP anterior al fuego | Crosswalk final aprobado técnicamente; años 2013/2017 evitan fuga temporal |
-| Humedad viva leñosa, LW | 100 % | Calibrada; 110 % es el umbral húmedo de grandes incendios, no el valor de un día extremo |
+| Humedad viva leñosa, LW | 100 % | Calibrada; 110 % es el umbral húmedo de grandes incendios, no el valor de un día extremo. Un LW por especie (`MLW_FILENAME`) aleja la ROS de lo observado (`docs/resultados/diagnostico-e2e/notas/V-humedad-viva.md`) |
 | ADJ | 1,0 | Sin ajuste; el ADJ anterior compensaba errores de interfaz |
 | Humedad viva herbácea, LH | 30 % | Convención de pasto curado de Scott & Burgan |
 | Humedad muerta m1 | Nelson sobre GFS/ERA5 | El delta uniforme −6 no tiene soporte en estaciones |
@@ -31,6 +31,7 @@ por evidencia externa nueva.
 | CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino |
 | CBD del pino | 0,16 kg/m³ | Medido en plantaciones patagónicas |
 | Pérdida previa Hansen | Sin dosel | Sólo pérdidas anteriores al año del incendio |
+| Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app en tiempo real todavía no la aplica, porque no tiene punto de ignición |
 
 ## 2. Abierto, pero no bloquea el modelo
 
@@ -58,6 +59,11 @@ mismos once incendios.
 - **Transferencia:** el conjunto de prueba tiene cuatro incendios, Dice 0,191/0,167 y dos
   alarmas. `modelo-v0` es un baseline productivo auditable, no una afirmación de generalización
   universal.
+- **Islas en la referencia truncada:** con `hasta_horizonte`, la cicatriz no vista se excluye, pero
+  las islas sin quemar no vistas dentro del perímetro final siguen contando como negativos. Eso da un
+  techo de Dice de 0,85 en Patriada y 0,86 en Cholila. Excluirlas (variante C) vale ≤ 0,005 en
+  calibración y ≤ 0,01 en P-24, y no cambia la receta ni ninguna conclusión. No se adopta (decisión
+  del 2026-10-23); se declara como límite (`docs/resultados/diagnostico-e2e/notas/T-truncado.md`).
 - **Datos históricos en la app:** la ingesta FIRMS NRT no reemplaza las fuentes SP necesarias
   para reconstruir incendios antiguos.
 

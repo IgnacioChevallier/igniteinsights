@@ -236,6 +236,43 @@ Meteostat son SYNOP reales; el resto es relleno, así que "el resto de la tarde 
 observado. La ráfaga (53,6 km/h a 10 m, 10-03 00Z) sí es real. La prueba no mide el viento de la
 estación y no se re-corre.
 
+**SYNOP crudo de El Bolsón contra el GFS del paquete (2026-10-19).** El 9-mar no hay ningún
+reporte: todas las horas son `NIL`. La "tarde seca de 28 °C y 19–22 % de HR" de
+RESULTADOS-CSS-BAP §2.12 es relleno de Meteostat. Hay dos reportes reales:
+
+| 10-mar | Viento a 10 m | T | HR | Otros | GFS en el foco a esa hora |
+|---|---|---:|---:|---|---|
+| 00Z (21 ART) | **N, 29 kt** (29 mph a 20 ft) | **23,9 °C** | **27 %** | Tmax de la tarde 32,0 °C | ONO, 6,7 mph; 12,5 °C; 61 %; m1 11,6 % |
+| 12Z (09 ART) | Calma | 15,3 °C | 97 % | 8/8 nubes; **12 mm en las 12 h previas** | ONO, 4,4 mph; 11,1 °C; 92 %; m1 22,2 % |
+
+A la hora de la explosión, el GFS tiene el viento 4,3× más débil y el aire 11 °C más frío y
+34 puntos más húmedo. Hace entrar el aire frío y húmedo del frente al anochecer, sin el viento
+prefrontal del norte que lo precedió. Por eso m1 pasa de 4,5 % a 11,6 % a las 21 ART y a 25 %
+de madrugada, y el modelo deja de propagar con la tarde. La lluvia de la noche es lo que frenó el
+incendio real: encaja con que VIIRS no viera nada después y con el horizonte de 24 h. La
+dirección no es el error que decide: el empuje del GFS (hacia ~110–125°) coincide con el eje de
+la cicatriz desde los focos (107–123°). Con un único reporte no se sabe cuánto duró el viento
+del norte.
+
+**Corrida con lo observado (2026-10-19, nota G).** 29 mph y T/HR de las 00Z, uniformes y
+sostenidos desde la ignición hasta 06Z. El modelo quema 2.404 ha en lugar de 224 (Dice 0,24,
+sesgo 0,23, precisión 0,66) y el frente llega a 8,7 de ~26 km. Ni el viento ni la humedad
+alcanzan solos. Por el criterio registrado no hay veredicto fuerte: la entrada meteorológica
+explica una parte, no el orden de magnitud, y el resto queda para pavesas, WAF bajo dosel o
+estructuras (`diagnostico-e2e/notas/G-golondrinas-meteo-observada.md`).
+Una enmienda (§6) descarta la duración: sostenido hasta 12Z (18 h, contra la lluvia observada) el
+frente queda frenado entre 8,6 y 8,8 km de la hora 9 a la 15 y termina en 12,6 km con sesgo 0,44. El
+freno es de lugar: TL6 bajo dosel y una franja de agua que el incendio real cruzó, y que ELMFIRE sin
+pavesas sólo rodea.
+Una segunda enmienda (§7, 2026-10-23) cierra el caso. No hay bug de dosel: el arranque lento es SH4 y
+TL8 bajo dosel, según la decisión del loop L. Los focos de origen en la caja son dos, como dice la
+pericia. FIRMS muestra el frente a 22,6-27,5 km a las 10-11 h, al menos 2,2 km/h. Con lo observado
+hasta 03Z más pavesas fuertes (10 % / 1 %, la variante del loop L, fijada antes de correr), el modelo
+llega a 24,6 km a la hora 9 y quema 9.088 ha (Dice 0,545, sesgo 0,82, precisión 0,60). Sin dosel no
+alcanza (sesgo 0,22). **El déficit se reparte así: la meteorología de entrada explica un factor ~10 y
+las pavesas el ~4,7 restante.** Las pavesas no entran en modelo-v0, porque empeoran otros
+incendios (loop L). Las 605 viviendas siguen sin modelo.
+
 **Puerta SMN WRF (frente 4, 2026-10-18).** Se comparó GFS y SMN WRF 4 km contra SYNOP crudo en las
 horas de corrida P-24 de los 4 incendios 2023–2026. WRF no pasa: empeora la dirección en Esquel
 (26,8° → 30,7°) y Futaleufú (19,1° → 39,1°), y sólo mejora en El Bolsón (81° → 12°, n = 21, horas

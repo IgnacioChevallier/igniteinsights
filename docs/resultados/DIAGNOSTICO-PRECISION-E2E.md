@@ -226,7 +226,13 @@ nada).
 - **Advertencia (R O7).** La resolución efectiva de WRF (~25–30 km) es mayor que el ancho de los
   valles, y WindNinja a 90 m ya falló.
 
-### 5. Ensamble paramétrico para P-24 [P]
+### 5. Ensamble paramétrico para P-24 [P] — fuera de alcance (decisión del usuario, 2026-10-19)
+
+- **Decisión.** No entra en la tesis. Su objetivo es la cobertura P10–P90 y la relación spread-skill,
+  y la tesis no afirma una probabilidad calibrada (DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE §2). La
+  forma isótropa ya quedó como límite (I, U), así que un ensamble paramétrico no la corrige.
+- La sub-dispersión de GEFS queda como limitación declarada de la capa de acuerdo.
+- Diseño conservado en [`docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`](../out-of-scope/ENSAMBLE-PARAMETRICO.md).
 
 - **Objetivo.** Representar la incertidumbre que GEFS no muestrea.
 - **Miembros.** 20 miembros con σ fijados de antemano desde lo medido, no ajustados:
@@ -243,7 +249,13 @@ nada).
 - **Costo.** 460 corridas, del orden de GEFS.
 - **Alcance.** No toca modelo-v0.
 
-### 6. Humedad viva por celda con LFMC medida [E condicionada]
+### 6. Humedad viva por celda con LFMC medida [E condicionada] — cerrado: no se abre
+
+- **Cierre (2026-10-22, [V](diagnostico-e2e/notas/V-humedad-viva.md)).** La serie de Bianchi y
+  Defossé que no se usó para calibrar es la Tabla 2, con el LFMC medio por especie. Con Rothermel,
+  ese LW por celda frena SH4 a 0,33×, SH8 a 0,70×, TU3 a 0,80× y el TU5 de ciprés a 0,75×, cuando
+  el modelo ya va 0,49–0,88× de la ROS observada (F6). Sólo acelera la colihue (×1,18–1,27). No se
+  crea receta.
 
 - **Evidencia.** En SH4, LW de 100 a 110 % baja el ROS de 3,0 a 1,5 m/min (E). `MLW_FILENAME`
   existe (C). Bianchi y Defossé (2015) midieron LFMC por especie en la región.
@@ -339,6 +351,13 @@ Quedan sin incorporar:
    - Nuevas cifras: +0,096 / +0,131 (FIRMS) y residuo del día 1 de 2–4,5×.
    - La tesis (`../informe`) queda a cargo del usuario.
 2. ¿La semilla reconstruida de la app (26–61 % fuera de la cicatriz) queda como está o se ajusta?
+   **Medida (2026-10-19, [U](diagnostico-e2e/notas/U-reconstruccion-semilla.md)):** la regla de
+   reconstrucción se mantiene.
+   - Las huellas del píxel solas y el casco sin buffer dan un ΔDice de ±0,003 en las estimaciones
+     plausibles. Sólo un techo que usa la cicatriz llega a +0,06–0,08.
+   - Crecer sólo desde el frente activo da +0,026 a 12 h y −0,027 a 24 h; no pasa el criterio
+     registrado.
+   - Queda por decidir sólo el filtro conexo de T: 5 corridas en Cholila; no mueve la mediana.
    **Medido (2026-10-18, [T](diagnostico-e2e/notas/T-semilla.md)); falta decidir.**
    - Sólo el 26 % del área de afuera es un bug: detecciones de otros incendios, casi todas en
      Cholila. El 43 % es la huella y el margen del píxel de 375 m, el 16 % el relleno del casco y
@@ -355,5 +374,6 @@ Quedan sin incorporar:
    la literatura y se abre una receta candidata a modelo-v1?~~
 4. ~~¿Se invierte en la ingesta de SMN WRF y en las estaciones día a día (frente 4)?~~
    **Respondida (2026-10-18):** se midió la puerta y no pasa; no se invierte en la ingesta (W).
-5. ¿El ensamble paramétrico (frente 5, 460 corridas) entra en el alcance de la tesis, junto a la
-   capa GEFS?
+5. ~~¿El ensamble paramétrico (frente 5, 460 corridas) entra en el alcance de la tesis, junto a la
+   capa GEFS?~~ **Respondida (2026-10-19):** no entra; queda fuera de alcance, con el diseño
+   conservado en `docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`.

@@ -617,6 +617,13 @@ uv run python scripts/benchmark.py copa epuyen-2025/calibracion-v6
 > `pronostico.puntuar` ahora lo excluye. Además, la versión anterior tenía invertidas las semillas
 > FIRMS y oráculo en el resultado principal. Las tablas viejas quedaron en
 > `data/benchmark/p24/tabla-pronostico*-v6-con-anillo.md`. Ninguna corrida cambió.
+>
+> **Protocolo v7 (2026-10-22).** La semilla FIRMS se filtra a las detecciones conectadas a la
+> ignición (`semilla_inicial.filtro_conexo_m`, bug 4 de D; `diagnostico-e2e/notas/T-semilla-v7.md`).
+> Sólo cambia Cholila, que sembraba detecciones de otros incendios: pasa de 0,070 / 0,262 a
+> 0,078 / 0,327. Los otros 5 paquetes son idénticos a v6. La mediana contra la persistencia a 12 h
+> pasa de +0,060 a +0,063, y el resto del resultado principal no cambia. La semilla oráculo sigue en
+> v6.
 
 Dice del crecimiento contra la cicatriz ya vista por VIIRS. Es la media por incendio de los
 reinicios k ≥ 1, con semilla FIRMS acumulada, que es lo que la app puede hacer:
@@ -628,13 +635,13 @@ reinicios k ≥ 1, con semilla FIRMS acumulada, que es lo que la app puede hacer
 | Alerces 2024 | 8 | 0,342 / 0,152 | 0,443 / 0,253 |
 | Patriada 2026 | 6 | 0,149 / 0,018 | 0,208 / 0,043 |
 | Alerces 2016 | 4 | 0,087 / 0,000 | 0,122 / 0,000 |
-| Cholila 2015 | 7 | 0,070 / 0,056 | 0,262 / 0,205 |
+| Cholila 2015 | 7 | 0,078 / 0,056 | 0,327 / 0,205 |
 
 **Resultado principal (fijado en §2.4).**
 
 | Plazo | Mediana ΔDice contra la cadena de modelo-v0 | Mejoran | Mediana ΔDice contra la persistencia | Mejoran |
 |---|---:|---:|---:|---:|
-| 12 h | **+0,096** | **6 de 6** | +0,060 | 6 de 6 |
+| 12 h | **+0,096** | **6 de 6** | +0,063 | 6 de 6 |
 | 24 h | **+0,131** | 5 de 6 | +0,142 | 6 de 6 |
 
 Con la semilla oráculo: +0,155 (6 de 6) y +0,185 (6 de 6) contra la cadena.
@@ -649,9 +656,10 @@ Con la semilla oráculo: +0,155 (6 de 6) y +0,185 (6 de 6) contra la cadena.
   (RIESGOS §1): el incendio ya estaba contenido. Ahí la persistencia, que no crece si el incendio
   no creció, a veces gana.
 
-Las tablas por reinicio están en `data/benchmark/p24/tabla-pronostico-v6.md` y
-`tabla-pronostico-oraculo-v6.md`. Las métricas completas, en
-`benchmarks/iteraciones/*/pronostico*-v6/lw-100-obs-001/pronostico.json`.
+Las tablas por reinicio están en `data/benchmark/p24/tabla-pronostico-v7.md` y
+`tabla-pronostico-oraculo-v6.md` (v6, antes del filtro: `tabla-pronostico-v6.md`). Las métricas
+completas, en `benchmarks/iteraciones/*/pronostico-v7/lw-100-obs-001/pronostico.json` y
+`*/pronostico-oraculo-v6/…`.
 
 ### 7.3 El día 1: dónde está el déficit
 

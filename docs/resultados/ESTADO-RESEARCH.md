@@ -54,6 +54,11 @@ escrito durante el loop M con otro conjunto de recetas completas.
 El resultado de prueba es deliberadamente descriptivo: no se usa para volver a elegir LW, ADJ,
 crosswalk, CBH ni viento.
 
+La tabla por caso, su lectura y la sensibilidad al horizonte (2026-10-19) están en
+`docs/resultados/MODELO-V0.md`. Volver a puntuar las corridas congeladas cortadas a 24–120 h
+muestra que el Dice de calibración crece con el horizonte: con un tope de 72 h la media bajaría
+a 0,409. En prueba, sólo Epuyén 2019 empeora con el horizonte largo (supresión).
+
 ## 4. Qué quedó demostrado
 
 1. La interfaz original con ELMFIRE tenía errores materiales; los cinco hallazgos de la auditoría,
@@ -89,7 +94,10 @@ prueba.
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja.
-- Las Golondrinas: evento meteorológico ausente en GFS.
+- Las Golondrinas: evento meteorológico ausente en GFS (un factor ~10 del área). Con el SYNOP
+  observado, el factor ~4,7 restante lo cierran las pavesas, que modelo-v0 no tiene: 9.088 ha y
+  Dice 0,545 con la variante fuerte del loop L, como diagnóstico
+  (`docs/resultados/diagnostico-e2e/notas/G-golondrinas-meteo-observada.md` §7).
 - Humedad en altura: la lenga de altura arde tan seca como el valle. Las correcciones del aire no
   alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
   lenga achaparrada sigue en SH8, con su limitación declarada
@@ -161,8 +169,23 @@ el exceso de flanco (`diagnostico-e2e/notas/I-isotropia.md`). Por eso el abrigo 
 (`CROWN_RATIO`, frente 3) no se abre. La semilla de afuera se descompuso el 2026-10-18
 (`diagnostico-e2e/notas/T-semilla.md`). El 26 % son detecciones de otros incendios, casi todas en
 Cholila, y se resuelve con un filtro de conexión a la ignición. El resto es el píxel de 375 m, el
-relleno del casco y quema que la cicatriz no marca. El filtro no mueve la mediana de P-24. Falta que
-el usuario decida si se adopta (decisión 2 del diagnóstico) y si entra el ensamble paramétrico.
+relleno del casco y quema que la cicatriz no marca. El filtro no mueve la mediana de P-24. El
+2026-10-19 se midió, sin ELMFIRE, si cambiar la regla de reconstrucción ayuda
+(`diagnostico-e2e/notas/U-reconstruccion-semilla.md`). Se probó sembrar sólo con las huellas del
+píxel, y también el casco sin buffer: ninguna de las dos mueve el Dice (±0,003). Crecer sólo desde el
+frente activo gana +0,026 a 12 h y pierde −0,027 a 24 h, así que tampoco pasa. La reconstrucción
+se mantiene. El crecimiento "fuera de la cicatriz" es el perímetro inactivo, que ELMFIRE quema igual
+que la cabeza, y queda como límite. El 2026-10-19 el usuario decidió que el ensamble paramétrico no
+entra en la tesis (`docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`). La sub-dispersión de GEFS queda
+como limitación declarada de la capa de acuerdo.
+El 2026-10-19 se cerró el truncado asimétrico (`diagnostico-e2e/notas/T-truncado.md`). Puntuar sólo
+dentro de lo visto premia quemar todo el dominio. Excluir sólo las islas no vistas vale ≤ 0,01 y no
+cambia la receta ni P-24. El 2026-10-22 se corrió el filtro conexo en Cholila
+(`cholila-2015/pronostico-v7`, 5 ventanas nuevas; `diagnostico-e2e/notas/T-semilla-v7.md` §4). El Dice
+de Cholila pasa de 0,070 / 0,262 a 0,078 / 0,327 a 12 / 24 h, igual que la aproximación, y las medianas
+de P-24 no cambian. El usuario adoptó v7 ese mismo día: los 6 casos de P-24 pasan a `*/pronostico-v7`, y los otros 5 paquetes son idénticos a v6 (tabla en `data/benchmark/p24/tabla-pronostico-v7.md`, cifras en `DIA-1-PROPUESTA.md` §7). El mismo día se cerró
+offline la humedad viva por especie (frente 6, `diagnostico-e2e/notas/V-humedad-viva.md`). Con el LFMC
+medido por especie, el modelo se aleja de la ROS observada en 5 de 7 clases.
 
 ## 9. Mapa documental
 

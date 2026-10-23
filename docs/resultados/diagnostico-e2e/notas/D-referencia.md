@@ -113,6 +113,10 @@ Alerces 2024 0,99; Alerces 2016 0,98; Alerces 2023 0,88; Cholila 0,83; Golondrin
    ≥ 0,97. Las islas son 4,5-7,9 % del perímetro en los incendios grandes y 0,6-1,3 % en Alerces 2023/2016; el 85-100 % de los
    huecos es combustible quemable. Corrección posible: excluir también las celdas no vistas que no sean cicatriz (o puntuar
    sólo dentro de `vistas`).
+   **Medido en [T-truncado.md](T-truncado.md) (2026-10-19).** Puntuar sólo dentro de `vistas` premia sobrepropagar: quemar el
+   dominio entero da 0,63-0,78. Excluir sólo las islas no vistas mueve modelo-v0 0,439 → 0,440 y P-24 ≤ 0,01, sin cambiar el
+   orden de las recetas. El techo existe; la pérdida no. **No se adopta (2026-10-23):** queda como
+   límite declarado (`PENDING_PARAMETERS.md` §3).
 2. **Anillo "ya visto" en P-24 (sesgo a favor de P-24 y de la persistencia).** `pronostico.puntuar` define `vistos = vistas_h ≤ plazo`
    (incluye `vistas_h ≤ 0`). La referencia de crecimiento contiene celdas ya detectadas al reiniciar y fuera de la semilla
    (ésta es casco + 187,5 m; `vistas` usa 375 m). Es el 17-35 % del área de la referencia a 12 h y el 5-20 % a 24 h (por incendio,
@@ -133,6 +137,10 @@ Alerces 2024 0,99; Alerces 2016 0,98; Alerces 2023 0,88; Cholila 0,83; Golondrin
    y están casi todas en Cholila. La huella y el margen del píxel de 375 m explican el 43 %, el relleno del casco el 16 % y la
    quema que la cicatriz no marca el 16 %. Una regla de tiempo real (conexión a la ignición con saltos ≤ 3 km) equivale al
    oráculo de 2 km. Con ella sólo cambia Cholila, y la mediana de P-24 no se mueve.
+   **Preparado en [T-semilla-v7.md](T-semilla-v7.md) (2026-10-19):** el filtro como opción del caso
+   (`semilla_inicial.filtro_conexo_m`) y `cholila-2015/pronostico-v7` empaquetado.
+   **Corrido el 2026-10-22 ([T-semilla-v7.md](T-semilla-v7.md) §4):** el Dice de Cholila pasa de 0,070 a 0,078 a 12 h
+   y de 0,262 a 0,327 a 24 h, igual que la aproximación. La mediana de P-24 no se mueve.
 
 ### Convención documentada (con magnitud)
 

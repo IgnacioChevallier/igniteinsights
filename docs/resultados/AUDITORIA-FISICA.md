@@ -1166,6 +1166,13 @@ original.
 
 ### 7.4 Cambios pendientes en el documento de combustibles (`docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
 
+**Pendiente (2026-10-22).** En §6.3, la frase «Un escalar global es lo que hay» es falsa en
+2025.0212, y lo mismo pasa con IGN-20-CROSSWALK:317 («no existe un ráster de humedad viva»):
+`MLW_FILENAME` y `MLH_FILENAME` existen, con pisos de 60 % y 30 % (skill `elmfire`). Sigue sin estar en
+alcance, ahora por evidencia: el LW por especie de Bianchi y Defossé (Tabla 2) aleja de la ROS
+observada a 5 de las 7 clases con vivo leñoso
+(`diagnostico-e2e/notas/V-humedad-viva.md`).
+
 **Aplicado el 2026-10-12**, a pedido del autor: §5.5 (lenga achaparrada → SH8) queda decidido.
 SH8 se mantiene como la mejor asignación medida en el benchmark; SH3 rompe Cholila en el loop L.
 Se declara la limitación: analogía sin carga medida, la clase arde 0,41× sus vecinas en la región y

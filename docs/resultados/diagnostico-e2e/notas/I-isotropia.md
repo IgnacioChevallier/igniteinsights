@@ -140,6 +140,11 @@ que el valor medido pudiera arreglar.
   ordena, la pendiente contra el viento apenas, y el rumbo errado (S1) apunta al viento de superficie
   (frente 4) más que a la física bajo dosel.
 
+**Actualización (2026-10-19, [U](U-reconstruccion-semilla.md)).** Recortar la semilla no corrige esto:
+huellas o casco sin buffer dan ±0,003 de Dice. Lo que brota "fuera de la cicatriz" es el perímetro
+inactivo, que ELMFIRE quema igual que la cabeza. Así que en la práctica la salida es
+"supresión/límite", no un método corregible.
+
 ## Límites
 
 - n = 6 incendios correlacionados.
