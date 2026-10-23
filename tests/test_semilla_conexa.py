@@ -1,6 +1,7 @@
 """Filtro de semilla conexa (`semilla_inicial.filtro_conexo_m`, T-semilla §2.2), sintético."""
 import numpy as np
 import pytest
+import rasterio
 from rasterio.transform import from_origin
 
 from app.elmfire.builder.perimeter_reconstruction import connected_to_anchors
@@ -21,7 +22,6 @@ def test_conexas_a_la_ignicion():
 
 def test_el_benchmark_siembra_solo_con_las_conexas(tmp_path):
     dem = tmp_path / "dem.tif"
-    import rasterio
     with rasterio.open(dem, "w", driver="GTiff", height=10, width=10, count=1, dtype="float32",
                        crs="EPSG:32719", transform=from_origin(500000, 5300000, 30, 30)) as dst:
         dst.write(np.zeros((1, 10, 10), dtype="float32"))

@@ -1,0 +1,92 @@
+{
+  "descripcion": "P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `los-alerces-2024/calibracion-v6`: la ventana 0 del caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado. Estáticos, mapas, dosel, cicatriz y clima son los del caso base. Versión v7 (diagnostico-e2e/notas/T-semilla-v7.md, bug 4 de D-referencia): v6 con la semilla filtrada a las detecciones conectadas a la ignición (enlace simple con saltos de ≤ 3.000 m, anclado a ≤ 5.000 m del punto de ignición; `semilla_inicial.filtro_conexo_m`). En este incendio el filtro no saca ninguna detección (T-semilla §2.2): la semilla es la de v6.",
+  "anio_fuego": 2024,
+  "caja_wgs84": [
+    -71.689,
+    -42.995,
+    -71.362,
+    -42.725
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.61425,
+    "lat": -42.80381,
+    "hora": "2024-01-26T01:00:00+00:00",
+    "fuente": "Hora: SPMF Chubut / Ahora Comarca (25-ene-2024, 'alrededor de las 22:30 horas'), redondeada a la hora anterior porque el clima horario arranca en punto. Lugar: 'población de Lucas Rosales – Arroyo Centinela' (argentina.gob.ar, persona buscada; ahoracomarca.com.ar). El trazado OSM del Río Centinela pasa por -42.8035/-71.6211, donde caen las 3 primeras detecciones VIIRS (26-ene 05:09 UTC).",
+    "ajuste": "La semilla de mask-dataset-gen (-42.8036/-71.5939) está en la cicatriz pero a 1.015 m, a media ladera, 1 km al sur del arroyo y 1,3 km de las primeras detecciones; un asentamiento ('población') está en el valle. El punto del arroyo junto a las primeras detecciones cae 481 m fuera de la cicatriz (634 m). Se toma la celda de la cicatriz a más de 90 m del borde más cercana a él: 571 m, 721 m de altura, TU5, en la primera pasada VIIRS.",
+    "filtro_conexo_m": 3000
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2024/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "ventanas": [
+    {
+      "t0": "2024-01-26T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2024-01-26T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2940.0
+    },
+    {
+      "t0": "2024-01-26T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3360.0
+    },
+    {
+      "t0": "2024-01-27T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1800.0
+    },
+    {
+      "t0": "2024-01-27T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2220.0
+    },
+    {
+      "t0": "2024-01-28T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 660.0
+    },
+    {
+      "t0": "2024-01-28T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1140.0
+    },
+    {
+      "t0": "2024-01-29T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2580.0
+    },
+    {
+      "t0": "2024-01-29T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3000.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "los-alerces-2024/calibracion-v6",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "los-alerces-2024/calibracion-v6",
+    "receta": "lw-100-001"
+  }
+}

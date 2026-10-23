@@ -18,7 +18,6 @@ import pandas as pd
 import shapely
 
 from app.validation import cadena, pronostico
-from app.validation import definiciones as d
 from app.validation import puntuacion as p
 from scripts import diagnostico_error as de
 from scripts import diagnostico_isotropia as di
@@ -93,7 +92,7 @@ def exceso_flancos(pred, semilla, cic, exc, vistas, plazo) -> float:
 def reinicios(cid: str) -> list[dict]:
     c = ds.cargar(cid)
     caso, g, df = c["caso"], c["grilla"], c["df"]
-    man = d.cargar_manifiesto(caso.id, ds.RECETA)
+    man = de._manifiesto(caso.id, ds.RECETA)
     cad = _ventanas_cadena(caso.datos["cadena"]["caso"], caso.datos["cadena"]["receta"])
     cic = cadena._leer(c["paq"]["comunes"]["cicatriz.tif"]).astype(bool)
     exc = cadena._leer(c["paq"]["comunes"]["excluido.tif"]).astype(bool)

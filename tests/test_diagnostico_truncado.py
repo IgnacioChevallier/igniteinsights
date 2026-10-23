@@ -16,7 +16,7 @@ def test_truncado_sinteticos():
     vistas = np.zeros(forma, dtype=bool)
     vistas[5:25, 5:11] = True                       # VIIRS vio sólo el borde oeste
     cic, exc = final & vistas, final & ~vistas      # la referencia truncada (A)
-    e = dt.exclusiones(exc, ~vistas, perimetro)
+    e = dt.exclusiones(exc, ~vistas, perimetro, final)
 
     # el perímetro perfecto: A lo castiga por la isla no vista; B y C no
     techo = {r: p.metricas(perimetro, cic, 1.0, x)["dice"] for r, x in e.items()}

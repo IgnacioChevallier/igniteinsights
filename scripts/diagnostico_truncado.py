@@ -9,9 +9,9 @@ celdas no vistas que NO son cicatriz siguen contando como falso positivo
   A. la actual;
   B. simétrica: también se excluyen las celdas no vistas que no son cicatriz (se puntúa sólo
      dentro de vistas);
-  C. simétrica dentro del perímetro final: se excluyen las no vistas sólo dentro del relleno
-     (sin huecos) de la cicatriz final. Fuera de ese perímetro nada se quemó nunca, así que
-     quemar ahí sigue siendo error.
+  C. sólo las islas no vistas: las celdas no vistas que no son cicatriz, dentro del relleno
+     (sin huecos) de la cicatriz final. Es la corrección de P3 §1(a). Fuera de ese perímetro
+     nada se quemó nunca, así que quemar ahí sigue siendo error.
 
 Para cada receta con iteración en los casos de calibración (benchmarks/particion.json), y para
 P-24 (`*/pronostico-v6` con `lw-100-obs-001`) contra la cadena y la persistencia. Además, el costo
@@ -57,11 +57,12 @@ def rellenar(mascara: np.ndarray) -> np.ndarray:
                                        dtype="uint8").astype(bool) | mascara
 
 
-def exclusiones(excluido: np.ndarray, no_vistas: np.ndarray,
-                perimetro: np.ndarray) -> dict[str, np.ndarray]:
-    """La exclusión de cada referencia. La cicatriz no vista ya está en `excluido` (A), así que
-    la parte positiva de la referencia es la misma en las tres."""
-    return {"A": excluido, "B": excluido | no_vistas, "C": excluido | (no_vistas & perimetro)}
+def exclusiones(excluido: np.ndarray, no_vistas: np.ndarray, perimetro: np.ndarray,
+                final: np.ndarray) -> dict[str, np.ndarray]:
+    """La exclusión de cada referencia. Con `hasta_horizonte` la cicatriz no vista ya está en
+    `excluido` (A); B la saca también en un caso sin truncar, C nunca."""
+    return {"A": excluido, "B": excluido | no_vistas,
+            "C": excluido | (no_vistas & perimetro & ~final)}
 
 
 def perdonado_ha(pred: np.ndarray, excluido: np.ndarray, no_vistas: np.ndarray,
@@ -111,7 +112,7 @@ def x1_calibracion(c: dict, limites: set[str]) -> list[dict]:
     (quemable, sin NB: el techo de islas de D §4) y todo el dominio quemado."""
     caso, g = c["caso"], c["grilla"]
     no_vistas = ~c["vistas"]
-    excl = exclusiones(c["exc"], no_vistas, c["perimetro"])
+    excl = exclusiones(c["exc"], no_vistas, c["perimetro"], c["final"])
     filas, quemable = [], None
     for dir_receta in sorted(d.ruta_iteracion(caso.id, "x").parent.iterdir()):
         man = d.cargar_manifiesto(caso.id, dir_receta.name)
@@ -194,7 +195,7 @@ def x3_pronostico(c: dict) -> list[dict]:
                 preds["persistencia"] = pronostico.persistencia(
                     semilla, previa[1], (v.inicio - previa[0]).total_seconds() / 3600, plazo, g)
             no_vistas = vistas > plazo
-            for r, e in exclusiones(exc, no_vistas, c["perimetro"]).items():
+            for r, e in exclusiones(exc, no_vistas, c["perimetro"], c["final"]).items():
                 filas_n[r]["plazos"][str(plazo)] = {
                     m: pronostico.puntuar(pr_, semilla, cic, e, vistas, det, plazo, g.celda_ha)
                     | {"perdonado": perdonado_ha(pr_ & ~semilla, exc | semilla, no_vistas,

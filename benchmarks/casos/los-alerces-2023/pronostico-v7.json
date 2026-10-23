@@ -1,0 +1,66 @@
+{
+  "descripcion": "P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `los-alerces-2023/calibracion-v6-h54`: la ventana 0 del caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado. Estáticos, mapas, dosel, cicatriz y clima son los del caso base. Versión v7 (diagnostico-e2e/notas/T-semilla-v7.md, bug 4 de D-referencia): v6 con la semilla filtrada a las detecciones conectadas a la ignición (enlace simple con saltos de ≤ 3.000 m, anclado a ≤ 5.000 m del punto de ignición; `semilla_inicial.filtro_conexo_m`). En este incendio el filtro no saca ninguna detección (T-semilla §2.2): la semilla es la de v6.",
+  "anio_fuego": 2023,
+  "caja_wgs84": [
+    -71.78,
+    -43.05,
+    -71.33,
+    -42.72
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.576667,
+    "lat": -42.8825,
+    "hora": "2023-02-05T01:00:00+00:00",
+    "fuente": "Parte citado por Red43 (2023-02-05): 'El sábado a las 22 hs se declaró un incendio denominado Población Rosales II'. Ubicación: partes del SNMF (config de mask-dataset-gen).",
+    "filtro_conexo_m": 3000
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2023/runs/event-filter-002",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "ventanas": [
+    {
+      "t0": "2023-02-05T01:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2023-02-05T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 360.0
+    },
+    {
+      "t0": "2023-02-05T20:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 180.0
+    },
+    {
+      "t0": "2023-02-06T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2160.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "los-alerces-2023/calibracion-v6-h54",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "los-alerces-2023/calibracion-v6-h54",
+    "receta": "lw-100-001"
+  }
+}

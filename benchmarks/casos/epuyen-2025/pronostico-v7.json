@@ -1,0 +1,82 @@
+{
+  "descripcion": "P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `epuyen-2025/calibracion-v6`: la ventana 0 del caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado. Estáticos, mapas, dosel, cicatriz y clima son los del caso base. Versión v7 (diagnostico-e2e/notas/T-semilla-v7.md, bug 4 de D-referencia): v6 con la semilla filtrada a las detecciones conectadas a la ignición (enlace simple con saltos de ≤ 3.000 m, anclado a ≤ 5.000 m del punto de ignición; `semilla_inicial.filtro_conexo_m`). En este incendio el filtro no saca ninguna detección (T-semilla §2.2): la semilla es la de v6.",
+  "anio_fuego": 2025,
+  "caja_wgs84": [
+    -71.63,
+    -42.45,
+    -71.16,
+    -42.06
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.4299,
+    "lat": -42.21516,
+    "hora": "2025-01-15T14:00:00+00:00",
+    "fuente": "Hora: El Chubut y NoticiasNQN (2025-01-15), 'pasadas las 11' en una plantación de pinos. Lugar: 'un sector próximo al lago comprendido entre el cementerio local y la Escuela N° 9' (El Extremo Sur, ANB, 2025-01-15), con avance hacia la Ruta 40.",
+    "ajuste": "La 'semilla aproximada' del filtro de evento de mask-dataset-gen (-42.2921, -71.4447) está a 1.400 m de altura, en la montaña, ~8 km al sur del lago. Se toma la localidad Lago Epuyén (OSM/Photon: -42.2159, -71.4291; 339 m), y la celda de la cicatriz a más de 90 m del borde más cercana a ella: 106 m de distancia, 348 m de altura, TL8/TU5 en CCS-BAP (plantación de pinos, consistente con las crónicas). Las primeras detecciones VIIRS (18:10 UTC) caen 1,5-3 km al sureste, en la dirección de avance reportada.",
+    "filtro_conexo_m": 3000
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/epuyen-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "gfs-analisis-encadenado (f000-f005 de ciclos sucesivos, 25 bandas por ventana)",
+  "ventanas": [
+    {
+      "t0": "2025-01-15T14:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2025-01-15T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1980.0
+    },
+    {
+      "t0": "2025-01-16T05:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3420.0
+    },
+    {
+      "t0": "2025-01-16T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3240.0
+    },
+    {
+      "t0": "2025-01-17T05:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2280.0
+    },
+    {
+      "t0": "2025-01-17T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2160.0
+    },
+    {
+      "t0": "2025-01-18T05:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1140.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "epuyen-2025/calibracion-v6",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "epuyen-2025/calibracion-v6",
+    "receta": "lw-100-001"
+  }
+}
