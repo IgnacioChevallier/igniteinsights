@@ -1,0 +1,24 @@
+"""Dispara un tick operativo por la red privada y termina (entrada de Railway Cron)."""
+
+import json
+import os
+from urllib.request import Request, urlopen
+
+
+def main() -> None:
+    base = os.environ["API_BASE_URL"].rstrip("/")
+    request = Request(
+        f"{base}/api/v1/operativo/tick",
+        data=json.dumps({"modo": "vivo", "ingerir": True}).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=60) as response:  # noqa: S310 - URL is operator-controlled
+        payload = json.load(response)
+    if payload.get("status") != "success":
+        raise RuntimeError(f"tick rechazado: {payload}")
+    print(json.dumps(payload, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
