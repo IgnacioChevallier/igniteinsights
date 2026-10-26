@@ -126,8 +126,9 @@ The runner keeps the 15-min HTTP limit in mind: a window over a fire box runs in
 AOI_NORTH=-41.90 uv run python scripts/demo_operativo.py 2026-01-05 2026-01-09
 ```
 
-Only Puerto Patriada, from its first pass (2026-01-05 19:20 UTC); other fires detected in the
-AOI are deliberately excluded from the replay. It leaves the mode in `demo` with the clock on
+Only Puerto Patriada, from its first pass (2026-01-05 19:20 UTC); detections before that instant
+and other fires in the AOI are deliberately excluded from grouping, seeding and the replay. It
+leaves the mode in `demo` with the clock on
 the first forecast; the admin
 walks forward from there. Starting on day 1 is deliberate: it shows the weak point and how each
 pass corrects it. `AOI_NORTH` matters only if `.env` overrides it (the repo `.env` had

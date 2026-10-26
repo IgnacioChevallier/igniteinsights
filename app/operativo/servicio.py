@@ -283,7 +283,8 @@ async def pasadas_demo(session: AsyncSession, direccion: int) -> datetime | None
 # ── la corrida ────────────────────────────────────────────────────────────────
 
 async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str = "vivo",
-               ingerir: bool = True, solo_localidad: str | None = None) -> list[dict]:
+               ingerir: bool = True, solo_localidad: str | None = None,
+               detecciones_desde: datetime | None = None) -> list[dict]:
     """Un paso del ciclo: (FIRMS) → incendios activos → una ventana por pasada nueva. Corre de a
     una ventana: el runner aguanta una sola corrida a la vez."""
     ahora = ahora or datetime.now(UTC)
@@ -292,7 +293,10 @@ async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str =
     hasta = ahora - timedelta(hours=LATENCIA_FIRMS_H)
     hechos = []
     operativo = await leer_operativo(session)
-    for inc in incendios_activos(await detecciones_visibles(session, ahora), hasta):
+    detecciones = await detecciones_visibles(session, ahora)
+    if detecciones_desde is not None:
+        detecciones = [d for d in detecciones if d.t >= detecciones_desde]
+    for inc in incendios_activos(detecciones, hasta):
         if solo_localidad and f"Cerca de {solo_localidad} ·" not in inc.nombre:
             continue
         previo = (await session.execute(select(Pronostico).where(

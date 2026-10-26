@@ -26,6 +26,8 @@ from app.ingestion.satellite.firms.service import run_firms_ingestion  # noqa: E
 from app.operativo import servicio  # noqa: E402
 from app.validation import pronostico  # noqa: E402
 
+INICIO_PATRIADA = datetime(2026, 1, 5, 19, 20, tzinfo=UTC)
+
 
 async def main(desde: date, hasta: date) -> None:
     async with async_session_factory() as session:
@@ -42,12 +44,20 @@ async def main(desde: date, hasta: date) -> None:
                                                      until=fin)
         tiempos = pd.Series(pd.to_datetime([f["properties"]["acq_datetime"] for f in features],
                                            utc=True))
-        pasadas = [t.to_pydatetime() for t in pronostico.pasadas(tiempos)]
+        pasadas = [
+            t.to_pydatetime() for t in pronostico.pasadas(tiempos)
+            if t.to_pydatetime() >= INICIO_PATRIADA
+        ]
         print(f"{len(features)} detecciones, {len(pasadas)} pasadas", flush=True)
         for pasada in pasadas:
             ahora = pasada + timedelta(hours=pronostico.LATENCIA_FIRMS_H, minutes=1)
             hechos = await servicio.tick(
-                session, ahora, modo="demo", ingerir=False, solo_localidad="Puerto Patriada"
+                session,
+                ahora,
+                modo="demo",
+                ingerir=False,
+                solo_localidad="Puerto Patriada",
+                detecciones_desde=INICIO_PATRIADA,
             )
             for h in hechos:
                 print(f"  {pasada:%d-%m %H:%M} {h['nombre']}: {h['estado']}"
