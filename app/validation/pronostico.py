@@ -6,7 +6,7 @@ dNBR truncada a lo que VIIRS ya había visto al plazo. Lo comparable es el mismo
 predicho por la cadena de modelo-v0 y por una extrapolación ingenua (persistencia).
 """
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,19 @@ from app.validation import puntuacion as p
 
 PLAZOS_H = (12, 24)
 SEPARACION_PASADAS_H = 2.0   # detecciones a menos de esto son la misma pasada del satélite
+
+
+# Lo que tarda cada dato en estar a mano (FIRMS FAQ: NRT "within 3 hours", best effort;
+# GFSClient.resolve_cycle: un ciclo está completo ~4 h después de su hora nominal).
+LATENCIA_FIRMS_H = 3
+DISPONIBILIDAD_GFS_H = 4
+
+
+def ciclo_disponible(t: datetime) -> datetime:
+    """El último ciclo GFS publicado cuando la pasada de las `t` ya se ve en FIRMS: el que
+    tenía quien miraba el panel, y no los análisis de ciclos posteriores (hindcast)."""
+    visto = t + timedelta(hours=LATENCIA_FIRMS_H - DISPONIBILIDAD_GFS_H)
+    return visto.replace(hour=visto.hour - visto.hour % 6, minute=0, second=0, microsecond=0)
 
 
 def pasadas(tiempos: pd.Series, separacion_h: float = SEPARACION_PASADAS_H) -> list[pd.Timestamp]:

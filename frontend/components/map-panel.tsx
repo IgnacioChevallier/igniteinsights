@@ -34,7 +34,7 @@ import {
 } from "@/lib/ensemble-agreement";
 
 /** GET /api/simulations/{id}/wind — the run's own ws/wd rasters, per hourly band. */
-type WindFieldResponse = {
+export type WindFieldResponse = {
   schema_version: 2;
   bounds: [number, number, number, number];
   ring: [number, number][];

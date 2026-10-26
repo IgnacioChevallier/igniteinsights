@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { STORAGE_STATE } from "./e2e/auth.setup";
 
 /**
  * Visual checks for the map animation. The dev server must already be running against a
@@ -6,12 +7,14 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/auth.setup.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
   use: {
     ...devices["Desktop Chrome"],
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    storageState: STORAGE_STATE,
     viewport: { width: 1440, height: 900 },
   },
   projects: [

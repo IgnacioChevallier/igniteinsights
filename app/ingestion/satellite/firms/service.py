@@ -2,12 +2,11 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, date, datetime
-from pathlib import Path
 
 from geoalchemy2.shape import from_shape
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import resolve_data_path, settings
 from app.db import repository
 
 from .client import FIRMS_SOURCES, FIRMS_SOURCES_ARCHIVE, FIRMSClient
@@ -51,7 +50,8 @@ async def run_firms_ingestion(
         )
 
         # Persist raw CSV for auditing
-        raw_dir = Path(settings.raw_data_dir) / "firms" / datetime.now(UTC).strftime("%Y-%m-%d")
+        raw_dir = (resolve_data_path(settings.raw_data_dir) / "firms"
+                   / datetime.now(UTC).strftime("%Y-%m-%d"))
         raw_dir.mkdir(parents=True, exist_ok=True)
         raw_path = raw_dir / "viirs_los_alerces.csv"
         if not df.empty:

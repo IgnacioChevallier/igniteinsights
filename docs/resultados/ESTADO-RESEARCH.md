@@ -91,6 +91,19 @@ prueba.
   6 incendios a 12 h y 5 de 6 a 24 h. El residuo (2–4,5× en Patriada y Alerces 2024) coincide
   con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
   (`docs/resultados/DIA-1-PROPUESTA.md` §7).
+- P-24 es un hindcast meteorológico (detectado el 2026-10-23). Los casos `pronostico-v7` usan
+  análisis GFS encadenados (f000–f005) de ciclos emitidos después de t0, y quien miraba el panel
+  no los tenía. Por eso las cifras de arriba miden el modelo de fuego con un clima casi
+  observado, no la habilidad operativa. `pronostico-gfs-v7` repite los cuatro casos con archivo
+  GFS 0,25° (Alerces 2023 y 2024, Epuyén 2025 y Patriada 2026; el archivo empieza en 2021) con el
+  último ciclo publicado en la pasada (`pronostico.ciclo_disponible`) y nada más cambiado. Las
+  cifras están en `docs/resultados/P24-PRONOSTICO-GFS.md`. El dashboard del producto usa este
+  clima (`docs/dashboard-producto.md` §2b).
+  La comparación ya quedó cerrada: en esos cuatro casos la diferencia por caso entre el Dice
+  medio de P-24 con análisis y con pronóstico es menor a 0,003 tanto a 12 h como a 24 h. P-24
+  con pronóstico mejora a cadena y persistencia en los 4/4 casos a 12 h; a 24 h mejora en 3/4
+  contra cadena y 4/4 contra persistencia. Alerces 2016 y Cholila 2015 quedan fuera únicamente
+  porque el archivo GFS operativo comienza en 2021.
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja.

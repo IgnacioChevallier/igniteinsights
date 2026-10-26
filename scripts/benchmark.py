@@ -792,6 +792,33 @@ def _clima_desde_base(base: d.Caso, ventanas: list[dict], nombre: str, h0: int, 
         return almacen.guardar(ruta)
 
 
+def _clima_pronostico(caso: d.Caso, v: d.Ventana, bandas: int, dem: Path) -> dict[str, str]:
+    """`bandas` horas desde `v.t0` del ciclo GFS que ya estaba publicado cuando la pasada se vio
+    en FIRMS (`pronostico.ciclo_disponible`): el pronóstico que tenía el panel, no el hindcast de
+    los análisis encadenados de `_clima`."""
+    from app.ingestion.meteorology.gfs.schemas import GFSCycleInfo
+
+    ciclo = pronostico.ciclo_disponible(v.inicio)
+    desfase = int((v.t0 - ciclo).total_seconds() // 3600)
+    w, s_, e, n = caso.datos["caja_wgs84"]
+    m = MARGEN_GFS_GRADOS
+    caja = (w - m, s_ - m, e + m, n + m)
+    crudo = (Path("data/benchmark/cache/gfs-pronostico")
+             / (f"{ciclo:%Y%m%dT%H}_f{desfase:03d}-{desfase + bandas - 1:03d}_"
+                + "_".join(f"{x:.2f}" for x in caja)))
+    info = GFSCycleInfo(date=ciclo.date().isoformat(), cycle_hour=ciclo.hour)
+    for var in ("u10", "v10", "t2m", "rh"):
+        if not (crudo / f"{var}.tif").exists():
+            GFSClient().download_variable(info, var, *caja, crudo / f"{var}.tif",
+                                          forecast_hours=list(range(desfase, desfase + bandas)))
+    cortes = Path(tempfile.mkdtemp())
+    weather_builder.derive_wind(crudo / "u10.tif", crudo / "v10.tif", dem, cortes)
+    weather_builder.derive_moisture(crudo / "t2m.tif", crudo / "rh.tif", dem, cortes)
+    print(f"    clima: ciclo {ciclo:%d-%m %Hz}, f{desfase:03d}…f{desfase + bandas - 1:03d}",
+          flush=True)
+    return {n_: almacen.guardar(cortes / n_) for n_ in CLIMA}
+
+
 def _pronostico(caso: d.Caso) -> dict:
     """P-24: un caso de calibración re-cortado en ventanas de 24 h que arrancan en cada pasada
     VIIRS. Estáticos, mapas, dosel, FIRMS, cicatriz y clima son los del caso base byte a byte, así
@@ -823,25 +850,37 @@ def _pronostico(caso: d.Caso) -> dict:
     punto = _puntos_ignicion(semilla)
     alcance_m = caso.datos["referencias"]["firms"].get("alcance_m", 5000.0)
     inicio0 = base_caso.ventanas[0].inicio
+    # "pronostico": el clima de cada ventana es el ciclo GFS disponible en su pasada. Del base
+    # sólo quedan los estáticos; el clima crudo y las series con historial (retardo, T/HR del
+    # GFS) son del hindcast y se dejan afuera para que una receta que los pida falle.
+    con_pronostico = datos.get("clima") == "pronostico"
+    del_hindcast = {"orog_gfs.tif", "t2m_gfs.tif", "rh_gfs.tif", *HUMEDAD_RETARDO}
     ventanas, previo = [], ignicion
     for n, v in enumerate(caso.ventanas):
         if v.fin > base_caso.ventanas[-1].fin:
             raise ValueError(f"ventana {n}: termina después del caso base")
+        bandas = pronostico.bandas_necesarias(v.horas, v.tstart_s)
         if n == 0:
             if v != base_caso.ventanas[0]:
                 raise ValueError("la ventana 0 tiene que ser la del caso base")
             archivos, observado = dict(base["ventanas"][0]), ignicion
+            if con_pronostico:
+                archivos = {k: s for k, s in archivos.items() if k not in del_hindcast}
+                archivos |= _clima_pronostico(caso, v, bandas, dem)
         else:
             h0 = int((v.t0 - inicio0).total_seconds() // 3600)
-            bandas = pronostico.bandas_necesarias(v.horas, v.tstart_s)
             archivos = {}
             for nombre, sha in base["ventanas"][0].items():
-                if nombre in REFERENCIAS_VENTANA:
+                if nombre in REFERENCIAS_VENTANA or (con_pronostico and nombre in del_hindcast):
                     continue
                 with rasterio.open(almacen.abrir(sha)) as src:
                     multibanda = src.count > 1
+                if multibanda and con_pronostico:
+                    continue
                 archivos[nombre] = (_clima_desde_base(base_caso, base["ventanas"], nombre, h0,
                                                       bandas) if multibanda else sha)
+            if con_pronostico:
+                archivos |= _clima_pronostico(caso, v, bandas, dem)
             antes = _puntos(df, None, v.inicio)
             if datos["semilla"] == "oraculo":
                 vistas = _horas_por_pasada(df, v.inicio, v.inicio, dem,

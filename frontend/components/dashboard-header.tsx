@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SettingsButton } from "@/components/settings-button";
 import {
@@ -64,10 +65,12 @@ export function DashboardHeader({
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
-        <img
+        <Image
           src="/images/igniteinsights-celdas.svg"
           alt=""
           aria-hidden="true"
+          width={32}
+          height={32}
           className="mt-0.5 h-8 w-8 shrink-0"
         />
         <div className="min-w-0">

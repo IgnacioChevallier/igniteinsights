@@ -136,13 +136,17 @@ async def bulk_insert_fire_detections(
     rows = [
         {"id": uuid.uuid4(), "ingestion_run_id": run_id, **d} for d in detections
     ]
-    stmt = (
-        pg_insert(FireDetection)
-        .values(rows)
-        .on_conflict_do_nothing(constraint="uq_fire_detection_natural_key")
-    )
-    result = cast(CursorResult, await session.execute(stmt))
-    inserted = result.rowcount or 0
+    # asyncpg caps a statement at 32767 parameters (9 per row): a multi-day window over an
+    # active fire — Patriada, January 2026 — has tens of thousands of detections.
+    inserted = 0
+    for i in range(0, len(rows), 2000):
+        stmt = (
+            pg_insert(FireDetection)
+            .values(rows[i:i + 2000])
+            .on_conflict_do_nothing(constraint="uq_fire_detection_natural_key")
+        )
+        result = cast(CursorResult, await session.execute(stmt))
+        inserted += result.rowcount or 0
     if inserted < len(rows):
         logger.info(
             "bulk_insert_fire_detections: %d of %d detections already stored — skipped",

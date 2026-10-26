@@ -46,9 +46,14 @@ async def run_preparation(
     fires_until: datetime | None = None,
     gfs_at: datetime | None = None,
     fuels_source: str | None = None,
+    only_static: bool = False,
 ) -> dict:
     """
     Derive all available ELMFIRE input rasters using the most recent DB assets.
+
+    `only_static` skips weather and ignition: the operational forecast (app/operativo) crops
+    these AOI-wide statics to each fire and derives its own weather, and deriving 25 bands of
+    moisture for the whole AOI is what OOMs the api container.
 
     Returns a summary dict with:
       - prep_id: UUID (also the name of the inputs folder)
@@ -71,7 +76,7 @@ async def run_preparation(
 
     # ── 1. Topography (static, cached) ────────────────────────────────────────
     dem_asset = await repository.find_raster_asset(session, aoi.id, "dem_raw")
-    if dem_asset and Path(dem_asset.file_path).exists():
+    if dem_asset and _resolve(dem_asset.file_path).exists():
         dem_raw = _resolve(dem_asset.file_path)
         dem_tif, slp_tif, asp_tif = await asyncio.to_thread(
             raster_aligner.reproject_and_derive_topo, dem_raw, static_dir
@@ -186,16 +191,18 @@ async def run_preparation(
         )
 
     # ── 3. Weather (dynamic, derived per run) ─────────────────────────────────
-    u10 = await repository.find_raster_asset(session, aoi.id, "gfs_u10", at=gfs_at)
-    v10 = await repository.find_raster_asset(session, aoi.id, "gfs_v10", at=gfs_at)
-    t2m = await repository.find_raster_asset(session, aoi.id, "gfs_t2m", at=gfs_at)
-    rh = await repository.find_raster_asset(session, aoi.id, "gfs_rh", at=gfs_at)
+    u10 = v10 = t2m = rh = None
+    if not only_static:
+        u10 = await repository.find_raster_asset(session, aoi.id, "gfs_u10", at=gfs_at)
+        v10 = await repository.find_raster_asset(session, aoi.id, "gfs_v10", at=gfs_at)
+        t2m = await repository.find_raster_asset(session, aoi.id, "gfs_t2m", at=gfs_at)
+        rh = await repository.find_raster_asset(session, aoi.id, "gfs_rh", at=gfs_at)
 
     if (
         u10 is not None
         and v10 is not None
-        and Path(u10.file_path).exists()
-        and Path(v10.file_path).exists()
+        and _resolve(u10.file_path).exists()
+        and _resolve(v10.file_path).exists()
         and reference is not None
     ):
         ws, wd = await asyncio.to_thread(
@@ -229,8 +236,8 @@ async def run_preparation(
     if (
         t2m is not None
         and rh is not None
-        and Path(t2m.file_path).exists()
-        and Path(rh.file_path).exists()
+        and _resolve(t2m.file_path).exists()
+        and _resolve(rh.file_path).exists()
         and reference is not None
     ):
         m1, m10, m100 = await asyncio.to_thread(
@@ -253,7 +260,7 @@ async def run_preparation(
     # the window became `ignition_datetime`, which anchors TSTART — the run then asked
     # for hundreds of weather bands it did not have and preparation died before writing
     # the namelist.
-    fire_features = await repository.get_active_fires(
+    fire_features = [] if only_static else await repository.get_active_fires(
         session, since=since, aoi_id=aoi.id, until=fires_until
     )
     fire_points = [
@@ -331,7 +338,7 @@ async def run_preparation(
     cc_asset = await repository.find_raster_asset(session, aoi.id, "canopy_cc")
     ch_asset = await repository.find_raster_asset(session, aoi.id, "canopy_ch")
 
-    if cc_asset and Path(cc_asset.file_path).exists() and reference:
+    if cc_asset and _resolve(cc_asset.file_path).exists() and reference:
         await asyncio.to_thread(
             canopy_builder.reproject_canopy,
             _resolve(cc_asset.file_path),
@@ -344,7 +351,7 @@ async def run_preparation(
         if not cc_asset:
             logger.warning("No canopy_cc asset — run ingestion with include_canopy=true")
 
-    if ch_asset and Path(ch_asset.file_path).exists() and reference:
+    if ch_asset and _resolve(ch_asset.file_path).exists() and reference:
         await asyncio.to_thread(
             canopy_builder.reproject_canopy,
             _resolve(ch_asset.file_path),

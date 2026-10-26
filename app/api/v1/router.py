@@ -6,6 +6,7 @@ from app.api.v1 import (
     fuels,
     ingestion,
     jobs,
+    operativo,
     playground,
     simulations,
     terrain,
@@ -23,3 +24,4 @@ api_router.include_router(playground.router)
 api_router.include_router(validation.router)
 api_router.include_router(jobs.router)
 api_router.include_router(terrain.router)
+api_router.include_router(operativo.router)

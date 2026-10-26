@@ -165,3 +165,43 @@ class SimulationOutput(Base):
     )
 
     simulation: Mapped["SimulationRun"] = relationship(back_populates="outputs")
+
+
+class Operativo(Base):
+    """El modo que ven todos los clientes (`demo` con `reloj` congelado, o `vivo`)."""
+
+    __tablename__ = "operativo"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    modo: Mapped[str] = mapped_column(Text, nullable=False, default="demo")
+    reloj: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    calcular_ensamble: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    actualizado_en: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Pronostico(Base):
+    """Una ventana P-24 de un incendio: la pasada VIIRS que la siembra y cuándo se pudo ver."""
+
+    __tablename__ = "pronosticos"
+    __table_args__ = (
+        UniqueConstraint("modo", "incendio_id", "pasada", name="uq_pronostico_pasada"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    modo: Mapped[str] = mapped_column(Text, nullable=False)
+    incendio_id: Mapped[str] = mapped_column(Text, nullable=False)
+    nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    pasada: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    disponible: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    ciclo_gfs: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    estado: Mapped[str] = mapped_column(Text, nullable=False)  # corriendo|listo|fallido
+    error: Mapped[str | None] = mapped_column(Text)
+    simulacion_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("simulation_runs.id")
+    )
+    caja = mapped_column(Geometry("POLYGON", srid=4326))
+    creado_en: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )

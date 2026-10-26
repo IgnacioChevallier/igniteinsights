@@ -5,6 +5,17 @@ serves the same envelopes the FastAPI app does for the handful of endpoints the 
 touches, and the spec stubs the basemap tiles so a screenshot never depends on a tile
 server being reachable.
 
+Every page needs a session (`middleware.ts`), so the dev server needs Postgres for Better Auth
+— the docker-compose `db` is enough, with alembic at head — and an admin to sign in as:
+
+```bash
+DATABASE_URL=postgresql://igniteinsights:igniteinsights@localhost:5432/igniteinsights \
+  npm run usuarios -- crear e2e@igniteinsights.local "E2E" admin   # prints the password
+export E2E_EMAIL=e2e@igniteinsights.local E2E_PASSWORD=<printed password>
+```
+
+`e2e/auth.setup.ts` signs in once and every spec reuses the cookie.
+
 ```bash
 node e2e/stub-api.mjs &          # stands in for the backend on :8000
                                  # PORT=8010 to run it alongside a real backend

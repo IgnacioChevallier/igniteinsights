@@ -26,6 +26,9 @@ services:
       - frontend_next:/app/.next
     environment:
       API_BASE_URL: http://api:8000
+      DATABASE_URL: postgresql://igniteinsights:igniteinsights@db:5432/igniteinsights
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-in-production}
     restart: "no"
 
   elmfire-runner:

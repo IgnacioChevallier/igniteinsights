@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { headers } from "next/headers";
+import { ClientHome } from "@/components/client-home";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { auth } from "@/lib/auth";
 import type { DashboardData } from "@/lib/dashboard-types";
 
 type DashboardEnvelope = {
@@ -38,7 +41,18 @@ async function getDashboardData() {
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ panel?: string }>;
+}) {
+  // The middleware already turned away anyone without a session.
+  const session = await auth.api.getSession({ headers: await headers() });
+  const isAdmin = session?.user.role === "admin";
+  // A client only ever gets the product; an admin gets the full dashboard, with the product
+  // as one of its sections, and can open the client view as a client sees it.
+  if (!isAdmin || (await searchParams).panel === "cliente") return <ClientHome isAdmin={isAdmin} />;
+
   const { apiBaseUrl, data, error } = await getDashboardData();
 
   if (error || !data) {
