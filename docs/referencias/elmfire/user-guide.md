@@ -1,4 +1,4 @@
-> Fuente: elmfire-docs/User Guide — ELMFIRE 2025.0212 documentation.pdf, páginas 1–2. Conversión automática; ante duda, el PDF manda.
+> Fuente: docs/referencias/elmfire/User Guide — ELMFIRE 2025.0212 documentation.pdf, páginas 1–2. Conversión automática; ante duda, el PDF manda.
 
 # User Guide
 

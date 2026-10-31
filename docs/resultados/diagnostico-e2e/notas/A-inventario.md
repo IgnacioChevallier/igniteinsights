@@ -8,7 +8,7 @@ Corte: 2026-10-17. Alcance: sólo lectura de documentos, de `benchmarks/recetas/
 
 - **AUD** = `AUDITORIA-FISICA.md`
 - **RIESGOS** = `RIESGOS_Y_SUPOSICIONES.md`
-- **PEND** = `PENDING_PARAMETERS.md` (raíz del repo)
+- **PEND** = `docs/resultados/PENDING_PARAMETERS.md`
 - **MOD** = `MODELO-V0.md`
 - **DIA1** = `DIA-1-PROPUESTA.md`
 - **HUM** = `HUMEDAD-ALTURA-PROPUESTA.md`

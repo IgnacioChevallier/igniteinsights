@@ -1,4 +1,4 @@
-> Fuente: elmfire-docs/Tutorial 02_ fire spread in flat terrain under transient wind — ELMFIRE 2025.0212 documentation.pdf, páginas 1–4. Conversión automática; ante duda, el PDF manda.
+> Fuente: docs/referencias/elmfire/Tutorial 02_ fire spread in flat terrain under transient wind — ELMFIRE 2025.0212 documentation.pdf, páginas 1–4. Conversión automática; ante duda, el PDF manda.
 
 # Tutorial 02: fire spread in flat terrain under transient wind
 

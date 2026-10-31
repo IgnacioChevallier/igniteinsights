@@ -1,6 +1,6 @@
 # B1: PDFs cortos de ELMFIRE 2025.0212 a markdown
 
-Fecha: 2026-10-17. Fuentes en `elmfire-docs/` (seis PDF, 2 a 4 páginas cada uno). Los seis se convirtieron; `ELMFIRE_Guide.pdf` (130 páginas) no entra en esta tarea.
+Fecha: 2026-10-17. Fuentes en `docs/referencias/elmfire/` (seis PDF, 2 a 4 páginas cada uno). Los seis se convirtieron; `ELMFIRE_Guide.pdf` (130 páginas) no entra en esta tarea.
 
 Método: texto extraído con pypdf y orden de bloques verificado renderizando cada página (pypdfium2). La herramienta Read no pudo leer los PDF porque falta `pdftoppm`. Ambas librerías viven en un venv del scratchpad, fuera del repo.
 

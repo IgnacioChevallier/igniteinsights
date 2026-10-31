@@ -295,7 +295,7 @@ Trust the code (`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §11 has the full li
 - Keywords the docs mention that do not exist: `DUMP_ISOCHRONE_SHAPEFILES`, `CALCULATE_BURN_PROBABILITY`,
   `DT_INTERPOLATE_WS`/`_WD` (the real one is `DT_INTERPOLATE_WIND`). `STOCHASTIC_SPOTTING` is "not
   currently used" (`elmfire_namelists.f90:726`).
-- `elmfire-docs/ELMFIRE_Guide.pdf` is the **ELMFIRE 1.1** guide (title page, June 2026): `SURFACE_SPREAD_MODEL`,
+- `docs/referencias/elmfire/ELMFIRE_Guide.pdf` is the **ELMFIRE 1.1** guide (title page, June 2026): `SURFACE_SPREAD_MODEL`,
   `WS_IN_KPH` and `LANDSCAPE_FILENAME` are not in the 2025.0212 source. Do not take keywords from it.
 
 ## CFL control only starts at the 6th time step

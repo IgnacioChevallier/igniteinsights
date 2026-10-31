@@ -1,4 +1,4 @@
-> Fuente: elmfire-docs/Tutorial 04_ Landscape-scale fire potential — ELMFIRE 2025.0212 documentation.pdf, páginas 1–4. Conversión automática; ante duda, el PDF manda.
+> Fuente: docs/referencias/elmfire/Tutorial 04_ Landscape-scale fire potential — ELMFIRE 2025.0212 documentation.pdf, páginas 1–4. Conversión automática; ante duda, el PDF manda.
 
 # Tutorial 04: Landscape-scale fire potential
 

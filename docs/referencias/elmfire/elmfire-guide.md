@@ -1,4 +1,4 @@
-> Fuente: elmfire-docs/ELMFIRE_Guide.pdf (versión documentada: ELMFIRE 1.1, "ELMFIRE1.1 User Guide", Cloudfire Inc. et al., junio 2026). Conversión; ante duda, el PDF manda. Los números [p. N] son páginas del PDF.
+> Fuente: docs/referencias/elmfire/ELMFIRE_Guide.pdf (versión documentada: ELMFIRE 1.1, "ELMFIRE1.1 User Guide", Cloudfire Inc. et al., junio 2026). Conversión; ante duda, el PDF manda. Los números [p. N] son páginas del PDF.
 
 > **ADVERTENCIA: esta guía es de la versión 1.1; el proyecto está fijado en ELMFIRE 2025.0212 y no se actualiza. Keywords, defaults y comportamiento pueden diferir: la verdad es el fuente del tag 2025.0212.** (La propia guía cita el branch 2025.1002 en la p. 6 y describe funciones nuevas de 1.1; ver docs/resultados/diagnostico-e2e/notas/B2-guia.md.)
 

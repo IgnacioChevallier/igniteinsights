@@ -107,7 +107,7 @@ reporte en los documentos.
 |---|---|---|
 | 5 bugs de interfaz, orientación, capa sin ignición | Corregidos | [AUDITORIA-FISICA §3](AUDITORIA-FISICA.md) |
 | ADJ = 1; LW 100 % | Adoptados | [AUDITORIA-FISICA loops C y E](AUDITORIA-FISICA.md) |
-| Paso temporal, rugosidad, CBH/CBD, pérdida previa de Hansen | Decididos | [PENDING_PARAMETERS §1](../../PENDING_PARAMETERS.md) |
+| Paso temporal, rugosidad, CBH/CBD, pérdida previa de Hansen | Decididos | [PENDING_PARAMETERS §1](PENDING_PARAMETERS.md) |
 | Pavesas, supresión, ERA5 ×1,3, dosel abierto en matorral, WindNinja (atlas, diurno y rotaciones), alternativas de estepa | Medidos, no adoptados | [AUDITORIA-FISICA loops D, G, K, L y M](AUDITORIA-FISICA.md) |
 | m10/m100; humedad en altura; retardo | Insensibles o límite | [HUMEDAD-ALTURA-PROPUESTA](HUMEDAD-ALTURA-PROPUESTA.md); [RESULTADOS §8](../historico/RESULTADOS.md) |
 | Día 1 y copa | Límite; P-24 como protocolo | [DIA-1-PROPUESTA §7](DIA-1-PROPUESTA.md) |

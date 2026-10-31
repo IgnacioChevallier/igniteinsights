@@ -10,13 +10,13 @@
 | Sigla | Qué es |
 |---|---|
 | `f90:línea` | Archivo de `build/source/` del tag 2025.0212, p. ej. `elmfire_spread_rate.f90:115`. Copia de sólo lectura en el scratchpad de la sesión; el clon es `git describe` = `tags/2025.0212`. |
-| `rst:línea` | Documentación del mismo tag (`docs/user_guide/*.rst`, `docs/tech_ref.rst`). Es el texto completo que los PDF de `elmfire-docs/` (sitio "2025.0212 documentation") sólo traen como índice. |
+| `rst:línea` | Documentación del mismo tag (`docs/user_guide/*.rst`, `docs/tech_ref.rst`). Es el texto completo que los PDF de `docs/referencias/elmfire/` (sitio "2025.0212 documentation") sólo traen como índice. |
 | `NW:línea` | `app/elmfire/builder/namelist_writer.py`, lo que este repo emite hoy. |
-| PDF 2025.0212 | `elmfire-docs/Tutorial 0X…pdf`, cita por página del PDF. |
+| PDF 2025.0212 | `docs/referencias/elmfire/Tutorial 0X…pdf`, cita por página del PDF. |
 
 **Dos fuentes que NO son de 2025.0212 y no sirven como verdad:**
 
-- `elmfire-docs/ELMFIRE_Guide.pdf` es la **"ELMFIRE 1.1 User Guide" (junio 2026)**, no la de
+- `docs/referencias/elmfire/ELMFIRE_Guide.pdf` es la **"ELMFIRE 1.1 User Guide" (junio 2026)**, no la de
   2025.0212 (PDF p. 1). Describe funciones que el binario fijado no tiene: modelo de superficie
   canadiense `SURFACE_SPREAD_MODEL='CFFDRS'` (PDF p. 10-11), `WS_IN_KPH`, `LANDSCAPE_FILENAME`.
   Verificado: ninguna de las tres aparece en el fuente 2025.0212 (0 coincidencias en `*.f90`).

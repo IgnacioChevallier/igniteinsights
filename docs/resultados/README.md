@@ -2,6 +2,7 @@
 
 - `ESTADO-RESEARCH.md`: fuente canónica del estado y próximos pasos.
 - `MODELO-V0.md`: snapshot promovido y contrato del gate productivo.
+- `PENDING_PARAMETERS.md`: qué quedó congelado en modelo-v0, qué sigue abierto sin bloquear y qué se declara como límite.
 - `RIESGOS_Y_SUPOSICIONES.md`: qué supone modelo-v0, cómo afecta a los resultados y qué dato lo reduciría.
 - `HUMEDAD-ALTURA-PROPUESTA.md`: humedad y altura en la lenga; bibliografía, análisis regional fuera del benchmark y cierre como límite.
 - `DIA-1-PROPUESTA.md`: el día 1 explosivo, el protocolo P-24 (pronóstico desde el perímetro observado) y el diagnóstico de copa con CFIS.

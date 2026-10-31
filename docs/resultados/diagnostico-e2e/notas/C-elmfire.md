@@ -53,6 +53,6 @@ ELMFIRE.
 
 ## Fuentes que no valen para 2025.0212
 
-`elmfire-docs/ELMFIRE_Guide.pdf` y `https://elmfire.io/` describen ELMFIRE 1.1. Los PDF de tutoriales
+`docs/referencias/elmfire/ELMFIRE_Guide.pdf` y `https://elmfire.io/` describen ELMFIRE 1.1. Los PDF de tutoriales
 son 2025.0212 pero cortos; el `User Guide` PDF es solo un índice. El texto completo de 2025.0212 está
 en `docs/*.rst` del tag.

@@ -1,4 +1,4 @@
-> Fuente: elmfire-docs/Getting Started — ELMFIRE 2025.0212 documentation.pdf, páginas 1–3. Conversión automática; ante duda, el PDF manda.
+> Fuente: docs/referencias/elmfire/Getting Started — ELMFIRE 2025.0212 documentation.pdf, páginas 1–3. Conversión automática; ante duda, el PDF manda.
 
 # Getting Started
 
