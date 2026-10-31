@@ -127,7 +127,11 @@ AOI_NORTH=-41.90 uv run python scripts/demo_operativo.py 2026-01-05 2026-01-09
 ```
 
 Only Puerto Patriada, from its first pass (2026-01-05 19:20 UTC); detections before that instant
-and other fires in the AOI are deliberately excluded from grouping, seeding and the replay. It
+and other fires in the AOI are deliberately excluded from grouping, seeding and the replay.
+The cutoff is stored in `operativo.demo_desde` (migration `0007`) so that `tick` and `estado`
+group the same detections: a fire's id comes from its first detection, and a cutoff applied
+only by the precompute left the panel unable to find the demo forecasts. In demo mode the
+panel lists only fires that have forecast rows. It
 leaves the mode in `demo` with the clock on
 the first forecast; the admin
 walks forward from there. Starting on day 1 is deliberate: it shows the weak point and how each

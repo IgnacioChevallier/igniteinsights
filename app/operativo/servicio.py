@@ -191,12 +191,21 @@ def ahora_de(op: Operativo) -> datetime:
     return datetime.now(UTC)
 
 
-async def detecciones_visibles(session: AsyncSession, ahora: datetime) -> list[Deteccion]:
-    """Lo que FIRMS ya había publicado a las `ahora`: adquiridas hasta `ahora - latencia`."""
+def desde_de(op: Operativo, modo: str) -> datetime | None:
+    """El corte de la demo (`operativo.demo_desde`): sólo en modo demo. `tick` y `estado` lo
+    tienen que aplicar igual, porque el id de un incendio sale de su primera detección."""
+    return op.demo_desde if modo == "demo" else None
+
+
+async def detecciones_visibles(session: AsyncSession, ahora: datetime,
+                               desde: datetime | None = None) -> list[Deteccion]:
+    """Lo que FIRMS ya había publicado a las `ahora`: adquiridas hasta `ahora - latencia`, y no
+    antes de `desde` (el corte de la demo)."""
     hasta = ahora - timedelta(hours=LATENCIA_FIRMS_H)
+    since = hasta - timedelta(days=HISTORIA_DIAS)
     aoi = await repository.get_or_create_default_aoi(session)
     features = await repository.get_active_fires(
-        session, since=hasta - timedelta(days=HISTORIA_DIAS), aoi_id=aoi.id,
+        session, since=max(since, desde) if desde else since, aoi_id=aoi.id,
         until=hasta + timedelta(microseconds=1),
     )
     return [Deteccion(f["properties"]["longitude"], f["properties"]["latitude"],
@@ -209,7 +218,7 @@ async def estado(session: AsyncSession) -> dict:
     op = await leer_operativo(session)
     ahora = ahora_de(op)
     hasta = ahora - timedelta(hours=LATENCIA_FIRMS_H)
-    detecciones = await detecciones_visibles(session, ahora)
+    detecciones = await detecciones_visibles(session, ahora, desde_de(op, op.modo))
     incendios = incendios_activos(detecciones, hasta)
     filas = (await session.execute(
         select(Pronostico).where(Pronostico.modo == op.modo, Pronostico.disponible <= ahora)
@@ -230,8 +239,9 @@ async def estado(session: AsyncSession) -> dict:
         "ultima_pasada": max((d.t.isoformat() for d in detecciones), default=None),
         "proxima_pasada_estimada": proxima_pasada(ahora).isoformat(),
         "horizonte_h": HORAS,
-        "incendios": [
+        "incendios": [   # la demo está precalculada: un foco sin pronóstico no entró en ella
             _incendio_json(i, listo.get(i.id), ultimo.get(i.id)) for i in incendios
+            if op.modo != "demo" or i.id in ultimo
         ],
         "detecciones": {
             "type": "FeatureCollection",
@@ -283,8 +293,7 @@ async def pasadas_demo(session: AsyncSession, direccion: int) -> datetime | None
 # ── la corrida ────────────────────────────────────────────────────────────────
 
 async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str = "vivo",
-               ingerir: bool = True, solo_localidad: str | None = None,
-               detecciones_desde: datetime | None = None) -> list[dict]:
+               ingerir: bool = True, solo_localidad: str | None = None) -> list[dict]:
     """Un paso del ciclo: (FIRMS) → incendios activos → una ventana por pasada nueva. Corre de a
     una ventana: el runner aguanta una sola corrida a la vez."""
     ahora = ahora or datetime.now(UTC)
@@ -293,9 +302,7 @@ async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str =
     hasta = ahora - timedelta(hours=LATENCIA_FIRMS_H)
     hechos = []
     operativo = await leer_operativo(session)
-    detecciones = await detecciones_visibles(session, ahora)
-    if detecciones_desde is not None:
-        detecciones = [d for d in detecciones if d.t >= detecciones_desde]
+    detecciones = await detecciones_visibles(session, ahora, desde_de(operativo, modo))
     for inc in incendios_activos(detecciones, hasta):
         if solo_localidad and f"Cerca de {solo_localidad} ·" not in inc.nombre:
             continue

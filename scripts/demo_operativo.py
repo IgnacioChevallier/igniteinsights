@@ -31,6 +31,9 @@ INICIO_PATRIADA = datetime(2026, 1, 5, 19, 20, tzinfo=UTC)
 
 async def main(desde: date, hasta: date) -> None:
     async with async_session_factory() as session:
+        op = await servicio.leer_operativo(session)
+        op.demo_desde = INICIO_PATRIADA   # antes de los ticks: tick y estado lo leen de acá
+        await session.commit()
         dia = desde - timedelta(days=1)   # lo de la víspera también siembra
         while dia <= hasta:
             dias = min(5, (hasta - dia).days + 1)
@@ -57,7 +60,6 @@ async def main(desde: date, hasta: date) -> None:
                 modo="demo",
                 ingerir=False,
                 solo_localidad="Puerto Patriada",
-                detecciones_desde=INICIO_PATRIADA,
             )
             for h in hechos:
                 print(f"  {pasada:%d-%m %H:%M} {h['nombre']}: {h['estado']}"
@@ -70,7 +72,6 @@ async def main(desde: date, hasta: date) -> None:
                                                     "Cerca de Puerto Patriada ·%"
                                                 ))
             .order_by(Pronostico.disponible).limit(1))).scalar_one_or_none()
-        op = await servicio.leer_operativo(session)
         op.modo, op.reloj = "demo", primero
         await session.commit()
         print(f"modo demo, reloj en {primero}")

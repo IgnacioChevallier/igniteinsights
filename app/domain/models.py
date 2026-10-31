@@ -176,6 +176,8 @@ class Operativo(Base):
     modo: Mapped[str] = mapped_column(Text, nullable=False, default="demo")
     reloj: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     calcular_ensamble: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Corte de la demo: detecciones anteriores no agrupan ni siembran (scripts/demo_operativo.py).
+    demo_desde: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     actualizado_en: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
     )

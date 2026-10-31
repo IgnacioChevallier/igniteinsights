@@ -57,3 +57,32 @@ def test_el_ciclo_es_el_publicado_cuando_la_pasada_se_ve_en_firms():
 def test_la_proxima_pasada_es_la_siguiente_hora_tipica():
     assert s.proxima_pasada(T) == datetime(2026, 1, 6, 5, 30, tzinfo=UTC)
     assert s.proxima_pasada(T.replace(hour=10)) == T
+
+
+def test_el_corte_de_la_demo_vale_solo_en_demo_y_fija_la_primera_deteccion(monkeypatch):
+    """tick y estado agrupan con el mismo corte: si no, el id del incendio difiere y el panel
+    no encuentra los pronósticos de la demo (quedaba en "el pronóstico se está calculando")."""
+    import asyncio
+    from types import SimpleNamespace
+
+    vieja, nueva = det(-71.5, -42.1, -20), det(-71.5, -42.1, 0)
+
+    async def aoi(session):
+        return SimpleNamespace(id=1)
+
+    async def fuegos(session, since, aoi_id, until):
+        return [{"properties": {"longitude": d.lon, "latitude": d.lat,
+                                "acq_datetime": d.t.isoformat()}}
+                for d in (vieja, nueva) if since <= d.t < until]
+
+    monkeypatch.setattr(s.repository, "get_or_create_default_aoi", aoi)
+    monkeypatch.setattr(s.repository, "get_active_fires", fuegos)
+    op = SimpleNamespace(demo_desde=T - timedelta(hours=1))
+    ahora = T + timedelta(hours=pronostico.LATENCIA_FIRMS_H)
+
+    def primera(modo: str) -> datetime:
+        dets = asyncio.run(s.detecciones_visibles(None, ahora, s.desde_de(op, modo)))
+        return min(d.t for d in dets)
+
+    assert primera("demo") == nueva.t
+    assert primera("vivo") == vieja.t
