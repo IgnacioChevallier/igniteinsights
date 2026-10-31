@@ -1569,10 +1569,15 @@ def tabla_pronostico(receta_id: str, casos: list[str]) -> None:
             r = pronostico.resumir(filas, plazo, contra)
             print(f"\nP-24 contra {contra}, {plazo} h (k ≥ 1): mediana ΔDice "
                   f"{_fmt(r['mediana_delta'])}, mejora en {r['mejoran']} de {r['n']} incendios")
-            protocolo = casos[0].split("/")[1]
-            r_path = (d.RAIZ / "diagnosticos"
-                      / f"{protocolo}-{receta_id}-{contra}-{plazo}h.json")
-            r_path.write_text(json.dumps(r, indent=2, ensure_ascii=False))
+            _ruta_resumen(casos, receta_id, contra, plazo).write_text(
+                json.dumps(r, indent=2, ensure_ascii=False))
+
+
+def _ruta_resumen(casos: list[str], receta_id: str, contra: str, plazo: int) -> Path:
+    """El nombre lleva todos los protocolos de los casos. Con sólo el del primero, una tabla de
+    protocolos mezclados pisaba el resumen de otro conjunto."""
+    protocolos = "+".join(sorted({c.split("/")[1] for c in casos}))
+    return d.RAIZ / "diagnosticos" / f"{protocolos}-{receta_id}-{contra}-{plazo}h.json"
 
 
 CORTES_H = (24, 48, 72, 96, 120)
