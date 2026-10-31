@@ -31,7 +31,7 @@ por evidencia externa nueva.
 | CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino |
 | CBD del pino | 0,16 kg/m³ | Medido en plantaciones patagónicas |
 | Pérdida previa Hansen | Sin dosel | Sólo pérdidas anteriores al año del incendio |
-| Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app en tiempo real todavía no la aplica, porque no tiene punto de ignición |
+| Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app operativa de `main` la aplica sin punto de ignición (`agrupar`: saltos ≤ 3.000 m y ≤ 24 h). Elige las mismas detecciones en 33 de 34 reinicios; Jaccard mínimo 0,996 (`AC-semilla-app.md`) |
 
 ## 2. Abierto, pero no bloquea el modelo
 
@@ -102,7 +102,7 @@ FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP
    (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
 
 Abiertos: los dos puntos de §2, que siguen abiertos por decisión del autor (2026-10-31); del
-ensamble, CPU/RSS del runner y la latencia (el mínimo operativo de 24/31 se ratificó el 2026-10-31);
-y la semilla conexa en la app en tiempo real (§1).
+ensamble, CPU/RSS del runner y la latencia (el mínimo operativo de 24/31 se ratificó el 2026-10-31). La semilla conexa en la app se cerró
+el 2026-10-31 (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.
