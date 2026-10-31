@@ -87,14 +87,20 @@ prueba.
 
 ## 6. Límites y trabajo futuro
 
-- Día 1 explosivo: casi todo el déficit está antes de la primera pasada VIIRS. Desde ahí, el
+- **Fuera del alcance: las 2–6 h anteriores a la primera pasada VIIRS** (decisión del usuario,
+  2026-10-31). La app arranca en la primera detección VIIRS, así que lo que arde antes no es parte
+  del producto. Sólo aparece porque el benchmark de cadena arranca en el punto de ignición
+  reportado: ahí está casi todo el déficit del día 1 (6–21× a 24 h desde la ignición en cuatro de
+  seis incendios; RIESGOS §2).
+- **Día 1 dentro del alcance: el residuo de P-24 después de la primera pasada.** Desde ahí, el
   pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24), con el pronóstico GFS que se
   tenía en cada reinicio, mejora a la cadena en 4 de 4 incendios GFS a 12 h (+0,118) y en 3 de 4 a
   24 h (+0,154) (`diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`). El error de pronóstico cuesta
   −0,001 frente a los análisis; las cifras previas de 6 de 6 y 5 de 6 son hindcast (análisis GFS
-  posteriores al reinicio, ERA5 en Cholila y Alerces 2016). El residuo (2–4,5× en Patriada y Alerces 2024) coincide
-  con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
-  (`docs/resultados/DIA-1-PROPUESTA.md` §7).
+  posteriores al reinicio, ERA5 en Cholila y Alerces 2016). El primer reinicio queda 2–4,5× por
+  debajo en Patriada y Alerces 2024 (sesgo 0,44 y 0,24 a 24 h con el pronóstico real). Ese residuo
+  coincide con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
+  (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6).
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja. Las series pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se

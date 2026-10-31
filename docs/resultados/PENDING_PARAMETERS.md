@@ -46,10 +46,13 @@ mismos once incendios.
 
 ## 3. Límites declarados
 
-- **Día 1 explosivo:** casi todo el déficit está en las 2–6 h anteriores a la primera pasada
-  VIIRS. Desde ahí queda un residuo de 2–4,5× en Patriada y Alerces 2024, compatible con copa que
-  ELMFIRE 2025.0212 no enciende bajo dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7). El
-  pronóstico operativo arranca en la última pasada (protocolo P-24).
+- **Día 1, residuo después de la primera pasada VIIRS:** el primer reinicio de P-24 queda 2–4,5×
+  por debajo en Patriada y Alerces 2024, compatible con copa que ELMFIRE 2025.0212 no enciende bajo
+  dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6). Es el límite del día 1 dentro del alcance:
+  el pronóstico operativo arranca en la última pasada (protocolo P-24).
+- **Fuera del alcance: las 2–6 h anteriores a la primera pasada.** La app arranca en la primera
+  detección VIIRS (decisión del usuario, 2026-10-31). Ahí está casi todo el déficit del día 1, y
+  sólo aparece porque el benchmark de cadena arranca en el punto de ignición reportado.
 - **Supresión:** la regla disponible de ELMFIRE fue implementada y probada; empeora la
   calibración y no contiene los incendios que más sobre-propagan.
 - **Las Golondrinas:** la ráfaga nocturna no está representada en GFS; es un caso límite y no

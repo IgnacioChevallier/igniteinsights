@@ -14,7 +14,7 @@ incendios.
 | # | Riesgo | Efecto sobre el resultado | Estado |
 |---|---|---|---|
 | 1 | Sin supresión | Sobre-propaga los incendios combatidos: 5–16× en El Turbio y Epuyén 2019 | Probado y no adoptado |
-| 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–4,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
+| 2 | Día 1 explosivo | Desde la primera pasada VIIRS, donde arranca la app, el déficit desaparece en dos incendios y queda en 2–4,5× en otros dos. Las 2–6 h previas (6–21× desde la ignición en cuatro de seis) quedan fuera del alcance del producto | Residuo medido (P-24 y diagnóstico de copa), límite declarado; lo previo a la primera pasada, fuera del alcance |
 | 3 | Viento de superficie y pavesas | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago. Sin pavesas, subestima los eventos de viento extremo | Límite de datos; cerrado (sin viento de estación desde 2026-10-31) |
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
@@ -69,7 +69,7 @@ otras causas de frenado.
 
 | Fase | Sesgo |
 |---|---|
-| Primeras horas, desde la ignición | 6–21× **por debajo** en cuatro de seis incendios (§2) |
+| Primeras horas, desde la ignición (fuera del alcance de la app) | 6–21× **por debajo** en cuatro de seis incendios (§2) |
 | Primer día, desde la primera pasada VIIRS | ≈1 en cuatro incendios; 0,3–0,5 en Patriada y Alerces 2024 (§2) |
 | Después del primer día (reinicios de P-24 desde las 12–19 h) | Mediana **4×**. El 71 % de los 28 reinicios se pasa más de 2×; sólo el 7 % queda por debajo de 0,5× |
 | Área de la cadena al horizonte (calibración) | Mediana ~1,4: Alerces 2023 1,86, Alerces 2016 1,69, Epuyén 1,41, Alerces 2024 1,35, Cholila 0,87, Patriada 0,70 |
@@ -104,6 +104,12 @@ sectores contenidos o (b) imponer barreras en los insumos. Sin esos registros, l
 alternativa es restringir la validación a ventanas de crecimiento libre.
 
 ## 2. Día 1 explosivo
+
+**Alcance (decisión del usuario, 2026-10-31).** La app arranca en la primera detección VIIRS. Las
+2–6 h anteriores a la primera pasada quedan **fuera del alcance del producto**: sólo aparecen porque
+el benchmark de cadena arranca en el punto de ignición reportado. El límite del día 1 dentro del
+alcance es el residuo de P-24 después de la primera pasada: 2–4,5× por debajo en Patriada y
+Alerces 2024, compatible con copa (`DIA-1-PROPUESTA.md` §7.3–7.6).
 
 **Suposición.** El viento es horario y uniforme dentro de cada celda del modelo meteorológico; la
 propagación es superficial, sin pavesas, y la copa casi nunca se enciende con el CBH derivado.
@@ -209,8 +215,10 @@ anteriores (+0,096 en 6 de 6 y +0,131 en 5 de 6) son hindcast: análisis GFS pos
 y ERA5 en Cholila y Alerces 2016. El error del GFS contra el viento real del valle (§3) está en las
 dos.
 
-Las primeras 2–6 h, antes de la primera detección, quedan como límite: no son pronosticables con
-ELMFIRE 2025.0212 configurado como modelo-v0.
+Las primeras 2–6 h, antes de la primera detección, no son pronosticables con ELMFIRE 2025.0212
+configurado como modelo-v0, y quedan fuera del alcance del producto, que arranca en esa detección.
+Lo que queda como límite es el residuo del primer reinicio en Patriada y Alerces 2024 (sesgo 0,44 y
+0,24 a 24 h con el pronóstico real; Z §4).
 
 **Qué permitiría reducirlo.**
 
