@@ -1,0 +1,79 @@
+{
+  "descripcion": "P-24 sobre el caso de prueba `puerto-cafe-2025/calibracion-v6s` (docs/resultados/diagnostico-e2e/notas/AB-p24-prueba.md): la ventana 0 del caso base y un reinicio de 24 h en cada pasada VIIRS SP que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado, con el filtro del caso base (radio_cicatriz_m); el filtro conexo de v7 no aplica a una semilla `firms`. Clima de cada reinicio: el último ciclo GFS publicado (latencia 4 h), como `pronostico-ciclo-v7` (nota Z). Estáticos, mapas, dosel y cicatriz del caso base.",
+  "anio_fuego": 2025,
+  "caja_wgs84": [
+    -71.993,
+    -42.864,
+    -71.234,
+    -42.472
+  ],
+  "semilla_inicial": {
+    "tipo": "firms",
+    "hora": "2026-01-05T20:00:00+00:00",
+    "fuente": "Fechas: Red43 (9-dic-2025, parte de PN Los Alerces), LA NACION (28-mar-2026: 'a partir del 5 de enero ... se propagó de forma explosiva hacia los lagos Verde y Rivadavia'). Hora de arranque: entre las dos pasadas VIIRS citadas.",
+    "ajuste": "No hay ignición puntual: la fase explosiva arranca desde lo que ardía latente, que se toma de FIRMS SP (9-dic a 5-ene). Sólo detecciones a menos de 1 km de la cicatriz del incendio: con toda la caja, la semilla incluía otros incendios activos al NE y el modelo los propagaba (21.718 ha de falso positivo a 44 km; RESULTADOS-CSS-BAP loop 5).",
+    "radio_cicatriz_m": 1000
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/puerto-cafe-2025/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "alcance_m": 5000,
+      "desde": "2025-12-08"
+    }
+  },
+  "clima": "gfs-pronostico (último ciclo publicado antes del reinicio, latencia 4 h); ventana 0: la del caso base",
+  "ventanas": [
+    {
+      "t0": "2026-01-05T20:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2026-01-06T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2640.0
+    },
+    {
+      "t0": "2026-01-06T19:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 60.0
+    },
+    {
+      "t0": "2026-01-07T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1500.0
+    },
+    {
+      "t0": "2026-01-07T20:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 60.0
+    },
+    {
+      "t0": "2026-01-08T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 360.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "puerto-cafe-2025/calibracion-v6s",
+    "semilla": "firms",
+    "clima_pronostico": {
+      "latencia_h": 4
+    }
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "puerto-cafe-2025/calibracion-v6s",
+    "receta": "lw-100-001"
+  }
+}

@@ -54,6 +54,21 @@ escrito durante el loop M con otro conjunto de recetas completas.
 El resultado de prueba es deliberadamente descriptivo: no se usa para volver a elegir LW, ADJ,
 crosswalk, CBH ni viento.
 
+**Propuesta (2026-10-31): P-24 como métrica principal del producto.** Las cifras de arriba miden la
+cadena: 72–120 h desde el punto de ignición reportado y sin supresión. Son el benchmark de la física.
+La app hace otra cosa: arranca en la primera detección VIIRS y re-siembra en cada pasada (P-24). Por
+eso se propone informar como métrica del producto el Dice del crecimiento a 12 y 24 h desde la
+última pasada, con el pronóstico disponible, junto a la cadena y sin reemplazar el 0,191:
+
+| Conjunto | P-24, mediana del Dice a 12 / 24 h | Cadena, mismas ventanas | P-24 gana a la cadena | Clima |
+|---|---|---|---|---|
+| Calibración (4 incendios GFS) | 0,192 / 0,262 | 0,085 / 0,151 | 4 de 4 / 3 de 4 | pronóstico GFS (nota Z) |
+| Prueba (4) | 0,084 / 0,145 | 0,009 / 0,026 | 4 de 4 / 4 de 4 | pronóstico GFS en El Turbio y Puerto Café; ERA5 en Epuyén 2019 y Alerces 2015 (nota AB) |
+
+En prueba, P-24 gana a la cadena en los cuatro casos. Pero el nivel absoluto es la mitad que en
+calibración, y la ventaja sobre la persistencia es chica (+0,021 y +0,038, en 3 de 4). Las notas:
+`diagnostico-e2e/notas/Z-p24-pronostico-gfs.md` y `AB-p24-prueba.md`.
+
 La tabla por caso, su lectura y la sensibilidad al horizonte (2026-10-19) están en
 `docs/resultados/MODELO-V0.md`. Volver a puntuar las corridas congeladas cortadas a 24–120 h
 muestra que el Dice de calibración crece con el horizonte: con un tope de 72 h la media bajaría
