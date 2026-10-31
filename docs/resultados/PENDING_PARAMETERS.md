@@ -50,16 +50,16 @@ mismos once incendios.
   por debajo en Patriada y Alerces 2024, compatible con copa que ELMFIRE 2025.0212 no enciende bajo
   dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6). Es el límite del día 1 dentro del alcance:
   el pronóstico operativo arranca en la última pasada (protocolo P-24).
-- **Fuera del alcance: las 2–6 h anteriores a la primera pasada.** La app arranca en la primera
-  detección VIIRS (decisión del usuario, 2026-10-31). Ahí está casi todo el déficit del día 1, y
-  sólo aparece porque el benchmark de cadena arranca en el punto de ignición reportado.
 - **Supresión:** la regla disponible de ELMFIRE fue implementada y probada; empeora la
   calibración y no contiene los incendios que más sobre-propagan.
 - **Las Golondrinas:** la ráfaga nocturna no está representada en GFS; es un caso límite y no
   participa del gate de sesgo.
 - **Transferencia:** el conjunto de prueba tiene cuatro incendios, Dice 0,191/0,167 y dos
-  alarmas. `modelo-v0` es un baseline productivo auditable, no una afirmación de generalización
-  universal.
+  alarmas. Con P-24, la mediana es 0,084 / 0,145 a 12 / 24 h, y le gana a la cadena en 4 de 4
+  (`docs/resultados/diagnostico-e2e/notas/AB-p24-prueba.md`). `modelo-v0` es un baseline productivo
+  auditable, no una afirmación de generalización universal.
+- **P-24 con reanálisis** en Cholila 2015, Alerces 2016, Epuyén 2019 y Alerces 2015: el GFS de esas
+  fechas sólo está archivado cada 3 h, así que corren con ERA5 y no son pronóstico (notas Z y AB).
 - **Islas en la referencia truncada:** con `hasta_horizonte`, la cicatriz no vista se excluye, pero
   las islas sin quemar no vistas dentro del perímetro final siguen contando como negativos. Eso da un
   techo de Dice de 0,85 en Patriada y 0,86 en Cholila. Excluirlas (variante C) vale ≤ 0,005 en
@@ -73,12 +73,32 @@ mismos once incendios.
 - **Pavesas** (`docs/resultados/diagnostico-e2e/notas/Y-pavesas-condicionadas.md`): no se usan ni
   globales ni condicionadas a una regla previa. Sólo las reabre una prueba independiente de la
   regla d1 registrada en Y §4.
-- **Datos históricos en la app:** la ingesta FIRMS NRT no reemplaza las fuentes SP necesarias
-  para reconstruir incendios antiguos.
 
-## 4. Próximo trabajo
+## 4. Estado de cierre (2026-10-31)
 
-1. Incorporar al texto de tesis la comparación final cerrada en
-   `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
+**Fuera del alcance**
+
+- Las 2–6 h anteriores a la primera pasada VIIRS. La app arranca en la primera detección VIIRS
+  (decisión del usuario, 2026-10-31). Ahí está casi todo el déficit del día 1, y sólo aparece porque
+  el benchmark de cadena arranca en el punto de ignición reportado.
+- El ensamble paramétrico (`docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`).
+
+**Límites declarados (cerrados)**
+
+Los de §3. Se reabren sólo por un bug físico o por evidencia externa nueva. La ingesta histórica de
+FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP y las NRT
+(`docs/resultados/LO-YA-QUEMADO-PROPUESTA.md` §8).
+
+**Pendiente**
+
+1. La evaluación con usuarios de la capa de acuerdo del ensamble
+   (`docs/resultados/PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`), que hace el autor con personas
+   reales.
+2. Llevar los resultados al informe (`../informe`), incluida la comparación final de mapas
+   (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
+
+Abiertos sin decisión del autor, que no se cierran acá: los tres puntos de §2; del ensamble, el
+mínimo operativo de 24/31, CPU/RSS del runner y la latencia; y la semilla conexa en la app en tiempo
+real (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.

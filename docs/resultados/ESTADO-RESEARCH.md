@@ -100,13 +100,23 @@ No queda otro barrido justificable con los mismos datos. La regla de parada de m
 **sólo se reabre por un bug físico o por evidencia externa nueva**, no por mejorar un caso de
 prueba.
 
-## 6. Límites y trabajo futuro
+## 6. Alcance, límites y pendientes
 
-- **Fuera del alcance: las 2–6 h anteriores a la primera pasada VIIRS** (decisión del usuario,
-  2026-10-31). La app arranca en la primera detección VIIRS, así que lo que arde antes no es parte
-  del producto. Sólo aparece porque el benchmark de cadena arranca en el punto de ignición
-  reportado: ahí está casi todo el déficit del día 1 (6–21× a 24 h desde la ignición en cuatro de
-  seis incendios; RIESGOS §2).
+Estado de cierre al 2026-10-31. Tres categorías: lo que queda fuera del alcance del producto, los
+límites declarados (cerrados: sólo se reabren por un bug físico o por evidencia externa nueva) y lo
+pendiente. El detalle de cada límite está en `docs/resultados/RIESGOS_Y_SUPOSICIONES.md`.
+
+### 6.1 Fuera del alcance
+
+- **Las 2–6 h anteriores a la primera pasada VIIRS** (decisión del usuario, 2026-10-31). La app
+  arranca en la primera detección VIIRS, así que lo que arde antes no es parte del producto. Sólo
+  aparece porque el benchmark de cadena arranca en el punto de ignición reportado: ahí está casi
+  todo el déficit del día 1 (6–21× a 24 h desde la ignición en cuatro de seis incendios; RIESGOS §2).
+- **El ensamble paramétrico** (decisión del usuario, 2026-10-19;
+  `docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`).
+
+### 6.2 Límites declarados (cerrados)
+
 - **Día 1 dentro del alcance: el residuo de P-24 después de la primera pasada.** Desde ahí, el
   pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24), con el pronóstico GFS que se
   tenía en cada reinicio, mejora a la cadena en 4 de 4 incendios GFS a 12 h (+0,118) y en 3 de 4 a
@@ -116,30 +126,36 @@ prueba.
   debajo en Patriada y Alerces 2024 (sesgo 0,44 y 0,24 a 24 h con el pronóstico real). Ese residuo
   coincide con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
   (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6).
-- Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
-- Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
+- **P-24 con reanálisis en Cholila 2015, Alerces 2016, Epuyén 2019 y Alerces 2015.** Para esas fechas
+  el GFS sólo está archivado cada 3 h, así que su P-24 corre con ERA5 y no es pronóstico (Z §2.2,
+  AB §1.1).
+- **Supresión:** El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
+- **Transferencia:** en prueba, la cadena da 0,191 / 0,167 con dos alarmas, y P-24 da 0,084 / 0,145
+  de mediana a 12 / 24 h, ganándole a la cadena en 4 de 4 (§3, `diagnostico-e2e/notas/AB-p24-prueba.md`).
+- **Viento de superficie:** una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja. Las series pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se
-  canceló el 2026-10-31: queda como límite cerrado y no reabre ninguna decisión.
+  canceló el 2026-10-31: no reabre ninguna decisión.
 - **Pavesas condicionadas (Y, 2026-10-23): no se usan.** Techo por incendio 0,470; ninguna regla
   con umbral previo pasa de 0,439 sin alarmas. Un orden exploratorio por la intensidad del modelo
   base coincide con el techo, con márgenes de menos de un punto, y queda registrado como hipótesis
   para incendios nuevos. Reabre sólo una prueba independiente de esa regla (d1, Y §4); la otra
   condición, viento observado, se canceló con el pedido al INTA
   (`docs/resultados/diagnostico-e2e/notas/Y-pavesas-condicionadas.md`).
-- Las Golondrinas: hacen falta a la vez el evento meteorológico que el GFS no tiene y las pavesas,
-  que modelo-v0 no tiene. Juntos dan 9.088 ha y Dice 0,545, como diagnóstico. Por separado, el
-  SYNOP da ×8 y las pavesas ×1,0
+- **Las Golondrinas:** hacen falta a la vez el evento meteorológico que el GFS no tiene y las
+  pavesas, que modelo-v0 no tiene. Juntos dan 9.088 ha y Dice 0,545, como diagnóstico. Por separado,
+  el SYNOP da ×8 y las pavesas ×1,0
   (`docs/resultados/diagnostico-e2e/notas/G-golondrinas-meteo-observada.md` §7,
   `X-pavesas-calibracion.md`). Las pavesas fuertes sobre la calibración v6 dan media 0,451 con 3
   alarmas nuevas y no pasan la puerta.
-- Humedad en altura: la lenga de altura arde tan seca como el valle. Las correcciones del aire no
-  alcanzan y no existe una medición de humedad de hojarasca bajo lenga. Cerrado como límite; la
-  lenga achaparrada sigue en SH8, con su limitación declarada
-  (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
+- **Humedad en altura:** la lenga de altura arde tan seca como el valle. Las correcciones del aire no
+  alcanzan y no existe una medición de humedad de hojarasca bajo lenga. La lenga achaparrada sigue
+  en SH8, con su limitación declarada (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
+- **m10/m100:** sin base física completa, pero insensible en este benchmark. Cerrado el 2026-10-31:
+  no se buscan mediciones.
+- **Islas en la referencia truncada** y **sub-dispersión de GEFS en la capa de acuerdo**: declaradas
+  en `PENDING_PARAMETERS.md` §3 y en §8.
 
-Estos puntos se reportan como límites; el detalle de cada uno está en
-`docs/resultados/RIESGOS_Y_SUPOSICIONES.md`. No bloquean la comparación de mapas condicionada a
-modelo-v0.
+Ninguno bloquea la comparación de mapas condicionada a modelo-v0.
 
 El ensamble meteorológico GEFS se cerró el 2026-10-17 con 23/23 backtests contemporáneos de
 calibración, de cuatro incendios, con 31/31 miembros cada uno. Todos pasaron la integridad, sin
@@ -148,8 +164,8 @@ limitaciones como comunicación de sensibilidad meteorológica y ya está en el 
 por defecto. No mejora predictivamente a c00 de forma consistente: en medianas por incendio,
 ≥0,80 gana en 2/4 incendios a 12 h y en 3/4 a 24 h por ≤0,003 de IoU, ≥0,50 es equivalente y
 ≥0,10 gana recall a costa de área. La banda es angosta (4–14 % del área de c00) y queda
-crecimiento observado fuera de ≥0,10, así que la leyenda lo advierte. No es probabilidad. Falta
-la evaluación con usuarios reales. Los resultados están en
+crecimiento observado fuera de ≥0,10, así que la leyenda lo advierte. No es probabilidad. La evaluación con usuarios
+reales está pendiente (§6.3). Los resultados están en
 `docs/resultados/ENSAMBLE-BACKTESTS-CONSOLIDADO.md`, el método en
 `docs/resultados/ENSAMBLE-METEOROLOGICO-POC.md` y la semántica en
 `docs/resultados/DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`.
@@ -160,6 +176,21 @@ Dos problemas de la app quedaron resueltos el 2026-10-12, sin cambiar modelo-v0
 - Lo ya quemado: la app reasigna por edad el combustible de las quemas posteriores al mapa
   (protocolo de no regresión LYQ-3: 0,439 / 0,501).
 - Ingesta histórica de FIRMS: la app pide las fuentes SP y las NRT.
+
+### 6.3 Pendiente
+
+1. **La evaluación con usuarios de la capa «Acuerdo del ensamble»**
+   (`docs/resultados/PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`). La hace el autor con personas reales.
+2. **Llevar los resultados al informe** (`../informe`). Es trabajo de ese repositorio, no de este.
+
+Abiertos sin decisión del autor. No se cierran acá; quedan listados en el reporte de cierre del
+2026-10-31:
+
+- las incertidumbres de entrada de `PENDING_PARAMETERS.md` §2 (CBH de bosque nativo, rugosidad
+  regional, reconstrucción del perímetro FIRMS);
+- del ensamble: la ratificación del mínimo operativo de 24/31, la exposición de CPU/RSS del runner y
+  la latencia operativa (`DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`);
+- la semilla conexa de P-24, que la app en tiempo real todavía no aplica (`PENDING_PARAMETERS.md` §1).
 
 ## 7. Comparación final de mapas
 
