@@ -34,7 +34,7 @@ ANIOS_COMBUSTIBLE = {
 # Las únicas perillas que una receta puede tocar: los kwargs de
 # namelist_writer.write_namelist que no son rutas, y el ADJ uniforme. Ningún keyword de
 # namelist nuevo sale de acá (CLAUDE.md).
-PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model",
+PARAMETROS = {"dt_s", "dtmax_s", "dtdump_s", "crown_fire_model", "phis_adj",
               "lh_moisture_pct", "lw_moisture_pct",
               # transformaciones de rásters que ELMFIRE ya lee (app/validation/cadena.py)
               "adj", "adj_grupos", "factor_viento", "humedad_muerta_delta",
@@ -294,6 +294,7 @@ _INSUMOS_POR_FACTOR = {
     "adj_grupos": {"adj.tif"},
     "humedad_m1_delta": {"m1.tif"},
     "factor_viento": {"ws.tif"},
+    "phis_adj": {"elmfire.data"},
     "rotacion_viento": {"wd.tif"},
     "z0_desde_dosel": {"ws.tif"},
     "aspecto_mas_180": {"asp.tif"},

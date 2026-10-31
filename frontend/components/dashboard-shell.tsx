@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { DashboardHeader } from "@/components/dashboard-header";
+import { DocumentationPanel } from "@/components/documentation-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -390,7 +391,7 @@ export function DashboardShell({
   }, []);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[100dvh] flex-col md:flex-row">
       <SidebarNav activeSection={activeSection} onChange={setActiveSection} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -490,6 +491,12 @@ export function DashboardShell({
         {activeSection === "playground" && (
           <div className="min-h-0 flex-1">
             <PlaygroundPanel />
+          </div>
+        )}
+
+        {activeSection === "documentation" && (
+          <div className="min-h-0 flex-1">
+            <DocumentationPanel />
           </div>
         )}
       </div>

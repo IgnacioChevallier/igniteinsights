@@ -314,6 +314,7 @@ def write_namelist(
     simulation_tstart_s: float = 0.0,
     simulator_mode: int = 1,
     crown_fire_model: int = DEFAULT_CROWN_FIRE_MODEL,
+    phis_adj: float = 1.0,
     lh_moisture_pct: float = DEFAULT_LH_MOISTURE_PCT,
     lw_moisture_pct: float = DEFAULT_LW_MOISTURE_PCT,
     spotting: dict | None = None,
@@ -338,6 +339,8 @@ def write_namelist(
         simulator_mode: ELMFIRE mode; 1 is transient fire-spread simulation
         crown_fire_model: 0 disables crown fire; any value > 0 enables it. Written
             explicitly because ELMFIRE enables it when the keyword is absent.
+        phis_adj: multiplier for the slope contribution. ELMFIRE defaults to 1.0; it is
+            written in &SIMULATOR only when a recipe deliberately changes it.
         spotting: None leaves &SPOTTING out (spotting off, ELMFIRE's default); a dict writes
             SPOTTING_HINDCAST with those keys overridden ({} = the vendor hindcast values).
         suppression: None leaves &SUPPRESSION out (no suppression, ELMFIRE's default); a dict
@@ -355,6 +358,7 @@ def write_namelist(
         simulation_tstart_s,
         simulator_mode,
         crown_fire_model,
+        phis_adj,
     )
     duration_s = simulation_hours * 3600.0
     tstop_s = simulation_tstart_s + duration_s
@@ -368,6 +372,9 @@ def write_namelist(
     dem_path = inputs_dir / "dem.tif"
     utm_west, utm_south, cell_size = _read_domain(dem_path)
     a_srs = _read_srs(dem_path)
+    phis_adj_line = (
+        f"  PHIS_ADJ                        = {phis_adj:.1f}\n" if phis_adj != 1.0 else ""
+    )
 
     namelist = f"""\
 &INPUTS
@@ -419,7 +426,7 @@ def write_namelist(
 &SIMULATOR
   MODE                            = {simulator_mode}
   CROWN_FIRE_MODEL                = {crown_fire_model}
-/
+{phis_adj_line}/
 
 &MISCELLANEOUS
   PATH_TO_GDAL                    = '/usr/bin/'
@@ -486,6 +493,7 @@ def _validate_parameters(
     simulation_tstart_s: float,
     simulator_mode: int,
     crown_fire_model: int,
+    phis_adj: float,
 ) -> None:
     values = {
         "simulation_hours": simulation_hours,
@@ -495,6 +503,7 @@ def _validate_parameters(
         "dt_meteorology_s": dt_meteorology_s,
         "simulation_tstart_s": simulation_tstart_s,
         "crown_fire_model": crown_fire_model,
+        "phis_adj": phis_adj,
     }
     invalid = [name for name, value in values.items() if not math.isfinite(value) or value < 0]
     if invalid:

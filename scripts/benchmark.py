@@ -8,6 +8,7 @@
     uv run python scripts/benchmark.py verificar  <caso> <receta>
     uv run python scripts/benchmark.py materializar <caso> <receta> <ventana>
     uv run python scripts/benchmark.py modelo     modelo-v0
+    uv run python scripts/benchmark.py pendiente  <caso> [<caso> ...]
 
 Casos, recetas y modelos promovidos viven en `benchmarks/` (en git); los objetos en
 `data/benchmark/objetos/`. Una receta configura iteraciones; un modelo es un snapshot que ya
@@ -18,6 +19,7 @@ import argparse
 import csv
 import json
 import os
+import sys
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,9 +29,15 @@ import pandas as pd
 import rasterio
 import rasterio.features
 from pyproj import Transformer
+from rasterio.transform import rowcol
 from rasterio.warp import transform_bounds
 from rasterio.windows import Window, from_bounds
 from shapely.geometry import Point, mapping
+
+# Ejecutar este archivo fija los imports al repo que lo contiene. Una .venv compartida entre
+# worktrees puede tener el editable apuntando a otra copia; sin esto `app` dependería del último
+# `uv sync` hecho en cualquiera de ellas.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # El .env apunta al nombre del servicio dentro de la red de Docker; desde el host es localhost.
 os.environ.setdefault("ELMFIRE_RUNNER_URL", "http://localhost:8001")
@@ -1677,6 +1685,206 @@ def curva_horizonte(modelo_id: str) -> list[dict]:
     return filas
 
 
+# ── Llegada por pendiente (diagnóstico AA §3) ────────────────────────────────
+
+RADIO_LLEGADA_VIIRS_CELDAS = 6   # ±180 m en la grilla de 30 m, como el exploratorio de AA §1
+BLOQUE_LLEGADA_H = 12.0
+MIN_CELDAS_CASO_PENDIENTE = 30
+MIN_CELDAS_BLOQUE_PENDIENTE = 10
+
+
+def _mediana_ponderada_repetida(valores: list[float], pesos: list[int]) -> float | None:
+    """Mediana de ``valores`` si cada uno se repitiera ``peso`` veces.
+
+    AA §3 fija que el Δ del caso es la mediana de los Δ de bloque ponderada por celdas. Para cada
+    bloque se usa como peso el total de celdas válidas de las dos bandas que forman su Δ.
+    """
+    if not valores or len(valores) != len(pesos) or any(p <= 0 for p in pesos):
+        return None
+    orden = np.argsort(valores)
+    v = np.asarray(valores, dtype="float64")[orden]
+    p_ = np.asarray(pesos, dtype="int64")[orden]
+    acumulado = np.cumsum(p_)
+    total = int(acumulado[-1])
+
+    def valor_en(posicion: int) -> float:
+        return float(v[np.searchsorted(acumulado, posicion + 1)])
+
+    return (valor_en((total - 1) // 2) + valor_en(total // 2)) / 2.0
+
+
+def _mediana_o_none(valores: np.ndarray) -> float | None:
+    return float(np.median(valores)) if valores.size else None
+
+
+def _horas_deteccion_cuadrada(df: pd.DataFrame, origen: datetime, dem: Path,
+                               radio_celdas: int) -> np.ndarray:
+    """Primera detección en una ventana de ±``radio_celdas``, idéntica a AA §1.
+
+    Se usan todas las detecciones VIIRS congeladas en ``firms.csv`` cuya hora es posterior a la
+    ignición. El CSV puede contener el resto del último día calendario después del horizonte; §1
+    también lo usó y §3 fija reproducir ese estadístico antes de abrir los casos nuevos.
+    """
+    with rasterio.open(dem) as ref:
+        forma, transform, crs = (ref.height, ref.width), ref.transform, ref.crs
+    viirs = df[df["instrument"] == "VIIRS"] if "instrument" in df else df
+    horas = (viirs["acq_datetime"] - pd.Timestamp(origen)).dt.total_seconds() / 3600.0
+    x, y = Transformer.from_crs("EPSG:4326", str(crs), always_xy=True).transform(
+        viirs["longitude"].to_numpy(), viirs["latitude"].to_numpy(),
+    )
+    filas, columnas = rowcol(transform, x, y)
+    observada = np.full(forma, np.inf)
+    for fila, columna, hora in zip(filas, columnas, horas):
+        if hora <= 0:
+            continue
+        f0, f1 = max(fila - radio_celdas, 0), min(fila + radio_celdas + 1, forma[0])
+        c0, c1 = max(columna - radio_celdas, 0), min(columna + radio_celdas + 1, forma[1])
+        observada[f0:f1, c0:c1] = np.minimum(observada[f0:f1, c0:c1], hora)
+    return observada
+
+
+def diagnosticar_pendiente(caso: d.Caso, receta_id: str = "lw-100-001") -> dict:
+    """Estadístico preregistrado de AA §3, sin ejecutar ELMFIRE ni descargar datos."""
+    manifiesto = d.cargar_manifiesto(caso.id, receta_id)
+    if manifiesto is None:
+        raise FileNotFoundError(f"{caso.id}/{receta_id} no corrió")
+    comunes = caso.paquete()["comunes"]
+    requeridos = {"dem.tif", "slp.tif", "firms.csv", "excluido.tif", "cicatriz.tif"}
+    faltantes = requeridos - set(comunes)
+    if faltantes:
+        raise FileNotFoundError(f"{caso.id}: faltan artefactos {sorted(faltantes)}")
+    linea = cadena.VISTAS / caso.id / receta_id / "linea_tiempo.tif"
+    if not linea.exists():
+        raise FileNotFoundError(f"{linea}: puntuar la iteración para crear la línea de tiempo")
+
+    dem = almacen.abrir(comunes["dem.tif"])
+    firms = pd.read_csv(almacen.abrir(comunes["firms.csv"]), parse_dates=["acq_datetime"])
+    hora_ignicion = caso.datos.get("semilla_inicial", {}).get("hora")
+    origen = datetime.fromisoformat(hora_ignicion) if hora_ignicion else caso.ventanas[0].inicio
+    observada = _horas_deteccion_cuadrada(
+        firms, origen, dem, RADIO_LLEGADA_VIIRS_CELDAS,
+    )
+    with rasterio.open(linea) as src:
+        modelada = src.read(1).astype("float64") / 3600.0
+    pendiente = cadena._leer(comunes["slp.tif"])
+    excluido = cadena._leer(comunes["excluido.tif"]).astype(bool)
+    cicatriz = cadena._leer(comunes["cicatriz.tif"]).astype(bool)
+    semilla = cadena._leer(manifiesto["ventanas"][0]["insumos"]["phi.tif"]) < 0
+    if not (observada.shape == modelada.shape == pendiente.shape == semilla.shape):
+        raise ValueError(f"{caso.id}: los artefactos no comparten grilla")
+
+    # La llegada modelada sólo existe donde la cadena alcanzó la celda (> 0). La semilla se
+    # excluye por separado, como fija §3, y el nodata de la pendiente queda fuera.
+    valida = (np.isfinite(observada) & (modelada > 0) & ~excluido & ~semilla
+              & (pendiente >= 0))
+    sesgo = modelada - observada
+    bandas = (("0–10°", 0, 10), ("10–20°", 10, 20), ("20–30°", 20, 30),
+              ("30–40°", 30, 40), ("≥ 40°", 40, np.inf))
+    resumen_bandas = {}
+    for nombre, desde, hasta in bandas:
+        m = valida & (pendiente >= desde) & (pendiente < hasta)
+        resumen_bandas[nombre] = {"celdas": int(m.sum()),
+                                  "sesgo_mediano_h": _mediana_o_none(sesgo[m])}
+
+    llano = valida & (pendiente < 10)
+    pared = valida & (pendiente >= 30)
+    entra = (int(llano.sum()) >= MIN_CELDAS_CASO_PENDIENTE
+             and int(pared.sum()) >= MIN_CELDAS_CASO_PENDIENTE)
+    delta_sin_control = None
+    if entra:
+        delta_sin_control = float(np.median(sesgo[llano]) - np.median(sesgo[pared]))
+
+    bloques = []
+    if entra:
+        for bloque in np.unique(np.floor(observada[valida] / BLOQUE_LLEGADA_H).astype(int)):
+            en_bloque = valida & (np.floor(observada / BLOQUE_LLEGADA_H) == bloque)
+            m0, m30 = en_bloque & (pendiente < 10), en_bloque & (pendiente >= 30)
+            n0, n30 = int(m0.sum()), int(m30.sum())
+            if n0 < MIN_CELDAS_BLOQUE_PENDIENTE or n30 < MIN_CELDAS_BLOQUE_PENDIENTE:
+                continue
+            bloques.append({
+                "desde_h": float(bloque * BLOQUE_LLEGADA_H),
+                "hasta_h": float((bloque + 1) * BLOQUE_LLEGADA_H),
+                "celdas_0_10": n0,
+                "celdas_30_mas": n30,
+                "sesgo_0_10_h": float(np.median(sesgo[m0])),
+                "sesgo_30_mas_h": float(np.median(sesgo[m30])),
+                "delta_h": float(np.median(sesgo[m0]) - np.median(sesgo[m30])),
+                "peso_celdas": n0 + n30,
+            })
+    delta_controlado = _mediana_ponderada_repetida(
+        [b["delta_h"] for b in bloques], [b["peso_celdas"] for b in bloques],
+    )
+
+    # Secundario de §3: igual que AA §1, suma celdas-ventana (no la unión final) y excluye la
+    # máscara, sobre todas las ventanas de la cadena congelada.
+    acumulado = {"10–30°": [0, 0], "≥ 30°": [0, 0]}
+    for ventana in manifiesto["ventanas"]:
+        toa = cadena._leer(cadena._toa(ventana["salidas"]))
+        predicho = (toa > 0) & ~excluido & (pendiente >= 0)
+        for nombre, m in (("10–30°", predicho & (pendiente >= 10) & (pendiente < 30)),
+                          ("≥ 30°", predicho & (pendiente >= 30))):
+            acumulado[nombre][0] += int(m.sum())
+            acumulado[nombre][1] += int((m & ~cicatriz).sum())
+    exceso = {
+        nombre: {"celdas_ventana": total,
+                 "fraccion_fuera_cicatriz": fuera / total if total else None}
+        for nombre, (total, fuera) in acumulado.items()
+    }
+    a, b = exceso["≥ 30°"]["fraccion_fuera_cicatriz"], exceso["10–30°"][
+        "fraccion_fuera_cicatriz"]
+    exceso["diferencia_30_mas_menos_10_30"] = a - b if a is not None and b is not None else None
+    metricas = d.cargar_metricas(caso.id, receta_id)
+    principal = cadena.principal_completa(metricas) if metricas else None
+
+    return {
+        "caso": caso.id,
+        "receta": receta_id,
+        "entra": entra,
+        "celdas_0_10": int(llano.sum()),
+        "celdas_30_mas": int(pared.sum()),
+        "sesgo_0_10_h": _mediana_o_none(sesgo[llano]),
+        "sesgo_30_mas_h": _mediana_o_none(sesgo[pared]),
+        "delta_controlado_h": delta_controlado,
+        "delta_sin_control_h": delta_sin_control,
+        "bandas": resumen_bandas,
+        "bloques": bloques,
+        "exceso_fuera_cicatriz": exceso,
+        "contexto": {"dice": principal.get("dice"),
+                     "sesgo_area": principal.get("sesgo_area")} if principal else None,
+    }
+
+
+def tabla_pendiente(casos: list[str], receta_id: str, sin_control: bool = False) -> list[dict]:
+    resultados = [diagnosticar_pendiente(d.Caso.cargar(caso_id), receta_id) for caso_id in casos]
+    delta = "delta_sin_control_h" if sin_control else "delta_controlado_h"
+    titulo = "Δ sin control de 12 h" if sin_control else "Δ controlado por bloques de 12 h"
+    print(f"\n## Llegada por pendiente · {titulo}\n")
+    print("| Caso | entra | celdas 0–10° | celdas ≥ 30° | bloques | sesgo 0–10° | sesgo ≥30° "
+          "| Δ (h) |")
+    print("|---|---|---:|---:|---:|---:|---:|---:|")
+    for r in resultados:
+        print(f"| {r['caso']} | {'sí' if r['entra'] else 'no'} | {r['celdas_0_10']:,} | "
+              f"{r['celdas_30_mas']:,} | {len(r['bloques'])} | {_fmt(r['sesgo_0_10_h'])} | "
+              f"{_fmt(r['sesgo_30_mas_h'])} | {_fmt(r[delta])} |")
+    print("\nMétricas secundarias y contexto (no deciden):\n")
+    print("| Caso | Δ sin control (h) | exceso ≥30° − 10–30° | Dice | sesgo de área |")
+    print("|---|---:|---:|---:|---:|")
+    for r in resultados:
+        exceso = r["exceso_fuera_cicatriz"]["diferencia_30_mas_menos_10_30"]
+        contexto = r["contexto"] or {}
+        print(f"| {r['caso']} | {_fmt(r['delta_sin_control_h'])} | {_fmt(exceso)} | "
+              f"{_fmt(contexto.get('dice'))} | {_fmt(contexto.get('sesgo_area'))} |")
+    print("\nSesgo mediano modelada − observada (h), por banda:")
+    print("\n| Caso | 0–10° | 10–20° | 20–30° | 30–40° | ≥ 40° |")
+    print("|---|---:|---:|---:|---:|---:|")
+    for r in resultados:
+        print(f"| {r['caso']} | " + " | ".join(
+            _fmt(r["bandas"][b]["sesgo_mediano_h"])
+            for b in ("0–10°", "10–20°", "20–30°", "30–40°", "≥ 40°")) + " |")
+    return resultados
+
+
 def diagnosticar_copa(caso: d.Caso, receta_id: str = "lw-100-001") -> dict:
     """§4: en las celdas de bosque (TU, TL) con dosel que la cicatriz y VIIRS dan por quemadas
     cada día, ¿qué parte hace copa según CFIS (ajustado en rodales de coníferas) y qué parte según
@@ -1793,6 +2001,11 @@ def main() -> None:
     s.add_argument("caso")
     sub.add_parser("horizonte", help="Dice acumulado por corte de horizonte, sin correr nada"
                    ).add_argument("modelo")
+    s = sub.add_parser("pendiente", help="llegada por pendiente de AA §3, sin correr ELMFIRE")
+    s.add_argument("casos", nargs="+")
+    s.add_argument("--receta", default="lw-100-001")
+    s.add_argument("--sin-control", action="store_true",
+                   help="muestra como principal la variante secundaria sin bloques de 12 h")
     args = ap.parse_args()
 
     if args.cmd == "crear-pronostico":
@@ -1801,6 +2014,8 @@ def main() -> None:
     caso = d.Caso.cargar(args.caso) if hasattr(args, "caso") else None
     if args.cmd == "pronostico":
         tabla_pronostico(args.receta, args.casos)
+    elif args.cmd == "pendiente":
+        tabla_pendiente(args.casos, args.receta, args.sin_control)
     elif args.cmd == "copa":
         diagnosticar_copa(caso)
     elif args.cmd == "horizonte":

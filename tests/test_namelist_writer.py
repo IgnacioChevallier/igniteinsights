@@ -65,6 +65,7 @@ class NamelistWriterTests(unittest.TestCase):
             self.root / "outputs",
             simulation_hours=2,
             output_path=self.root / "elmfire.data",
+            phis_adj=0.5,
         )
         namelist = output_path.read_text(encoding="utf-8")
         written = set(re.findall(r"^\s+([A-Z][A-Z0-9_]*)\s*=", namelist, re.M))
@@ -100,6 +101,18 @@ class NamelistWriterTests(unittest.TestCase):
             write_namelist(
                 self.inputs_dir, self.root / "outputs", 2, self.root / "elmfire.data", 60, 30
             )
+
+    def test_phis_adj_only_written_when_recipe_changes_default(self) -> None:
+        default_path, _, _ = write_namelist(
+            self.inputs_dir, self.root / "outputs", 2, self.root / "default.data"
+        )
+        adjusted_path, _, _ = write_namelist(
+            self.inputs_dir, self.root / "outputs", 2, self.root / "adjusted.data", phis_adj=0.5
+        )
+
+        self.assertNotIn("PHIS_ADJ", default_path.read_text())
+        simulator = adjusted_path.read_text().split("&SIMULATOR")[1].split("/")[0]
+        self.assertIn("PHIS_ADJ                        = 0.5", simulator)
 
 
 def test_spotting_ausente_por_defecto_y_con_min_igual_max_si_se_pide():

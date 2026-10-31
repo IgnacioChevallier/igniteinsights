@@ -331,7 +331,6 @@ export function MapPanel({ runs }: { runs: Run[] }) {
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
   const [showFirelineIntensity, setShowFirelineIntensity] = useState(false);
-  const [showWindSpeed, setShowWindSpeed] = useState(false);
   const [showEnsembleAgreement, setShowEnsembleAgreement] = useState<boolean>(
     ENSEMBLE_AGREEMENT_LAYER.defaultVisible,
   );
@@ -586,7 +585,6 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           fitTo={visibleIsochrones}
           windField={windField}
           windTimeHours={clock.t}
-          windSurfaceVisible={showWindSpeed}
           clock={animatable ? clockView : null}
           overlay={
             animatable ? (
@@ -686,6 +684,9 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             <div className="mt-0.5 flex justify-between text-[9px] tabular-nums text-muted-foreground">
               <span>0</span><span>20</span><span>40+ mph</span>
             </div>
+            <p className="mt-1 text-[9px] leading-snug text-muted-foreground">
+              El color de cada línea indica la velocidad del viento.
+            </p>
             <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
               {(wind?.source_model ?? "GFS 0,25°").replace("0.25", "0,25")} · entrada de
               ELMFIRE a 6,1 m
@@ -707,17 +708,6 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         <Separator />
 
         <div className="flex flex-col gap-2">
-          {wind && (
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={showWindSpeed}
-                onChange={(e) => setShowWindSpeed(e.target.checked)}
-              />
-              Velocidad del viento
-            </label>
-          )}
-
           <label className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"

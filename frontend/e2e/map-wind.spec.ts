@@ -18,11 +18,10 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
   await expect(aside.getByText(/GFS 0,25°/)).toBeVisible();
   await expect(aside.getByText(/entrada de ELMFIRE/)).toBeVisible();
 
-  const surfaceToggle = aside.getByRole("checkbox", { name: "Velocidad del viento" });
   const particles = page.getByTestId("wind-particle-canvas");
-  await expect(surfaceToggle).not.toBeChecked();
-  await surfaceToggle.check();
-  await expect(particles).toHaveAttribute("data-wind-surface-visible", "true");
+  await expect(aside.getByText("El color de cada línea indica la velocidad del viento.")).toBeVisible();
+  await expect(aside.getByRole("checkbox", { name: "Velocidad del viento" })).toHaveCount(0);
+  await expect(particles).toHaveAttribute("data-wind-surface-visible", "false");
 
   await page.waitForTimeout(2500); // let the particle trails build
   await expect

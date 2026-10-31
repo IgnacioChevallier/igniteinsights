@@ -117,6 +117,12 @@ pendiente. El detalle de cada límite está en `docs/resultados/RIESGOS_Y_SUPOSI
 
 ### 6.2 Límites declarados (cerrados)
 
+- **Pendiente contra llano (AA, cerrada 2026-10-31): D se confirma; mecanismo no general.** En cinco casos
+  no vistos que alcanzaron el mínimo de celdas, el Δ controlado por momento fue positivo en cuatro
+  y negativo en uno; Epuyén 2019 no entró. Sobre calibración, reducir φs pasa el criterio de H1 sólo
+  en Patriada y aumentar el viento pasa H2 sólo en Cholila; tres de cinco no apoyan ninguna y
+  ninguno apoya ambas. No se adopta ninguna perilla y modelo-v0 no cambia
+  (`docs/resultados/diagnostico-e2e/notas/AA-pendiente.md` §6–§7).
 - **Día 1 dentro del alcance: el residuo de P-24 después de la primera pasada.** Desde ahí, el
   pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24), con el pronóstico GFS que se
   tenía en cada reinicio, mejora a la cadena en 4 de 4 incendios GFS a 12 h (+0,118) y en 3 de 4 a
