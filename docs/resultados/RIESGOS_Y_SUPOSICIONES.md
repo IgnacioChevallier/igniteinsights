@@ -19,7 +19,7 @@ incendios.
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
 | 6 | Ingesta histórica de FIRMS | La app no podía preparar incendios viejos | Resuelto en la app |
-| 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas | Declarado |
+| 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas. Con P-24, 0,084 / 0,145 a 12 / 24 h, la mitad que en calibración | Declarado |
 
 ## 1. Supresión
 
@@ -476,6 +476,11 @@ que cubren los últimos meses. Un incendio de hace más de unos meses quedaba si
 **Efecto.** En los cuatro de prueba el Dice baja a 0,191 (mediana 0,167), con dos alarmas.
 Modelo-v0 es una línea de base auditable para Los Alerces y alrededores, no una afirmación de
 generalización. El resultado de prueba es descriptivo: no se usó para volver a elegir la receta.
+
+Con el protocolo P-24 (2026-10-31, `diagnostico-e2e/notas/AB-p24-prueba.md`), la mediana del Dice del
+crecimiento en prueba es 0,084 a 12 h y 0,145 a 24 h. Le gana a la cadena en los cuatro casos, pero
+el nivel es la mitad que en los cuatro incendios GFS de calibración (0,192 y 0,262), y a la
+persistencia le gana sólo en 3 de 4. La brecha entre calibración y prueba de la cadena sigue en P-24.
 
 ## 8. Suposiciones de entrada sin base local
 

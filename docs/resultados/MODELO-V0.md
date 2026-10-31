@@ -121,7 +121,7 @@ Lectura:
 - **En prueba, el único caso al que el horizonte largo perjudica es Epuyén 2019.** Su Dice tiene
   el máximo a 48 h (0,326) y cae a 0,128 a medida que el sesgo sube a 14,6. Toda la diferencia
   entre el tope de 72 h (0,215) y el vigente (0,191) viene de ese caso. Es el límite de supresión
-  ya declarado (`ESTADO-RESEARCH.md` §6). El Turbio no mejora con ningún corte.
+  ya declarado (`ESTADO-RESEARCH.md` §6.2). El Turbio no mejora con ningún corte.
 - **El horizonte no se reelige con esta tabla.** La regla (crecimiento FIRMS, tope de 120 h) se
   fijó antes del primer barrido, y elegirla ahora mirando el Dice de prueba violaría la regla de
   parada. La tabla es un análisis de sensibilidad: dice que la métrica principal no depende del

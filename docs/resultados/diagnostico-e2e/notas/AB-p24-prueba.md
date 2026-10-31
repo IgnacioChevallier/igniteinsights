@@ -8,7 +8,7 @@
 
 El 0,191 de prueba de modelo-v0 mide la cadena: 72–120 h desde el punto de ignición reportado y sin
 supresión. La app no hace eso. Arranca en la primera detección VIIRS y re-siembra en cada pasada
-(P-24; ESTADO §6, Día 1 fuera del alcance). P-24 nunca se corrió sobre los cuatro casos de prueba, que
+(P-24; ESTADO §6.1, Día 1 fuera del alcance). P-24 nunca se corrió sobre los cuatro casos de prueba, que
 son el holdout del producto. Decisión del usuario (2026-10-31): no se excluye ningún caso.
 
 ## 1. Diseño registrado (antes de calcular)

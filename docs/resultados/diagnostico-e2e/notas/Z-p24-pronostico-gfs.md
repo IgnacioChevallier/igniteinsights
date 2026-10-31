@@ -209,10 +209,19 @@ de v7 no le daba a P-24 una ventaja que el pronóstico operativo no tenga.
 ### 4.4 Consecuencia
 
 - Las cifras de P-24 con pronóstico real (4 incendios GFS: +0,118 en 4 de 4 a 12 h, +0,154 en 3 de 4
-  a 24 h) pasan a ESTADO §6, `DIA-1-PROPUESTA.md` §7.2 y RIESGOS §2 como las del pronóstico
+  a 24 h) pasan a ESTADO §6.2, `DIA-1-PROPUESTA.md` §7.2 y RIESGOS §2 como las del pronóstico
   operativo.
 - Las de v7 (6 incendios: +0,096 en 6 de 6 y +0,131 en 5 de 6) se conservan rotuladas como hindcast:
   análisis GFS posteriores al reinicio en cuatro incendios y ERA5 (reanálisis) en Cholila y Alerces
   2016.
 - modelo-v0, `lw-100-001` y `lw-100-obs-001` no cambian. No se eligió otro ciclo ni otra latencia.
 - Cholila 2015 y Alerces 2016 siguen sin la variante (§2.2): su P-24 es con reanálisis.
+
+> **Nota (2026-10-31): medición equivalente en `main`.** La rama `main` ya tenía la misma pregunta
+> medida en `docs/resultados/P24-PRONOSTICO-GFS.md` (corte 2026-10-23, commit `b2ea414`), con los
+> casos `*/pronostico-gfs-v7`. Ahí el hindcast sí estaba declarado, en el ESTADO de `main`; lo que
+> dice §0 vale sólo para esta rama. La regla de ciclo es otra: el último ciclo publicado a la hora en
+> que la pasada se ve en FIRMS (pasada + 3 h de latencia − 4 h de publicación), en lugar de
+> `ciclo + 4 h ≤ reinicio`. Da +0,117 en 4 de 4 a 12 h y +0,153 en 3 de 4 a 24 h, con diferencias por
+> incendio de hasta 0,005 contra §4.2 (Alerces 2023 a 24 h: 0,322 contra 0,317). Son dos mediciones independientes que coinciden. Al
+> integrar las ramas hay que decidir qué documento queda.

@@ -745,6 +745,15 @@ CBH de 1–1,5 m. CFIS la enciende en el 99–100 %. Sólo el coihue/ciprés con
 
 ### 7.5 Qué sigue
 
+> **Nota (2026-10-31).** Dos cosas de esta sección cambiaron. Las cifras de P-24 (+0,10/+0,13 en
+> los seis incendios) son hindcast. Con el pronóstico GFS que se tenía en cada reinicio, P-24 gana
+> a la cadena por +0,118 en 4 de 4 a 12 h y por +0,154 en 3 de 4 a 24 h, sobre los cuatro incendios
+> GFS (§7.2, `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`); en los cuatro de prueba, por +0,079
+> y +0,120 en 4 de 4 (`AB-p24-prueba.md`). Y las primeras 2–6 h ya no son un límite declarado:
+> quedan fuera del alcance del producto, que arranca en la primera pasada VIIRS (decisión del
+> usuario, `ESTADO-RESEARCH.md` §6.1). El límite del día 1 dentro del alcance es el residuo del
+> primer reinicio (§7.3, §7.6).
+
 - **P-24 queda como el protocolo del pronóstico operativo.** Podría reportarse en la tesis junto
   a modelo-v0, como otra afirmación: "pronóstico a 12–24 h desde la última pasada", +0,10/+0,13
   de Dice contra la cadena y por encima de la persistencia en los seis incendios.
