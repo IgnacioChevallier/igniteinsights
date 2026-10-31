@@ -78,7 +78,8 @@ a 0,409. En prueba, sólo Epuyén 2019 empeora con el horizonte largo (supresió
   tienen una decisión.
 - Pavesas, supresión, ERA5 ×1,3, dosel abierto en matorral, WindNinja completo y las alternativas
   de estepa fueron medidos y no adoptados.
-- m10/m100 carece de una base física completa, pero resultó insensible en este benchmark.
+- m10/m100 carece de una base física completa, pero resultó insensible en este benchmark. Se
+  cerró como límite declarado el 2026-10-31: no se buscan mediciones.
 
 No queda otro barrido justificable con los mismos datos. La regla de parada de modelo-v0 es:
 **sólo se reabre por un bug físico o por evidencia externa nueva**, no por mejorar un caso de
@@ -93,7 +94,14 @@ prueba.
   (`docs/resultados/DIA-1-PROPUESTA.md` §7).
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - Viento de superficie: una estación cercana a Alerces 2016 o Cholila permitiría contrastar
-  ERA5 con WindNinja.
+  ERA5 con WindNinja. Las series pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se
+  canceló el 2026-10-31: queda como límite cerrado y no reabre ninguna decisión.
+- **Pavesas condicionadas (Y, 2026-10-23): no se usan.** Techo por incendio 0,470; ninguna regla
+  con umbral previo pasa de 0,439 sin alarmas. Un orden exploratorio por la intensidad del modelo
+  base coincide con el techo, con márgenes de menos de un punto, y queda registrado como hipótesis
+  para incendios nuevos. Reabre sólo una prueba independiente de esa regla (d1, Y §4); la otra
+  condición, viento observado, se canceló con el pedido al INTA
+  (`docs/resultados/diagnostico-e2e/notas/Y-pavesas-condicionadas.md`).
 - Las Golondrinas: hacen falta a la vez el evento meteorológico que el GFS no tiene y las pavesas,
   que modelo-v0 no tiene. Juntos dan 9.088 ha y Dice 0,545, como diagnóstico. Por separado, el
   SYNOP da ×8 y las pavesas ×1,0

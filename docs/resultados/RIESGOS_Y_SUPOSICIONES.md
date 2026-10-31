@@ -1,6 +1,6 @@
 # Riesgos y suposiciones de modelo-v0
 
-> Corte: 2026-10-12. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
+> Corte: 2026-10-12; actualizado el 2026-10-31. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
 > cómo afecta a los resultados, qué se midió y qué dato permitiría reducirlo. La evidencia
 > completa está en `AUDITORIA-FISICA.md`.
 
@@ -15,7 +15,7 @@ incendios.
 |---|---|---|---|
 | 1 | Sin supresión | Sobre-propaga los incendios combatidos: 5–16× en El Turbio y Epuyén 2019 | Probado y no adoptado |
 | 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–4,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
-| 3 | Viento de superficie | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago | Límite de datos |
+| 3 | Viento de superficie y pavesas | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago. Sin pavesas, subestima los eventos de viento extremo | Límite de datos; cerrado (sin viento de estación desde 2026-10-31) |
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
 | 6 | Ingesta histórica de FIRMS | La app no podía preparar incendios viejos | Resuelto en la app |
@@ -280,6 +280,18 @@ mezcla otro incendio: el lóbulo sureste está dentro del polígono oficial y MO
 como al cuerpo principal. Y ardió en la primera noche. Sin pavesas, darle 72 h al modelo no recupera
 el incendio: en `t*` = 27 h el Dice es 0,40, y no hay nada de la cicatriz más allá de 15 km.
 
+**Pavesas: mecanismo faltante declarado.** modelo-v0 corre sin `&SPOTTING`. Como escalar global
+(`lw-100-pavx10-001`, 10 % de las celdas en copa y 1 % en superficie), las pavesas no pasan la
+puerta: media 0,451, tres alarmas (X). Encenderlas por incendio tendría un techo de 0,470, pero
+ninguna regla con umbral previo lo alcanza: ni la meteorología pronosticada (viento máximo
+10,2 mph, FFWI máximo 22), ni el combustible, ni la intensidad del modelo base, ni el crecimiento
+observado en P-24 (`diagnostico-e2e/notas/Y-pavesas-condicionadas.md`). Efecto esperado: en
+eventos de viento extremo con cruces de agua o de bosque en altura, el modelo subestima. Las
+Golondrinas lo cuantifica: con viento observado, las pavesas multiplican el área por 4,9; con el
+GFS, por 1,0. Se reabre sólo con una prueba independiente de la regla d1 registrada en Y §4, sobre
+incendios que no sean los 7 de calibración. La otra condición, viento de estación en los incendios
+de calibración, se cerró el 2026-10-31: las series del INTA y de Bosques de Chubut no llegaron.
+
 **Puerta SMN WRF (frente 4, 2026-10-18).** Se comparó GFS y SMN WRF 4 km contra SYNOP crudo en las
 horas de corrida P-24 de los 4 incendios 2023–2026. WRF no pasa: empeora la dirección en Esquel
 (26,8° → 30,7°) y Futaleufú (19,1° → 39,1°), y sólo mejora en El Bolsón (81° → 12°, n = 21, horas
@@ -302,7 +314,12 @@ No se encontró ninguna estación dentro del Parque Nacional Los Alerces ni en C
 Alerces 2015 y 2016 la estación más útil es Trevelin (Agroforestal), que en SIPAS sólo tiene datos
 diarios; Trevelin (Central de Incendios) no tiene boletines públicos.
 
-**Qué permitiría reducirlo.** Una serie horaria (o mejor, de 10 minutos) de una estación a menos
+**Pedido cancelado (2026-10-31).** Las series horarias pedidas al INTA (EEA Esquel) y a Bosques de
+Chubut no llegaron, y el pedido se dio por cancelado. El viento de superficie queda como límite
+declarado y cerrado: ya no es condición de reapertura de nada (pavesas, contraste ERA5/WindNinja,
+Alerces 2015). La tabla anterior se conserva como registro de lo que se buscó.
+
+**Qué permitiría reducirlo** (fuera del alcance de la tesis). Una serie horaria (o mejor, de 10 minutos) de una estación a menos
 de 10 km del incendio durante el evento. Con eso se mide el error del reanálisis en vez de
 suponerlo. Si la estación muestra viento del sur en Alerces 2015, es evidencia externa nueva en
 los términos de la regla de parada.
@@ -447,9 +464,10 @@ generalización. El resultado de prueba es descriptivo: no se usó para volver a
 
 ## 8. Suposiciones de entrada sin base local
 
-Detalladas en `PENDING_PARAMETERS.md` §2:
+Detalladas en `PENDING_PARAMETERS.md` §2 (m10/m100, ya cerrado, en §3):
 
 - **m10/m100:** offsets +2/+5 sin fundamento físico propio; el benchmark resultó insensible.
+  Cerrado como límite declarado el 2026-10-31: no se buscan mediciones.
 - **CBH de bosque nativo:** valores de literatura, no un inventario regional.
 - **Rugosidad:** valor convencional, no medido en el AOI.
 - **Reconstrucción de perímetro FIRMS:** no calibrada, pero evaluada en P-24 contra la cicatriz

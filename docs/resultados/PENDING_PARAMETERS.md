@@ -37,8 +37,6 @@ por evidencia externa nueva.
 
 | Tema | Estado | Qué permitiría reabrirlo |
 |---|---|---|
-| m10/m100 | Los offsets +2/+5 no tienen fundamento físico, pero el benchmark es insensible | Serie meteorológica previa y mediciones de humedad de combustibles |
-| Viento de superficie | ERA5 y GFS no resuelven bien los valles | Estación cercana a Alerces 2016 o Cholila durante el incendio |
 | CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
 | Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da pronósticos casi iguales a los de arrancar desde la cicatriz real | Sólo un perímetro operativo independiente (vuelo IR, partes) |
 | Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
@@ -64,6 +62,14 @@ mismos once incendios.
   techo de Dice de 0,85 en Patriada y 0,86 en Cholila. Excluirlas (variante C) vale ≤ 0,005 en
   calibración y ≤ 0,01 en P-24, y no cambia la receta ni ninguna conclusión. No se adopta (decisión
   del 2026-10-23); se declara como límite (`docs/resultados/diagnostico-e2e/notas/T-truncado.md`).
+- **m10/m100** (cerrado el 2026-10-31): los offsets +2/+5 no tienen fundamento físico, pero el
+  benchmark es insensible. No se buscan mediciones.
+- **Viento de superficie** (cerrado el 2026-10-31): ERA5 y GFS no resuelven bien los valles. Las
+  series de estación pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se canceló; ya
+  no reabre ninguna decisión.
+- **Pavesas** (`docs/resultados/diagnostico-e2e/notas/Y-pavesas-condicionadas.md`): no se usan ni
+  globales ni condicionadas a una regla previa. Sólo las reabre una prueba independiente de la
+  regla d1 registrada en Y §4.
 - **Datos históricos en la app:** la ingesta FIRMS NRT no reemplaza las fuentes SP necesarias
   para reconstruir incendios antiguos.
 
@@ -71,6 +77,5 @@ mismos once incendios.
 
 1. Incorporar al texto de tesis la comparación final cerrada en
    `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
-2. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
 
 No quedan barridos de receta pendientes con los datos actuales.

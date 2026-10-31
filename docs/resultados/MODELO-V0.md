@@ -145,3 +145,7 @@ vigentes. Promover un futuro `modelo-v1` exigirá:
 Modelo-v0 no promete reproducir supresión, igniciones secundarias ni ráfagas subhorarias. El
 conjunto de prueba es pequeño y heterogéneo. La promoción significa “baseline productivo,
 auditable y físicamente verificado”, no “modelo universalmente validado”.
+
+- Sin pavesas. No se usan ni globales (X) ni condicionadas a una regla previa (Y): ninguna
+  variable disponible antes de pronosticar separa los incendios en que ayudan de los que desbordan
+  (`diagnostico-e2e/notas/X-pavesas-calibracion.md`, `Y-pavesas-condicionadas.md`).
