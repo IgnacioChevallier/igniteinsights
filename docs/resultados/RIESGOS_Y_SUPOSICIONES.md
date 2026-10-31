@@ -1,6 +1,6 @@
 # Riesgos y suposiciones de modelo-v0
 
-> Corte: 2026-10-12. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
+> Corte: 2026-10-12; actualizado el 2026-10-31. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
 > cómo afecta a los resultados, qué se midió y qué dato permitiría reducirlo. La evidencia
 > completa está en `AUDITORIA-FISICA.md`.
 
@@ -14,12 +14,12 @@ incendios.
 | # | Riesgo | Efecto sobre el resultado | Estado |
 |---|---|---|---|
 | 1 | Sin supresión | Sobre-propaga los incendios combatidos: 5–16× en El Turbio y Epuyén 2019 | Probado y no adoptado |
-| 2 | Día 1 explosivo | Desde la ignición sub-propaga el primer día 6–21× en cuatro de seis incendios. Desde la primera pasada VIIRS el déficit desaparece en dos y queda en 2–4,5× en otros dos | Medido (P-24 y diagnóstico de copa); límite declarado |
-| 3 | Viento de superficie | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago | Límite de datos |
+| 2 | Día 1 explosivo | Desde la primera pasada VIIRS, donde arranca la app, el déficit desaparece en dos incendios y queda en 2–4,5× en otros dos. Las 2–6 h previas (6–21× desde la ignición en cuatro de seis) quedan fuera del alcance del producto | Residuo medido (P-24 y diagnóstico de copa), límite declarado; lo previo a la primera pasada, fuera del alcance |
+| 3 | Viento de superficie y pavesas | Dirección del frente errada en 20–100°; en Alerces 2015 el fuego sube la montaña en vez de bordear el lago. Sin pavesas, subestima los eventos de viento extremo | Límite de datos; cerrado (sin viento de estación desde 2026-10-31) |
 | 4 | Humedad sin gradiente de altura | La montaña arde tan seca como el valle | Medido; cerrado como límite |
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
 | 6 | Ingesta histórica de FIRMS | La app no podía preparar incendios viejos | Resuelto en la app |
-| 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas | Declarado |
+| 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas. Con P-24, 0,084 / 0,145 a 12 / 24 h, la mitad que en calibración | Declarado |
 
 ## 1. Supresión
 
@@ -69,7 +69,7 @@ otras causas de frenado.
 
 | Fase | Sesgo |
 |---|---|
-| Primeras horas, desde la ignición | 6–21× **por debajo** en cuatro de seis incendios (§2) |
+| Primeras horas, desde la ignición (fuera del alcance de la app) | 6–21× **por debajo** en cuatro de seis incendios (§2) |
 | Primer día, desde la primera pasada VIIRS | ≈1 en cuatro incendios; 0,3–0,5 en Patriada y Alerces 2024 (§2) |
 | Después del primer día (reinicios de P-24 desde las 12–19 h) | Mediana **4×**. El 71 % de los 28 reinicios se pasa más de 2×; sólo el 7 % queda por debajo de 0,5× |
 | Área de la cadena al horizonte (calibración) | Mediana ~1,4: Alerces 2023 1,86, Alerces 2016 1,69, Epuyén 1,41, Alerces 2024 1,35, Cholila 0,87, Patriada 0,70 |
@@ -104,6 +104,12 @@ sectores contenidos o (b) imponer barreras en los insumos. Sin esos registros, l
 alternativa es restringir la validación a ventanas de crecimiento libre.
 
 ## 2. Día 1 explosivo
+
+**Alcance (decisión del usuario, 2026-10-31).** La app arranca en la primera detección VIIRS. Las
+2–6 h anteriores a la primera pasada quedan **fuera del alcance del producto**: sólo aparecen porque
+el benchmark de cadena arranca en el punto de ignición reportado. El límite del día 1 dentro del
+alcance es el residuo de P-24 después de la primera pasada: 2–4,5× por debajo en Patriada y
+Alerces 2024, compatible con copa (`DIA-1-PROPUESTA.md` §7.3–7.6).
 
 **Suposición.** El viento es horario y uniforme dentro de cada celda del modelo meteorológico; la
 propagación es superficial, sin pavesas, y la copa casi nunca se enciende con el CBH derivado.
@@ -196,14 +202,23 @@ abierto. Pero no es la explicación principal que muestran estos datos.
   +1–3 % a la velocidad.
 
 **Consecuencia para el uso.** Hay que pronosticar desde la última pasada VIIRS, no desde la
-ignición. Con el protocolo P-24 el Dice del crecimiento mejora frente a la cadena de modelo-v0:
+ignición. Con el protocolo P-24 y el pronóstico GFS que se tenía en cada reinicio (último ciclo
+publicado; `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`), el Dice del crecimiento mejora frente
+a la cadena de modelo-v0 en los cuatro incendios GFS:
 
-- a 12 h, +0,096 de mediana, en 6 de 6 incendios;
-- a 24 h, +0,131, en 5 de 6;
-- en los dos plazos, ELMFIRE le gana a la extrapolación ingenua en los 6.
+- a 12 h, +0,118 de mediana, en 4 de 4;
+- a 24 h, +0,154, en 3 de 4 (no mejora Alerces 2023, que después frenó el combate);
+- en los dos plazos, ELMFIRE le gana a la extrapolación ingenua en los 4.
 
-Las primeras 2–6 h, antes de la primera detección, quedan como límite: no son pronosticables con
-ELMFIRE 2025.0212 configurado como modelo-v0.
+El error de pronóstico del GFS a 5–33 h cuesta −0,001 de mediana frente a los análisis. Las cifras
+anteriores (+0,096 en 6 de 6 y +0,131 en 5 de 6) son hindcast: análisis GFS posteriores al reinicio
+y ERA5 en Cholila y Alerces 2016. El error del GFS contra el viento real del valle (§3) está en las
+dos.
+
+Las primeras 2–6 h, antes de la primera detección, no son pronosticables con ELMFIRE 2025.0212
+configurado como modelo-v0, y quedan fuera del alcance del producto, que arranca en esa detección.
+Lo que queda como límite es el residuo del primer reinicio en Patriada y Alerces 2024 (sesgo 0,44 y
+0,24 a 24 h con el pronóstico real; Z §4).
 
 **Qué permitiría reducirlo.**
 
@@ -280,6 +295,18 @@ mezcla otro incendio: el lóbulo sureste está dentro del polígono oficial y MO
 como al cuerpo principal. Y ardió en la primera noche. Sin pavesas, darle 72 h al modelo no recupera
 el incendio: en `t*` = 27 h el Dice es 0,40, y no hay nada de la cicatriz más allá de 15 km.
 
+**Pavesas: mecanismo faltante declarado.** modelo-v0 corre sin `&SPOTTING`. Como escalar global
+(`lw-100-pavx10-001`, 10 % de las celdas en copa y 1 % en superficie), las pavesas no pasan la
+puerta: media 0,451, tres alarmas (X). Encenderlas por incendio tendría un techo de 0,470, pero
+ninguna regla con umbral previo lo alcanza: ni la meteorología pronosticada (viento máximo
+10,2 mph, FFWI máximo 22), ni el combustible, ni la intensidad del modelo base, ni el crecimiento
+observado en P-24 (`diagnostico-e2e/notas/Y-pavesas-condicionadas.md`). Efecto esperado: en
+eventos de viento extremo con cruces de agua o de bosque en altura, el modelo subestima. Las
+Golondrinas lo cuantifica: con viento observado, las pavesas multiplican el área por 4,9; con el
+GFS, por 1,0. Se reabre sólo con una prueba independiente de la regla d1 registrada en Y §4, sobre
+incendios que no sean los 7 de calibración. La otra condición, viento de estación en los incendios
+de calibración, se cerró el 2026-10-31: las series del INTA y de Bosques de Chubut no llegaron.
+
 **Puerta SMN WRF (frente 4, 2026-10-18).** Se comparó GFS y SMN WRF 4 km contra SYNOP crudo en las
 horas de corrida P-24 de los 4 incendios 2023–2026. WRF no pasa: empeora la dirección en Esquel
 (26,8° → 30,7°) y Futaleufú (19,1° → 39,1°), y sólo mejora en El Bolsón (81° → 12°, n = 21, horas
@@ -302,7 +329,12 @@ No se encontró ninguna estación dentro del Parque Nacional Los Alerces ni en C
 Alerces 2015 y 2016 la estación más útil es Trevelin (Agroforestal), que en SIPAS sólo tiene datos
 diarios; Trevelin (Central de Incendios) no tiene boletines públicos.
 
-**Qué permitiría reducirlo.** Una serie horaria (o mejor, de 10 minutos) de una estación a menos
+**Pedido cancelado (2026-10-31).** Las series horarias pedidas al INTA (EEA Esquel) y a Bosques de
+Chubut no llegaron, y el pedido se dio por cancelado. El viento de superficie queda como límite
+declarado y cerrado: ya no es condición de reapertura de nada (pavesas, contraste ERA5/WindNinja,
+Alerces 2015). La tabla anterior se conserva como registro de lo que se buscó.
+
+**Qué permitiría reducirlo** (fuera del alcance de la tesis). Una serie horaria (o mejor, de 10 minutos) de una estación a menos
 de 10 km del incendio durante el evento. Con eso se mide el error del reanálisis en vez de
 suponerlo. Si la estación muestra viento del sur en Alerces 2015, es evidencia externa nueva en
 los términos de la regla de parada.
@@ -380,7 +412,7 @@ Hay dos escalas.
 cada incendio arranca de un punto de ignición y cada ventana arranca del perímetro simulado por la
 anterior. En la app, la simulación arranca del perímetro reconstruido con las detecciones FIRMS
 (`ignition_builder.py`): lo que ya ardió hasta ese momento entra como quemado. Esa reconstrucción
-no participó de la calibración (`PENDING_PARAMETERS.md` §2), pero ya se evaluó en P-24
+no participó de la calibración (`PENDING_PARAMETERS.md` §3), pero ya se evaluó en P-24
 (`DIA-1-PROPUESTA.md` §7.3): arrancar desde ella o desde la cicatriz real da pronósticos casi
 iguales. La reconstrucción sólo infla las semillas chicas, porque un píxel aislado se dibuja como
 44 ha.
@@ -445,12 +477,18 @@ que cubren los últimos meses. Un incendio de hace más de unos meses quedaba si
 Modelo-v0 es una línea de base auditable para Los Alerces y alrededores, no una afirmación de
 generalización. El resultado de prueba es descriptivo: no se usó para volver a elegir la receta.
 
+Con el protocolo P-24 (2026-10-31, `diagnostico-e2e/notas/AB-p24-prueba.md`), la mediana del Dice del
+crecimiento en prueba es 0,084 a 12 h y 0,145 a 24 h. Le gana a la cadena en los cuatro casos, pero
+el nivel es la mitad que en los cuatro incendios GFS de calibración (0,192 y 0,262), y a la
+persistencia le gana sólo en 3 de 4. La brecha entre calibración y prueba de la cadena sigue en P-24.
+
 ## 8. Suposiciones de entrada sin base local
 
-Detalladas en `PENDING_PARAMETERS.md` §2:
+Detalladas en `PENDING_PARAMETERS.md` §2 (m10/m100 y la reconstrucción, ya cerradas, en §3):
 
 - **m10/m100:** offsets +2/+5 sin fundamento físico propio; el benchmark resultó insensible.
+  Cerrado como límite declarado el 2026-10-31: no se buscan mediciones.
 - **CBH de bosque nativo:** valores de literatura, no un inventario regional.
 - **Rugosidad:** valor convencional, no medido en el AOI.
 - **Reconstrucción de perímetro FIRMS:** no calibrada, pero evaluada en P-24 contra la cicatriz
-  real (ver §5).
+  real (ver §5). Cerrada como límite declarado el 2026-10-31.

@@ -31,16 +31,13 @@ por evidencia externa nueva.
 | CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino |
 | CBD del pino | 0,16 kg/m³ | Medido en plantaciones patagónicas |
 | Pérdida previa Hansen | Sin dosel | Sólo pérdidas anteriores al año del incendio |
-| Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app en tiempo real todavía no la aplica, porque no tiene punto de ignición |
+| Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app operativa de `main` la aplica sin punto de ignición (`agrupar`: saltos ≤ 3.000 m y ≤ 24 h). Elige las mismas detecciones en 33 de 34 reinicios; Jaccard mínimo 0,996 (`AC-semilla-app.md`) |
 
 ## 2. Abierto, pero no bloquea el modelo
 
 | Tema | Estado | Qué permitiría reabrirlo |
 |---|---|---|
-| m10/m100 | Los offsets +2/+5 no tienen fundamento físico, pero el benchmark es insensible | Serie meteorológica previa y mediciones de humedad de combustibles |
-| Viento de superficie | ERA5 y GFS no resuelven bien los valles | Estación cercana a Alerces 2016 o Cholila durante el incendio |
 | CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
-| Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da pronósticos casi iguales a los de arrancar desde la cicatriz real | Sólo un perímetro operativo independiente (vuelo IR, partes) |
 | Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
 
 Estos puntos son incertidumbres de entrada. No justifican otra búsqueda de perillas con los
@@ -48,29 +45,64 @@ mismos once incendios.
 
 ## 3. Límites declarados
 
-- **Día 1 explosivo:** casi todo el déficit está en las 2–6 h anteriores a la primera pasada
-  VIIRS. Desde ahí queda un residuo de 2–4,5× en Patriada y Alerces 2024, compatible con copa que
-  ELMFIRE 2025.0212 no enciende bajo dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7). El
-  pronóstico operativo arranca en la última pasada (protocolo P-24).
+- **Día 1, residuo después de la primera pasada VIIRS:** el primer reinicio de P-24 queda 2–4,5×
+  por debajo en Patriada y Alerces 2024, compatible con copa que ELMFIRE 2025.0212 no enciende bajo
+  dosel (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6). Es el límite del día 1 dentro del alcance:
+  el pronóstico operativo arranca en la última pasada (protocolo P-24).
 - **Supresión:** la regla disponible de ELMFIRE fue implementada y probada; empeora la
   calibración y no contiene los incendios que más sobre-propagan.
 - **Las Golondrinas:** la ráfaga nocturna no está representada en GFS; es un caso límite y no
   participa del gate de sesgo.
 - **Transferencia:** el conjunto de prueba tiene cuatro incendios, Dice 0,191/0,167 y dos
-  alarmas. `modelo-v0` es un baseline productivo auditable, no una afirmación de generalización
-  universal.
+  alarmas. Con P-24, la mediana es 0,084 / 0,145 a 12 / 24 h, y le gana a la cadena en 4 de 4
+  (`docs/resultados/diagnostico-e2e/notas/AB-p24-prueba.md`). `modelo-v0` es un baseline productivo
+  auditable, no una afirmación de generalización universal.
+- **P-24 con reanálisis** en Cholila 2015, Alerces 2016, Epuyén 2019 y Alerces 2015: el GFS de esas
+  fechas sólo está archivado cada 3 h, así que corren con ERA5 y no son pronóstico (notas Z y AB).
+  No se baja ese archivo (decisión del usuario, 2026-10-31).
+- **Reconstrucción del perímetro FIRMS** (cerrado el 2026-10-31, decisión del usuario): no participa
+  en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da
+  pronósticos casi iguales a los de arrancar desde la cicatriz real. Sólo la reabre un perímetro
+  operativo independiente (vuelo IR, partes).
 - **Islas en la referencia truncada:** con `hasta_horizonte`, la cicatriz no vista se excluye, pero
   las islas sin quemar no vistas dentro del perímetro final siguen contando como negativos. Eso da un
   techo de Dice de 0,85 en Patriada y 0,86 en Cholila. Excluirlas (variante C) vale ≤ 0,005 en
   calibración y ≤ 0,01 en P-24, y no cambia la receta ni ninguna conclusión. No se adopta (decisión
   del 2026-10-23); se declara como límite (`docs/resultados/diagnostico-e2e/notas/T-truncado.md`).
-- **Datos históricos en la app:** la ingesta FIRMS NRT no reemplaza las fuentes SP necesarias
-  para reconstruir incendios antiguos.
+- **m10/m100** (cerrado el 2026-10-31): los offsets +2/+5 no tienen fundamento físico, pero el
+  benchmark es insensible. No se buscan mediciones.
+- **Viento de superficie** (cerrado el 2026-10-31): ERA5 y GFS no resuelven bien los valles. Las
+  series de estación pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se canceló; ya
+  no reabre ninguna decisión.
+- **Pavesas** (`docs/resultados/diagnostico-e2e/notas/Y-pavesas-condicionadas.md`): no se usan ni
+  globales ni condicionadas a una regla previa. Sólo las reabre una prueba independiente de la
+  regla d1 registrada en Y §4.
 
-## 4. Próximo trabajo
+## 4. Estado de cierre (2026-10-31)
 
-1. Incorporar al texto de tesis la comparación final cerrada en
-   `docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`.
-2. Incorporar viento medido sólo si aparece una fuente independiente adecuada.
+**Fuera del alcance**
+
+- Las 2–6 h anteriores a la primera pasada VIIRS. La app arranca en la primera detección VIIRS
+  (decisión del usuario, 2026-10-31). Ahí está casi todo el déficit del día 1, y sólo aparece porque
+  el benchmark de cadena arranca en el punto de ignición reportado.
+- El ensamble paramétrico (`docs/out-of-scope/ENSAMBLE-PARAMETRICO.md`).
+
+**Límites declarados (cerrados)**
+
+Los de §3. Se reabren sólo por un bug físico o por evidencia externa nueva. La ingesta histórica de
+FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP y las NRT
+(`docs/resultados/LO-YA-QUEMADO-PROPUESTA.md` §8).
+
+**Pendiente**
+
+1. La evaluación con usuarios de la capa de acuerdo del ensamble
+   (`docs/resultados/PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`), que hace el autor con personas
+   reales.
+2. Llevar los resultados al informe (`../informe`), incluida la comparación final de mapas
+   (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
+
+Abiertos: los dos puntos de §2, que siguen abiertos por decisión del autor (2026-10-31); del
+ensamble, CPU/RSS del runner y la latencia (el mínimo operativo de 24/31 se ratificó el 2026-10-31). La semilla conexa en la app se cerró
+el 2026-10-31 (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.

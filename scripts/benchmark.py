@@ -136,21 +136,30 @@ def _legado_harness_a(caso: d.Caso) -> dict:
 CLIMA = ("ws.tif", "wd.tif", "m1.tif", "m10.tif", "m100.tif")
 
 
-def _clima_ciclo(ciclo: datetime, horas: int, dem: Path) -> dict[str, str]:
-    """Un ciclo GFS con f000..f`horas`, derivado sobre `dem`."""
+def _clima_ciclo(ciclo: datetime, horas: int, dem: Path, desde: int = 0,
+                 caja: tuple[float, float, float, float] | None = None,
+                 crudo: bool = False) -> dict[str, str]:
+    """Un ciclo GFS con f`desde`..f`desde + horas`, derivado sobre `dem`. Sin `caja`, el AOI;
+    con `crudo`, también T y HR a 0,25° (`t2m_gfs`, `rh_gfs`), como `_clima`."""
     from app.config import settings
     from app.ingestion.meteorology.gfs.schemas import GFSCycleInfo
 
     info = GFSCycleInfo(date=ciclo.date().isoformat(), cycle_hour=ciclo.hour)
-    caja = (settings.aoi_west - MARGEN_GFS_GRADOS, settings.aoi_south - MARGEN_GFS_GRADOS,
-            settings.aoi_east + MARGEN_GFS_GRADOS, settings.aoi_north + MARGEN_GFS_GRADOS)
+    if caja is None:
+        caja = (settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north)
+    m = MARGEN_GFS_GRADOS
+    caja = (caja[0] - m, caja[1] - m, caja[2] + m, caja[3] + m)
     tmp = Path(tempfile.mkdtemp())
     for var in ("u10", "v10", "t2m", "rh"):
         GFSClient().download_variable(info, var, *caja, tmp / f"{var}.tif",
-                                      forecast_hours=list(range(horas + 1)))
+                                      forecast_hours=list(range(desde, desde + horas + 1)))
     weather_builder.derive_wind(tmp / "u10.tif", tmp / "v10.tif", dem, tmp)
     weather_builder.derive_moisture(tmp / "t2m.tif", tmp / "rh.tif", dem, tmp)
-    return {n: almacen.guardar(tmp / n) for n in CLIMA}
+    archivos = {n: almacen.guardar(tmp / n) for n in CLIMA}
+    if crudo:
+        archivos |= {"t2m_gfs.tif": almacen.guardar(tmp / "t2m.tif"),
+                     "rh_gfs.tif": almacen.guardar(tmp / "rh.tif")}
+    return archivos
 
 
 def _legado_harness_b(caso: d.Caso) -> dict:
@@ -751,6 +760,8 @@ def _meteo_observada(caso: d.Caso) -> dict:
 # ── P-24: pronóstico desde el perímetro observado (DIA-1-PROPUESTA §2) ──────────
 
 REFERENCIAS_VENTANA = {"phi.tif", "ref_firms.tif", "ref_firms_horas.tif", "alcance.tif"}
+# Humedades con historial de secado: un ciclo de pronóstico no las trae y lw-100-obs-001 no las usa.
+SIN_CLIMA_DE_CICLO = set(HUMEDAD_RETARDO)
 
 
 def _horas_por_pasada(df: pd.DataFrame, origen: datetime, hasta: datetime, dem: Path,
@@ -855,6 +866,9 @@ def _pronostico(caso: d.Caso) -> dict:
     # GFS) son del hindcast y se dejan afuera para que una receta que los pida falle.
     con_pronostico = datos.get("clima") == "pronostico"
     del_hindcast = {"orog_gfs.tif", "t2m_gfs.tif", "rh_gfs.tif", *HUMEDAD_RETARDO}
+    # Con `clima_pronostico`, los reinicios usan el último ciclo GFS ya publicado en vez del
+    # clima del base (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1).
+    ciclo_conf, ciclos = datos.get("clima_pronostico"), []
     ventanas, previo = [], ignicion
     for n, v in enumerate(caso.ventanas):
         if v.fin > base_caso.ventanas[-1].fin:
@@ -869,7 +883,14 @@ def _pronostico(caso: d.Caso) -> dict:
                 archivos |= _clima_pronostico(caso, v, bandas, dem)
         else:
             h0 = int((v.t0 - inicio0).total_seconds() // 3600)
-            archivos = {}
+            archivos, clima = {}, None
+            if ciclo_conf:
+                ciclo = pronostico.ultimo_ciclo(v.inicio, float(ciclo_conf["latencia_h"]))
+                desde = int((v.t0 - ciclo).total_seconds() // 3600)
+                clima = _clima_ciclo(ciclo, bandas - 1, dem, desde,
+                                     tuple(caso.datos["caja_wgs84"]), crudo=True)
+                ciclos.append({"ventana": n, "ciclo": ciclo.isoformat(),
+                               "horas": [desde, desde + bandas - 1]})
             for nombre, sha in base["ventanas"][0].items():
                 if nombre in REFERENCIAS_VENTANA or (con_pronostico and nombre in del_hindcast):
                     continue
@@ -877,8 +898,15 @@ def _pronostico(caso: d.Caso) -> dict:
                     multibanda = src.count > 1
                 if multibanda and con_pronostico:
                     continue
-                archivos[nombre] = (_clima_desde_base(base_caso, base["ventanas"], nombre, h0,
-                                                      bandas) if multibanda else sha)
+                if not multibanda:
+                    archivos[nombre] = sha
+                elif clima is None:
+                    archivos[nombre] = _clima_desde_base(base_caso, base["ventanas"], nombre, h0,
+                                                         bandas)
+                elif nombre in clima:
+                    archivos[nombre] = clima[nombre]
+                elif nombre not in SIN_CLIMA_DE_CICLO:
+                    raise ValueError(f"{nombre}: clima del base sin equivalente en el ciclo")
             if con_pronostico:
                 archivos |= _clima_pronostico(caso, v, bandas, dem)
             antes = _puntos(df, None, v.inicio)
@@ -909,7 +937,8 @@ def _pronostico(caso: d.Caso) -> dict:
         print(f"  ventana {n} ({v.inicio:%d-%m %H:%M}): semilla "
               f"{observado.sum() * grilla.celda_ha:,.0f} ha", flush=True)
     return {"comunes": comunes, "ventanas": ventanas,
-            "origen": base["origen"] | {"base": datos["base"], "semilla": datos["semilla"]}}
+            "origen": base["origen"] | {"base": datos["base"], "semilla": datos["semilla"]}
+            | ({"ciclos": ciclos} if ciclo_conf else {})}
 
 
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,
@@ -1579,10 +1608,15 @@ def tabla_pronostico(receta_id: str, casos: list[str]) -> None:
             r = pronostico.resumir(filas, plazo, contra)
             print(f"\nP-24 contra {contra}, {plazo} h (k ≥ 1): mediana ΔDice "
                   f"{_fmt(r['mediana_delta'])}, mejora en {r['mejoran']} de {r['n']} incendios")
-            protocolo = casos[0].split("/")[1]
-            r_path = (d.RAIZ / "diagnosticos"
-                      / f"{protocolo}-{receta_id}-{contra}-{plazo}h.json")
-            r_path.write_text(json.dumps(r, indent=2, ensure_ascii=False))
+            _ruta_resumen(casos, receta_id, contra, plazo).write_text(
+                json.dumps(r, indent=2, ensure_ascii=False))
+
+
+def _ruta_resumen(casos: list[str], receta_id: str, contra: str, plazo: int) -> Path:
+    """El nombre lleva todos los protocolos de los casos. Con sólo el del primero, una tabla de
+    protocolos mezclados pisaba el resumen de otro conjunto."""
+    protocolos = "+".join(sorted({c.split("/")[1] for c in casos}))
+    return d.RAIZ / "diagnosticos" / f"{protocolos}-{receta_id}-{contra}-{plazo}h.json"
 
 
 CORTES_H = (24, 48, 72, 96, 120)

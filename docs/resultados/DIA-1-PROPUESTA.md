@@ -624,6 +624,20 @@ uv run python scripts/benchmark.py copa epuyen-2025/calibracion-v6
 > 0,078 / 0,327. Los otros 5 paquetes son idénticos a v6. La mediana contra la persistencia a 12 h
 > pasa de +0,060 a +0,063, y el resto del resultado principal no cambia. La semilla oráculo sigue en
 > v6.
+>
+> **Hindcast y pronóstico real (2026-10-31,** `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`**).**
+> Las tablas de esta sección son **hindcast**: el clima de cada reinicio son análisis GFS emitidos
+> después del reinicio (Alerces 2023, Epuyén, Alerces 2024, Patriada) o ERA5 (Cholila, Alerces 2016).
+> Con el último ciclo GFS ya publicado en cada reinicio, sobre los cuatro incendios GFS:
+>
+> | Plazo | Contra la cadena | Contra la persistencia | Contra este hindcast |
+> |---|---|---|---|
+> | 12 h | **+0,118, 4 de 4** | +0,088, 4 de 4 | −0,001 |
+> | 24 h | +0,154, 3 de 4 | +0,143, 4 de 4 | −0,001 |
+>
+> Es el resultado del pronóstico operativo. Ningún incendio se mueve más de 0,007 contra el hindcast:
+> el pronóstico a 5–33 h y el análisis del mismo GFS casi no difieren (|Δwd| mediano 1–3°). Cholila y
+> Alerces 2016 no tienen variante: su archivo GFS de 2015–2016 es trihorario y su base es ERA5.
 
 Dice del crecimiento contra la cicatriz ya vista por VIIRS. Es la media por incendio de los
 reinicios k ≥ 1, con semilla FIRMS acumulada, que es lo que la app puede hacer:
@@ -730,6 +744,15 @@ CBH de 1–1,5 m. CFIS la enciende en el 99–100 %. Sólo el coihue/ciprés con
 - Que la copa se *inicie* no garantiza que la propagación sea la observada.
 
 ### 7.5 Qué sigue
+
+> **Nota (2026-10-31).** Dos cosas de esta sección cambiaron. Las cifras de P-24 (+0,10/+0,13 en
+> los seis incendios) son hindcast. Con el pronóstico GFS que se tenía en cada reinicio, P-24 gana
+> a la cadena por +0,118 en 4 de 4 a 12 h y por +0,154 en 3 de 4 a 24 h, sobre los cuatro incendios
+> GFS (§7.2, `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`); en los cuatro de prueba, por +0,079
+> y +0,120 en 4 de 4 (`AB-p24-prueba.md`). Y las primeras 2–6 h ya no son un límite declarado:
+> quedan fuera del alcance del producto, que arranca en la primera pasada VIIRS (decisión del
+> usuario, `ESTADO-RESEARCH.md` §6.1). El límite del día 1 dentro del alcance es el residuo del
+> primer reinicio (§7.3, §7.6).
 
 - **P-24 queda como el protocolo del pronóstico operativo.** Podría reportarse en la tesis junto
   a modelo-v0, como otra afirmación: "pronóstico a 12–24 h desde la última pasada", +0,10/+0,13

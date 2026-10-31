@@ -22,6 +22,14 @@
 > Las tablas están en `docs/resultados/diagnostico-e2e/datos/`. El código está en
 > `scripts/diagnostico_{error,metrica,severidad,viento_estaciones,semilla}.py`, cada uno con su test. **Decidir si se reabre
 > algo es del usuario.**
+>
+> **Nota (2026-10-31): las cifras de P-24 de este diagnóstico son hindcast.** El +0,096 en 6 de 6 a
+> 12 h y el +0,131 en 5 de 6 a 24 h contra la cadena (y el +0,168 con el anillo) usan, en cada
+> reinicio, análisis GFS emitidos después del reinicio, o ERA5 en Cholila y Alerces 2016. Lo mismo
+> vale para las notas de `diagnostico-e2e/notas/` anteriores a esa fecha. Con el último ciclo GFS ya
+> publicado en cada reinicio, sobre los cuatro incendios GFS, P-24 gana a la cadena por +0,118 en
+> 4 de 4 a 12 h y por +0,154 en 3 de 4 a 24 h
+> ([Z](diagnostico-e2e/notas/Z-p24-pronostico-gfs.md) §4). El texto de abajo no se reescribió.
 
 ## Respuesta corta
 

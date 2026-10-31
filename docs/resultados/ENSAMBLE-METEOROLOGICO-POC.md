@@ -107,7 +107,7 @@ hora o cobertura abortan. La CLI no reemplaza un perturbado por control ni por o
 
 El agregador registra miembros esperados, exitosos, fallidos y `effective_denominator`. El valor
 de cada píxel es `miembros_exitosos_que_quemaron / miembros_exitosos`. Por defecto exige 24 de 31
-miembros (77 %); el umbral es explícito por CLI y debe ser ratificado como decisión de producto.
+miembros (77 %); el umbral es explícito por CLI y debe ser ratificado como decisión de producto (ratificado el 2026-10-31).
 Con menos miembros no escribe mapa.
 
 ### Integración visual preparada

@@ -1,0 +1,71 @@
+{
+  "descripcion": "P-24 sobre el caso de prueba `los-alerces-2015/calibracion-era5-v6` (docs/resultados/diagnostico-e2e/notas/AB-p24-prueba.md): la ventana 0 del caso base y un reinicio de 24 h en cada pasada VIIRS SP que deja 24 h dentro del horizonte. Semilla: lo observado por FIRMS hasta el reinicio, acumulado, filtrado a las detecciones conectadas a la ignición (filtro_conexo_m 3000, como v7). Clima: ERA5 del caso base re-cortado por hora (reanálisis, como Cholila y Alerces 2016 en v7): no hay GFS horario archivado para la fecha. Estáticos, mapas, dosel y cicatriz del caso base.",
+  "anio_fuego": 2015,
+  "caja_wgs84": [
+    -71.72,
+    -42.972,
+    -71.533,
+    -42.793
+  ],
+  "semilla_inicial": {
+    "tipo": "punto",
+    "lon": -71.6272,
+    "lat": -42.908,
+    "hora": "2015-03-23T16:00:00+00:00",
+    "fuente": "Perfil (23-mar-2015): 'un incendio se desató hoy en el Parque Nacional Los Alerces', intencional según el intendente Daniel Crosta; zona intangible, restricción de navegación entre la cabecera sur del Futalaufquen y Punta Mattos. Coordenada: la de mask-dataset-gen (primera detección VNP14A1), 300 m dentro de la cicatriz, 841 m, 261 m de las primeras detecciones VIIRS (18:53 UTC).",
+    "ajuste": "Hora no publicada: se toma 13 ART, antes de la primera pasada VIIRS que ya ve 8 píxeles.",
+    "filtro_conexo_m": 3000
+  },
+  "referencias": {
+    "cicatriz": {
+      "run": "../mask-dataset-gen/dataset/los-alerces-2015/runs/event-filter-001",
+      "hasta_horizonte": true
+    },
+    "firms": {
+      "fuentes": [
+        "VIIRS_SNPP_SP"
+      ],
+      "alcance_m": 5000
+    }
+  },
+  "clima": "era5 horario de Open-Meteo, celda de 0,25° sin reducción de escala (T, HR, viento 10 m y terreno de la celda)",
+  "ventanas": [
+    {
+      "t0": "2015-03-23T16:00:00+00:00",
+      "horas": 24
+    },
+    {
+      "t0": "2015-03-23T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3180.0
+    },
+    {
+      "t0": "2015-03-24T06:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 1020.0
+    },
+    {
+      "t0": "2015-03-24T18:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 2040.0
+    },
+    {
+      "t0": "2015-03-25T05:00:00+00:00",
+      "horas": 24,
+      "tstart_s": 3480.0
+    }
+  ],
+  "empaquetado": {
+    "tipo": "pronostico",
+    "base": "los-alerces-2015/calibracion-era5-v6",
+    "semilla": "firms"
+  },
+  "plazos": [
+    12,
+    24
+  ],
+  "cadena": {
+    "caso": "los-alerces-2015/calibracion-era5-v6",
+    "receta": "lw-100-001"
+  }
+}

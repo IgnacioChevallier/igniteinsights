@@ -48,6 +48,13 @@ def ventana_desde(t: datetime, horas: int = 24) -> dict:
     return {"t0": t0.isoformat(), "horas": horas, "tstart_s": (t - t0).total_seconds()}
 
 
+def ultimo_ciclo(t: datetime, latencia_h: float, cada_h: int = 6) -> datetime:
+    """El último ciclo GFS ya publicado en `t`: el de hora nominal `c` con `c + latencia_h <= t`
+    (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1)."""
+    c = t - timedelta(hours=latencia_h)
+    return c.replace(hour=c.hour - c.hour % cada_h, minute=0, second=0, microsecond=0)
+
+
 def bandas_necesarias(horas: int, tstart_s: float) -> int:
     """Bandas horarias para interpolar hasta TSTOP: con minutos de arranque, una más que
     `horas + 1` (si no, ELMFIRE sostiene la última banda el final de la ventana)."""

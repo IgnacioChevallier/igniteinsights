@@ -23,6 +23,15 @@ def test_pasadas_toma_la_ultima_deteccion_de_cada_una():
                                            pd.Timestamp("2025-01-16 05:30", tz="UTC")]
 
 
+def test_el_ultimo_ciclo_es_el_ya_publicado_con_la_latencia():
+    # 06Z se publica a las 10:00: a las 09:59 todavía es 00Z, a las 10:00 ya es 06Z.
+    assert pronostico.ultimo_ciclo(T0.replace(hour=9, minute=59), 4) == T0.replace(hour=0)
+    assert pronostico.ultimo_ciclo(T0.replace(hour=10), 4) == T0.replace(hour=6)
+    # Antes de las 04:00 el último es el 18Z del día anterior.
+    assert pronostico.ultimo_ciclo(T0.replace(hour=2, minute=30), 4) == (
+        T0.replace(hour=18) - timedelta(days=1))
+
+
 def test_una_ventana_con_minutos_pide_una_banda_mas():
     v = pronostico.ventana_desde(T0 + timedelta(hours=4, minutes=30))
     assert v["t0"] == (T0 + timedelta(hours=4)).isoformat() and v["tstart_s"] == 1800

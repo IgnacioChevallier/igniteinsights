@@ -249,9 +249,12 @@ sidebar y apagada por defecto. No se adopta como mejora predictiva, y `>= 0,80` 
 Siguen abiertos:
 
 1. la evaluación con usuarios reales (`PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`);
-2. la ratificación del mínimo operativo de 24/31 como decisión de producto;
-3. la exposición de CPU/RSS del runner para estimar el costo;
-4. la latencia operativa.
+2. la exposición de CPU/RSS del runner para estimar el costo;
+3. la latencia operativa.
+
+**Mínimo operativo de 24/31: ratificado** por el autor el 2026-10-31 como decisión de producto. Con
+menos de 24 miembros válidos no se escribe el mapa de acuerdo, y la interfaz muestra siempre
+válidos/esperados, ciclo, horizonte y timestamp (§4).
 
 Estas condiciones de §9 quedan resueltas:
 
