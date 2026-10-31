@@ -16,7 +16,7 @@ export const DEFAULT_LOOP_SECONDS = 10;
 /** Beat at the end before restarting: a hard cut hides where the run actually stops. */
 const END_HOLD_MS = 1000;
 
-export const SPEEDS = [0.5, 1, 2] as const;
+export const SPEEDS = [0.25, 0.5, 1] as const;
 export type Speed = (typeof SPEEDS)[number];
 
 export type FireClock = {
@@ -48,7 +48,7 @@ export function useFireClock({
   // effect below decides whether to start playing.
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState<Speed>(1);
+  const [speed, setSpeed] = useState<Speed>(0.5);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   const tRef = useRef(0);

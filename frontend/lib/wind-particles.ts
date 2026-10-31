@@ -62,8 +62,11 @@ export const WIND_SPEED_GRADIENT = `linear-gradient(90deg, ${WIND_SPEED_STOPS.ma
 ).join(", ")})`;
 
 const CALM_MPH = 0.5;
-const MAX_PARTICLES = 650;
-const PARTICLE_DENSITY = 1900;
+const MIN_PARTICLES = 24;
+const MAX_PARTICLES = 280;
+/** CSS pixels of visible wind domain per streak. Kept in screen space so zooming out
+ * reduces the population instead of packing the same lines into a smaller footprint. */
+const PARTICLE_DENSITY = 3200;
 const MAX_TRAIL_POINTS = 18;
 const MAX_TRAIL_PIXELS = 34;
 const TRAIL_ALPHAS = [0.18, 0.32, 0.52, 0.78] as const;
@@ -176,15 +179,14 @@ export function startWindParticles(
   const surfaceContext = options.surfaceCanvas?.getContext("2d") ?? null;
   if (!context) return emptyController();
 
-  let particles: Particle[] = [];
+  const particles: Particle[] = [];
   let clip: Path2D | null = null;
   let box = { x: 0, y: 0, w: 0, h: 0 };
   let width = 0;
   let height = 0;
   let frame = 0;
-  // Fixed once the domain is first visible: zooming changes the projected size of the
-  // domain, not the amount of wind information it contains.
-  let particleTarget: number | null = options.showParticles === false ? 0 : null;
+  const particlesEnabled = options.showParticles !== false;
+  let particleTarget = 0;
   let timeHours = options.timeHours ?? 0;
   let surfaceVisible = options.surfaceVisible ?? false;
   let surfaceDirty = true;
@@ -260,30 +262,36 @@ export function startWindParticles(
     if (reprojectParticles || resized) {
       for (const particle of particles) {
         const point = map.project([particle.lng, particle.lat]);
-        const offsetX = point.x - particle.x;
-        const offsetY = point.y - particle.y;
-        for (const trailPoint of particle.trail) {
-          trailPoint[0] += offsetX;
-          trailPoint[1] += offsetY;
+        if (clearTrails) {
+          // A zoom moves geographic points across the canvas. Starting the trail again
+          // prevents that camera displacement from reading as a burst of wind speed.
+          particle.trail = [[point.x, point.y]];
+        } else {
+          const offsetX = point.x - particle.x;
+          const offsetY = point.y - particle.y;
+          for (const trailPoint of particle.trail) {
+            trailPoint[0] += offsetX;
+            trailPoint[1] += offsetY;
+          }
         }
         particle.x = point.x;
         particle.y = point.y;
       }
     }
-    if (particleTarget === null) {
-      const visibleArea = Math.min(box.w * box.h, width * height);
-      // No visible domain yet (a container not laid out, or a camera still easing down from
-      // 3D, where the area comes out 0 or NaN): leave it unset and retry on the next move,
-      // instead of fixing the count at zero for good.
-      if (visibleArea > 0) {
-        particleTarget = Math.min(
-          MAX_PARTICLES,
-          Math.max(80, Math.round(visibleArea / PARTICLE_DENSITY)),
-        );
-      }
-    }
-    if (!particles.length && particleTarget) {
-      particles = Array.from({ length: particleTarget }, () => spawn(true));
+    const visibleArea = Math.min(box.w * box.h, width * height);
+    particleTarget =
+      particlesEnabled && visibleArea > 0
+        ? Math.min(
+            MAX_PARTICLES,
+            Math.max(MIN_PARTICLES, Math.round(visibleArea / PARTICLE_DENSITY)),
+          )
+        : 0;
+    if (particles.length > particleTarget) {
+      particles.length = particleTarget;
+    } else if (particles.length < particleTarget) {
+      particles.push(
+        ...Array.from({ length: particleTarget - particles.length }, () => spawn(true)),
+      );
     }
     canvas.dataset.particleCount = String(particles.length);
     if (clearTrails || resized) clear();
@@ -482,6 +490,7 @@ export function startWindParticles(
     // every geographic trail against the new camera on its next frame.
     resolve(false, false);
   };
+  const onZoom = () => resolve(true, true);
   const onResize = () => resolve(true, true);
   const onMotionChange = (event: MediaQueryListEvent) => {
     reducedMotion = event.matches;
@@ -494,6 +503,7 @@ export function startWindParticles(
   drawSurface();
   frame = requestAnimationFrame(tick);
   map.on("move", onMove);
+  map.on("zoom", onZoom);
   map.on("resize", onResize);
   motionQuery.addEventListener("change", onMotionChange);
 
@@ -501,6 +511,7 @@ export function startWindParticles(
     stopped = true;
     cancelAnimationFrame(frame);
     map.off("move", onMove);
+    map.off("zoom", onZoom);
     map.off("resize", onResize);
     motionQuery.removeEventListener("change", onMotionChange);
     clear();

@@ -5,6 +5,12 @@ import { formatSimulatedHour, realTimestamp } from "@/lib/isochrone-clock";
 import { ARGENTINA_TIME_ZONE_LABEL } from "@/lib/date-time";
 import { cn } from "@/lib/utils";
 
+export type IsochroneHorizonControl = {
+  valueHours: number;
+  maxHours: number;
+  onChange: (hours: number) => void;
+};
+
 /**
  * Play/pause, scrubber and speed for the fire progression animation
  * (docs/historico/VISUALIZACION-ANIMADA.md A3).
@@ -16,12 +22,15 @@ export function FireAnimationControls({
   clock,
   ignitionDatetime = null,
   untimedCount = 0,
+  horizonControl,
   className,
 }: {
   clock: FireClock;
   ignitionDatetime?: string | null;
   /** Features the converter left without `arrival_s`; excluded from the animation. */
   untimedCount?: number;
+  /** Optional cap for how many forecast hours the map exposes. */
+  horizonControl?: IsochroneHorizonControl;
   className?: string;
 }) {
   const { t, playing, speed, horizonHours, reducedMotion } = clock;
@@ -83,6 +92,25 @@ export function FireAnimationControls({
           ))}
         </div>
       </div>
+
+      {horizonControl && (
+        <div className="mt-2 flex items-center gap-3 border-t pt-2">
+          <span className="shrink-0 font-medium">Isócronas hasta</span>
+          <input
+            type="range"
+            min={Math.min(1, horizonControl.maxHours)}
+            max={horizonControl.maxHours}
+            step={1}
+            value={horizonControl.valueHours}
+            onChange={(e) => horizonControl.onChange(Number(e.target.value))}
+            aria-label="Horizonte visible de isócronas"
+            className="h-1 min-w-20 flex-1 cursor-pointer accent-orange-500"
+          />
+          <output className="w-9 shrink-0 text-right font-mono font-semibold tabular-nums">
+            {horizonControl.valueHours.toLocaleString("es", { maximumFractionDigits: 1 })} h
+          </output>
+        </div>
+      )}
 
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
         {stamp && <span>Hora real estimada: {stamp} {ARGENTINA_TIME_ZONE_LABEL}</span>}

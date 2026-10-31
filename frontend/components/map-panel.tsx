@@ -126,6 +126,9 @@ function isAbortError(error: unknown): boolean {
 
 type MapResultState = "idle" | "loading" | "ready" | "error";
 
+const DEFAULT_VISIBLE_HORIZON_HOURS = 3;
+const MAX_VISIBLE_HORIZON_HOURS = 24;
+
 function MapResultNotice({
   state,
   error,
@@ -322,6 +325,9 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   const [auxiliaryLoading, setAuxiliaryLoading] = useState(false);
   const [auxiliaryErrors, setAuxiliaryErrors] = useState<string[]>([]);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [visibleHorizonHours, setVisibleHorizonHours] = useState(
+    DEFAULT_VISIBLE_HORIZON_HOURS,
+  );
 
   const [showTimeOfArrival, setShowTimeOfArrival] = useState(false);
   const [showFirelineIntensity, setShowFirelineIntensity] = useState(false);
@@ -350,7 +356,9 @@ export function MapPanel({ runs }: { runs: Run[] }) {
   // The horizon and the isochrone step both come out of the GeoJSON itself; the run's
   // declared horizon_hours is only a fallback for a collection with a single level.
   const summary = useMemo(() => summarizeIsochrones(isochrones), [isochrones]);
-  const horizonHours = summary.horizonHours || selectedRun?.horizon_hours || 0;
+  const availableHorizonHours = summary.horizonHours || selectedRun?.horizon_hours || 0;
+  const maxVisibleHorizonHours = Math.min(availableHorizonHours, MAX_VISIBLE_HORIZON_HOURS);
+  const horizonHours = Math.min(visibleHorizonHours, maxVisibleHorizonHours);
   const animatable = summary.timedCount > 0 && horizonHours > 0;
   // Gated on `animatable`, not just on the horizon: a run whose isochrones carry no times
   // hides the controls and ignores the clock, but the clock still autoplayed and wrote
@@ -369,6 +377,20 @@ export function MapPanel({ runs }: { runs: Run[] }) {
     () => ({ t: snappedT, stepHours: summary.stepHours, horizonHours }),
     [snappedT, summary.stepHours, horizonHours],
   );
+  const visibleIsochrones = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!isochrones) return null;
+    return {
+      ...isochrones,
+      features: isochrones.features.filter((feature) => {
+        const arrival = Number(feature.properties?.arrival_hours);
+        return Number.isFinite(arrival) && arrival <= horizonHours;
+      }),
+    };
+  }, [isochrones, horizonHours]);
+
+  useEffect(() => {
+    setVisibleHorizonHours(DEFAULT_VISIBLE_HORIZON_HOURS);
+  }, [selectedRunId]);
 
   useEffect(() => {
     fetchJson<GeoJSON.FeatureCollection>("/api/fires/active?hours=24").then(setActiveFires);
@@ -561,7 +583,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           timeOfArrivalOverlay={showTimeOfArrival ? timeOfArrivalOverlay : null}
           firelineIntensityOverlay={showFirelineIntensity ? firelineIntensityOverlay : null}
           ensembleAgreement={showEnsembleAgreement ? ensembleAgreement : null}
-          fitTo={isochrones}
+          fitTo={visibleIsochrones}
           windField={windField}
           windTimeHours={clock.t}
           windSurfaceVisible={showWindSpeed}
@@ -572,6 +594,11 @@ export function MapPanel({ runs }: { runs: Run[] }) {
                 clock={clock}
                 ignitionDatetime={selectedRun?.ignition_datetime ?? null}
                 untimedCount={summary.untimedCount}
+                horizonControl={{
+                  valueHours: horizonHours,
+                  maxHours: maxVisibleHorizonHours,
+                  onChange: setVisibleHorizonHours,
+                }}
               />
             ) : null
           }

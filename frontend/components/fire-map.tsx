@@ -448,7 +448,12 @@ export function FireMap({
       [">", ARRIVAL, t - stepHours],
       ["<=", ARRIVAL, t],
     ]);
-    map.setFilter(PENDING_LAYER, ["all", IS_TIMED, [">", ARRIVAL, t]]);
+    map.setFilter(PENDING_LAYER, [
+      "all",
+      IS_TIMED,
+      [">", ARRIVAL, t],
+      ["<=", ARRIVAL, clock.horizonHours],
+    ]);
   }, [clock, loaded]);
 
   // The ramp spans the run's horizon, so it is rebuilt when the run changes — not on

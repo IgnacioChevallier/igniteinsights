@@ -46,10 +46,11 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
 
   await page.screenshot({ path: "../playwright-screenshots/map-wind.png" });
 
-  // Zoom changes the geographic sample under each streak, not its screen-space
-  // population. The canvas must also keep advancing while MapLibre animates.
-  const countBeforeZoom = await particles.getAttribute("data-particle-count");
-  await page.getByRole("button", { name: "Zoom in" }).click();
+  // Zooming out shrinks the projected wind domain, so its screen-space population must
+  // fall with it instead of packing the same number of streaks into a smaller footprint.
+  // The canvas must also keep advancing while MapLibre animates.
+  const countBeforeZoom = Number(await particles.getAttribute("data-particle-count"));
+  await page.getByRole("button", { name: "Zoom out" }).click();
   await page.waitForTimeout(60);
   const firstZoomFrame = await particles.evaluate((canvas: HTMLCanvasElement) =>
     canvas.toDataURL(),
@@ -59,7 +60,9 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
     canvas.toDataURL(),
   );
   expect(secondZoomFrame).not.toBe(firstZoomFrame);
-  await expect.poll(() => particles.getAttribute("data-particle-count")).toBe(countBeforeZoom);
+  await expect
+    .poll(async () => Number(await particles.getAttribute("data-particle-count")))
+    .toBeLessThan(countBeforeZoom);
 
   const horizontalCentroid = () =>
     particles.evaluate((canvas: HTMLCanvasElement) => {

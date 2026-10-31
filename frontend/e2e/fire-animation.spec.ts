@@ -54,6 +54,7 @@ async function freezeAt(page: Page, hours: number) {
 }
 
 test("progression renders and visibly changes across the clock", async ({ page }) => {
+  test.slow(); // Four WebGL screenshots can exceed the default timeout on software rendering.
   const errors = await setup(page);
   const map = page.locator(".maplibregl-map").first();
   const canvas = page.locator("canvas.maplibregl-canvas").first();
@@ -113,7 +114,7 @@ test("play, pause and speed controls drive the clock", async ({ page }) => {
   await expect(slider).toHaveValue("0");
 
   await page.getByRole("button", { name: "Reproducir animación" }).click();
-  await page.getByRole("button", { name: "2×" }).click();
+  await page.getByRole("button", { name: "1×" }).click();
   await page.waitForTimeout(1200);
   const running = Number(await slider.inputValue());
   expect(running, "the clock must advance while playing").toBeGreaterThan(0);
@@ -122,4 +123,21 @@ test("play, pause and speed controls drive the clock", async ({ page }) => {
   const paused = Number(await slider.inputValue());
   await page.waitForTimeout(700);
   expect(Number(await slider.inputValue()), "a paused clock must not advance").toBe(paused);
+});
+
+test("starts at three hours and lets the operator extend the visible horizon", async ({ page }) => {
+  await setup(page);
+  const clock = page.getByLabel("Hora simulada");
+  const horizon = page.getByLabel("Horizonte visible de isócronas");
+
+  await expect(horizon).toHaveValue("3");
+  await expect(clock).toHaveAttribute("max", "3");
+  await expect(page.getByRole("button", { name: "0,5×" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await horizon.fill("12");
+  await expect(clock).toHaveAttribute("max", "12");
+  await expect(page.getByText("Isócronas previstas 0 → 12 h")).toBeVisible();
 });
