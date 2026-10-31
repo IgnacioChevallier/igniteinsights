@@ -195,7 +195,8 @@ Abiertos. Lo que el autor decidió el 2026-10-31 está en cada punto:
   misma lista, pasó a límite declarado (§6.2).
 - **Del ensamble:** CPU/RSS del runner y latencia operativa
   (`DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`). El mínimo operativo de 24/31 se ratificó
-  como decisión de producto el 2026-10-31.
+  como decisión de producto el 2026-10-31. La medición de CPU/RSS y latencia, con un backtest GEFS,
+  está registrada y todavía no se corrió (`diagnostico-e2e/notas/AD-recursos-ensamble.md`).
 - **Semilla conexa de P-24 en la app en tiempo real: cerrada el 2026-10-31.** La app operativa
   de `main` (`app/operativo/servicio.py`, `agrupar`) ya la aplica sin punto de ignición, y elige las
   mismas detecciones que el benchmark en 33 de 34 reinicios (Jaccard mínimo 0,996;
