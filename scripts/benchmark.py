@@ -136,21 +136,30 @@ def _legado_harness_a(caso: d.Caso) -> dict:
 CLIMA = ("ws.tif", "wd.tif", "m1.tif", "m10.tif", "m100.tif")
 
 
-def _clima_ciclo(ciclo: datetime, horas: int, dem: Path) -> dict[str, str]:
-    """Un ciclo GFS con f000..f`horas`, derivado sobre `dem`."""
+def _clima_ciclo(ciclo: datetime, horas: int, dem: Path, desde: int = 0,
+                 caja: tuple[float, float, float, float] | None = None,
+                 crudo: bool = False) -> dict[str, str]:
+    """Un ciclo GFS con f`desde`..f`desde + horas`, derivado sobre `dem`. Sin `caja`, el AOI;
+    con `crudo`, también T y HR a 0,25° (`t2m_gfs`, `rh_gfs`), como `_clima`."""
     from app.config import settings
     from app.ingestion.meteorology.gfs.schemas import GFSCycleInfo
 
     info = GFSCycleInfo(date=ciclo.date().isoformat(), cycle_hour=ciclo.hour)
-    caja = (settings.aoi_west - MARGEN_GFS_GRADOS, settings.aoi_south - MARGEN_GFS_GRADOS,
-            settings.aoi_east + MARGEN_GFS_GRADOS, settings.aoi_north + MARGEN_GFS_GRADOS)
+    if caja is None:
+        caja = (settings.aoi_west, settings.aoi_south, settings.aoi_east, settings.aoi_north)
+    m = MARGEN_GFS_GRADOS
+    caja = (caja[0] - m, caja[1] - m, caja[2] + m, caja[3] + m)
     tmp = Path(tempfile.mkdtemp())
     for var in ("u10", "v10", "t2m", "rh"):
         GFSClient().download_variable(info, var, *caja, tmp / f"{var}.tif",
-                                      forecast_hours=list(range(horas + 1)))
+                                      forecast_hours=list(range(desde, desde + horas + 1)))
     weather_builder.derive_wind(tmp / "u10.tif", tmp / "v10.tif", dem, tmp)
     weather_builder.derive_moisture(tmp / "t2m.tif", tmp / "rh.tif", dem, tmp)
-    return {n: almacen.guardar(tmp / n) for n in CLIMA}
+    archivos = {n: almacen.guardar(tmp / n) for n in CLIMA}
+    if crudo:
+        archivos |= {"t2m_gfs.tif": almacen.guardar(tmp / "t2m.tif"),
+                     "rh_gfs.tif": almacen.guardar(tmp / "rh.tif")}
+    return archivos
 
 
 def _legado_harness_b(caso: d.Caso) -> dict:
@@ -751,6 +760,8 @@ def _meteo_observada(caso: d.Caso) -> dict:
 # ── P-24: pronóstico desde el perímetro observado (DIA-1-PROPUESTA §2) ──────────
 
 REFERENCIAS_VENTANA = {"phi.tif", "ref_firms.tif", "ref_firms_horas.tif", "alcance.tif"}
+# Humedades con historial de secado: un ciclo de pronóstico no las trae y lw-100-obs-001 no las usa.
+SIN_CLIMA_DE_CICLO = {"m1_retardo.tif", "m10_retardo.tif", "m100_retardo.tif"}
 
 
 def _horas_por_pasada(df: pd.DataFrame, origen: datetime, hasta: datetime, dem: Path,
@@ -823,6 +834,9 @@ def _pronostico(caso: d.Caso) -> dict:
     punto = _puntos_ignicion(semilla)
     alcance_m = caso.datos["referencias"]["firms"].get("alcance_m", 5000.0)
     inicio0 = base_caso.ventanas[0].inicio
+    # Con `clima_pronostico`, los reinicios usan el último ciclo GFS ya publicado en vez del
+    # clima del base (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1).
+    ciclo_conf, ciclos = datos.get("clima_pronostico"), []
     ventanas, previo = [], ignicion
     for n, v in enumerate(caso.ventanas):
         if v.fin > base_caso.ventanas[-1].fin:
@@ -834,14 +848,28 @@ def _pronostico(caso: d.Caso) -> dict:
         else:
             h0 = int((v.t0 - inicio0).total_seconds() // 3600)
             bandas = pronostico.bandas_necesarias(v.horas, v.tstart_s)
-            archivos = {}
+            archivos, clima = {}, None
+            if ciclo_conf:
+                ciclo = pronostico.ultimo_ciclo(v.inicio, float(ciclo_conf["latencia_h"]))
+                desde = int((v.t0 - ciclo).total_seconds() // 3600)
+                clima = _clima_ciclo(ciclo, bandas - 1, dem, desde,
+                                     tuple(caso.datos["caja_wgs84"]), crudo=True)
+                ciclos.append({"ventana": n, "ciclo": ciclo.isoformat(),
+                               "horas": [desde, desde + bandas - 1]})
             for nombre, sha in base["ventanas"][0].items():
                 if nombre in REFERENCIAS_VENTANA:
                     continue
                 with rasterio.open(almacen.abrir(sha)) as src:
                     multibanda = src.count > 1
-                archivos[nombre] = (_clima_desde_base(base_caso, base["ventanas"], nombre, h0,
-                                                      bandas) if multibanda else sha)
+                if not multibanda:
+                    archivos[nombre] = sha
+                elif clima is None:
+                    archivos[nombre] = _clima_desde_base(base_caso, base["ventanas"], nombre, h0,
+                                                         bandas)
+                elif nombre in clima:
+                    archivos[nombre] = clima[nombre]
+                elif nombre not in SIN_CLIMA_DE_CICLO:
+                    raise ValueError(f"{nombre}: clima del base sin equivalente en el ciclo")
             antes = _puntos(df, None, v.inicio)
             if datos["semilla"] == "oraculo":
                 vistas = _horas_por_pasada(df, v.inicio, v.inicio, dem,
@@ -870,7 +898,8 @@ def _pronostico(caso: d.Caso) -> dict:
         print(f"  ventana {n} ({v.inicio:%d-%m %H:%M}): semilla "
               f"{observado.sum() * grilla.celda_ha:,.0f} ha", flush=True)
     return {"comunes": comunes, "ventanas": ventanas,
-            "origen": base["origen"] | {"base": datos["base"], "semilla": datos["semilla"]}}
+            "origen": base["origen"] | {"base": datos["base"], "semilla": datos["semilla"]}
+            | ({"ciclos": ciclos} if ciclo_conf else {})}
 
 
 EMPAQUETADORES = {"legado_harness_a": _legado_harness_a, "legado_harness_b": _legado_harness_b,

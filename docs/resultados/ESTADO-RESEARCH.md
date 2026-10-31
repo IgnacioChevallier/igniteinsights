@@ -88,8 +88,11 @@ prueba.
 ## 6. Límites y trabajo futuro
 
 - Día 1 explosivo: casi todo el déficit está antes de la primera pasada VIIRS. Desde ahí, el
-  pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24) mejora a la cadena en 6 de
-  6 incendios a 12 h y 5 de 6 a 24 h. El residuo (2–4,5× en Patriada y Alerces 2024) coincide
+  pronóstico a 12–24 h con reinicio en cada pasada (protocolo P-24), con el pronóstico GFS que se
+  tenía en cada reinicio, mejora a la cadena en 4 de 4 incendios GFS a 12 h (+0,118) y en 3 de 4 a
+  24 h (+0,154) (`diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`). El error de pronóstico cuesta
+  −0,001 frente a los análisis; las cifras previas de 6 de 6 y 5 de 6 son hindcast (análisis GFS
+  posteriores al reinicio, ERA5 en Cholila y Alerces 2016). El residuo (2–4,5× en Patriada y Alerces 2024) coincide
   con copa que el acople Van Wagner + Rothermel de ELMFIRE no enciende
   (`docs/resultados/DIA-1-PROPUESTA.md` §7).
 - Supresión: El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
@@ -165,7 +168,7 @@ la brecha: el techo está en ~0,7–0,9 y la corrección de las islas no vistas 
 0,440. Tampoco el ensamble GEFS prueba que la meteorología no domine: está sub-dispersado de
 entrada (3–11° contra un error del GFS en estaciones de σ 30–41°). Se corrigió un sesgo a favor de
 P-24: el anillo ya visto al reiniciar contaba como crecimiento. Sin él, P-24 sigue ganando a la
-cadena en 6 de 6 a 12 h, pero por +0,096 y no por +0,168. Desde el 2026-10-18,
+cadena en 6 de 6 a 12 h, pero por +0,096 y no por +0,168 (hindcast; con el pronóstico real, nota Z). Desde el 2026-10-18,
 `pronostico.puntuar` excluye ese anillo y las cifras de `DIA-1-PROPUESTA.md` §7, RIESGOS y
 PENDING quedaron corregidas. La versión anterior además tenía invertidas las semillas FIRMS y
 oráculo. El residuo del día 1 pasa de 2–3,5× a 2–4,5×. La severidad dNBR no permitió

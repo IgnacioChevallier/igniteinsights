@@ -6,7 +6,7 @@ dNBR truncada a lo que VIIRS ya había visto al plazo. Lo comparable es el mismo
 predicho por la cadena de modelo-v0 y por una extrapolación ingenua (persistencia).
 """
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -33,6 +33,13 @@ def ventana_desde(t: datetime, horas: int = 24) -> dict:
     """Una ventana que arranca en `t`: la banda 0 del clima en la hora entera anterior."""
     t0 = t.replace(minute=0, second=0, microsecond=0)
     return {"t0": t0.isoformat(), "horas": horas, "tstart_s": (t - t0).total_seconds()}
+
+
+def ultimo_ciclo(t: datetime, latencia_h: float, cada_h: int = 6) -> datetime:
+    """El último ciclo GFS ya publicado en `t`: el de hora nominal `c` con `c + latencia_h <= t`
+    (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1)."""
+    c = t - timedelta(hours=latencia_h)
+    return c.replace(hour=c.hour - c.hour % cada_h, minute=0, second=0, microsecond=0)
 
 
 def bandas_necesarias(horas: int, tstart_s: float) -> int:

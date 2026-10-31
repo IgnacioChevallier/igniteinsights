@@ -624,6 +624,20 @@ uv run python scripts/benchmark.py copa epuyen-2025/calibracion-v6
 > 0,078 / 0,327. Los otros 5 paquetes son idénticos a v6. La mediana contra la persistencia a 12 h
 > pasa de +0,060 a +0,063, y el resto del resultado principal no cambia. La semilla oráculo sigue en
 > v6.
+>
+> **Hindcast y pronóstico real (2026-10-31,** `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`**).**
+> Las tablas de esta sección son **hindcast**: el clima de cada reinicio son análisis GFS emitidos
+> después del reinicio (Alerces 2023, Epuyén, Alerces 2024, Patriada) o ERA5 (Cholila, Alerces 2016).
+> Con el último ciclo GFS ya publicado en cada reinicio, sobre los cuatro incendios GFS:
+>
+> | Plazo | Contra la cadena | Contra la persistencia | Contra este hindcast |
+> |---|---|---|---|
+> | 12 h | **+0,118, 4 de 4** | +0,088, 4 de 4 | −0,001 |
+> | 24 h | +0,154, 3 de 4 | +0,143, 4 de 4 | −0,001 |
+>
+> Es el resultado del pronóstico operativo. Ningún incendio se mueve más de 0,007 contra el hindcast:
+> el pronóstico a 5–33 h y el análisis del mismo GFS casi no difieren (|Δwd| mediano 1–3°). Cholila y
+> Alerces 2016 no tienen variante: su archivo GFS de 2015–2016 es trihorario y su base es ERA5.
 
 Dice del crecimiento contra la cicatriz ya vista por VIIRS. Es la media por incendio de los
 reinicios k ≥ 1, con semilla FIRMS acumulada, que es lo que la app puede hacer:

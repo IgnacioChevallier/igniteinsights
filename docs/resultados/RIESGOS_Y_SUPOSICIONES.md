@@ -196,11 +196,18 @@ abierto. Pero no es la explicación principal que muestran estos datos.
   +1–3 % a la velocidad.
 
 **Consecuencia para el uso.** Hay que pronosticar desde la última pasada VIIRS, no desde la
-ignición. Con el protocolo P-24 el Dice del crecimiento mejora frente a la cadena de modelo-v0:
+ignición. Con el protocolo P-24 y el pronóstico GFS que se tenía en cada reinicio (último ciclo
+publicado; `diagnostico-e2e/notas/Z-p24-pronostico-gfs.md`), el Dice del crecimiento mejora frente
+a la cadena de modelo-v0 en los cuatro incendios GFS:
 
-- a 12 h, +0,096 de mediana, en 6 de 6 incendios;
-- a 24 h, +0,131, en 5 de 6;
-- en los dos plazos, ELMFIRE le gana a la extrapolación ingenua en los 6.
+- a 12 h, +0,118 de mediana, en 4 de 4;
+- a 24 h, +0,154, en 3 de 4 (no mejora Alerces 2023, que después frenó el combate);
+- en los dos plazos, ELMFIRE le gana a la extrapolación ingenua en los 4.
+
+El error de pronóstico del GFS a 5–33 h cuesta −0,001 de mediana frente a los análisis. Las cifras
+anteriores (+0,096 en 6 de 6 y +0,131 en 5 de 6) son hindcast: análisis GFS posteriores al reinicio
+y ERA5 en Cholila y Alerces 2016. El error del GFS contra el viento real del valle (§3) está en las
+dos.
 
 Las primeras 2–6 h, antes de la primera detección, quedan como límite: no son pronosticables con
 ELMFIRE 2025.0212 configurado como modelo-v0.
