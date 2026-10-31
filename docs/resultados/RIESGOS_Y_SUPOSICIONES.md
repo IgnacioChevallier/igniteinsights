@@ -412,7 +412,7 @@ Hay dos escalas.
 cada incendio arranca de un punto de ignición y cada ventana arranca del perímetro simulado por la
 anterior. En la app, la simulación arranca del perímetro reconstruido con las detecciones FIRMS
 (`ignition_builder.py`): lo que ya ardió hasta ese momento entra como quemado. Esa reconstrucción
-no participó de la calibración (`PENDING_PARAMETERS.md` §2), pero ya se evaluó en P-24
+no participó de la calibración (`PENDING_PARAMETERS.md` §3), pero ya se evaluó en P-24
 (`DIA-1-PROPUESTA.md` §7.3): arrancar desde ella o desde la cicatriz real da pronósticos casi
 iguales. La reconstrucción sólo infla las semillas chicas, porque un píxel aislado se dibuja como
 44 ha.
@@ -484,11 +484,11 @@ persistencia le gana sólo en 3 de 4. La brecha entre calibración y prueba de l
 
 ## 8. Suposiciones de entrada sin base local
 
-Detalladas en `PENDING_PARAMETERS.md` §2 (m10/m100, ya cerrado, en §3):
+Detalladas en `PENDING_PARAMETERS.md` §2 (m10/m100 y la reconstrucción, ya cerradas, en §3):
 
 - **m10/m100:** offsets +2/+5 sin fundamento físico propio; el benchmark resultó insensible.
   Cerrado como límite declarado el 2026-10-31: no se buscan mediciones.
 - **CBH de bosque nativo:** valores de literatura, no un inventario regional.
 - **Rugosidad:** valor convencional, no medido en el AOI.
 - **Reconstrucción de perímetro FIRMS:** no calibrada, pero evaluada en P-24 contra la cicatriz
-  real (ver §5).
+  real (ver §5). Cerrada como límite declarado el 2026-10-31.

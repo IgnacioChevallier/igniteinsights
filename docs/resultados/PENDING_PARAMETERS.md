@@ -38,7 +38,6 @@ por evidencia externa nueva.
 | Tema | Estado | Qué permitiría reabrirlo |
 |---|---|---|
 | CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
-| Reconstrucción de perímetro FIRMS | No participa en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da pronósticos casi iguales a los de arrancar desde la cicatriz real | Sólo un perímetro operativo independiente (vuelo IR, partes) |
 | Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
 
 Estos puntos son incertidumbres de entrada. No justifican otra búsqueda de perillas con los
@@ -60,6 +59,11 @@ mismos once incendios.
   auditable, no una afirmación de generalización universal.
 - **P-24 con reanálisis** en Cholila 2015, Alerces 2016, Epuyén 2019 y Alerces 2015: el GFS de esas
   fechas sólo está archivado cada 3 h, así que corren con ERA5 y no son pronóstico (notas Z y AB).
+  No se baja ese archivo (decisión del usuario, 2026-10-31).
+- **Reconstrucción del perímetro FIRMS** (cerrado el 2026-10-31, decisión del usuario): no participa
+  en la calibración de ignición puntual. En P-24 (`docs/resultados/DIA-1-PROPUESTA.md` §7.3) da
+  pronósticos casi iguales a los de arrancar desde la cicatriz real. Sólo la reabre un perímetro
+  operativo independiente (vuelo IR, partes).
 - **Islas en la referencia truncada:** con `hasta_horizonte`, la cicatriz no vista se excluye, pero
   las islas sin quemar no vistas dentro del perímetro final siguen contando como negativos. Eso da un
   techo de Dice de 0,85 en Patriada y 0,86 en Cholila. Excluirlas (variante C) vale ≤ 0,005 en
@@ -97,8 +101,8 @@ FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP
 2. Llevar los resultados al informe (`../informe`), incluida la comparación final de mapas
    (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
 
-Abiertos sin decisión del autor, que no se cierran acá: los tres puntos de §2; del ensamble, el
-mínimo operativo de 24/31, CPU/RSS del runner y la latencia; y la semilla conexa en la app en tiempo
-real (§1).
+Abiertos: los dos puntos de §2, que siguen abiertos por decisión del autor (2026-10-31); del
+ensamble, CPU/RSS del runner y la latencia (el mínimo operativo de 24/31 se ratificó el 2026-10-31);
+y la semilla conexa en la app en tiempo real (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.

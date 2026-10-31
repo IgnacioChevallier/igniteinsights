@@ -128,7 +128,12 @@ pendiente. El detalle de cada límite está en `docs/resultados/RIESGOS_Y_SUPOSI
   (`docs/resultados/DIA-1-PROPUESTA.md` §7.3–7.6).
 - **P-24 con reanálisis en Cholila 2015, Alerces 2016, Epuyén 2019 y Alerces 2015.** Para esas fechas
   el GFS sólo está archivado cada 3 h, así que su P-24 corre con ERA5 y no es pronóstico (Z §2.2,
-  AB §1.1).
+  AB §1.1). El usuario decidió el 2026-10-31 no bajar ese archivo (~25 GB, trihorario): interpolarlo
+  cambiaría a la vez producto, resolución y plazo, y no aislaría el error de pronóstico.
+- **Reconstrucción del perímetro FIRMS** (decisión del usuario, 2026-10-31). No participa en la
+  calibración de ignición puntual. En P-24 da pronósticos casi iguales a los de arrancar desde la
+  cicatriz real (`DIA-1-PROPUESTA.md` §7.3, `diagnostico-e2e/notas/U-reconstruccion-semilla.md`).
+  Sólo la reabre un perímetro operativo independiente (vuelo IR, partes).
 - **Supresión:** El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - **Transferencia:** en prueba, la cadena da 0,191 / 0,167 con dos alarmas, y P-24 da 0,084 / 0,145
   de mediana a 12 / 24 h, ganándole a la cadena en 4 de 4 (§3, `diagnostico-e2e/notas/AB-p24-prueba.md`).
@@ -183,13 +188,14 @@ Dos problemas de la app quedaron resueltos el 2026-10-12, sin cambiar modelo-v0
    (`docs/resultados/PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`). La hace el autor con personas reales.
 2. **Llevar los resultados al informe** (`../informe`). Es trabajo de ese repositorio, no de este.
 
-Abiertos sin decisión del autor. No se cierran acá; quedan listados en el reporte de cierre del
-2026-10-31:
+Abiertos. Lo que el autor decidió el 2026-10-31 está en cada punto:
 
-- las incertidumbres de entrada de `PENDING_PARAMETERS.md` §2 (CBH de bosque nativo, rugosidad
-  regional, reconstrucción del perímetro FIRMS);
-- del ensamble: la ratificación del mínimo operativo de 24/31, la exposición de CPU/RSS del runner y
-  la latencia operativa (`DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`);
+- **CBH de bosque nativo y rugosidad regional** (`PENDING_PARAMETERS.md` §2): siguen abiertas por
+  decisión del autor. No bloquean el modelo. La reconstrucción del perímetro FIRMS, que estaba en la
+  misma lista, pasó a límite declarado (§6.2).
+- **Del ensamble:** CPU/RSS del runner y latencia operativa
+  (`DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`). El mínimo operativo de 24/31 se ratificó
+  como decisión de producto el 2026-10-31.
 - la semilla conexa de P-24, que la app en tiempo real todavía no aplica (`PENDING_PARAMETERS.md` §1).
 
 ## 7. Comparación final de mapas
