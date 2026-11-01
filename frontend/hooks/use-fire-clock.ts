@@ -19,6 +19,13 @@ const END_HOLD_MS = 1000;
 export const SPEEDS = [0.25, 0.5, 1] as const;
 export type Speed = (typeof SPEEDS)[number];
 
+/** Keep the tuned playback rates while presenting the simpler scale requested by users. */
+export const SPEED_LABELS: Record<Speed, string> = {
+  0.25: "0,5×",
+  0.5: "1×",
+  1: "1,5×",
+};
+
 export type FireClock = {
   /** Current position in simulated hours, in [0, horizonHours]. */
   t: number;

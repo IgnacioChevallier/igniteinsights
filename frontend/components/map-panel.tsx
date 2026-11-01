@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
+import { geoJsonAreaHa, isochroneAreaHa } from "@/lib/geojson-area";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
 import {
   describeSettings,
@@ -127,7 +128,7 @@ function isAbortError(error: unknown): boolean {
 type MapResultState = "idle" | "loading" | "ready" | "error";
 
 const DEFAULT_VISIBLE_HORIZON_HOURS = 3;
-const MAX_VISIBLE_HORIZON_HOURS = 24;
+const MAX_VISIBLE_HORIZON_HOURS = 25;
 
 function MapResultNotice({
   state,
@@ -386,6 +387,14 @@ export function MapPanel({ runs }: { runs: Run[] }) {
       }),
     };
   }, [isochrones, horizonHours]);
+  const observedAreaHa = useMemo(
+    () => geoJsonAreaHa(ignitionPerimeter),
+    [ignitionPerimeter],
+  );
+  const predictedAreaHa = useMemo(
+    () => isochroneAreaHa(isochrones, horizonHours),
+    [isochrones, horizonHours],
+  );
 
   useEffect(() => {
     setVisibleHorizonHours(DEFAULT_VISIBLE_HORIZON_HOURS);
@@ -766,7 +775,12 @@ export function MapPanel({ runs }: { runs: Run[] }) {
 
         <Separator />
 
-        <FireGrowthStatsPanel row={statsRow} />
+        <FireGrowthStatsPanel
+          row={statsRow}
+          observedAreaHa={observedAreaHa}
+          predictedAreaHa={predictedAreaHa}
+          horizonHours={horizonHours}
+        />
       </aside>
     </div>
   );

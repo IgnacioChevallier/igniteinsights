@@ -56,7 +56,7 @@ ACTIVO_H = 24                 # un incendio sin detecciones en 24 h deja de esta
 VENTANA_GRUPO_H = 24          # no unir focos cercanos separados por más de un día
 HISTORIA_DIAS = 7             # lo observado antes de eso no siembra la ventana
 MARGEN_CAJA_M = 15000.0       # caja = detecciones + margen; una ventana de 24 h cabe adentro
-HORAS = 24                    # el horizonte de P-24
+HORAS = 25                    # horizonte operativo seleccionable en el dashboard
 MARGEN_GFS_GRADOS = 0.5       # como el benchmark: celdas de sobra para interpolar al borde
 LH_PCT, LW_PCT = 30.0, 100.0  # humedad viva de modelo-v0 (HUMEDAD_VIVA_BASE + lw-100-001)
 ESTATICOS = ("dem.tif", "slp.tif", "asp.tif", "adj.tif", "fbfm40.tif",
@@ -239,9 +239,8 @@ async def estado(session: AsyncSession) -> dict:
         "ultima_pasada": max((d.t.isoformat() for d in detecciones), default=None),
         "proxima_pasada_estimada": proxima_pasada(ahora).isoformat(),
         "horizonte_h": HORAS,
-        "incendios": [   # la demo está precalculada: un foco sin pronóstico no entró en ella
+        "incendios": [
             _incendio_json(i, listo.get(i.id), ultimo.get(i.id)) for i in incendios
-            if op.modo != "demo" or i.id in ultimo
         ],
         "detecciones": {
             "type": "FeatureCollection",

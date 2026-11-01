@@ -1,6 +1,6 @@
 "use client";
 
-import { SPEEDS, type FireClock, type Speed } from "@/hooks/use-fire-clock";
+import { SPEED_LABELS, SPEEDS, type FireClock, type Speed } from "@/hooks/use-fire-clock";
 import { formatSimulatedHour, realTimestamp } from "@/lib/isochrone-clock";
 import { ARGENTINA_TIME_ZONE_LABEL } from "@/lib/date-time";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,7 @@ export function FireAnimationControls({
                 speed === s ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent",
               )}
             >
-              {s.toLocaleString("es")}×
+              {SPEED_LABELS[s]}
             </button>
           ))}
         </div>

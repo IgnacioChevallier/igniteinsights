@@ -1,4 +1,4 @@
-import { Clock, Flame, type LucideIcon } from "lucide-react";
+import { Flame, Radar, type LucideIcon } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 
 // One row per simulation run: ELMFIRE's final-state summary at tstop, not a time
@@ -15,10 +15,10 @@ export type FireSizeStatsRow = {
 const AC_TO_HA = 0.404686;
 
 const TOOLTIPS = {
-  horizon:
-    "Tiempo total simulado por ELMFIRE, en horas desde la ignición. Puede diferir levemente del horizonte solicitado por redondeos internos del intervalo de tiempo.",
-  totalArea:
-    "Área total acumulada quemada desde la ignición hasta el final del horizonte simulado — es el crecimiento completo del incendio, no una medición puntual.",
+  observed:
+    "Superficie del perímetro observado usado para iniciar la simulación. Corresponde a lo detectado hasta la última pasada satelital.",
+  predicted:
+    "Superficie total acumulada que alcanza el escenario modelado al final de la ventana seleccionada. Incluye el área observada inicial.",
 };
 
 function formatNumber(value: number | null, unit: string) {
@@ -54,29 +54,48 @@ function StatRow({
   );
 }
 
-export function FireGrowthStatsPanel({ row }: { row: FireSizeStatsRow | null }) {
+export function FireGrowthStatsPanel({
+  row,
+  observedAreaHa,
+  predictedAreaHa,
+  horizonHours,
+}: {
+  row: FireSizeStatsRow | null;
+  observedAreaHa?: number | null;
+  predictedAreaHa?: number | null;
+  horizonHours?: number;
+}) {
+  const fallbackPrediction =
+    row?.total_fire_area_ac !== null && row?.total_fire_area_ac !== undefined
+      ? row.total_fire_area_ac * AC_TO_HA
+      : null;
+  const prediction = predictedAreaHa ?? fallbackPrediction;
+  const predictionHorizon = horizonHours ?? row?.tstop_h ?? null;
+  const hasArea = observedAreaHa != null || prediction != null;
+
   return (
     <div className="flex flex-col gap-3">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Resumen de crecimiento
       </div>
-      {row ? (
+      {hasArea ? (
         <div className="flex flex-col gap-3">
           <StatRow
             icon={Flame}
-            label="Área total quemada"
-            value={formatNumber(
-              row.total_fire_area_ac !== null ? row.total_fire_area_ac * AC_TO_HA : null,
-              "ha",
-            )}
-            tooltip={TOOLTIPS.totalArea}
+            label="Área quemada hasta ahora"
+            value={formatNumber(observedAreaHa ?? null, "ha")}
+            tooltip={TOOLTIPS.observed}
             emphasized
           />
           <StatRow
-            icon={Clock}
-            label="Horizonte"
-            value={formatNumber(row.tstop_h, "h")}
-            tooltip={TOOLTIPS.horizon}
+            icon={Radar}
+            label={
+              predictionHorizon === null
+                ? "Área total prevista"
+                : `Predicción a ${predictionHorizon.toLocaleString("es", { maximumFractionDigits: 1 })} h`
+            }
+            value={formatNumber(prediction, "ha")}
+            tooltip={TOOLTIPS.predicted}
           />
         </div>
       ) : (

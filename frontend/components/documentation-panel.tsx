@@ -10,13 +10,7 @@ import {
   Trees,
   Wind,
 } from "lucide-react";
-
-const CONTENT_LINKS = [
-  { href: "#introduccion", label: "Introducción" },
-  { href: "#como-leer-el-mapa", label: "Cómo leer el mapa" },
-  { href: "#limites", label: "Límites" },
-  { href: "#fuentes", label: "Fuentes" },
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MAP_GUIDE = [
   {
@@ -83,41 +77,37 @@ const SOURCES = [
 export function DocumentationPanel() {
   return (
     <div className="h-full overflow-y-auto bg-muted/30">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 sm:px-6 md:grid-cols-[12rem_minmax(0,1fr)] md:py-10 lg:gap-12 lg:px-10">
-        <aside className="md:sticky md:top-10 md:self-start">
-          <div className="mb-3 flex items-center gap-2 md:mb-5">
-            <BookOpen className="h-4 w-4" aria-hidden="true" />
-            <span className="text-sm font-semibold">En esta página</span>
-          </div>
-          <nav
-            aria-label="Contenido de la documentación"
-            className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-2 md:mx-0 md:flex-col md:overflow-visible md:px-0"
-          >
-            {CONTENT_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="shrink-0 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:shrink"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </aside>
+      <article className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 md:py-10 lg:px-10">
+        <div className="flex items-center gap-2 text-sm font-medium text-orange-700">
+          <BookOpen className="h-4 w-4" aria-hidden="true" /> Guía de uso
+        </div>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Documentación</h1>
 
-        <article className="min-w-0">
-          <section id="introduccion" className="scroll-mt-6 border-b pb-10">
-            <p className="mb-3 text-sm font-medium text-orange-700">Guía de uso</p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Documentación</h1>
-            <p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+        <Tabs defaultValue="introduccion" className="mt-7">
+          <TabsList
+            aria-label="Contenido de la documentación"
+            className="grid h-auto w-full grid-cols-3"
+          >
+            <TabsTrigger value="introduccion" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Introducción
+            </TabsTrigger>
+            <TabsTrigger value="limites" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Límites del modelo
+            </TabsTrigger>
+            <TabsTrigger value="fuentes" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Fuentes
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="introduccion" className="rounded-xl border bg-background p-5 sm:p-7">
+            <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
               Ignite Insights integra detecciones satelitales de focos activos, pronósticos
               meteorológicos, relieve y combustibles para simular escenarios de propagación. El
               mapa ayuda a explorar cuándo y dónde podría avanzar el frente bajo los supuestos de
               cada corrida; no sustituye las observaciones en campo ni las decisiones operativas.
             </p>
-          </section>
 
-          <section id="como-leer-el-mapa" className="scroll-mt-6 border-b py-10">
+            <section className="mt-8">
             <h2 className="text-2xl font-semibold tracking-tight">Cómo leer el mapa</h2>
             <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
               Empezá por distinguir lo observado de lo simulado y después sumá las capas que
@@ -144,12 +134,13 @@ export function DocumentationPanel() {
                 </li>
               ))}
             </ol>
-          </section>
+            </section>
+          </TabsContent>
 
-          <section id="limites" className="scroll-mt-6 border-b py-10">
+          <TabsContent value="limites" className="rounded-xl border bg-background p-5 sm:p-7">
             <div className="flex items-center gap-3">
               <ShieldAlert className="h-6 w-6 text-orange-700" aria-hidden="true" />
-              <h2 className="text-2xl font-semibold tracking-tight">Límites</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Límites del modelo</h2>
             </div>
             <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
               La lectura responsable del resultado requiere considerar estas condiciones.
@@ -165,9 +156,9 @@ export function DocumentationPanel() {
                 </li>
               ))}
             </ul>
-          </section>
+          </TabsContent>
 
-          <section id="fuentes" className="scroll-mt-6 py-10">
+          <TabsContent value="fuentes" className="rounded-xl border bg-background p-5 sm:p-7">
             <h2 className="text-2xl font-semibold tracking-tight">Fuentes</h2>
             <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
               Las fuentes dependen de la configuración de cada corrida. Estas son las principales
@@ -197,9 +188,9 @@ export function DocumentationPanel() {
                 </div>
               ))}
             </dl>
-          </section>
-        </article>
-      </div>
+          </TabsContent>
+        </Tabs>
+      </article>
     </div>
   );
 }

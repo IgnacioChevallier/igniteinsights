@@ -15,12 +15,16 @@ import {
   ENSEMBLE_AGREEMENT_LAYER,
   type EnsembleAgreementContract,
 } from "@/lib/ensemble-agreement";
+import { geoJsonAreaHa, isochroneAreaHa } from "@/lib/geojson-area";
 import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
 import type { Estado, Incendio } from "@/lib/operativo";
 import { cn } from "@/lib/utils";
 import type { GriddedWindField } from "@/lib/wind-particles";
 
 const art = (value: string) => `${formatArgentinaDateTime(value)} ${ARGENTINA_TIME_ZONE_LABEL}`;
+const localTime = (value: string) => formatArgentinaDateTime(value);
+const DEFAULT_VISIBLE_HORIZON_HOURS = 3;
+const MAX_VISIBLE_HORIZON_HOURS = 25;
 
 async function getData<T>(url: string): Promise<T | null> {
   const res = await fetch(url, { cache: "no-store" });
@@ -45,7 +49,7 @@ function bboxCollection([w, s, e, n]: Incendio["bbox"]): GeoJSON.FeatureCollecti
 
 /**
  * What a client sees (docs/dashboard-producto.md §5): is there a fire, and where will it be
- * in the next 24 h. Observed detections, the forecast isochrones from the last VIIRS pass,
+ * in the selected forecast window. Observed detections and the forecast isochrones from the last VIIRS pass,
  * wind and the 3D relief; the ensemble agreement only on request. Nothing here starts a
  * computation — the admin decides what is computed, the client only what to look at.
  */
@@ -60,7 +64,9 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
   const [stats, setStats] = useState<FireSizeStatsRow | null>(null);
   const [wind, setWind] = useState<WindFieldResponse | null>(null);
   const [cargando, setCargando] = useState(false);
-  const [verViento, setVerViento] = useState(false);
+  const [visibleHorizonHours, setVisibleHorizonHours] = useState(
+    DEFAULT_VISIBLE_HORIZON_HOURS,
+  );
   const [verAcuerdo, setVerAcuerdo] = useState(false);
   const [acuerdo, setAcuerdo] = useState<EnsembleAgreementContract | null>(null);
   const [acuerdoAviso, setAcuerdoAviso] = useState<string | null>(null);
@@ -70,6 +76,7 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
     setPerimetro(null);
     setStats(null);
     setWind(null);
+    setCargando(false);
     setAcuerdo(null);
     setAcuerdoAviso(null);
     if (!simulacionId) return;
@@ -97,6 +104,10 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
   }, [simulacionId]);
 
   useEffect(() => {
+    setVisibleHorizonHours(DEFAULT_VISIBLE_HORIZON_HOURS);
+  }, [simulacionId]);
+
+  useEffect(() => {
     if (!verAcuerdo || !simulacionId || acuerdo || acuerdoAviso) return;
     void getData<unknown>(`/api/simulations/${simulacionId}/ensemble-agreement`).then((data) => {
       const checked = data ? checkEnsembleAgreement(data) : "Todavía no hay acuerdo del ensamble para este pronóstico.";
@@ -106,13 +117,30 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
   }, [verAcuerdo, simulacionId, acuerdo, acuerdoAviso]);
 
   const summary = useMemo(() => summarizeIsochrones(isochrones), [isochrones]);
-  const horizonte = summary.horizonHours || estado?.horizonte_h || 0;
+  const availableHorizon = summary.horizonHours || estado?.horizonte_h || 0;
+  const maxVisibleHorizon = Math.min(availableHorizon, MAX_VISIBLE_HORIZON_HOURS);
+  const horizonte = Math.min(visibleHorizonHours, maxVisibleHorizon);
   const animable = summary.timedCount > 0 && horizonte > 0;
   const clock = useFireClock({ horizonHours: animable ? horizonte : 0 });
   const snappedT = snapToLevel(clock.t, summary.levels);
   const clockView = useMemo(
     () => ({ t: snappedT, stepHours: summary.stepHours, horizonHours: horizonte }),
     [snappedT, summary.stepHours, horizonte],
+  );
+  const visibleIsochrones = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!isochrones) return null;
+    return {
+      ...isochrones,
+      features: isochrones.features.filter((feature) => {
+        const arrival = Number(feature.properties?.arrival_hours);
+        return Number.isFinite(arrival) && arrival <= horizonte;
+      }),
+    };
+  }, [isochrones, horizonte]);
+  const observedAreaHa = useMemo(() => geoJsonAreaHa(perimetro), [perimetro]);
+  const predictedAreaHa = useMemo(
+    () => isochroneAreaHa(isochrones, horizonte),
+    [isochrones, horizonte],
   );
 
   const windField = useMemo<GriddedWindField | null>(() => {
@@ -136,21 +164,29 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
-      <div className="flex min-h-[60vh] flex-1 flex-col md:min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="relative min-h-0 flex-1">
           <FireMap
             activeFires={estado?.detecciones ?? null}
-            isochrones={isochrones}
+            isochrones={visibleIsochrones}
             ignitionPerimeter={perimetro}
             ensembleAgreement={verAcuerdo ? acuerdo : null}
             fitTo={encuadre}
             windField={windField}
             windTimeHours={clock.t}
-            windSurfaceVisible={verViento}
+            windSurfaceVisible={false}
             clock={animable ? clockView : null}
             overlay={
               animable ? (
-                <FireAnimationControls clock={clock} ignitionDatetime={pronostico?.pasada ?? null} />
+                <FireAnimationControls
+                  clock={clock}
+                  ignitionDatetime={pronostico?.pasada ?? null}
+                  horizonControl={{
+                    valueHours: horizonte,
+                    maxHours: maxVisibleHorizon,
+                    onChange: setVisibleHorizonHours,
+                  }}
+                />
               ) : null
             }
           />
@@ -165,7 +201,14 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
               </div>
             </div>
           )}
-          {incendio && !pronostico && incendio.actualizacion?.estado !== "fallido" && (
+          {incendio && !pronostico && estado?.modo === "demo" && (
+            <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+              <p className="rounded-lg border bg-background/95 px-4 py-2 text-sm shadow-md">
+                Foco de demostración sin pronóstico precalculado.
+              </p>
+            </div>
+          )}
+          {incendio && !pronostico && estado?.modo !== "demo" && incendio.actualizacion?.estado !== "fallido" && (
             <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
               <p className="flex items-center gap-2 rounded-lg border bg-background/95 px-4 py-2 text-sm shadow-md">
                 <LoaderCircle className="h-4 w-4 animate-spin text-amber-600" />
@@ -188,15 +231,12 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
         </div>
         {/* Outside the map so the basemap attribution never covers it. */}
         <p className="shrink-0 border-t bg-background px-3 py-1.5 text-center text-xs leading-snug text-foreground">
-          Propagación potencial bajo condiciones modeladas, sin supresión
-          {pronostico
-            ? ` · próximas ${estado?.horizonte_h ?? 24} h desde la pasada VIIRS de las ${art(pronostico.pasada)} (disponible ${art(pronostico.disponible)})`
-            : ""}
-          . <a href="/documentacion" className="underline underline-offset-2">Límites del modelo</a>
+          Propagación potencial bajo condiciones modeladas, sin supresión ·{" "}
+          <a href="/documentacion" className="underline underline-offset-2">Límites del modelo</a>.
         </p>
       </div>
 
-      <aside className="flex w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-4 md:w-80 md:border-l md:border-t-0">
+      <aside className="flex max-h-[32dvh] w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-3 md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4">
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {incendios.length === 1 ? "Incendio activo" : `Incendios activos (${incendios.length})`}
@@ -219,7 +259,7 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                     <Flame className="h-3.5 w-3.5 shrink-0 text-orange-600" /> {i.nombre.split(" · ")[0]}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Primera detección {art(i.primera_deteccion)} · {i.detecciones} detecciones
+                    {localTime(i.primera_deteccion)}
                   </span>
                 </button>
               </li>
@@ -230,14 +270,10 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
         {pronostico && (
           <section className="rounded-md border p-3 text-xs leading-relaxed">
             <p className="flex items-center gap-1.5 font-medium text-foreground">
-              <Satellite className="h-3.5 w-3.5" /> Pasada VIIRS {art(pronostico.pasada)}
-            </p>
-            <p className="text-muted-foreground">
-              Publicada en FIRMS ~{art(pronostico.disponible)}. Meteorología: pronóstico GFS del ciclo{" "}
-              {pronostico.ciclo_gfs ? art(pronostico.ciclo_gfs) : "—"}.
+              <Satellite className="h-3.5 w-3.5" /> Pasada VIIRS {localTime(pronostico.pasada)}
             </p>
             <p className="mt-1 text-muted-foreground">
-              Próxima pasada estimada ~{art(estado!.proxima_pasada_estimada)}.
+              Próxima pasada estimada: {localTime(estado!.proxima_pasada_estimada)}.
             </p>
           </section>
         )}
@@ -246,13 +282,6 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
           <>
             <Separator />
             <section className="flex flex-col gap-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Capas</h2>
-              {wind && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={verViento} onChange={(e) => setVerViento(e.target.checked)} />
-                  Velocidad del viento
-                </label>
-              )}
               {estado?.calcular_ensamble && (
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
@@ -261,10 +290,14 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
               )}
               {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
               {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
-              <p className="text-[11px] text-muted-foreground">El botón 3D del mapa muestra el relieve.</p>
             </section>
             <Separator />
-            <FireGrowthStatsPanel row={stats} />
+            <FireGrowthStatsPanel
+              row={stats}
+              observedAreaHa={observedAreaHa}
+              predictedAreaHa={predictedAreaHa}
+              horizonHours={horizonte}
+            />
           </>
         )}
       </aside>

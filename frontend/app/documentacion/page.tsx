@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { ClientHeader } from "@/components/client-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth } from "@/lib/auth";
 
 /**
@@ -20,14 +21,14 @@ const LIMITES: { titulo: string; texto: string }[] = [
       "Las isócronas indican la tendencia del frente (dirección, velocidad, zonas expuestas). El borde real puede quedar adentro o afuera de lo dibujado.",
   },
   {
-    titulo: "Horizonte de 24 h desde la última pasada satelital",
+    titulo: "Horizonte de 25 h desde la última pasada satelital",
     texto:
-      "Cada pronóstico arranca de lo que vio el satélite VIIRS en su última pasada y mira 24 h hacia adelante. Sobre la zona hay dos tandas de pasadas por día (madrugada y tarde); entre una y otra el pronóstico no se actualiza.",
+      "Cada pronóstico arranca de lo que vio el satélite VIIRS en su última pasada y mira hasta 25 h hacia adelante. Sobre la zona hay dos tandas de pasadas por día (madrugada y tarde); entre una y otra el pronóstico no se actualiza.",
   },
   {
     titulo: "Los datos satelitales llegan con demora",
     texto:
-      "NASA FIRMS publica las detecciones unas 3 h después de la pasada, sin garantía (a veces más). De las 24 h pronosticadas, al momento de verlas quedan unas 21 h de futuro. El panel muestra la hora de la pasada y la hora en que estuvo disponible.",
+      "NASA FIRMS publica las detecciones unas 3 h después de la pasada, sin garantía (a veces más). Por eso, parte de la ventana seleccionada ya transcurrió cuando el producto está disponible.",
   },
   {
     titulo: "El primer día es el punto débil",
@@ -122,56 +123,76 @@ export default async function DocumentacionPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <ClientHeader active="documentacion" isAdmin={session?.user.role === "admin"} />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 text-sm leading-relaxed">
+      <main className="mx-auto w-full max-w-4xl px-4 py-6 text-sm leading-relaxed sm:py-10">
         <h1 className="text-2xl font-semibold">Documentación</h1>
-        <p className="mt-3 text-muted-foreground">
-          IgniteInsights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE cómo
-          podría propagarse en las próximas 24 h sobre el relieve, la vegetación y el pronóstico del
-          tiempo. Es una herramienta académica, desarrollada como tesis de grado:{" "}
-          <strong>no es un sistema oficial de alerta</strong> y no reemplaza la información del
-          Servicio Nacional de Manejo del Fuego ni de Parques Nacionales.
-        </p>
+        <Tabs defaultValue="introduccion" className="mt-5">
+          <TabsList className="grid h-auto w-full grid-cols-3">
+            <TabsTrigger value="introduccion" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Introducción
+            </TabsTrigger>
+            <TabsTrigger value="limites" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Límites del modelo
+            </TabsTrigger>
+            <TabsTrigger value="fuentes" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
+              Fuentes
+            </TabsTrigger>
+          </TabsList>
 
-        <h2 className="mt-8 text-lg font-semibold">Cómo leer el mapa</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li><strong>Puntos:</strong> detecciones satelitales de las últimas 24 h.</li>
-          <li><strong>Perímetro inicial:</strong> lo que el satélite ya vio quemado; es dato observado, no pronóstico.</li>
-          <li><strong>Isócronas:</strong> hasta dónde llegaría el frente en cada hora del pronóstico. La animación las recorre.</li>
-          <li><strong>Viento:</strong> el viento pronosticado que usa la simulación, hora por hora.</li>
-          <li><strong>3D:</strong> el relieve, que ayuda a ver por qué el fuego sube laderas más rápido.</li>
-        </ul>
+          <TabsContent value="introduccion" className="rounded-xl border bg-card p-5 sm:p-7">
+            <p className="text-muted-foreground">
+              IgniteInsights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE
+              cómo podría propagarse hasta 25 h sobre el relieve, la vegetación y el pronóstico del
+              tiempo. Es una herramienta académica, desarrollada como tesis de grado:{" "}
+              <strong className="text-foreground">no es un sistema oficial de alerta</strong> y no
+              reemplaza la información del Servicio Nacional de Manejo del Fuego ni de Parques
+              Nacionales.
+            </p>
+            <h2 className="mt-7 text-lg font-semibold">Cómo leer el mapa</h2>
+            <ul className="mt-3 list-disc space-y-2 pl-5">
+              <li><strong>Puntos:</strong> detecciones satelitales de las últimas 24 h.</li>
+              <li><strong>Perímetro inicial:</strong> lo que el satélite ya vio quemado; es dato observado, no pronóstico.</li>
+              <li><strong>Isócronas:</strong> hasta dónde llegaría el frente en cada hora del pronóstico. La animación las recorre.</li>
+              <li><strong>Viento:</strong> el viento pronosticado que usa la simulación, hora por hora.</li>
+              <li><strong>3D:</strong> el relieve, que ayuda a ver por qué el fuego sube laderas más rápido.</li>
+            </ul>
+          </TabsContent>
 
-        <h2 className="mt-8 text-lg font-semibold">Límites del modelo</h2>
-        <dl className="mt-2 flex flex-col gap-4">
-          {LIMITES.map((l) => (
-            <div key={l.titulo}>
-              <dt className="font-medium">{l.titulo}</dt>
-              <dd className="mt-0.5 text-muted-foreground">{l.texto}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <h2 className="mt-8 text-lg font-semibold">Fuentes de datos</h2>
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full min-w-[36rem] border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 pr-3 font-medium">Dato</th>
-                <th className="py-2 pr-3 font-medium">Fuente</th>
-                <th className="py-2 font-medium">Atribución y licencia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {FUENTES.map((f) => (
-                <tr key={f.dato} className="border-b align-top">
-                  <td className="py-2 pr-3 font-medium">{f.dato}</td>
-                  <td className="py-2 pr-3">{f.fuente}</td>
-                  <td className="py-2 text-muted-foreground">{f.atribucion}</td>
-                </tr>
+          <TabsContent value="limites" className="rounded-xl border bg-card p-5 sm:p-7">
+            <h2 className="text-lg font-semibold">Límites del modelo</h2>
+            <dl className="mt-4 flex flex-col gap-5">
+              {LIMITES.map((l) => (
+                <div key={l.titulo}>
+                  <dt className="font-medium">{l.titulo}</dt>
+                  <dd className="mt-1 text-muted-foreground">{l.texto}</dd>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </dl>
+          </TabsContent>
+
+          <TabsContent value="fuentes" className="rounded-xl border bg-card p-4 sm:p-7">
+            <h2 className="text-lg font-semibold">Fuentes</h2>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[36rem] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-2 pr-3 font-medium">Dato</th>
+                    <th className="py-2 pr-3 font-medium">Fuente</th>
+                    <th className="py-2 font-medium">Atribución y licencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FUENTES.map((f) => (
+                    <tr key={f.dato} className="border-b align-top">
+                      <td className="py-2 pr-3 font-medium">{f.dato}</td>
+                      <td className="py-2 pr-3">{f.fuente}</td>
+                      <td className="py-2 text-muted-foreground">{f.atribucion}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

@@ -114,7 +114,7 @@ test("play, pause and speed controls drive the clock", async ({ page }) => {
   await expect(slider).toHaveValue("0");
 
   await page.getByRole("button", { name: "Reproducir animación" }).click();
-  await page.getByRole("button", { name: "1×" }).click();
+  await page.getByRole("button", { name: "1,5×" }).click();
   await page.waitForTimeout(1200);
   const running = Number(await slider.inputValue());
   expect(running, "the clock must advance while playing").toBeGreaterThan(0);
@@ -132,7 +132,7 @@ test("starts at three hours and lets the operator extend the visible horizon", a
 
   await expect(horizon).toHaveValue("3");
   await expect(clock).toHaveAttribute("max", "3");
-  await expect(page.getByRole("button", { name: "0,5×" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "1×" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
