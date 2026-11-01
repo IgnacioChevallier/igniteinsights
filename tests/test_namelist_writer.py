@@ -114,6 +114,13 @@ class NamelistWriterTests(unittest.TestCase):
         simulator = adjusted_path.read_text().split("&SIMULATOR")[1].split("/")[0]
         self.assertIn("PHIS_ADJ                        = 0.5", simulator)
 
+    def test_phis_adj_is_written_without_rounding(self) -> None:
+        path, _, _ = write_namelist(
+            self.inputs_dir, self.root / "outputs", 2, self.root / "fine.data", phis_adj=0.25
+        )
+
+        self.assertIn("PHIS_ADJ                        = 0.25\n", path.read_text())
+
 
 def test_spotting_ausente_por_defecto_y_con_min_igual_max_si_se_pide():
     from app.elmfire.builder.namelist_writer import spotting_group

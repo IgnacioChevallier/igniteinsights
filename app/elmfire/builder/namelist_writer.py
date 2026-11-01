@@ -373,7 +373,8 @@ def write_namelist(
     utm_west, utm_south, cell_size = _read_domain(dem_path)
     a_srs = _read_srs(dem_path)
     phis_adj_line = (
-        f"  PHIS_ADJ                        = {phis_adj:.1f}\n" if phis_adj != 1.0 else ""
+        # repr: the shortest exact value, always with a decimal point (0.25, not 0.2).
+        f"  PHIS_ADJ                        = {float(phis_adj)!r}\n" if phis_adj != 1.0 else ""
     )
 
     namelist = f"""\
