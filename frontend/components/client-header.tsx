@@ -66,7 +66,7 @@ export function ClientHeader({
           )}
         </nav>
       </div>
-      {estado?.modo === "demo" && (
+      {active === "mapa" && estado?.modo === "demo" && (
         <div
           role="status"
           className="flex items-start gap-2 border-t border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-[11px] leading-snug text-foreground sm:items-center sm:px-4 sm:text-xs"
