@@ -307,7 +307,7 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                   className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
-                <span className="text-xs text-muted-foreground">Última pasada</span>
+                <span className="text-xs text-muted-foreground">Última actualización</span>
               </div>
               <div className="text-lg font-semibold leading-tight">
                 {localTime(pronostico.pasada)}
