@@ -343,8 +343,9 @@ pronóstico GFS real; Epuyén 2019 y Alerces 2015, ERA5.
     Rothermel de ELMFIRE no enciende (`DIA-1-PROPUESTA.md` §7.3–7.6).
   - **Reinicios tardíos**: **sobrepropagan** decenas de veces, porque el modelo no tiene supresión
     (Epuyén 2019, sesgo mediano 19 a 24 h).
-- **El Dice lo decide la forma, no el área**: en P-24 el crecimiento sale errado ×4 y el Dice
-  sigue dependiendo de dónde quema (`ESTADO-RESEARCH.md`, diagnóstico de precisión).
+- **El Dice lo decide la forma, no el área**: en P-24 el crecimiento sale errado ×4, pero igualar
+  el área no sube el Dice. El crecimiento predicho es casi isótropo y el rumbo está errado en
+  ~60°. La explicación completa, declarada como límite, está en `RIESGOS_Y_SUPOSICIONES.md` §9.
 
 ## 7. Comparación de mapas de combustible
 

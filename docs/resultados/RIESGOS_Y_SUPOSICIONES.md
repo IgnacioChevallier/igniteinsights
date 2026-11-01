@@ -1,6 +1,6 @@
 # Riesgos y suposiciones de modelo-v0
 
-> Corte: 2026-10-12; actualizado el 2026-10-31. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
+> Corte: 2026-10-12; actualizado el 2026-11-01. Complementa `ESTADO-RESEARCH.md` §6. Cada punto dice qué supone el modelo,
 > cómo afecta a los resultados, qué se midió y qué dato permitiría reducirlo. La evidencia
 > completa está en `AUDITORIA-FISICA.md`.
 
@@ -20,6 +20,7 @@ incendios.
 | 5 | Lo ya quemado | La app usaba el mapa de 2017 para cualquier fecha; ahora reasigna las quemas posteriores por edad | Resuelto en la app (LYQ-3) |
 | 6 | Ingesta histórica de FIRMS | La app no podía preparar incendios viejos | Resuelto en la app |
 | 7 | Transferencia | Prueba con cuatro incendios: Dice 0,191 y dos alarmas. Con P-24, 0,084 / 0,145 a 12 / 24 h, la mitad que en calibración | Declarado |
+| 9 | Acierto de P-24 | Dice del crecimiento bajo; en prueba apenas supera a la persistencia (+0,02–0,04). El error es de forma y rumbo (~60°), no de área | Límite declarado (2026-11-01) |
 
 ## 1. Supresión
 
@@ -499,3 +500,54 @@ Todas cerradas como límites declarados el 2026-10-31; detalladas en `PENDING_PA
   20 ft / 10 m en terreno abierto del AOI.
 - **Reconstrucción de perímetro FIRMS:** no calibrada, pero evaluada en P-24 contra la cicatriz
   real (ver §5). Cerrada como límite declarado el 2026-10-31.
+
+## 9. Acierto de P-24: el error es de forma, no de área
+
+**Suposición.** Reiniciar ELMFIRE en cada pasada VIIRS, con el pronóstico GFS disponible, alcanza
+para pronosticar hacia dónde crece el incendio en las 12–24 h siguientes.
+
+**Efecto.** El Dice del crecimiento es bajo:
+
+- mediana 0,192 / 0,262 a 12 / 24 h en los cuatro incendios GFS de calibración;
+- 0,084 / 0,145 en los cuatro de prueba.
+
+Le gana a la cadena en todos los casos de prueba, pero a la **persistencia** (dilatar lo observado
+al ritmo en que venía creciendo) le gana poco fuera de calibración: +0,021 a 12 h y +0,038 a 24 h,
+en 3 de 4 (`diagnostico-e2e/notas/AB-p24-prueba.md`). Es el límite que más acota lo que el producto
+puede prometer: indica tendencia y zonas expuestas, no el perímetro.
+
+**Por qué** (`DIAGNOSTICO-PRECISION-E2E.md`, "Respuesta corta" y §1; las causas no son aditivas):
+
+1. **Forma y rumbo: el residuo dominante.** El crecimiento predicho rodea toda la semilla
+   (elongación 1,5), mientras que el observado avanza hacia un lado (2,9–3,2). El rumbo está errado
+   en 58–67° de mediana. Por eso igualar el área no sube el Dice (−0,013 a 12 h, −0,003 a 24 h).
+2. **El viento de entrada** (§3) es la causa más probable del rumbo. Contra estaciones, el GFS que
+   recibe P-24 se desvía −13° en Futaleufú, +23° en Esquel y +81° en El Bolsón, con 0,52–0,80× de
+   la rapidez; σ circular 30–41°. Bajo dosel, con un WAF de ~0,08, ni la dirección correcta del
+   valle movería el frente (loop K). SMN WRF no mejora al GFS (frente 4) y el viento de estación
+   quedó cancelado.
+3. **Área errada ×4 en las dos direcciones.** El primer reinicio queda 2–4,5× corto (§2: copa que el
+   acople Van Wagner + Rothermel no enciende). Los reinicios tardíos sobre-propagan porque no hay
+   supresión (§1): 25 de 28 reinicios k ≥ 2.
+4. **La semilla.** El 26–61 % del área sembrada cae fuera de la cicatriz (píxel de 375 m, relleno
+   del casco y detecciones de otros incendios). El 70 % del crecimiento predicho brota de esa parte
+   y ahí está casi todo el exceso de flanco (`diagnostico-e2e/notas/I-isotropia.md`, `T-semilla.md`).
+5. **La métrica es exigente.** Se puntúa sólo el crecimiento, una franja angosta pegada a la
+   semilla. Un desplazamiento de pocos cientos de metros la pierde. El techo de la referencia es
+   ~0,7–0,9, no 1, pero eso no explica la brecha: corregir las islas no vistas mueve el Dice de
+   modelo-v0 en +0,001.
+
+**Qué no lo explica.** La meteorología del pronóstico frente al análisis (|ΔDice| ≤ 0,003 por
+incendio, `P24-PRONOSTICO-GFS.md`) ni la referencia (punto 5). El ensamble GEFS tampoco permite
+decir que la meteorología *no* domine: está sub-dispersado de entrada (3–11° contra 30–41° de error
+del GFS en estaciones).
+
+**Qué se midió.** Todo lo de §1–§3 (supresión, pavesas, WindNinja, rotación empírica, viento de
+estación, SMN WRF), el abrigo bajo el dosel (no es la causa del flanco, nota I), el ADJ secuencial
+(falsado offline en su forma simétrica) y el filtro de conexión de la semilla (no mueve la mediana).
+Ninguno corrige el rumbo.
+
+**Qué lo reduciría.** Un viento de superficie que resuelva el valle (dato que hoy no existe, §3), o
+asimilar entre pasadas la velocidad y el rumbo observados del crecimiento (`DIA-1-PROPUESTA.md` §3;
+sería otro producto, no modelo-v0). Ninguno está en el alcance actual: queda como **límite
+declarado** (2026-11-01). No se reabre con estos once incendios.

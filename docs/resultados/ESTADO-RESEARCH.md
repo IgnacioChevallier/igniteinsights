@@ -150,6 +150,12 @@ pendiente. El detalle de cada límite está en `docs/resultados/RIESGOS_Y_SUPOSI
 - **Supresión:** El Turbio y Epuyén 2019 no son reproducidos por el módulo disponible.
 - **Transferencia:** en prueba, la cadena da 0,191 / 0,167 con dos alarmas, y P-24 da 0,084 / 0,145
   de mediana a 12 / 24 h, ganándole a la cadena en 4 de 4 (§3, `diagnostico-e2e/notas/AB-p24-prueba.md`).
+- **Acierto de P-24** (declarado el 2026-11-01, `RIESGOS_Y_SUPOSICIONES.md` §9). El Dice del
+  crecimiento es bajo y, en prueba, le gana poco a la persistencia (+0,021 / +0,038, 3 de 4). El
+  error es de forma: crecimiento casi isótropo y rumbo errado en ~60°, atribuible sobre todo al
+  viento del GFS (§8). Se le suman el área ×4 (día 1 corto, reinicios tardíos sin supresión) y la
+  semilla de 375 m. Sólo lo reduciría un viento que resuelva el valle o asimilar el rumbo entre
+  pasadas, y nada de eso está en el alcance.
 - **Viento de superficie:** una estación cercana a Alerces 2016 o Cholila permitiría contrastar
   ERA5 con WindNinja. Las series pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se
   canceló el 2026-10-31: no reabre ninguna decisión.

@@ -68,6 +68,31 @@ principal: **Dice contra la cicatriz en la última ventana**, con el **sesgo de 
 También se reportan IoU, recall, precisión, TP/FP/FN en ha, el recall cercano (5 km) y el error de
 tiempo de llegada contra las detecciones.
 
+**Cicatriz truncada al horizonte** (`referencias.cicatriz.hasta_horizonte`,
+`_referencia_cicatriz` en `scripts/benchmark.py`). La dNBR es la cicatriz final: incluye lo
+que ardió después del horizonte simulado (máx. 120 h), y Alerces 2024 siguió activo 27 días.
+Por eso la referencia es la cicatriz ∩ un disco de 375 m alrededor de cada detección VIIRS SP
+hecha hasta el fin de la última ventana. Los 375 m son un píxel VIIRS I en el nadir: con medio
+píxel, las detecciones pegadas al borde quedaban afuera. La dNBR sigue dando qué ardió, a 30 m,
+y VIIRS sólo filtra cuándo. Lo que VIIRS vio fuera de la cicatriz no se agrega. La cicatriz que
+queda fuera de los discos va a la **exclusión**, no a "no quemado": ardió después o no se vio.
+
+- Se trunca **una vez, al horizonte**. Rige para todas las métricas contra la cicatriz (Dice,
+  IoU, precisión, recall, sesgo de área, t\* y Dice a área igualada), no para las métricas contra
+  FIRMS. El Dice contra la cicatriz de las ventanas intermedias usa esa misma referencia del
+  final, así que no mide el avance hasta esa ventana.
+- `curva_horizonte` re-trunca en cada corte de 24, 48, 72, 96 y 120 h con las detecciones
+  hasta el corte, sin correr ELMFIRE. Es un diagnóstico, no el puntaje.
+- P-24 aplica la misma regla al plazo del pronóstico (`app/validation/pronostico.py`).
+- Límites declarados:
+  - Una celda de la cicatriz que ardió entre dos pasadas sin detección queda excluida.
+  - Si el modelo sobre-propaga hacia lo que ardió después, no se lo penaliza. Es el sesgo
+    correcto para un modelo sin supresión.
+  - Las islas sin quemar que VIIRS no vio siguen contando como negativos (techo de Dice ~0,85).
+    Excluirlas no cambia nada y no se adopta (`diagnostico-e2e/notas/T-truncado.md`,
+    `PENDING_PARAMETERS.md`).
+- Origen: `docs/historico/RESULTADOS-CSS-BAP.md` §2, supuestos 1 y 7.
+
 **Verificación contra lo publicado.** Puntuar las salidas viejas con el código nuevo reproduce
 exactamente el harness B (IoU 0,036 / 0,045 / 0,067, y las bandas por % quemado) y el
 harness A (recall agregado 0,162 / 0,283 / 0,342 y el recall de las diez ventanas). Re-correr la
