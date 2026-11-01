@@ -86,3 +86,10 @@ def test_el_corte_de_la_demo_vale_solo_en_demo_y_fija_la_primera_deteccion(monke
 
     assert primera("demo") == nueva.t
     assert primera("vivo") == vieja.t
+
+
+def test_el_id_no_depende_del_orden_de_las_filas_cuando_la_primera_hora_empata():
+    # Un pase trae varias detecciones con la misma hora y la consulta no ordena.
+    grupo = [det(-71.535, -42.148), det(-71.534, -42.150), det(-71.536, -42.146)]
+    ids = {s.incendios_activos(g, T)[0].id for g in (grupo, grupo[::-1], grupo[1:] + grupo[:1])}
+    assert len(ids) == 1

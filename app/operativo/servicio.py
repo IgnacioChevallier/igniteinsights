@@ -163,7 +163,9 @@ def incendios_activos(detecciones: list[Deteccion], hasta: datetime) -> list[Inc
     activos = []
     for grupo in agrupar(detecciones):
         if max(d.t for d in grupo) >= hasta - timedelta(hours=ACTIVO_H):
-            primera = min(grupo, key=lambda d: d.t)
+            # Desempata por posición: un pase trae muchas detecciones con la misma hora y la
+            # consulta no tiene ORDER BY, así que el id dependía del orden de filas de cada base.
+            primera = min(grupo, key=lambda d: (d.t, d.lat, d.lon))
             activos.append(Incendio(identificar(primera), nombrar(primera), grupo))
     return sorted(activos, key=lambda i: i.ultima, reverse=True)
 
