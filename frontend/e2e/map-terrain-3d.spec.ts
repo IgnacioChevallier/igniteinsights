@@ -26,6 +26,10 @@ test("el relieve 3D se activa y se desactiva", async ({ page }) => {
   await toggle.click();
   await expect(map).toHaveAttribute("data-terrain", "on");
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  const help = page.getByRole("dialog", { name: "Explorá el relieve" });
+  await expect(help).toContainText("Ctrl");
+  await help.getByRole("button", { name: "Entendido" }).click();
+  await expect(help).toBeHidden();
   // Over terrain each particle step costs a GPU readback; only the draped speed surface stays.
   await expect(particles).toHaveAttribute("data-particle-count", "0");
 

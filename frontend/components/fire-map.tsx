@@ -194,6 +194,7 @@ export function FireMap({
   // Off whenever the basemap is synthetic: that scenario assumes flat ground, and draping
   // it over real relief would deny it. The 3D button is disabled there.
   const [terrain3d, setTerrain3d] = useState(false);
+  const [showTerrainHelp, setShowTerrainHelp] = useState(false);
   const windCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const windControllerRef = useRef<WindParticleController | null>(null);
   const windTimeRef = useRef(windTimeHours);
@@ -204,6 +205,15 @@ export function FireMap({
     speedMph: number;
     azimuthDeg: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (!showTerrainHelp) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowTerrainHelp(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [showTerrainHelp]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -717,6 +727,7 @@ export function FireMap({
             onClick={() => {
               setBasemap("synthetic");
               setTerrain3d(false);
+              setShowTerrainHelp(false);
             }}
             title="Representa lo que el escenario asume: suelo uniforme, una sola clase de combustible"
           >
@@ -725,7 +736,11 @@ export function FireMap({
         )}
         <button
           className={`border-l px-2 py-1 disabled:opacity-50 ${terrain3d ? "bg-primary text-primary-foreground" : ""}`}
-          onClick={() => setTerrain3d((on) => !on)}
+          onClick={() => {
+            const next = !terrain3d;
+            setTerrain3d(next);
+            if (next) setShowTerrainHelp(true);
+          }}
           disabled={basemap === "synthetic"}
           aria-pressed={terrain3d}
           title={
@@ -737,6 +752,41 @@ export function FireMap({
           3D
         </button>
       </div>
+
+      {showTerrainHelp && (
+        <div
+          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[1px]"
+          onClick={() => setShowTerrainHelp(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="terrain-help-title"
+            aria-describedby="terrain-help-description"
+            className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
+              Navegación 3D
+            </p>
+            <h2 id="terrain-help-title" className="mt-1 text-lg font-semibold">
+              Explorá el relieve
+            </h2>
+            <p id="terrain-help-description" className="mt-2 text-sm leading-6 text-muted-foreground">
+              Mantené presionada la tecla <strong className="text-foreground">Ctrl</strong> y hacé
+              clic y arrastrá sobre el mapa para inclinar y rotar el terreno.
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setShowTerrainHelp(false)}
+              className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* A5 · a run whose isochrones are empty must not look like a broken map. */}
       {isochrones !== null && isochrones.features.length === 0 && (
@@ -762,7 +812,7 @@ export function FireMap({
                 className="inline-block h-3 w-5 shrink-0 rounded-sm border border-dashed"
                 style={{ backgroundColor: "rgba(91,107,122,0.35)", borderColor: "#e2e8f0" }}
               />
-              <span>Perímetro FIRMS observado (entrada, t=0)</span>
+              <span>Perímetro observado</span>
             </div>
           ) : null}
           <div className="flex items-center gap-2">
@@ -774,24 +824,6 @@ export function FireMap({
               Isócronas previstas 0 → {horizonHours > 0 ? horizonHours.toLocaleString("es", { maximumFractionDigits: 1 }) : 12} h
             </span>
           </div>
-          {clock && (
-            <>
-              <div className="mt-1 flex items-center gap-2">
-                <span
-                  className="inline-block h-1.5 w-5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#fff4c2", boxShadow: "0 0 4px #fff4c2" }}
-                />
-                <span>Frente activo</span>
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                <span
-                  className="inline-block h-0.5 w-5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#cbd5e1" }}
-                />
-                <span>Pendiente de quemar</span>
-              </div>
-            </>
-          )}
         </div>
       )}
 
