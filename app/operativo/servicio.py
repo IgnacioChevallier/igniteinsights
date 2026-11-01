@@ -269,6 +269,9 @@ def _incendio_json(inc: Incendio, p: Pronostico | None,
             "pasada": p.pasada.isoformat(),
             "disponible": p.disponible.isoformat(),
             "ciclo_gfs": p.ciclo_gfs.isoformat() if p.ciclo_gfs else None,
+            # El cliente ofrece la capa sólo donde existe: el ensamble no se calcula en todas
+            # las pasadas (docs/dashboard-producto.md §8).
+            "ensamble": (salidas_de(p.id) / "ensemble_agreement.json").is_file(),
         },
         "actualizacion": None if actualizacion is None else {
             "estado": actualizacion.estado,
@@ -347,23 +350,14 @@ async def _correr(session: AsyncSession, inc: Incendio, p: Pronostico, t0: datet
                   tstart_s: float, ciclo: datetime, calcular_ensamble: bool) -> None:
     caja = _caja(inc)
     p.caja = from_shape(box(*caja), srid=4326)
-    insumos = resolve_data_path(settings.elmfire_inputs_dir) / f"operativo-{p.id}"
-    salidas = resolve_data_path(settings.elmfire_outputs_dir) / f"operativo-{p.id}"
+    insumos, salidas = insumos_de(p.id), salidas_de(p.id)
     shutil.rmtree(insumos, ignore_errors=True)
     insumos.mkdir(parents=True)
     salidas.mkdir(parents=True, exist_ok=True)
 
-    base = await estaticos(session, p.pasada.year)
-    for nombre in ESTATICOS:
-        await asyncio.to_thread(_recortar, base / nombre, caja, insumos / nombre)
-    shutil.copy2(fuels_builder.FUEL_MODEL_TABLE, insumos / namelist_writer.FUEL_MODEL_FILE)
-
+    await congelar(session, inc, p.pasada, caja, insumos)
     bandas = bandas_necesarias(HORAS, tstart_s)
     await asyncio.to_thread(_clima, ciclo, t0, bandas, caja, insumos)
-
-    sembradas = [(d.lon, d.lat) for d in inc.detecciones if d.t <= p.pasada]
-    await asyncio.to_thread(ignition_builder.build_ignition_layer, sembradas,
-                            insumos / "dem.tif", insumos)
 
     elmfire_data = insumos / "elmfire.data"
     _, dtdump_s, avisos = await asyncio.to_thread(
@@ -424,6 +418,28 @@ async def _correr(session: AsyncSession, inc: Incendio, p: Pronostico, t0: datet
         await repository.update_simulation_run(
             session, sim.id, status="success", output_dir=str(salidas), elmfire_config=config
         )
+
+
+async def congelar(session: AsyncSession, inc: Incendio, pasada: datetime,
+                   caja: tuple[float, float, float, float], insumos: Path) -> None:
+    """Los insumos que no son clima: estáticos recortados, tabla de combustibles y la semilla
+    (todo lo que VIIRS vio del incendio hasta `pasada`). El ensamble los reusa tal cual."""
+    base = await estaticos(session, pasada.year)
+    for nombre in ESTATICOS:
+        await asyncio.to_thread(_recortar, base / nombre, caja, insumos / nombre)
+    shutil.copy2(fuels_builder.FUEL_MODEL_TABLE, insumos / namelist_writer.FUEL_MODEL_FILE)
+    sembradas = [(d.lon, d.lat) for d in inc.detecciones if d.t <= pasada]
+    await asyncio.to_thread(ignition_builder.build_ignition_layer, sembradas,
+                            insumos / "dem.tif", insumos)
+
+
+def insumos_de(pronostico_id: object) -> Path:
+    return resolve_data_path(settings.elmfire_inputs_dir) / f"operativo-{pronostico_id}"
+
+
+def salidas_de(pronostico_id: object) -> Path:
+    """La carpeta de salida de la simulación de un pronóstico (su `output_dir`)."""
+    return resolve_data_path(settings.elmfire_outputs_dir) / f"operativo-{pronostico_id}"
 
 
 def _caja(inc: Incendio) -> tuple[float, float, float, float]:

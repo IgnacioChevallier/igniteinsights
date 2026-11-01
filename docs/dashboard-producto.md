@@ -64,7 +64,8 @@ to `docs/resultados/ESTADO-RESEARCH.md` §6.
 Any detection of nominal or high confidence (the FIRMS normalizer drops low). Detections closer
 than 3 km and separated by no more than 24 h are linked (single linkage,
 `filtro_conexo_m` of the P-24 cases) over the last 7 days; a group is active if it has a
-detection in the last 24 h. Its stable ID is a digest of its first detection. Its display name
+detection in the last 24 h. Its stable ID is a digest of its first detection (ties in time broken
+by position, §8). Its display name
 is "Cerca de <nearest locality to its first detection> · desde dd-mm" (fixed list in
 `LOCALIDADES`); names need not be unique.
 
@@ -92,7 +93,9 @@ in real time.
 `frontend/components/client-map.tsx`, also embedded under the admin's "Producto" section with
 the clock controls (`producto-panel.tsx`). Layers: FIRMS detections (24 h), observed perimeter,
 animated isochrones, wind (particles, optional speed), 3D relief, growth summary, and the
-ensemble agreement only if the admin enabled it. Time-of-arrival and fireline intensity are
+ensemble agreement only if the admin enabled it **and** the selected forecast has one
+(`pronostico.ensamble` in `/operativo/estado`, an `is_file()` on its `ensemble_agreement.json`);
+otherwise the option is simply absent. Time-of-arrival and fireline intensity are
 admin-only. States: no fire (with last and next pass), one fire (zoom), several (side list).
 A fixed line under the map: "Propagación potencial bajo condiciones modeladas, sin supresión ·
 próximas 24 h desde la pasada VIIRS de las HH:MM (disponible HH:MM)".
@@ -137,6 +140,38 @@ forecast; the admin walks forward from there. Starting on day 1 is deliberate: i
 point and how each pass corrects it. `AOI_NORTH` matters only if `.env` overrides it (the repo
 `.env` had `-42.9`, which leaves Patriada out).
 
+A fire's id is a digest of its first detection, and the first pass brings many detections with
+the same time; the tie is broken by position (`min` over `(t, lat, lon)` in
+`incendios_activos`), so the id no longer depends on each database's row order (74c27d3). The
+precompute ends by walking every demo clock through `servicio.estado` and printing how many saved
+forecasts it finds (`ids: estado encuentra N/N`); anything less means ids drifted again.
+
+**Ensemble agreement in the demo.** `demo_operativo.py` runs P-24 only, without ensemble. The
+ensemble is added afterwards to three Puerto Patriada steps, not to all 19 demo forecasts: at
+~35 min and 1.4 GiB per step (`ESTADO-RESEARCH.md` §6, note AD) every pass would take ~11 h,
+and three steps are enough to show the layer where it says something. The steps are the first
+pass (2026-01-05 19:20 UTC, where the replay starts) plus the two with the largest growth in
+their own deterministic 24 h window: total area from `fire_size_stats.csv` (what `/stats`
+serves) minus the seeded area (burning cells of `phi.tif`). The script prints that table and the
+choice, so it is measured rather than picked by eye:
+
+```bash
+uv run python scripts/demo_ensamble.py --sin-correr   # just the table and the choice
+uv run python scripts/demo_ensamble.py                # the GEFS ensemble of those 3 steps
+```
+
+It never repeats a P-24: it reuses each forecast's frozen inputs (`elmfire_inputs_dir/
+operativo-<id>`; if they are gone it rebuilds them with `servicio.congelar`, the same code the
+run uses, and says so), runs one step at a time, prints minutes per step, and is resumable (a
+step with `ensemble_agreement.json` is skipped). In demo mode the cron does not run ELMFIRE, so
+it does not compete with another window. Any other demo forecast has no checkbox for the layer.
+In production it runs inside the API service, detached so a dropped SSH session does not kill it:
+
+```bash
+railway ssh -s api -- 'cd /app && PYTHONPATH=/app nohup /app/.venv/bin/python scripts/demo_ensamble.py > /app/data/demo_ensamble.log 2>&1 &'
+railway ssh -s api -- tail -n 20 /app/data/demo_ensamble.log
+```
+
 ## 9. Accounts
 
 One per person, created by script; the initial password is printed and changed by the user
@@ -161,5 +196,7 @@ When the admin enables `calcular_ensamble`, each new deterministic P-24 run also
 non-weather inputs and runs the 31 GEFS members. At least 24 valid members are required. The
 agreement artifact records the effective denominator and failures, and is served with the
 simulation; a failed optional ensemble never hides an otherwise valid deterministic forecast.
-The client still chooses whether to show that layer, which is off by default and explicitly
-described as agreement rather than probability.
+The flag acts only on new runs; it never back-fills forecasts already computed (the demo's
+are back-filled by `scripts/demo_ensamble.py`, §8). The client still chooses whether to show
+that layer, which is offered only on forecasts that have it, is off by default and is
+explicitly described as agreement rather than probability.

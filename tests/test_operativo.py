@@ -93,3 +93,17 @@ def test_el_id_no_depende_del_orden_de_las_filas_cuando_la_primera_hora_empata()
     grupo = [det(-71.535, -42.148), det(-71.534, -42.150), det(-71.536, -42.146)]
     ids = {s.incendios_activos(g, T)[0].id for g in (grupo, grupo[::-1], grupo[1:] + grupo[:1])}
     assert len(ids) == 1
+
+
+def test_el_pronostico_dice_si_tiene_ensamble(monkeypatch, tmp_path):
+    """El cliente ofrece la capa de acuerdo sólo donde existe el JSON (no en todas las pasadas)."""
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(s.settings, "elmfire_outputs_dir", str(tmp_path))
+    inc = s.incendios_activos([det(-71.535, -42.148)], T)[0]
+    con, sin = (SimpleNamespace(id=n, simulacion_id=None, pasada=T, disponible=T, ciclo_gfs=None)
+                for n in ("a", "b"))
+    s.salidas_de("a").mkdir()
+    (s.salidas_de("a") / "ensemble_agreement.json").write_text("{}")
+    assert s._incendio_json(inc, con, None)["pronostico"]["ensamble"] is True
+    assert s._incendio_json(inc, sin, None)["pronostico"]["ensamble"] is False

@@ -9,6 +9,8 @@ export type Pronostico = {
   pasada: string;
   disponible: string;
   ciclo_gfs: string | null;
+  /** Whether this run has ensemble_agreement.json: the ensemble is not computed on every pass. */
+  ensamble: boolean;
 };
 
 export type Incendio = {

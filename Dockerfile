@@ -24,6 +24,7 @@ COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY scripts/cron_tick.py ./scripts/cron_tick.py
 COPY scripts/demo_operativo.py ./scripts/demo_operativo.py
+COPY scripts/demo_ensamble.py ./scripts/demo_ensamble.py
 # Casos, recetas y resultados del benchmark de validación: los lee /api/v1/validation.
 COPY benchmarks/ ./benchmarks/
 

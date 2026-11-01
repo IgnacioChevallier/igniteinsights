@@ -63,7 +63,7 @@ const LIMITES: { titulo: string; texto: string }[] = [
   {
     titulo: "Acuerdo del ensamble: no es una probabilidad",
     texto:
-      "Cuando está disponible, indica en qué fracción de 31 escenarios meteorológicos (ensamble GEFS) se quema cada celda. Comunica cuánto depende el pronóstico del tiempo; no es la probabilidad de que el fuego llegue, y en la validación no mejoró la predicción.",
+      "Se calcula sólo en algunos pronósticos (cada uno lleva ~35 min) y la opción aparece únicamente en ésos. Indica en qué fracción de 31 escenarios meteorológicos (ensamble GEFS) se quema cada celda. Comunica cuánto depende el pronóstico del tiempo; no es la probabilidad de que el fuego llegue, y en la validación no mejoró la predicción.",
   },
 ];
 

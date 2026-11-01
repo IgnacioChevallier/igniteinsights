@@ -71,6 +71,24 @@ async def main(desde: date, hasta: date) -> None:
                                                     "Cerca de Puerto Patriada ·%"
                                                 ))
             .order_by(Pronostico.disponible).limit(1))).scalar_one_or_none()
+
+        # Ids estables: en cada reloj de la demo, `estado` tiene que encontrar los pronósticos que
+        # acaban de quedar disponibles; si no, el panel queda en "se está calculando" (74c27d3).
+        guardados = (await session.execute(select(Pronostico).where(
+            Pronostico.modo == "demo", Pronostico.estado == "listo"))).scalars().all()
+        relojes = sorted({p.disponible for p in guardados})
+        perdidos = []
+        op.modo = "demo"
+        for reloj in relojes:
+            op.reloj = reloj
+            vistos = {i["pronostico"]["id"] for i in (await servicio.estado(session))["incendios"]
+                      if i["pronostico"]}
+            perdidos += [p for p in guardados if p.disponible == reloj and str(p.id) not in vistos]
+        print(f"ids: estado encuentra {len(guardados) - len(perdidos)}/{len(guardados)} "
+              f"pronósticos en {len(relojes)} relojes")
+        for p in perdidos:
+            print(f"  NO encontrado: {p.nombre} {p.pasada:%d-%m %H:%M} ({p.incendio_id})")
+
         op.modo, op.reloj = "demo", primero
         await session.commit()
         print(f"modo demo, reloj en {primero}")

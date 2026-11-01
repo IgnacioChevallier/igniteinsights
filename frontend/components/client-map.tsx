@@ -124,7 +124,7 @@ export function ClientMap({
   useEffect(() => {
     if (!verAcuerdo || !simulacionId || acuerdo || acuerdoAviso) return;
     void getData<unknown>(`/api/simulations/${simulacionId}/ensemble-agreement`).then((data) => {
-      const checked = data ? checkEnsembleAgreement(data) : "Todavía no hay acuerdo del ensamble para este pronóstico.";
+      const checked = data ? checkEnsembleAgreement(data) : "No se pudo leer el acuerdo del ensamble.";
       if (typeof checked === "string") setAcuerdoAviso(checked);
       else setAcuerdo(checked);
     });
@@ -389,7 +389,7 @@ export function ClientMap({
               predictedAreaHa={predictedAreaHa}
               horizonHours={horizonte}
             />
-            {estado?.calcular_ensamble && (
+            {estado?.calcular_ensamble && pronostico.ensamble && (
               <>
                 <Separator />
                 <section className="flex flex-col gap-2">

@@ -177,6 +177,33 @@ const SUMMARY = {
   elmfire_outputs: [],
 };
 
+// GET /api/v1/operativo/estado for the client view: one fire whose forecast has the ensemble.
+function estado() {
+  return {
+    modo: "demo",
+    ahora: "2026-09-06T15:00:00+00:00",
+    latencia_firms_h: 3,
+    calcular_ensamble: true,
+    ultima_pasada: "2026-09-06T12:00:00+00:00",
+    proxima_pasada_estimada: "2026-09-06T19:00:00+00:00",
+    horizonte_h: 25,
+    incendios: [{
+      id: "f-000000000001",
+      nombre: "Cerca de Villa Futalaufquen · desde 06-09",
+      primera_deteccion: "2026-09-06T12:00:00+00:00",
+      ultima_deteccion: "2026-09-06T12:00:00+00:00",
+      detecciones: 4,
+      bbox: [CENTRE[0] - 0.01, CENTRE[1] - 0.01, CENTRE[0] + 0.01, CENTRE[1] + 0.01],
+      pronostico: {
+        id: "p-1", simulacion_id: SIM_ID, pasada: "2026-09-06T12:00:00+00:00",
+        disponible: "2026-09-06T15:00:00+00:00", ciclo_gfs: "2026-09-06T00:00:00+00:00", ensamble: true,
+      },
+      actualizacion: { estado: "listo", pasada: "2026-09-06T12:00:00+00:00", error: null },
+    }],
+    detecciones: { type: "FeatureCollection", features: [] },
+  };
+}
+
 const ok = (data) => ({ status: "success", data, error: null, meta: { timestamp: new Date().toISOString() } });
 
 http
@@ -189,6 +216,7 @@ http
     else if (path.endsWith("/stats")) body = ok({ rows: [] });
     else if (path.endsWith("/wind")) body = ok(windField());
     else if (path.endsWith("/ensemble-agreement")) body = ok(ensembleAgreement());
+    else if (path === "/api/v1/operativo/estado") body = ok(estado());
     else if (path.startsWith("/api/v1/fires/active")) body = ok({ type: "FeatureCollection", features: [] });
     else body = ok(null);
     res.writeHead(200, { "Content-Type": "application/json" });
