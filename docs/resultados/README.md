@@ -11,6 +11,8 @@ antecedentes que no describen el estado actual. Ante cualquier diferencia, manda
 
 - `ESTADO-RESEARCH.md`: fuente canónica del estado, los límites declarados y lo pendiente.
 - `MODELO-V0.md`: snapshot promovido, resultados por caso y contrato del gate productivo.
+- `METRICAS.md`: catálogo de las métricas (qué mide cada una, qué aporta, qué no dice y su valor
+  vigente), incluidos P-24 y el acuerdo del ensamble.
 - `PENDING_PARAMETERS.md`: qué quedó congelado en modelo-v0 y qué se declaró como límite. Desde el
   2026-10-31 no queda nada abierto.
 - `RIESGOS_Y_SUPOSICIONES.md`: qué supone modelo-v0, cómo afecta a los resultados y qué dato lo
