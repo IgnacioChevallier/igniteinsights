@@ -300,30 +300,50 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
         )}
 
         {pronostico && (
-          <section className="rounded-md border p-3 text-xs leading-relaxed">
-            <p className="flex items-center gap-1.5 font-medium text-foreground">
-              <Satellite className="h-3.5 w-3.5" /> Pasada VIIRS {localTime(pronostico.pasada)}
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Próxima pasada estimada: {localTime(estado!.proxima_pasada_estimada)}.
-            </p>
+          <section className="grid grid-cols-2 gap-4" aria-label="Pasadas satelitales">
+            <div className="flex min-w-0 flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Satellite
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="text-xs text-muted-foreground">Última pasada</span>
+              </div>
+              <div className="text-lg font-semibold leading-tight">
+                {localTime(pronostico.pasada)}
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Satellite
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="text-xs text-muted-foreground">Próxima pasada</span>
+              </div>
+              <div className="text-lg font-semibold leading-tight">
+                {localTime(estado!.proxima_pasada_estimada)}
+              </div>
+            </div>
           </section>
         )}
 
         {pronostico && (
           <>
             <Separator />
-            <section className="flex flex-col gap-2">
-              {estado?.calcular_ensamble && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
-                  {ENSEMBLE_AGREEMENT_LAYER.name}
-                </label>
-              )}
-              {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
-              {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
-            </section>
-            <Separator />
+            {estado?.calcular_ensamble && (
+              <>
+                <section className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
+                    {ENSEMBLE_AGREEMENT_LAYER.name}
+                  </label>
+                  {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
+                  {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
+                </section>
+                <Separator />
+              </>
+            )}
             <FireGrowthStatsPanel
               row={stats}
               observedAreaHa={observedAreaHa}

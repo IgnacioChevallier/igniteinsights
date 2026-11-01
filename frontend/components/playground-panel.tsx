@@ -264,7 +264,7 @@ export function PlaygroundPanel() {
                 </div>
               )}
               {/* Below the basemap switcher, which also lives at top-left: at the same
-                  offset a long scenario name covered "Calles / Satélite / Esquemático"
+                  offset a long scenario name covered "Terreno / Satélite / Esquemático"
                   entirely. */}
               <div className="pointer-events-none absolute left-2 top-11 z-10 max-w-[calc(100%-1rem)] rounded-md bg-background/90 px-2 py-1 text-xs shadow">
                 <span className="font-semibold">{i === 0 ? "A" : "B"}</span>

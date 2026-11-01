@@ -703,7 +703,7 @@ export function FireMap({
           className={`px-2 py-1 ${basemap === "street" ? "bg-primary text-primary-foreground" : ""}`}
           onClick={() => setBasemap("street")}
         >
-          Calles
+          Terreno
         </button>
         <button
           className={`px-2 py-1 ${basemap === "satellite" ? "bg-primary text-primary-foreground" : ""}`}
