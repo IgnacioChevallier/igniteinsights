@@ -24,24 +24,21 @@ por evidencia externa nueva.
 | Humedad viva herbácea, LH | 30 % | Convención de pasto curado de Scott & Burgan |
 | Humedad muerta m1 | Nelson sobre GFS/ERA5 | El delta uniforme −6 no tiene soporte en estaciones |
 | `dt_s` / `dtmax_s` | 30 / 300 s | Convergencia verificada con el paso a la mitad |
-| Rugosidad `z0` | 0,22 m | El ráster por dosel duplica el WAF de ELMFIRE y empeora el objetivo |
+| Rugosidad `z0` | 0,22 m | El ráster por dosel duplica el WAF de ELMFIRE y empeora el objetivo; límite declarado (§3) |
 | Horizonte Alerces 2023 | 54 h | El área FIRMS deja de crecer; extenderlo mide fuego sin supresión |
 | Estepa CCS-BAP | GR2; >1.300 m → NB9 | Decisión del loop L; GR1 queda como sensibilidad no adoptada |
 | Remanente de disturbio | SH3 | Representa mejor un rebrote de 6–15 años que GS3 |
-| CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino |
+| CBH | Por tipo de bosque | Valores de literatura; baja a media confianza salvo pino; límite declarado (§3) |
 | CBD del pino | 0,16 kg/m³ | Medido en plantaciones patagónicas |
 | Pérdida previa Hansen | Sin dosel | Sólo pérdidas anteriores al año del incendio |
 | Semilla FIRMS de P-24 (`pronostico-v7`) | Detecciones conectadas a la ignición: saltos ≤ 3.000 m, ancla ≤ 5.000 m | Saca otros incendios de la caja; sólo cambia Cholila (`docs/resultados/diagnostico-e2e/notas/T-semilla-v7.md`). La app operativa de `main` la aplica sin punto de ignición (`agrupar`: saltos ≤ 3.000 m y ≤ 24 h). Elige las mismas detecciones en 33 de 34 reinicios; Jaccard mínimo 0,996 (`AC-semilla-app.md`) |
 
 ## 2. Abierto, pero no bloquea el modelo
 
-| Tema | Estado | Qué permitiría reabrirlo |
-|---|---|---|
-| CBH de bosque nativo | Valores indirectos de literatura | Inventario regional de estructura vertical |
-| Rugosidad regional | Valor convencional, no medido en el AOI | Medición o producto regional independiente |
-
-Estos puntos son incertidumbres de entrada. No justifican otra búsqueda de perillas con los
-mismos once incendios.
+Nada desde el 2026-10-31. Los tres puntos que estaban acá (CBH de bosque nativo, rugosidad
+regional y reconstrucción del perímetro FIRMS) pasaron a límites declarados (§3) por decisión del
+usuario. Eran incertidumbres de entrada y no justificaban otra búsqueda de perillas con los mismos
+once incendios.
 
 ## 3. Límites declarados
 
@@ -71,6 +68,18 @@ mismos once incendios.
   del 2026-10-23); se declara como límite (`docs/resultados/diagnostico-e2e/notas/T-truncado.md`).
 - **m10/m100** (cerrado el 2026-10-31): los offsets +2/+5 no tienen fundamento físico, pero el
   benchmark es insensible. No se buscan mediciones.
+- **CBH de bosque nativo** (cerrado el 2026-10-31, decisión del usuario): valores indirectos de
+  literatura. Su rango plausible es material para la iniciación de copa del día 1 sólo en TU5
+  (coihue y ciprés con caña: el 1,5 m está sobre el umbral de Van Wagner de lo que ardió) y en TU3
+  (ñire) debajo de ~1 m. En lenga, TL2 y alerce no cambia nada
+  (`docs/resultados/diagnostico-e2e/notas/AE-cbh-z0-sensibilidad.md` §3.1). Ninguna fuente externa
+  mide esa escalera (AE §4.1). Sólo lo reabre una medición de la altura de la escalera en
+  coihue/ciprés con caña o en ñire.
+- **Rugosidad `z0`** (cerrado el 2026-10-31, decisión del usuario): 0,22 m reproduce el factor
+  convencional 0,87 entre el viento a 10 m y el de 20 ft; no es una rugosidad medida en el AOI. Con
+  0,03–0,5 m, la propagación superficial cambia ×0,97–1,04; la copa del día 1 se mueve por el
+  mismo umbral de TU5 (AE §3.2). Un producto regional de rugosidad mediría la del dosel, que ya
+  está en el WAF. Sólo lo reabre una medición del cociente 20 ft / 10 m en terreno abierto del AOI.
 - **Viento de superficie** (cerrado el 2026-10-31): ERA5 y GFS no resuelven bien los valles. Las
   series de estación pedidas al INTA y a Bosques de Chubut no llegaron y el pedido se canceló; ya
   no reabre ninguna decisión.
@@ -101,8 +110,8 @@ FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP
 2. Llevar los resultados al informe (`../informe`), incluida la comparación final de mapas
    (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
 
-Abiertos: los dos puntos de §2, que siguen abiertos por decisión del autor (2026-10-31); del
-ensamble no queda nada: el mínimo de 24/31 se ratificó y CPU/RSS y latencia se midieron el 2026-10-31
+Abiertos: ninguno. El CBH de bosque nativo y la rugosidad, que estaban en §2, pasaron a límites
+declarados el 2026-10-31 (§3, nota AE); del ensamble no queda nada: el mínimo de 24/31 se ratificó y CPU/RSS y latencia se midieron el 2026-10-31
 (nota AD). La semilla conexa en la app se cerró el 2026-10-31 (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.

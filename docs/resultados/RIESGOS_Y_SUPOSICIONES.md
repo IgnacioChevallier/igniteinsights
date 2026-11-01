@@ -484,11 +484,18 @@ persistencia le gana sólo en 3 de 4. La brecha entre calibración y prueba de l
 
 ## 8. Suposiciones de entrada sin base local
 
-Detalladas en `PENDING_PARAMETERS.md` §2 (m10/m100 y la reconstrucción, ya cerradas, en §3):
+Todas cerradas como límites declarados el 2026-10-31; detalladas en `PENDING_PARAMETERS.md` §3:
 
 - **m10/m100:** offsets +2/+5 sin fundamento físico propio; el benchmark resultó insensible.
   Cerrado como límite declarado el 2026-10-31: no se buscan mediciones.
-- **CBH de bosque nativo:** valores de literatura, no un inventario regional.
-- **Rugosidad:** valor convencional, no medido en el AOI.
+- **CBH de bosque nativo:** valores de literatura, no un inventario regional. Su rango plausible
+  mueve la iniciación de copa del día 1 sólo en TU5 (coihue y ciprés con caña, sobre el umbral) y en
+  el ñire debajo de ~1 m; en lenga, TL2 y alerce no cambia nada
+  (`diagnostico-e2e/notas/AE-cbh-z0-sensibilidad.md`). Cerrado como límite declarado el
+  2026-10-31: sólo lo reabre una medición de la altura de la escalera en esas dos clases.
+- **Rugosidad:** valor convencional (reproduce el factor 0,87 de 10 m a 20 ft), no medido en el
+  AOI. En 0,03–0,5 m, la propagación superficial cambia ×0,97–1,04; la copa, por el umbral de TU5
+  (nota AE). Cerrado como límite declarado el 2026-10-31: sólo lo reabre una medición del cociente
+  20 ft / 10 m en terreno abierto del AOI.
 - **Reconstrucción de perímetro FIRMS:** no calibrada, pero evaluada en P-24 contra la cicatriz
   real (ver §5). Cerrada como límite declarado el 2026-10-31.
