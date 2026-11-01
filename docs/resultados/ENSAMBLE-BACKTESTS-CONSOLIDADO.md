@@ -285,6 +285,8 @@ como mejora predictiva de c00.** Las tres preguntas se responden por separado.
   por caso, casi todo en rangos GRIB fuente (mediana 1,54 GiB), y los TOA ocupan ~3,8 MiB.
   Epuyén w1 conserva 9,9 GiB por ser el primer backtest.
 - Costo: CPU/RSS del solver remoto siguen sin exponerse. No se infiere costo facturable.
+  Medido aparte el 2026-10-31 con `docker stats` (nota AD): ~430 CPU·s y 1,4 GiB de pico por
+  reinicio de 31 miembros.
 
 ### 2. Comunicación de sensibilidad: útil y no degenerada, pero angosta
 

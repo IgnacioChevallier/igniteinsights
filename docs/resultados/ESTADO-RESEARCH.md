@@ -203,10 +203,11 @@ Abiertos. Lo que el autor decidió el 2026-10-31 está en cada punto:
 - **CBH de bosque nativo y rugosidad regional** (`PENDING_PARAMETERS.md` §2): siguen abiertas por
   decisión del autor. No bloquean el modelo. La reconstrucción del perímetro FIRMS, que estaba en la
   misma lista, pasó a límite declarado (§6.2).
-- **Del ensamble:** CPU/RSS del runner y latencia operativa
-  (`DECISIONES-TESIS-TRANSPARENCIA-INCERTIDUMBRE.md`). El mínimo operativo de 24/31 se ratificó
-  como decisión de producto el 2026-10-31. La medición de CPU/RSS y latencia, con un backtest GEFS,
-  está registrada y todavía no se corrió (`diagnostico-e2e/notas/AD-recursos-ensamble.md`).
+- **Del ensamble: cerrado el 2026-10-31.** El mínimo operativo de 24/31 se ratificó como decisión
+  de producto. CPU/RSS y latencia se midieron con un backtest GEFS reproducido byte a byte
+  (`diagnostico-e2e/notas/AD-recursos-ensamble.md`): 35 min por reinicio en serie, de los que
+  ELMFIRE es el 21 %; 1,4 GiB de RAM por corrida, así que entran 5 a la vez en la VM; ~430 CPU·s.
+  El cuello de botella es la descarga y la materialización, no el solver.
 - **Semilla conexa de P-24 en la app en tiempo real: cerrada el 2026-10-31.** La app operativa
   de `main` (`app/operativo/servicio.py`, `agrupar`) ya la aplica sin punto de ignición, y elige las
   mismas detecciones que el benchmark en 33 de 34 reinicios (Jaccard mínimo 0,996;

@@ -102,7 +102,7 @@ FIRMS, que figuraba acá, se resolvió el 2026-10-12: la app pide las fuentes SP
    (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`).
 
 Abiertos: los dos puntos de §2, que siguen abiertos por decisión del autor (2026-10-31); del
-ensamble, CPU/RSS del runner y la latencia (el mínimo operativo de 24/31 se ratificó el 2026-10-31). La semilla conexa en la app se cerró
-el 2026-10-31 (§1).
+ensamble no queda nada: el mínimo de 24/31 se ratificó y CPU/RSS y latencia se midieron el 2026-10-31
+(nota AD). La semilla conexa en la app se cerró el 2026-10-31 (§1).
 
 No quedan barridos de receta pendientes con los datos actuales.

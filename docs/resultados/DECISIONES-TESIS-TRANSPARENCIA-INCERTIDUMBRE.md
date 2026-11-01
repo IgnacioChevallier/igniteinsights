@@ -248,9 +248,14 @@ Decisión: se adopta **con limitaciones** como capa de acuerdo/incertidumbre, co
 sidebar y apagada por defecto. No se adopta como mejora predictiva, y `>= 0,80` no se promueve.
 Siguen abiertos:
 
-1. la evaluación con usuarios reales (`PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`);
-2. la exposición de CPU/RSS del runner para estimar el costo;
-3. la latencia operativa.
+1. la evaluación con usuarios reales (`PROTOCOLO-EVALUACION-ACUERDO-ENSAMBLE.md`).
+
+**CPU/RSS y latencia: medidas el 2026-10-31** con un backtest GEFS reproducido byte a byte
+(`diagnostico-e2e/notas/AD-recursos-ensamble.md`). Son 35 min por reinicio en serie: descarga 22 %,
+materialización 51 % y las 31 corridas de ELMFIRE 23 %. La RAM es de 1,4 GiB por corrida, así que
+entran 5 a la vez en la VM de 7,75 GB, y el costo es de ~430 CPU·s de solver. Quedan como límites
+medidos: la latencia entra entre dos pasadas, y paralelizar ELMFIRE sólo la bajaría en una parte
+chica.
 
 **Mínimo operativo de 24/31: ratificado** por el autor el 2026-10-31 como decisión de producto. Con
 menos de 24 miembros válidos no se escribe el mapa de acuerdo, y la interfaz muestra siempre

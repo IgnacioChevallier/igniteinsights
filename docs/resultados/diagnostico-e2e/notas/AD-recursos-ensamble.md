@@ -1,7 +1,7 @@
 # AD · CPU/RSS del runner y latencia de un backtest GEFS
 
 > 2026-10-31. Diseño registrado antes de correr nada, por decisión del usuario (Parte 2, punto b2).
-> **Todavía no se corrió:** el runner estaba caído. Se corre con el runner arriba y libre, sin otra
+> **Corrido el 2026-10-31 (23:44–00:19 UTC); resultado en §2.** Se corrió con el runner arriba y libre, sin otra
 > corrida de ELMFIRE en curso.
 
 ## 0. Problema
@@ -76,3 +76,46 @@ Qué no se hace, sea cual sea el resultado: no se cambian miembros, umbrales, ci
 miembros de ~16 s, la CPU por miembro es aproximada (~8 muestras); el pico de memoria es fiable.
 Para CPU y maxRSS exactos haría falta instrumentar `../elmfire-runner` con `getrusage`, y eso se
 descartó para no cambiar otro repositorio.
+
+## 2. Resultado (2026-10-31)
+
+Se corrió con la CLI de §1, desde el checkout principal, entre las 23:44 y las 00:19 UTC, después
+de 5 min seguidos con el runner libre. `scripts/diagnostico_recursos_ensamble.py` sale de los logs
+de `data/ensemble-poc/medicion-recursos/` (957 muestras de `docker stats`, paso mediano de 2 s).
+Las cifras están en `docs/resultados/diagnostico-e2e/datos/AD-recursos-ensamble.json`.
+
+**Control: pasa.** Los TOA de los 31 miembros y los 6 GeoJSON de acuerdo (12 y 24 h) tienen el
+mismo SHA-256 que el backtest consolidado. La medición vale.
+
+| Etapa | Pared | Fracción |
+|---|---:|---:|
+| Inventario GEFS | 1,3 min | 4 % |
+| Descarga GEFS | 7,6 min | 22 % |
+| Materialización de los 31 miembros | 17,8 min | 51 % |
+| 31 corridas (subida, ELMFIRE, bajada) | 8,2 min | 23 % |
+| Base, agregación, evaluación, validación | 0,2 min | 1 % |
+| **Total** | **34,9 min** | |
+
+| Recurso | Valor |
+|---|---|
+| ELMFIRE, pared por miembro | mediana 10,0 s; suma 438 s (21 % de la pared) |
+| CPU del contenedor durante la corrida | 432 CPU·s; ~100 % mientras corre un miembro (un núcleo: `mpirun -n 1`) |
+| RAM del contenedor | 101 MiB en reposo; pico 1.491 MiB (1.390 MiB sobre el reposo) |
+
+Por §1.2:
+
+- **Cuello de botella: la descarga y la materialización, no ELMFIRE.** Las 31 corridas son el
+  21–23 % de la pared, menos del 30 %. Paralelizar las corridas de ELMFIRE baja poco la
+  latencia. Lo que pesa es la materialización de cada miembro (51 %), que es Python del cliente,
+  y la descarga (22 %).
+- **Paralelismo posible en la VM actual:** ⌊(7.939 − 101) / 1.390⌋ = **5** miembros a la vez. Da
+  ≥ 2, así que se puede paralelizar en esta VM. La cuenta no incluye la base de datos ni la API, si
+  corren en la misma VM.
+- **Latencia operativa:** 35 min por reinicio en serie. Entra con holgura entre dos pasadas VIIRS
+  (~12 h), pero ocupa más de un tick de 30 min de la app. Es descriptivo: no hay umbral de producto.
+  El «~1 h por caso» del consolidado incluía colas y contención que esta corrida no tuvo.
+- **Costo:** ~430 CPU·s (~7 CPU·min) de solver por reinicio de 31 miembros, sin convertir a dinero.
+
+Límites (§1.3): la CPU es la del contenedor entero y sale de muestras de ~2 s; el pico de memoria
+es fiable. La materialización corre fuera del contenedor, así que su CPU no está en estas cifras.
+No cambió nada de `modelo-v0`, miembros, umbrales ni ciclos.
