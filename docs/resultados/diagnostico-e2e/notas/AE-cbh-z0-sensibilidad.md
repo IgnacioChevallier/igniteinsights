@@ -1,6 +1,8 @@
 # AE · CBH nativo y rugosidad: sensibilidad acotada, sin ELMFIRE
 
 > 2026-10-31. Diseño registrado antes de calcular nada (§1–§2). Resultado en §3.
+> **Decisión del usuario (2026-10-31): las dos se cierran como límites declarados**
+> (`ESTADO-RESEARCH.md` §6.2, `PENDING_PARAMETERS.md` §3, `RIESGOS_Y_SUPOSICIONES.md` §8).
 > No cambia modelo-v0 ni calibra nada: es insumo para que el autor decida si las dos
 > incertidumbres de `PENDING_PARAMETERS.md` §2 se cierran como límite declarado o quedan abiertas
 > con un camino para reabrirlas. No elige valores.

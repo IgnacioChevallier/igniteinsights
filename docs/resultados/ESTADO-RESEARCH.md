@@ -95,6 +95,8 @@ a 0,409. En prueba, sólo Epuyén 2019 empeora con el horizonte largo (supresió
   de estepa fueron medidos y no adoptados.
 - m10/m100 carece de una base física completa, pero resultó insensible en este benchmark. Se
   cerró como límite declarado el 2026-10-31: no se buscan mediciones.
+- El CBH de bosque nativo y la rugosidad también se cerraron como límites declarados el
+  2026-10-31 (§6.2, nota AE).
 
 No queda otro barrido justificable con los mismos datos. La regla de parada de modelo-v0 es:
 **sólo se reabre por un bug físico o por evidencia externa nueva**, no por mejorar un caso de
@@ -167,6 +169,19 @@ pendiente. El detalle de cada límite está en `docs/resultados/RIESGOS_Y_SUPOSI
   en SH8, con su limitación declarada (`docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md`).
 - **m10/m100:** sin base física completa, pero insensible en este benchmark. Cerrado el 2026-10-31:
   no se buscan mediciones.
+- **CBH de bosque nativo** (cerrado el 2026-10-31, decisión del usuario). Sin ELMFIRE, el rango
+  plausible cambia la copa Van Wagner del día 1 en más de 0,10 en los seis incendios, pero sólo por
+  dos clases. Una es TU5, coihue y ciprés con caña: su 1,5 m está sobre el umbral de lo que ardió;
+  a 1 m inicia el 48–100 % y a 2 m, el 0–15 %. La otra es TU3, el ñire, debajo de ~1 m. En lenga, TL2
+  y alerce no cambia nada en todo su rango (`diagnostico-e2e/notas/AE-cbh-z0-sensibilidad.md`
+  §3.1). Ninguna fuente externa mide esa escalera (AE §4.1). Sólo lo reabre una medición de la
+  altura de la escalera en coihue/ciprés con caña o en ñire.
+- **Rugosidad z0** (cerrado el 2026-10-31, decisión del usuario). Con z0 entre 0,03 y 0,5 m, el
+  viento a 20 ft cambia ×0,96–1,05 y la propagación superficial ×0,97–1,04: no es material. La
+  copa del día 1 cambia hasta 0,11, por el mismo umbral de TU5 (AE §3.2). El 0,22 m reproduce el
+  factor convencional 0,87 entre el viento a 10 m y el de 20 ft; no es la rugosidad del AOI, y un
+  producto regional mediría la del dosel, que ya está en el WAF. Sólo lo reabre una medición del
+  cociente 20 ft / 10 m en terreno abierto del AOI.
 - **Islas en la referencia truncada** y **sub-dispersión de GEFS en la capa de acuerdo**: declaradas
   en `PENDING_PARAMETERS.md` §3 y en §8.
 
@@ -200,9 +215,10 @@ Dos problemas de la app quedaron resueltos el 2026-10-12, sin cambiar modelo-v0
 
 Abiertos. Lo que el autor decidió el 2026-10-31 está en cada punto:
 
-- **CBH de bosque nativo y rugosidad regional** (`PENDING_PARAMETERS.md` §2): siguen abiertas por
-  decisión del autor. No bloquean el modelo. La reconstrucción del perímetro FIRMS, que estaba en la
-  misma lista, pasó a límite declarado (§6.2).
+- **CBH de bosque nativo y rugosidad regional: cerradas el 2026-10-31.** Pasaron a límites
+  declarados (§6.2) después de la sensibilidad sin ELMFIRE y del relevamiento de fuentes de la
+  nota AE. Con la reconstrucción del perímetro FIRMS, que pasó el mismo día, `PENDING_PARAMETERS.md`
+  §2 queda vacío.
 - **Del ensamble: cerrado el 2026-10-31.** El mínimo operativo de 24/31 se ratificó como decisión
   de producto. CPU/RSS y latencia se midieron con un backtest GEFS reproducido byte a byte
   (`diagnostico-e2e/notas/AD-recursos-ensamble.md`): 35 min por reinicio en serie, de los que
