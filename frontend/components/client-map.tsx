@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Flame, LoaderCircle, Satellite } from "lucide-react";
 import { EnsembleAgreementLegend } from "@/components/ensemble-agreement-legend";
+import { EnsembleAgreementInfo } from "@/components/ensemble-agreement-info";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
 import { FireMap } from "@/components/fire-map";
@@ -395,12 +396,15 @@ export function ClientMap({
                 <Separator />
                 <section className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="client-ensemble-agreement"
-                      className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      {ENSEMBLE_AGREEMENT_LAYER.name}
-                    </label>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <label
+                        htmlFor="client-ensemble-agreement"
+                        className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                      >
+                        {ENSEMBLE_AGREEMENT_LAYER.name}
+                      </label>
+                      <EnsembleAgreementInfo contract={acuerdo} />
+                    </div>
                     <Switch
                       id="client-ensemble-agreement"
                       checked={verAcuerdo}

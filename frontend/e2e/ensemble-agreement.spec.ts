@@ -35,12 +35,16 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   for (const role of ["alto acuerdo", "escenario central", "propagación posible"]) {
     await expect(legend.getByText(role)).toBeVisible();
   }
-  await legend.getByRole("button", { name: "Información del acuerdo del ensamble" }).hover();
-  const tooltip = page.getByRole("tooltip");
-  await expect(tooltip).toContainText("Miembros válidos: 31/31");
-  await expect(tooltip).toContainText("Ciclo meteorológico: GEFS 2026-09-06 00 UTC");
-  await expect(tooltip).toContainText("Horizonte: 12 h");
-  await expect(tooltip).toContainText("Vigencia:");
+  await aside.getByRole("button", { name: "¿Qué es el acuerdo del ensamble?" }).hover();
+  const popover = page.getByTestId("ensemble-agreement-popover");
+  await expect(popover).toContainText("Compara varias simulaciones");
+  await popover.getByRole("button", { name: "Ver más" }).click();
+  const details = page.getByRole("dialog", { name: "Acuerdo del ensamble" });
+  await expect(details).toContainText("Miembros válidos");
+  await expect(details).toContainText("31/31");
+  await expect(details).toContainText("GEFS 2026-09-06 00 UTC");
+  await expect(details).toContainText("12 h");
+  await details.getByRole("button", { name: "Cerrar" }).click();
   expect(requests).toHaveLength(1);
   await page.screenshot({ path: "../playwright-screenshots/ensemble-agreement.png" });
 

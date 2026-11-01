@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
 import { EnsembleAgreementLegend } from "@/components/ensemble-agreement-legend";
+import { EnsembleAgreementInfo } from "@/components/ensemble-agreement-info";
 import { FireMap, type RasterOverlayData } from "@/components/fire-map";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
 import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-growth-stats-panel";
@@ -756,12 +757,15 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           )}
 
           <div className="mt-1 flex items-center justify-between gap-3">
-            <label
-              htmlFor="admin-ensemble-agreement"
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              {ENSEMBLE_AGREEMENT_LAYER.name}
-            </label>
+            <div className="flex min-w-0 items-center gap-1">
+              <label
+                htmlFor="admin-ensemble-agreement"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {ENSEMBLE_AGREEMENT_LAYER.name}
+              </label>
+              <EnsembleAgreementInfo contract={ensembleAgreement} />
+            </div>
             <Switch
               id="admin-ensemble-agreement"
               checked={showEnsembleAgreement}

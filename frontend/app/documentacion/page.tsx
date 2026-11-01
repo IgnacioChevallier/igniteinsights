@@ -31,24 +31,14 @@ const LIMITES: { titulo: string; texto: string }[] = [
       "NASA FIRMS publica las detecciones unas 3 h después de la pasada, sin garantía (a veces más). Por eso, parte de la ventana seleccionada ya transcurrió cuando el producto está disponible.",
   },
   {
-    titulo: "El primer día es el punto débil",
-    texto:
-      "Antes de que el satélite vea el foco no hay pronóstico. En incendios con un primer día explosivo, el primer pronóstico subestima el crecimiento; desde las pasadas siguientes, al reiniciar con lo observado, mejora.",
-  },
-  {
     titulo: "La meteorología es un pronóstico",
     texto:
-      "Viento, temperatura y humedad salen del pronóstico GFS (NOAA), de celdas de ~25 km. Su error se suma al del modelo de fuego, y no ve fenómenos locales: en Las Golondrinas 2021 el viento que propagó el incendio no aparecía en el GFS.",
+      "Viento, temperatura y humedad salen del pronóstico GFS (NOAA), de celdas de ~25 km. Su error se suma al del modelo de fuego.",
   },
   {
-    titulo: "Cómo se validó",
+    titulo: "Sin pavesas",
     texto:
-      "El modelo se contrastó con incendios históricos de la región. Además, en los cuatro casos posteriores a 2021 con archivo disponible, se repitió P-24 usando sólo el pronóstico GFS que podía conocerse en ese momento: no apareció una degradación material frente al análisis a posteriori (diferencias de Dice menores a 0,003). Los dos casos anteriores a 2021 no pudieron incluirse porque el archivo operativo no existe.",
-  },
-  {
-    titulo: "Sin pavesas ni fuego de copa completo",
-    texto:
-      "El modelo no simula pavesas (brasas que el viento lleva y encienden focos adelante del frente). Tampoco enciende todas las copas que en la realidad arden, por lo que en bosque puede subestimar la propagación.",
+      "El modelo no simula pavesas (brasas que el viento lleva y encienden focos adelante del frente).",
   },
   {
     titulo: "Combustibles de 2017",
@@ -56,14 +46,9 @@ const LIMITES: { titulo: string; texto: string }[] = [
       "La vegetación sale del mapa CCS-BAP (2017), traducido a modelos de combustible. Las quemas posteriores se corrigen con datos de pérdida de bosque, pero otros cambios de la vegetación no están.",
   },
   {
-    titulo: "Lo que el satélite no ve",
-    texto:
-      "VIIRS (375 m) puede no ver fuegos chicos, de sotobosque o bajo nubes y humo, y puede marcar fuentes de calor que no son incendios. El panel trata cualquier detección de confianza nominal o alta como un incendio posible.",
-  },
-  {
     titulo: "Acuerdo del ensamble: no es una probabilidad",
     texto:
-      "Se calcula sólo en algunos pronósticos (cada uno lleva ~35 min) y la opción aparece únicamente en ésos. Indica en qué fracción de 31 escenarios meteorológicos (ensamble GEFS) se quema cada celda. Comunica cuánto depende el pronóstico del tiempo; no es la probabilidad de que el fuego llegue, y en la validación no mejoró la predicción.",
+      "Indica en qué fracción de 31 escenarios meteorológicos (ensamble GEFS) se quema cada celda. Comunica cuánto depende el pronóstico del tiempo; no es la probabilidad de que el fuego llegue.",
   },
 ];
 
