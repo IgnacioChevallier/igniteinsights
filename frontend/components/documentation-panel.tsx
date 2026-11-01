@@ -43,7 +43,7 @@ const LIMITS = [
   "Cada corrida es un escenario condicionado por sus datos de entrada y sus supuestos, no una certeza sobre el comportamiento futuro del incendio.",
   "El GFS tiene una resolución nativa de 0,25°. La interpolación mejora la continuidad visual, pero no incorpora variaciones meteorológicas locales.",
   "Las detecciones satelitales pueden tener latencia y omisiones por nubosidad, humo, horario de pasada o sensibilidad del sensor.",
-  "El acuerdo del ensamble expresa qué fracción de simulaciones alcanza una zona. No es una probabilidad calibrada.",
+  "El acuerdo del ensamble expresa la fracción de simulaciones meteorológicas que alcanza cada zona. No es una probabilidad calibrada: muestra propagación potencial y no considera combate ni supresión. Sólo varía la meteorología, por lo que el incendio real puede extenderse fuera de la zona ≥ 0,10.",
   "La simulación no representa tareas de combate, supresión ni cambios del combustible posteriores a la fecha de las capas utilizadas.",
 ];
 

@@ -13,9 +13,9 @@ test.beforeEach(async ({ page }) => {
 
 test("con ensamble, el cliente lo puede activar", async ({ page }) => {
   await page.goto("/?panel=cliente");
-  const agreement = page.getByRole("checkbox", { name: "Acuerdo del ensamble" });
-  await agreement.check();
-  await expect(page.getByText("No es una probabilidad calibrada.")).toBeVisible();
+  const agreement = page.getByRole("switch", { name: "Acuerdo del ensamble" });
+  await agreement.click();
+  await expect(page.getByText("alto acuerdo")).toBeVisible();
 });
 
 test("sin ensamble en este pronóstico, no hay casilla ni pedido", async ({ page }) => {
@@ -31,7 +31,7 @@ test("sin ensamble en este pronóstico, no hay casilla ni pedido", async ({ page
 
   await page.goto("/?panel=cliente");
   await expect(page.getByText("Meteorología")).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: "Acuerdo del ensamble" })).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Acuerdo del ensamble" })).toHaveCount(0);
   await expect(page.getByText(/Todavía no hay acuerdo|No se pudo leer el acuerdo/)).toHaveCount(0);
   expect(requests).toEqual([]);
 });

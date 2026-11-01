@@ -1,4 +1,5 @@
-import { TriangleAlert } from "lucide-react";
+import { Info, TriangleAlert } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { EnsembleAgreementContract } from "@/lib/ensemble-agreement";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
 
@@ -18,52 +19,49 @@ function formatCycle(cycle: string): string {
 export function EnsembleAgreementLegend({ contract }: { contract: EnsembleAgreementContract }) {
   const meta = contract.metadata;
   const at = (iso: string) => `${formatArgentinaDateTime(iso)} ${ARGENTINA_TIME_ZONE_LABEL}`;
+  const metadata = [
+    `Miembros válidos: ${meta.valid_members}/${meta.expected_members}`,
+    `Ciclo meteorológico: ${formatCycle(meta.weather_cycle)}`,
+    `Inicio del pronóstico: ${at(meta.forecast_start)}`,
+    `Horizonte: ${meta.horizon_hours} h`,
+    `Vigencia: hasta ${at(meta.forecast_valid_at!)}`,
+    `Generado: ${at(meta.generated_at)}`,
+  ].join("\n");
+
   return (
     <div
       data-testid="ensemble-agreement-legend"
-      className="rounded-md border bg-card px-3 py-2 text-xs text-card-foreground shadow-md"
+      className="text-xs text-card-foreground"
     >
-      <div className="mb-1 font-medium">{contract.layer.legend_label}</div>
-      <ul className="space-y-0.5">
-        {[...contract.thresholds].reverse().map((band) => (
-          <li key={band.value} className="flex items-center gap-2">
-            <span
-              className="h-3 w-3 shrink-0 rounded-sm border"
-              style={{ backgroundColor: band.fill_color, borderColor: band.line_color }}
-            />
-            <span className="tabular-nums">{band.label}</span>
-            <span className="text-muted-foreground">{BAND_ROLE[band.value]}</span>
-          </li>
-        ))}
-      </ul>
+      <div className="flex items-start justify-between gap-3">
+        <ul className="min-w-0 flex-1 space-y-1.5">
+          {[...contract.thresholds].reverse().map((band) => (
+            <li key={band.value} className="flex items-center gap-2">
+              <span
+                className="h-3 w-3 shrink-0 rounded-sm border"
+                style={{ backgroundColor: band.fill_color, borderColor: band.line_color }}
+              />
+              <span className="tabular-nums">{band.label}</span>
+              <span className="text-muted-foreground">{BAND_ROLE[band.value]}</span>
+            </li>
+          ))}
+        </ul>
+        <Tooltip content={<span className="whitespace-pre-line leading-relaxed">{metadata}</span>}>
+          <button
+            type="button"
+            aria-label="Información del acuerdo del ensamble"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </Tooltip>
+      </div>
       {meta.valid_members < meta.expected_members && (
         <p className="mt-2 flex items-start gap-1 text-[11px] text-amber-700 dark:text-amber-400">
           <TriangleAlert className="mt-0.5 h-3 w-3 shrink-0" />
           Ensamble incompleto: el acuerdo se calcula sobre {meta.valid_members} miembros válidos.
         </p>
       )}
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[10px] leading-snug text-muted-foreground">
-        <dt>Miembros válidos</dt>
-        <dd className="tabular-nums text-foreground">
-          {meta.valid_members}/{meta.expected_members}
-        </dd>
-        <dt>Ciclo meteorológico</dt>
-        <dd className="text-foreground">{formatCycle(meta.weather_cycle)}</dd>
-        <dt>Inicio del pronóstico</dt>
-        <dd className="text-foreground">{at(meta.forecast_start)}</dd>
-        <dt>Horizonte</dt>
-        <dd className="text-foreground">{meta.horizon_hours} h</dd>
-        <dt>Vigencia</dt>
-        <dd className="text-foreground">hasta {at(meta.forecast_valid_at!)}</dd>
-        <dt>Generado</dt>
-        <dd className="text-foreground">{at(meta.generated_at)}</dd>
-      </dl>
-      <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
-        Fracción de simulaciones meteorológicas que alcanzan cada zona.{" "}
-        <strong className="font-medium text-foreground">No es una probabilidad calibrada.</strong>{" "}
-        Muestra propagación potencial y no considera combate ni supresión. Sólo varía la
-        meteorología: el incendio real puede extenderse fuera de la zona ≥ 0,10.
-      </p>
     </div>
   );
 }

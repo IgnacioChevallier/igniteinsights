@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * "Acuerdo del ensamble" is a thematic background: off by default, fetched only when
- * ticked, exclusive with arrival time and intensity, and never a reason for the map to
+ * enabled, exclusive with arrival time and intensity, and never a reason for the map to
  * break when the run has no artifact.
  */
 test.beforeEach(async ({ page }) => {
@@ -20,7 +20,7 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   await page.goto("/");
   await page.getByRole("button", { name: "Mapa" }).click();
   const aside = page.locator("aside").first();
-  const agreement = aside.getByRole("checkbox", { name: "Acuerdo del ensamble" });
+  const agreement = aside.getByRole("switch", { name: "Acuerdo del ensamble" });
   const arrival = aside.getByRole("checkbox", { name: "Tiempo de llegada" });
 
   await expect(agreement).not.toBeChecked();
@@ -28,22 +28,19 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   expect(requests).toHaveLength(0);
 
   await arrival.check();
-  await agreement.check();
+  await agreement.click();
   await expect(arrival).not.toBeChecked();
 
   const legend = page.getByTestId("ensemble-agreement-legend");
-  await expect(legend.getByText("acuerdo entre simulaciones", { exact: true })).toBeVisible();
-  await expect(legend.getByText("31/31")).toBeVisible();
-  await expect(legend.getByText("GEFS 2026-09-06 00 UTC")).toBeVisible();
-  await expect(legend.getByText("12 h")).toBeVisible();
-  await expect(legend.getByText("Vigencia")).toBeVisible();
-  await expect(legend.getByText("Generado")).toBeVisible();
-  await expect(legend.getByText("No es una probabilidad calibrada.")).toBeVisible();
-  await expect(legend.getByText(/no considera combate ni supresión/)).toBeVisible();
-  await expect(legend.getByText(/puede extenderse fuera de la zona ≥ 0,10/)).toBeVisible();
   for (const role of ["alto acuerdo", "escenario central", "propagación posible"]) {
     await expect(legend.getByText(role)).toBeVisible();
   }
+  await legend.getByRole("button", { name: "Información del acuerdo del ensamble" }).hover();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toContainText("Miembros válidos: 31/31");
+  await expect(tooltip).toContainText("Ciclo meteorológico: GEFS 2026-09-06 00 UTC");
+  await expect(tooltip).toContainText("Horizonte: 12 h");
+  await expect(tooltip).toContainText("Vigencia:");
   expect(requests).toHaveLength(1);
   await page.screenshot({ path: "../playwright-screenshots/ensemble-agreement.png" });
 
@@ -62,7 +59,7 @@ test("sin artefacto, avisa y deja el mapa como estaba", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Mapa" }).click();
   const aside = page.locator("aside").first();
-  await aside.getByRole("checkbox", { name: "Acuerdo del ensamble" }).check();
+  await aside.getByRole("switch", { name: "Acuerdo del ensamble" }).click();
 
   await expect(
     aside.getByText("No hay acuerdo del ensamble disponible para esta ejecución."),
@@ -87,7 +84,7 @@ test("un artefacto incompleto no se dibuja", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Mapa" }).click();
   const aside = page.locator("aside").first();
-  await aside.getByRole("checkbox", { name: "Acuerdo del ensamble" }).check();
+  await aside.getByRole("switch", { name: "Acuerdo del ensamble" }).click();
 
   await expect(aside.getByText(/El artefacto de acuerdo está incompleto/)).toBeVisible();
   await expect(page.getByTestId("ensemble-agreement-legend")).toHaveCount(0);

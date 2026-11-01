@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -189,6 +191,25 @@ def inspect_gefs_archive(
     }
 
 
+RETRY_STATUS = {429, 500, 502, 503, 504}
+RETRY_DELAYS_S = (2.0, 8.0, 30.0)
+
+
+def _retrying[T](download: Callable[..., T], *args) -> T:
+    """Retry transient failures: the NOAA S3 archive answers '503 Slow Down' when several
+    members download in parallel (Patriada 09-01 lost 6 of 31 members to it)."""
+    for delay in (*RETRY_DELAYS_S, None):
+        try:
+            return download(*args)
+        except (httpx.HTTPStatusError, httpx.TransportError) as exc:
+            transient = (not isinstance(exc, httpx.HTTPStatusError)
+                         or exc.response.status_code in RETRY_STATUS)
+            if delay is None or not transient:
+                raise
+            time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
 def _download(url: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     with httpx.stream("GET", url, follow_redirects=True, timeout=120.0) as response:
@@ -305,10 +326,10 @@ def download_gefs_member(
             raise RuntimeError(f"inventory lacks {member} f{hour:03d}; no substitution")
         if entry is not None:
             url = entry["url"]
-            _download_range(url, entry["byte_range"], path)
+            _retrying(_download_range, url, entry["byte_range"], path)
         else:
             url = gefs_filter_url(cycle, member, hour, bbox)
-            _download(url, path)
+            _retrying(_download, url, path)
         fields, current_profile = _read_gefs_fields(path, bbox if entry is not None else None)
         profile = profile or current_profile
         if current_profile != profile or any(

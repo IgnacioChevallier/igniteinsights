@@ -8,6 +8,7 @@ import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-g
 import { FireMap } from "@/components/fire-map";
 import type { WindFieldResponse } from "@/components/map-panel";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
@@ -392,11 +393,20 @@ export function ClientMap({
             {estado?.calcular_ensamble && pronostico.ensamble && (
               <>
                 <Separator />
-                <section className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
-                    {ENSEMBLE_AGREEMENT_LAYER.name}
-                  </label>
+                <section className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <label
+                      htmlFor="client-ensemble-agreement"
+                      className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    >
+                      {ENSEMBLE_AGREEMENT_LAYER.name}
+                    </label>
+                    <Switch
+                      id="client-ensemble-agreement"
+                      checked={verAcuerdo}
+                      onCheckedChange={setVerAcuerdo}
+                    />
+                  </div>
                   {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
                   {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
                 </section>

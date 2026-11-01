@@ -11,6 +11,7 @@ import { RasterLegend } from "@/components/raster-legend";
 import { SettingsButton } from "@/components/settings-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { realTimestamp, snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
 import { geoJsonAreaHa, isochroneAreaHa } from "@/lib/geojson-area";
@@ -754,14 +755,19 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             />
           )}
 
-          <label className="flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <label
+              htmlFor="admin-ensemble-agreement"
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              {ENSEMBLE_AGREEMENT_LAYER.name}
+            </label>
+            <Switch
+              id="admin-ensemble-agreement"
               checked={showEnsembleAgreement}
-              onChange={(e) => toggleEnsembleAgreement(e.target.checked)}
+              onCheckedChange={toggleEnsembleAgreement}
             />
-            {ENSEMBLE_AGREEMENT_LAYER.name}
-          </label>
+          </div>
           {showEnsembleAgreement && ensembleAgreement && (
             <EnsembleAgreementLegend contract={ensembleAgreement} />
           )}

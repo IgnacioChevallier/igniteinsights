@@ -210,3 +210,36 @@ def test_agreement_uses_horizon_cutoff_and_forecast_start(tmp_path):
     with rasterio.open(output / "burn_agreement.tif") as src:
         assert src.read(1).tolist() == [[1.0, 0.0]]
     assert metadata["forecast_valid_at"] == "2025-01-16T06:33:00+00:00"
+
+
+def test_gefs_download_retries_s3_slow_down_then_gives_up(monkeypatch):
+    """09-01 lost 6 members to S3 '503 Slow Down' (ENSAMBLE-DEMO-DIAGNOSTICO.md)."""
+    import httpx
+
+    from app.ensemble import sources
+
+    monkeypatch.setattr(sources.time, "sleep", lambda _: None)
+
+    def failing(status: int, times: int):
+        calls = []
+
+        def download() -> str:
+            calls.append(1)
+            if len(calls) <= times:
+                request = httpx.Request("GET", "https://noaa-gefs-pds.s3.amazonaws.com/x")
+                raise httpx.HTTPStatusError("x", request=request,
+                                            response=httpx.Response(status, request=request))
+            return "ok"
+
+        return download, calls
+
+    download, calls = failing(503, 2)
+    assert sources._retrying(download) == "ok" and len(calls) == 3
+    download, calls = failing(503, 99)
+    with pytest.raises(httpx.HTTPStatusError):
+        sources._retrying(download)
+    assert len(calls) == 1 + len(sources.RETRY_DELAYS_S)
+    download, calls = failing(404, 99)
+    with pytest.raises(httpx.HTTPStatusError):
+        sources._retrying(download)
+    assert len(calls) == 1

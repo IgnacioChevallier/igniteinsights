@@ -13,7 +13,7 @@ export function Tooltip({
   children,
   className,
 }: {
-  content: string;
+  content: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
