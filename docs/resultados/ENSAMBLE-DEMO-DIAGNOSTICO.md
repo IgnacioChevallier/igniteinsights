@@ -84,8 +84,30 @@ están afectados**.
   celdas sobre una grilla que llega más al sur (−42,378) y al este (−71,201), así que el hueco es
   todavía más grande. c00 da 2,4 veces el P-24.
 
-Lo que se espera con el arreglo, todavía sin medir: c00 debería volver al orden del P-24, como
-en los backtests (c00 ≈ 1.220 ha en Patriada w01).
+### Producción después del arreglo (recalculado el 2026-11-01)
+
+`scripts/demo_ensamble.py` en el contenedor de la API, con el código de `207a276`:
+
+| pronóstico | recorte GEFS c00 | P-24 | c00 | ≥ 0,10 | ≥ 0,50 | ≥ 0,80 |
+|---|---|---|---|---|---|---|
+| `ab4ce38c` (05-01 19:20, 31/31) | 5 × 6, [−72,375, −42,625, −70,875, −41,375] | 891 ha | **874 ha** | 904 ha | 866 ha | **845 ha** |
+| `ca5fb7a3` (08-01 06:06, 31/31) | 5 × 6, el mismo | 17.324 ha | 17.693 ha | 17.960 ha | 17.606 ha | 17.437 ha |
+| `4b91a94e` (09-01 19:45, 25/31) | 5 × 6, el mismo | 22.916 ha | 23.445 ha | 23.888 ha | 23.443 ha | 23.192 ha |
+
+Las áreas del 08-01 y el 09-01 incluyen semillas de 11.593 y 16.898 ha. Restando la semilla, el
+crecimiento a 24 h de c00 es +6 % sobre el del P-24 el 08-01 (6.100 contra 5.731 ha) y +9 % el
+09-01 (6.547 contra 6.018 ha). La banda 0,10–0,80 mide 523 y 696 ha: el 9 y el 11 % del
+crecimiento de c00.
+
+Los 6 miembros fallidos del 09-01 (p20, p21, p23, p24, p25 y p28) son `503 Slow Down` del S3 de
+NOAA al bajar GEFS en paralelo. No tienen relación con este arreglo, y `_download_range` no
+reintenta.
+
+- **c00 contra el P-24:** c00 queda a −2 % del P-24 (antes ×11,5).
+- **Banda 0,10–0,80:** 59 ha, el 6,8 % de c00; vuelve al rango de los backtests (4–14 %).
+- **Contra lo observado:** el ensamble queda, como el P-24, por debajo de las ~2.000 ha estimadas
+  para el primer reinicio. Es el déficit del día 1 ya conocido (`ESTADO-RESEARCH.md`), no un
+  efecto del ensamble.
 
 ## Arreglo (aplicado el 2026-11-01)
 
@@ -101,9 +123,8 @@ Test: `tests/test_operativo.py::test_el_miembro_gefs_que_no_cubre_la_grilla_fall
 Usa una fila de celdas GEFS que cubre sólo la mitad norte del DEM. Sin el arreglo falla con
 `DID NOT RAISE`; con el arreglo pasa, junto con el resto de `test_operativo.py`.
 
-Hay que recalcular las tres pasadas de la demo (`scripts/demo_ensamble.py`, después de borrar sus
-`ensemble_agreement.json`). Las del 08-01 y 09-01 seguramente tienen el mismo defecto: depende
-de cómo cae su caja sobre la grilla de 0,25°.
+Las tres pasadas de la demo se recalcularon el 2026-11-01 con `scripts/demo_ensamble.py`, después
+de borrar los `ensemble_agreement.json` y las carpetas `ensamble/` viejas.
 
 **Para considerar en `app/elmfire/` (sólo propuesta):** `_read_aligned` deja que el nodata de la
 fuente llegue al cálculo físico sin avisar. Una guarda ahí, que falle si quedan píxeles en
