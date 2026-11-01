@@ -12,6 +12,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import rasterio
+from rasterio.warp import transform_bounds
+
 from app.elmfire.builder import namelist_writer, weather_builder
 from app.elmfire.runner.client import ELMFIRERunnerClient
 from app.elmfire.runner.schemas import SimulationRequest
@@ -24,6 +27,9 @@ from app.ensemble.sources import (
 
 MIN_MIEMBROS_VALIDOS = 24
 ARCHIVO_DESDE_DIAS = 4
+# Como servicio.MARGEN_GFS_GRADOS: sin margen, el recorte de GEFS (0,25°) a la caja exacta deja
+# afuera parte de la grilla (Patriada 05-01: 1×2 celdas para una caja de 0,25° de alto).
+MARGEN_GEFS_GRADOS = 0.5
 
 
 def _inventario_historico(ciclo: datetime, inicio: datetime) -> tuple[datetime, dict]:
@@ -72,6 +78,12 @@ def _descargar(
 def _preparar_miembro(base: Path, fuente: Path, destino: Path) -> None:
     if destino.exists():
         shutil.rmtree(destino)
+    with rasterio.open(fuente / "u10.tif") as clima, rasterio.open(base / "dem.tif") as dem:
+        o, s, e, n = transform_bounds(dem.crs, clima.crs, *dem.bounds)
+        c = clima.bounds
+        if not (c.left <= o and c.bottom <= s and c.right >= e and c.top >= n):
+            # reproject rellenaría lo que falta con el nodata -9999: viento de 27.530 mph y m1 1 %.
+            raise RuntimeError(f"GEFS {tuple(c)} no cubre la grilla {(o, s, e, n)}")
     shutil.copytree(base, destino, copy_function=os.link)
     for nombre in ("ws.tif", "wd.tif", "m1.tif", "m10.tif", "m100.tif", "elmfire.data"):
         (destino / nombre).unlink(missing_ok=True)
@@ -100,8 +112,10 @@ async def correr_ensamble(
     ciclo_gefs = ciclo
     if inicio < datetime.now(UTC) - timedelta(days=ARCHIVO_DESDE_DIAS):
         ciclo_gefs, inventario = await asyncio.to_thread(_inventario_historico, ciclo, inicio)
+    m = MARGEN_GEFS_GRADOS
+    caja_gefs = (caja[0] - m, caja[1] - m, caja[2] + m, caja[3] + m)
     exitos, fallos = await asyncio.to_thread(
-        _descargar, ciclo_gefs, inicio, caja, raiz, inventario
+        _descargar, ciclo_gefs, inicio, caja_gefs, raiz, inventario
     )
     if len(exitos) < MIN_MIEMBROS_VALIDOS:
         raise RuntimeError(

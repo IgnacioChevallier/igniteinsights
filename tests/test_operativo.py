@@ -107,3 +107,31 @@ def test_el_pronostico_dice_si_tiene_ensamble(monkeypatch, tmp_path):
     (s.salidas_de("a") / "ensemble_agreement.json").write_text("{}")
     assert s._incendio_json(inc, con, None)["pronostico"]["ensamble"] is True
     assert s._incendio_json(inc, sin, None)["pronostico"]["ensamble"] is False
+
+
+def test_el_miembro_gefs_que_no_cubre_la_grilla_falla_en_vez_de_inventar_clima(tmp_path):
+    """Patriada 05-01: el recorte GEFS sin margen (1×2 celdas de 0,25°) no llegaba a la mitad sur
+    de la caja; reproject rellenaba con el nodata -9999 y salía viento de 27.530 mph y m1 = 1 %
+    en el 70 % de la grilla (docs/resultados/ENSAMBLE-DEMO-DIAGNOSTICO.md)."""
+    import numpy as np
+    import pytest
+    import rasterio
+    from rasterio.transform import from_origin
+
+    from app.operativo.ensamble import _preparar_miembro
+
+    base, fuente = tmp_path / "base", tmp_path / "fuente"
+    base.mkdir()
+    fuente.mkdir()
+    with rasterio.open(base / "dem.tif", "w", driver="GTiff", width=40, height=40, count=1,
+                       dtype="float32", crs="EPSG:4326",
+                       transform=from_origin(-71.75, -42.0, 0.01, 0.01)) as dst:
+        dst.write(np.zeros((1, 40, 40), "float32"))
+    # Una fila de celdas GEFS que cubre sólo la mitad norte del DEM (-42,0 … -42,4).
+    for nombre, valor in (("u10", 3.0), ("v10", 0.0), ("t2m", 290.0), ("rh", 40.0)):
+        with rasterio.open(fuente / f"{nombre}.tif", "w", driver="GTiff", width=2, height=1,
+                           count=2, dtype="float32", nodata=-9999.0, crs="EPSG:4326",
+                           transform=from_origin(-71.875, -41.875, 0.25, 0.25)) as dst:
+            dst.write(np.full((2, 1, 2), valor, "float32"))
+    with pytest.raises(RuntimeError, match="no cubre"):
+        _preparar_miembro(base, fuente, tmp_path / "miembro")
