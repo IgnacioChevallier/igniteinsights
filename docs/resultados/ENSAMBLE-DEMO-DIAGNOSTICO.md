@@ -92,16 +92,16 @@ están afectados**.
 |---|---|---|---|---|---|---|
 | `ab4ce38c` (05-01 19:20, 31/31) | 5 × 6, [−72,375, −42,625, −70,875, −41,375] | 891 ha | **874 ha** | 904 ha | 866 ha | **845 ha** |
 | `ca5fb7a3` (08-01 06:06, 31/31) | 5 × 6, el mismo | 17.324 ha | 17.693 ha | 17.960 ha | 17.606 ha | 17.437 ha |
-| `4b91a94e` (09-01 19:45, 25/31) | 5 × 6, el mismo | 22.916 ha | 23.445 ha | 23.888 ha | 23.443 ha | 23.192 ha |
+| `4b91a94e` (09-01 19:45, 31/31) | 5 × 6, el mismo | 22.916 ha | 23.445 ha | 23.854 ha | 23.466 ha | 23.210 ha |
 
 Las áreas del 08-01 y el 09-01 incluyen semillas de 11.593 y 16.898 ha. Restando la semilla, el
 crecimiento a 24 h de c00 es +6 % sobre el del P-24 el 08-01 (6.100 contra 5.731 ha) y +9 % el
-09-01 (6.547 contra 6.018 ha). La banda 0,10–0,80 mide 523 y 696 ha: el 9 y el 11 % del
+09-01 (6.547 contra 6.018 ha). La banda 0,10–0,80 mide 523 y 644 ha: el 9 y el 10 % del
 crecimiento de c00.
 
-Los 6 miembros fallidos del 09-01 (p20, p21, p23, p24, p25 y p28) son `503 Slow Down` del S3 de
-NOAA al bajar GEFS en paralelo. No tienen relación con este arreglo, y `_download_range` no
-reintenta.
+En la primera corrida del 09-01 fallaron 6 miembros (p20, p21, p23, p24, p25 y p28) por
+`503 Slow Down` del S3 de NOAA al bajar GEFS en paralelo. No tenía relación con este arreglo.
+Con los reintentos de `133e3a7`, la pasada se recalculó con 31 de 31 miembros.
 
 - **c00 contra el P-24:** c00 queda a −2 % del P-24 (antes ×11,5).
 - **Banda 0,10–0,80:** 59 ha, el 6,8 % de c00; vuelve al rango de los backtests (4–14 %).
