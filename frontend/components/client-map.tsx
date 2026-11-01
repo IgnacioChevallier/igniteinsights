@@ -181,11 +181,6 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                 <FireAnimationControls
                   clock={clock}
                   ignitionDatetime={pronostico?.pasada ?? null}
-                  horizonControl={{
-                    valueHours: horizonte,
-                    maxHours: maxVisibleHorizon,
-                    onChange: setVisibleHorizonHours,
-                  }}
                 />
               ) : null
             }
@@ -266,6 +261,43 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
             ))}
           </ul>
         </section>
+
+        {pronostico && maxVisibleHorizon > 0 && (
+          <>
+            <Separator />
+            <section aria-labelledby="prediction-horizon-label">
+              <div className="flex items-center justify-between gap-3">
+                <h2
+                  id="prediction-horizon-label"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Predicción hasta
+                </h2>
+                <output
+                  htmlFor="prediction-horizon"
+                  className="font-mono text-sm font-semibold tabular-nums text-foreground"
+                >
+                  {horizonte.toLocaleString("es", { maximumFractionDigits: 1 })} h
+                </output>
+              </div>
+              <input
+                id="prediction-horizon"
+                type="range"
+                min={Math.min(1, maxVisibleHorizon)}
+                max={maxVisibleHorizon}
+                step={1}
+                value={horizonte}
+                onChange={(event) => setVisibleHorizonHours(Number(event.target.value))}
+                aria-label="Horizonte de predicción"
+                className="mt-3 h-1 w-full cursor-pointer accent-orange-500"
+              />
+              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+                <span>1 h</span>
+                <span>{maxVisibleHorizon.toLocaleString("es")} h</span>
+              </div>
+            </section>
+          </>
+        )}
 
         {pronostico && (
           <section className="rounded-md border p-3 text-xs leading-relaxed">
