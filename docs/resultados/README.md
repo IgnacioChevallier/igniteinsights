@@ -34,7 +34,11 @@ antecedentes que no describen el estado actual. Ante cualquier diferencia, manda
   encabezado indexa las notas de trabajo.
 - `LO-YA-QUEMADO-PROPUESTA.md`: reasignación del combustible ya quemado y la ingesta histórica de
   FIRMS en la app.
-- `HUMEDAD-ALTURA-PROPUESTA.md`: humedad y altura en la lenga; cierre como límite.
+
+**Producto**
+
+- `docs/dashboard-producto.md`: el dashboard como producto (roles, reloj de demostración, camino
+  único del pronóstico, despliegue). En inglés, como el resto de la documentación de la app.
 
 **Incertidumbre y ensamble**
 
@@ -48,6 +52,8 @@ antecedentes que no describen el estado actual. Ante cualquier diferencia, manda
 
 - `AUDITORIA-FISICA.md`: bitácora física completa (hallazgos de interfaz y loops A–M).
 - `IGN-26-VALIDACION.md`: diseño y evolución del benchmark.
+- `HUMEDAD-ALTURA-PROPUESTA.md`: humedad y altura en la lenga, cerrado como límite; lo resumen
+  `RIESGOS_Y_SUPOSICIONES.md` §4 y el crosswalk (§5.5).
 - `diagnostico-e2e/notas/`: notas de trabajo A–AE, cada una con su diseño y sus fuentes. Las
   indexan `DIAGNOSTICO-PRECISION-E2E.md` y `ESTADO-RESEARCH.md`; los datos que producen están en
   `diagnostico-e2e/datos/`.

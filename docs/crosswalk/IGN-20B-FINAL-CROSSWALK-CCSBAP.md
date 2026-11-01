@@ -13,7 +13,7 @@
 > **La tabla de correspondencia (§4) no cambia.** Cambian una conclusión del paso 4 (el sesgo del
 > arbustal es la mitad de grande) y el valor de humedad viva adoptado (100 %). Además se agregan la
 > interacción del ñire bajo y la lenga achaparrada con el dosel (§5.4) y dos limitaciones del
-> dosel (§7). Las decisiones abiertas están resumidas en `docs/crosswalk/DECISIONES-MODELO-V0.md`.
+> dosel (§7). Las decisiones, todas tomadas, están resumidas en `docs/crosswalk/DECISIONES-MODELO-V0.md`.
 >
 > **Actualización del 2026-10-03 (loop L, `docs/crosswalk/DECISIONES-MODELO-V0.md` y `docs/resultados/AUDITORIA-FISICA.md`).**
 > La tabla de §4 cambia en dos clases, medido sobre los siete incendios de calibración:
@@ -694,8 +694,11 @@ Reproducir: `uv run python scripts/sweep_live_moisture.py`.
 
 **Los valores adoptados no son uniformes** —`LH` 30 % y `LW` 110 %—, así que la tabla acota pero no predice: la combinación adoptada da 7.576 ha (§6.1), entre las filas de 60 % y 90 %, que es donde tiene que caer.
 
-**Limitación.** Un escalar global es lo que hay. Un ráster de humedad viva por clase y
-fenología sería la mejora, y no está en alcance.
+**Limitación.** Se usa un escalar global. ELMFIRE 2025.0212 acepta rásters de humedad viva
+(`MLW_FILENAME`, `MLH_FILENAME`, con pisos de 60 % y 30 %), pero el LW por especie de Bianchi y
+Defossé (Tabla 2) aleja la ROS de lo observado en 5 de las 7 clases con vivo leñoso
+(`docs/resultados/diagnostico-e2e/notas/V-humedad-viva.md`). Un ráster por clase y fenología no
+está en alcance.
 
 
 
@@ -719,8 +722,9 @@ fenología sería la mejora, y no está en alcance.
    - Donde el desfase sí cuesta es en las quemas posteriores a 2017, que el mapa ve como la
      vegetación previa. En El Turbio (prueba, descriptivo), que volvió a quemar la cicatriz de
      2015, MapBiomas 2024 da 0,388 y CCS-BAP 0,122.
-   - Lo mitiga en parte sacar el dosel donde Hansen ve pérdida previa (hasta 2024). En la app el
-     riesgo sigue abierto (`docs/resultados/RIESGOS_Y_SUPOSICIONES.md` §5).
+   - Lo mitiga en parte sacar el dosel donde Hansen ve pérdida previa (hasta 2024). En la app se
+     resolvió el 2026-10-12: reasigna por edad el combustible de las quemas posteriores al mapa
+     (LYQ-3, `docs/resultados/LO-YA-QUEMADO-PROPUESTA.md` §11).
 2. **Hueco fronterizo del 4,55 % en el recorte vectorial**, relleno con WorldCover; en la grilla definitiva ocupa el 5,38 % (§6). Se aplica la misma regla de relleno, pero la máscara de huecos difiere entre productos: no se puede afirmar que no sesgue la comparación. El borde oeste se apoya en el baseline y la mejora allí queda limitada por ese insumo.
 3. **SB40 no distingue lo que CCS-BAP sí distingue** (§5.5): ñire bajo y lenga achaparrada
   comparten modelo, y coihue y ciprés también. El techo ahora es el sistema de modelos, no el
@@ -846,7 +850,7 @@ Las métricas del harness B se escriben en `data/validation/harness_b/feb2026_12
 | Sensibilidad de la humedad viva (§6.3) | 2026-09-16                          |
 | Validación contra lo observado         | **ejecutada, alcance parcial** · 2026-09-19 (§6.1, harness B) |
 | Re-medición con la interfaz corregida  | 2026-09-30 (§6.1-§6.3; `docs/resultados/AUDITORIA-FISICA.md`) |
-| Comparación sobre el benchmark de 11 incendios | en curso (`docs/resultados/COMPARACION-MAPAS-V5.md`) |
+| Comparación sobre el benchmark de 11 incendios | **cerrada** 2026-10-04, condicionada a modelo-v0 (`docs/resultados/COMPARACION-MAPAS-MODELO-V0-RESULTADOS.md`; antecedente v5 en `COMPARACION-MAPAS-V5.md`) |
 
 
 Puntos que requieren decisión explícita:
@@ -869,9 +873,12 @@ GS3 al 51–60 % con ráfaga).
 
 **Puntos agregados el 2026-09-30** (detalle en `docs/crosswalk/DECISIONES-MODELO-V0.md`):
 
-5. **Ñire bajo, lenga achaparrada y arbustal nativo con dosel de bosque** (§5.4): ¿sin dosel, o
-   sotobosque bajo dosel (familia TU)?
-6. **La altura de base de copa derivada** (§7, limitación 11).
+5. **Ñire bajo, lenga achaparrada y arbustal nativo con dosel de bosque** (§5.4). Decidido en el
+   loop L: se mantiene el dosel (`DECISIONES-MODELO-V0.md` §1).
+6. **La altura de base de copa derivada** (§7, limitación 11). Decidido en el loop L: CBH por tipo
+   de bosque, de literatura (`DECISIONES-MODELO-V0.md` §2). Cerrado como límite declarado el
+   2026-10-31: su rango plausible sólo es material en coihue/ciprés con caña (TU5) y en ñire
+   debajo de ~1 m (`docs/resultados/diagnostico-e2e/notas/AE-cbh-z0-sensibilidad.md`).
 7. **`LW` en 100 %** (§6.3), el valor calibrado. Levantar
 ese techo es `ETAPA-C`, no este crosswalk.
 
@@ -891,7 +898,7 @@ Patagonian forests of Argentina.* Forest Systems. (Umbrales de ignición: 21,5 %
 25,0 % en ñire · §2)
 - Bianchi, L.O.; Defossé, G.E. (2015). *Live fuel moisture content and leaf ignition of forest
 species in Andean Patagonia, Argentina.* International Journal of Wildland Fire 24(3):340.
-(Respalda la elección de `LW` 110 %; **no mide herbáceas ni respalda `LH` 30 % como dato**. Esa convención se fundamenta con Scott & Burgan, como se explica en §6.3.)
+(Respalda la elección inicial de `LW` 110 %, calibrado después a 100 % dentro de la misma banda, §6.3; **no mide herbáceas ni respalda `LH` 30 % como dato**. Esa convención se fundamenta con Scott & Burgan, como se explica en §6.3.)
 - Mermoz, M.; Kitzberger, T.; Veblen, T.T. (2005). *Landscape influences on occurrence and spread of wildfires in Patagonian forests and shrublands.* Ecology 86(10).
 - Tiribelli, F. (2019). *Cambios en la inflamabilidad con la edad post-fuego en bosques y matorrales del NO de la Patagonia: composición, estructura y combustibles finos.* Tesis doctoral, Universidad Nacional del Comahue. (Cap. 3 y Apéndice 3.3: altura y proporción de combustible fino del matorral rebrotante por edad; `docs/referencias/FlorenciaTiribelli_Tesis.pdf`)
 - Blackhall, M.; Raffaele, E.; Paritsis, J.; Tiribelli, F.; Morales, J.M.; Kitzberger, T.; Gowda, J.H.; Veblen, T.T. (2017). *Effects of biological legacies and herbivory on fuels and flammability traits: a long-term experimental study of alternative stable states.* Journal of Ecology 105(5): 1309–1322. doi:10.1111/1365-2745.12796. (Combustible fino 16 años después del fuego en matorral y bosque subalpino; `docs/referencias/`)

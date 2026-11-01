@@ -250,8 +250,9 @@ benchmark ni la ignición original. `build-base` rechaza ventana 0 y casos fuera
 pertenecientes a prueba. `materialize` valida el contrato, enlaza estáticos, elimina sólo los cinco
 rásters meteorológicos en la copia y los regenera; además registra hashes de estáticos y clima. `run`
 deja `run-metrics.json` con pared, CPU/RSS del cliente y almacenamiento;
-el runner actual no expone CPU/RSS remotos, limitación que debe resolverse antes del ensayo de
-costo.
+el runner actual no expone CPU/RSS remotos. Se midieron aparte el 2026-10-31 con `docker stats`
+sobre un backtest reproducido byte a byte: ~430 CPU·s y 1,4 GiB por corrida, 35 min por reinicio
+en serie (`diagnostico-e2e/notas/AD-recursos-ensamble.md`).
 
 SMN WRF, siempre por separado:
 
