@@ -29,8 +29,9 @@ un artefacto común a todos.
 Reproducción local con el camino del operativo (`inspect_gefs_archive` + `download_gefs_member`
 con inventario, `derive_wind`/`derive_moisture`) y el del P-24 (`servicio._clima`), sin
 ELMFIRE. Como grilla de referencia usé la de un P-24 de Patriada guardado en local
-(`operativo-d868b6d6…`, caja −71,734 / −42,286 / −71,325 / −42,038), no la del 05-01 de
-producción: el volumen de Railway no se leyó (no hubo permiso) y la DB local está apagada.
+(`operativo-d868b6d6…`, caja −71,734 / −42,286 / −71,325 / −42,038). La del 05-01 de
+producción es casi la misma (−71,732 / −42,286 / −71,324 / −42,041), y su recorte GEFS es
+idéntico (ver «Producción», más abajo).
 
 | | recorte GEFS | celdas de la grilla con ws > 200 mph | celdas con m1 = 1 % |
 |---|---|---|---|
@@ -63,10 +64,27 @@ el clima no cubre la grilla ("re-download with a margin"). El operativo no tiene
 lo otro. Los números de `ENSAMBLE-BACKTESTS-CONSOLIDADO.md` y el veredicto del ensamble **no
 están afectados**.
 
-**Pendiente:** el área de c00 y la de la banda ≥ 0,80 del 05-01 frente al P-24 (890,5 ha) y a lo
-observado a 24 h. Hacen falta las corridas de producción (leer el volumen de Railway pide
-permiso) o una corrida local de c00 (necesita `make dev-simulation`, y Docker estaba apagado).
-Lo que se espera, sin haberlo medido: con el arreglo, c00 debería volver al orden del P-24, como
+### Producción (volumen de Railway, leído el 2026-11-01, antes del arreglo)
+
+Áreas con `0 < TOA ≤ 86.400 s`, el mismo corte de `agreement.py`:
+
+| pronóstico | recorte GEFS c00 | semilla | P-24 | c00 | ≥ 0,10 | ≥ 0,50 | ≥ 0,80 |
+|---|---|---|---|---|---|---|---|
+| `ab4ce38c` (05-01 19:20, 31/31) | 1 × 2, [−71,875, −42,125, −71,375, −41,875] | 156 ha | 891 ha | **10.233 ha** | 10.261 ha | 10.232 ha | **10.222 ha** |
+| `ca5fb7a3` (sin `metadata.json`) | 1 × 2, el mismo | 11.593 ha | 17.324 ha | 41.154 ha | — | — | — |
+
+- **05-01:** c00 quema 11,5 veces lo del P-24. La banda 0,10–0,80 mide 39 ha, el 0,4 % de c00;
+  en los backtests es el 4–14 %. Los 31 miembros queman prácticamente lo mismo, como corresponde
+  a un clima inventado igual para todos y no a una dispersión meteorológica.
+- **Contra lo observado:** si el sesgo 0,44 del primer reinicio de Patriada
+  (`ESTADO-RESEARCH.md`) vale para esta ventana, lo observado a 24 h ronda las 2.000 ha. Con
+  eso, la capa ≥ 0,80 lo excede unas 5 veces.
+- **`ca5fb7a3`:** probablemente es la pasada del 08-01. Su ensamble quedó incompleto: tiene las
+  corridas pero no la agregación, y el dashboard no lo ofrece. Tiene el mismo recorte de 1 × 2
+  celdas sobre una grilla que llega más al sur (−42,378) y al este (−71,201), así que el hueco es
+  todavía más grande. c00 da 2,4 veces el P-24.
+
+Lo que se espera con el arreglo, todavía sin medir: c00 debería volver al orden del P-24, como
 en los backtests (c00 ≈ 1.220 ha en Patriada w01).
 
 ## Arreglo (aplicado el 2026-11-01)
