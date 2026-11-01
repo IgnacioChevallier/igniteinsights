@@ -38,6 +38,13 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   await aside.getByRole("button", { name: "¿Qué es el acuerdo del ensamble?" }).hover();
   const popover = page.getByTestId("ensemble-agreement-popover");
   await expect(popover).toContainText("Compara varias simulaciones");
+  await expect(popover).toContainText("horizonte fijo de 24 h");
+  const popoverBox = await popover.boundingBox();
+  expect(popoverBox).not.toBeNull();
+  expect(popoverBox!.x).toBeGreaterThanOrEqual(0);
+  expect(popoverBox!.y).toBeGreaterThanOrEqual(0);
+  expect(popoverBox!.x + popoverBox!.width).toBeLessThanOrEqual(1440);
+  expect(popoverBox!.y + popoverBox!.height).toBeLessThanOrEqual(900);
   await popover.getByRole("button", { name: "Ver más" }).click();
   const details = page.getByRole("dialog", { name: "Acuerdo del ensamble" });
   await expect(details).toContainText("Miembros válidos");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Info, X } from "lucide-react";
 import type { EnsembleAgreementContract } from "@/lib/ensemble-agreement";
@@ -8,6 +8,7 @@ import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-t
 
 const POPOVER_WIDTH = 256;
 const EDGE_MARGIN = 8;
+const POPOVER_GAP = 8;
 
 function formatCycle(cycle: string): string {
   const match = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(cycle);
@@ -22,6 +23,7 @@ export function EnsembleAgreementInfo({
   const popoverId = useId();
   const modalTitleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -34,6 +36,42 @@ export function EnsembleAgreementInfo({
   useEffect(() => () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!popoverOpen) return;
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current;
+      const popover = popoverRef.current;
+      if (!trigger || !popover) return;
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const popoverRect = popover.getBoundingClientRect();
+      const left = Math.min(
+        Math.max(
+          triggerRect.left + triggerRect.width / 2 - popoverRect.width / 2,
+          EDGE_MARGIN,
+        ),
+        window.innerWidth - popoverRect.width - EDGE_MARGIN,
+      );
+      const fitsBelow =
+        triggerRect.bottom + POPOVER_GAP + popoverRect.height <=
+        window.innerHeight - EDGE_MARGIN;
+      const top = fitsBelow
+        ? triggerRect.bottom + POPOVER_GAP
+        : Math.max(EDGE_MARGIN, triggerRect.top - POPOVER_GAP - popoverRect.height);
+
+      setPosition({ top, left });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [popoverOpen]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -50,15 +88,12 @@ export function EnsembleAgreementInfo({
     };
   }, [modalOpen]);
 
-  const showPopover = () => {
+  const cancelHide = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2 - POPOVER_WIDTH / 2, EDGE_MARGIN),
-      window.innerWidth - POPOVER_WIDTH - EDGE_MARGIN,
-    );
-    setPosition({ top: rect.bottom + 8, left });
+  };
+
+  const showPopover = () => {
+    cancelHide();
     setPopoverOpen(true);
   };
 
@@ -94,19 +129,21 @@ export function EnsembleAgreementInfo({
       {mounted && popoverOpen
         ? createPortal(
             <div
+              ref={popoverRef}
               id={popoverId}
               data-testid="ensemble-agreement-popover"
               style={{ top: position.top, left: position.left, width: POPOVER_WIDTH }}
-              onMouseEnter={showPopover}
+              onMouseEnter={cancelHide}
               onMouseLeave={scheduleHide}
-              onFocus={showPopover}
+              onFocus={cancelHide}
               onBlur={scheduleHide}
-              className="fixed z-[110] rounded-md border bg-card p-3 text-xs text-card-foreground shadow-lg"
+              className="fixed z-[110] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-md border bg-card p-3 text-xs text-card-foreground shadow-lg"
             >
               <p className="leading-relaxed">
                 Compara varias simulaciones con distintas condiciones meteorológicas. Un acuerdo
                 más alto significa que más simulaciones alcanzan esa zona; no es una certeza de
-                que vaya a quemarse.
+                que vaya a quemarse. La capa muestra el acuerdo acumulado a un horizonte fijo de
+                24 h.
               </p>
               <button
                 type="button"
