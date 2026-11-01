@@ -21,9 +21,9 @@ const LIMITES: { titulo: string; texto: string }[] = [
       "Las isócronas indican la tendencia del frente (dirección, velocidad, zonas expuestas). El borde real puede quedar adentro o afuera de lo dibujado.",
   },
   {
-    titulo: "Horizonte de 25 h desde la última pasada satelital",
+    titulo: "Horizonte de 24 h desde la última pasada satelital",
     texto:
-      "Cada pronóstico arranca de lo que vio el satélite VIIRS en su última pasada y mira hasta 25 h hacia adelante. Sobre la zona hay dos tandas de pasadas por día (madrugada y tarde); entre una y otra el pronóstico no se actualiza.",
+      "Cada pronóstico arranca de lo que vio el satélite VIIRS en su última pasada y mira hasta 24 h hacia adelante. Sobre la zona hay dos tandas de pasadas por día (madrugada y tarde); entre una y otra el pronóstico no se actualiza.",
   },
   {
     titulo: "Los datos satelitales llegan con demora",
@@ -146,7 +146,7 @@ export default async function DocumentacionPage({
           <TabsContent value="introduccion" className="rounded-xl border bg-card p-5 sm:p-7">
             <p className="text-muted-foreground">
               IgniteInsights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE
-              cómo podría propagarse hasta 25 h sobre el relieve, la vegetación y el pronóstico del
+              cómo podría propagarse hasta 24 h sobre el relieve, la vegetación y el pronóstico del
               tiempo. Es una herramienta académica, desarrollada como tesis de grado:{" "}
               <strong className="text-foreground">no es un sistema oficial de alerta</strong> y no
               reemplaza la información del Servicio Nacional de Manejo del Fuego ni de Parques

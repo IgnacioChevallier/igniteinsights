@@ -8,6 +8,7 @@ import { FireGrowthStatsPanel, type FireSizeStatsRow } from "@/components/fire-g
 import { FireMap } from "@/components/fire-map";
 import type { WindFieldResponse } from "@/components/map-panel";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useFireClock } from "@/hooks/use-fire-clock";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
 import {
@@ -27,7 +28,7 @@ const MPH_TO_KMH = 1.609344;
 // Same stops as the particle colours: 40 mph is where the scale tops out.
 const WIND_SCALE_KMH = [0, 16, 32, 48, 64];
 const DEFAULT_VISIBLE_HORIZON_HOURS = 3;
-const MAX_VISIBLE_HORIZON_HOURS = 25;
+const MAX_VISIBLE_HORIZON_HOURS = 24;
 
 async function getData<T>(url: string): Promise<T | null> {
   const res = await fetch(url, { cache: "no-store" });
@@ -328,7 +329,9 @@ export function ClientMap({
                   className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
-                <span className="text-xs text-muted-foreground">Última actualización</span>
+                <Tooltip content="Momento en que el satélite pasó por última vez sobre la región. Es la información más reciente que tenemos sobre dónde está quemando el incendio, y la predicción parte de ahí.">
+                  <span className="text-xs text-muted-foreground">Última actualización</span>
+                </Tooltip>
               </div>
               <div className="text-lg font-semibold leading-tight">
                 {localTime(pronostico.pasada)}
@@ -340,7 +343,9 @@ export function ClientMap({
                   className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
-                <span className="text-xs text-muted-foreground">Próxima pasada</span>
+                <Tooltip content="Hora estimada en que el satélite volverá a pasar por la región. Cuando lo haga, se verá el estado real del incendio y la predicción se actualizará (los datos llegan unas horas después).">
+                  <span className="text-xs text-muted-foreground">Próxima pasada</span>
+                </Tooltip>
               </div>
               <div className="text-lg font-semibold leading-tight">
                 {localTime(estado!.proxima_pasada_estimada)}
@@ -352,19 +357,6 @@ export function ClientMap({
         {pronostico && (
           <>
             <Separator />
-            {estado?.calcular_ensamble && (
-              <>
-                <section className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
-                    {ENSEMBLE_AGREEMENT_LAYER.name}
-                  </label>
-                  {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
-                  {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
-                </section>
-                <Separator />
-              </>
-            )}
             {windBand && (
               <>
                 <section className="flex flex-col gap-2" aria-label="Meteorología">
@@ -397,6 +389,19 @@ export function ClientMap({
               predictedAreaHa={predictedAreaHa}
               horizonHours={horizonte}
             />
+            {estado?.calcular_ensamble && (
+              <>
+                <Separator />
+                <section className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={verAcuerdo} onChange={(e) => setVerAcuerdo(e.target.checked)} />
+                    {ENSEMBLE_AGREEMENT_LAYER.name}
+                  </label>
+                  {verAcuerdo && acuerdo && <EnsembleAgreementLegend contract={acuerdo} />}
+                  {verAcuerdo && acuerdoAviso && <p className="text-xs text-muted-foreground">{acuerdoAviso}</p>}
+                </section>
+              </>
+            )}
           </>
         )}
       </aside>

@@ -42,11 +42,10 @@ function IncendioSelector({
         className="flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted sm:text-sm [&::-webkit-details-marker]:hidden"
       >
         <Flame className="h-4 w-4 shrink-0 text-orange-600" aria-hidden="true" />
-        <span className="hidden max-w-40 truncate sm:inline">{actual.nombre.split(" · ")[0]}</span>
-        <span className="text-muted-foreground">{incendios.length > 1 ? incendios.length : ""}</span>
+        <span className="hidden max-w-64 truncate sm:inline">{actual.nombre.split(" · ")[0]}</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </summary>
-      <ul className="absolute right-0 top-full z-50 mt-1 w-64 rounded-md border bg-background p-1 shadow-lg">
+      <ul className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-1.5rem)] rounded-md border bg-background p-1 shadow-lg">
         <li className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Incendios activos
         </li>
