@@ -1,4 +1,4 @@
-> Fuente: docs/referencias/elmfire/Tutorial 01_ fire spread in flat terrain under constant wind — ELMFIRE 2025.0212 documentation.pdf, páginas 1–4. Conversión automática; ante duda, el PDF manda.
+> Fuente: `Tutorial 01_ fire spread in flat terrain under constant wind — ELMFIRE 2025.0212 documentation.pdf`, retirado del árbol el 2026-10-31 (sigue en la historia de git: `git log --diff-filter=D -- docs/referencias/elmfire/`), páginas 1–4. Conversión automática; ante duda, el PDF manda.
 
 # Tutorial 01: fire spread in flat terrain under constant wind
 
