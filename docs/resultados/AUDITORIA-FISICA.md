@@ -1166,7 +1166,12 @@ original.
 
 ### 7.4 Cambios pendientes en el documento de combustibles (`docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md`)
 
-**Pendiente (2026-10-22).** En §6.3, la frase «Un escalar global es lo que hay» es falsa en
+**Aplicado el 2026-11-01**, a pedido del autor, con el documento ya en estado final: este ítem
+(§6.3 y IGN-20-CROSSWALK), la l. 723 (lo ya quemado, resuelto con LYQ-3), la tabla de estado
+(comparación de mapas cerrada) y los puntos 5–6 de la lista de decisiones (decididos en el loop L;
+CBH cerrado como límite, nota AE). Se acaba la regla de anotar acá en vez de editar el documento.
+
+**Anotado el 2026-10-22 (aplicado el 2026-11-01).** En §6.3, la frase «Un escalar global es lo que hay» es falsa en
 2025.0212, y lo mismo pasa con IGN-20-CROSSWALK:317 («no existe un ráster de humedad viva»):
 `MLW_FILENAME` y `MLH_FILENAME` existen, con pisos de 60 % y 30 % (skill `elmfire`). Sigue sin estar en
 alcance, ahora por evidencia: el LW por especie de Bianchi y Defossé (Tabla 2) aleja de la ROS

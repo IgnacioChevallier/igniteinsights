@@ -314,8 +314,9 @@ dinámicos** o tienen carga viva. Con el baseline TL3 esto era irrelevante, porq
 componente vivo. Con esta tabla, `LH_MOISTURE_CONTENT` y `LW_MOISTURE_CONTENT` pasan a ser
 **drivers de primer orden**.
 
-ELMFIRE acepta **un escalar global por cada uno** para todo el dominio; no existe un ráster de
-humedad viva. Cualquier valor es una media espacial. La fuente para fijarlos es Bianchi &
+Se usa **un escalar global por cada uno** para todo el dominio. ELMFIRE 2025.0212 también acepta
+rásters (`MLW_FILENAME`, `MLH_FILENAME`), pero no se usan: el LW por especie empeora la ROS
+(`docs/resultados/diagnostico-e2e/notas/V-humedad-viva.md`). Cualquier valor es una media espacial. La fuente para fijarlos es Bianchi &
 Defossé (2015), que mide contenido de humedad del combustible vivo por especie en la Patagonia
 andina, ponderada por área de clase y referida al **período de quema** (verano tardío), no a
 la media anual. Especificado en `ETAPA-B-INSUMO-PATAGONICO.md` §B5.

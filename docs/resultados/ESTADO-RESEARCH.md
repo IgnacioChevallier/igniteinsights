@@ -83,9 +83,10 @@ a 0,409. En prueba, sólo Epuyén 2019 empeora con el horizonte largo (supresió
 3. LW 100 % es la única perilla regional adoptada.
 4. El crosswalk y el dosel v6 mejoran la calibración y reducen las alarmas, aunque no resuelven
    la transferencia a todos los regímenes de incendio.
-5. La comparación controlada v5 muestra que CCS-BAP supera a WorldCover en los incendios sin
-   fuga temporal y empata globalmente con MapBiomas. Esa comparación todavía no usa el crosswalk
-   final de modelo-v0 y, por eso, no es el cierre definitivo de mapas.
+5. En la comparación final de mapas, condicionada a modelo-v0 (§7), CCS-BAP supera a WorldCover
+   y no es inferior a MapBiomas en los incendios sin fuga temporal; no hay evidencia de
+   superioridad general sobre MapBiomas. La comparación v5 (`COMPARACION-MAPAS-V5.md`) es el
+   antecedente, con el crosswalk anterior.
 
 ## 5. Qué no queda pendiente como receta
 

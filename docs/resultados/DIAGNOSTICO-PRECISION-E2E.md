@@ -142,7 +142,7 @@ Clasificación según la regla de parada: **[M]** método de medición, **[B]** 
 evidencia externa nueva, **[P]** producto distinto de modelo-v0, **[K]** perilla (no habilita
 nada).
 
-### 1. Métrica de P-24 sin el anillo [M] — ejecutado; falta decidir
+### 1. Métrica de P-24 sin el anillo [M] — ejecutado; decidido el 2026-10-18 (§6.1)
 
 - **Resultado (P3).** La métrica principal no cambia (0,440). P-24 sigue ganando a la cadena en
   6 de 6 a 12 h, pero con +0,096 en lugar de +0,168.
@@ -366,7 +366,10 @@ Quedan sin incorporar:
    - Crecer sólo desde el frente activo da +0,026 a 12 h y −0,027 a 24 h; no pasa el criterio
      registrado.
    - Queda por decidir sólo el filtro conexo de T: 5 corridas en Cholila; no mueve la mediana.
-   **Medido (2026-10-18, [T](diagnostico-e2e/notas/T-semilla.md)); falta decidir.**
+   **Medido (2026-10-18, [T](diagnostico-e2e/notas/T-semilla.md)).** **Decidido después:** el
+   filtro se adoptó en `pronostico-v7` el 2026-10-22 (`diagnostico-e2e/notas/T-semilla-v7.md`) y la
+   app operativa lo aplica (`AC-semilla-app.md`); la regla de reconstrucción quedó como límite
+   declarado el 2026-10-31 (`ESTADO-RESEARCH.md` §6.2).
    - Sólo el 26 % del área de afuera es un bug: detecciones de otros incendios, casi todas en
      Cholila. El 43 % es la huella y el margen del píxel de 375 m, el 16 % el relleno del casco y
      el 16 % quema que la cicatriz no marca.

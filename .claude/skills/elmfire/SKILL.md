@@ -31,7 +31,7 @@ skip straight to guessing a parameter name or unit**:
    file-naming rules, MODE differences).
 3. **Upstream ELMFIRE source** (`github.com/lautenberger/elmfire`, pinned branch
    `2025.0212`) for anything not covered by the above. The vendor "User Guide" PDF
-   we have on file (`docs/referencias/elmfire/User Guide — ELMFIRE 2025.0212 documentation.pdf`)
+   we have on file (converted to `docs/referencias/elmfire/user-guide.md`; the PDF is in git history)
    turned out to be a bare table of contents with no body content — treat namelist
    groups it lists but that aren't in this skill or in our code (Spotting, Suppression,
    Assets at Risk, full Monte Carlo randomization) as **unverified**.
