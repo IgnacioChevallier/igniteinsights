@@ -126,17 +126,16 @@ The runner keeps the 15-min HTTP limit in mind: a window over a fire box runs in
 AOI_NORTH=-41.90 uv run python scripts/demo_operativo.py 2026-01-05 2026-01-09
 ```
 
-Only Puerto Patriada, from its first pass (2026-01-05 19:20 UTC); detections before that instant
-and other fires in the AOI are deliberately excluded from grouping, seeding and the replay.
-The cutoff is stored in `operativo.demo_desde` (migration `0007`) so that `tick` and `estado`
-group the same detections: a fire's id comes from its first detection, and a cutoff applied
-only by the precompute left the panel unable to find the demo forecasts. In demo mode the
-panel lists only fires that have forecast rows. It
-leaves the mode in `demo` with the clock on
-the first forecast; the admin
-walks forward from there. Starting on day 1 is deliberate: it shows the weak point and how each
-pass corrects it. `AOI_NORTH` matters only if `.env` overrides it (the repo `.env` had
-`-42.9`, which leaves Patriada out).
+The replay starts at the first Puerto Patriada pass (2026-01-05 19:20 UTC) and precomputes every
+active fire visible in the AOI at each pass. Detections before that instant are excluded from
+grouping and seeding. The cutoff is stored in `operativo.demo_desde` (migration `0007`) so that
+`tick` and `estado` group the same detections: a fire's id comes from its first detection, and a
+cutoff applied only by the precompute left the panel unable to find its demo forecast. The script
+is resumable, so rerunning it fills forecasts missing from an existing Puerto Patriada-only demo
+without repeating completed windows. It leaves the mode in `demo` with the clock on the first
+forecast; the admin walks forward from there. Starting on day 1 is deliberate: it shows the weak
+point and how each pass corrects it. `AOI_NORTH` matters only if `.env` overrides it (the repo
+`.env` had `-42.9`, which leaves Patriada out).
 
 ## 9. Accounts
 

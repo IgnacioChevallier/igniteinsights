@@ -91,7 +91,7 @@ class TickRequest(BaseModel):
     ahora: datetime | None = None
     modo: Literal["demo", "vivo"] = "vivo"
     ingerir: bool = True
-    # La precarga oficial del replay limita el producto al incendio de Puerto Patriada.
+    # Filtro opcional para preparar o reparar el replay de una localidad específica.
     solo_localidad: str | None = None
 
 

@@ -26,13 +26,13 @@ from app.ingestion.satellite.firms.service import run_firms_ingestion  # noqa: E
 from app.operativo import servicio  # noqa: E402
 from app.validation import pronostico  # noqa: E402
 
-INICIO_PATRIADA = datetime(2026, 1, 5, 19, 20, tzinfo=UTC)
+INICIO_DEMO = datetime(2026, 1, 5, 19, 20, tzinfo=UTC)
 
 
 async def main(desde: date, hasta: date) -> None:
     async with async_session_factory() as session:
         op = await servicio.leer_operativo(session)
-        op.demo_desde = INICIO_PATRIADA   # antes de los ticks: tick y estado lo leen de acá
+        op.demo_desde = INICIO_DEMO   # antes de los ticks: tick y estado lo leen de acá
         await session.commit()
         dia = desde - timedelta(days=1)   # lo de la víspera también siembra
         while dia <= hasta:
@@ -49,7 +49,7 @@ async def main(desde: date, hasta: date) -> None:
                                            utc=True))
         pasadas = [
             t.to_pydatetime() for t in pronostico.pasadas(tiempos)
-            if t.to_pydatetime() >= INICIO_PATRIADA
+            if t.to_pydatetime() >= INICIO_DEMO
         ]
         print(f"{len(features)} detecciones, {len(pasadas)} pasadas", flush=True)
         for pasada in pasadas:
@@ -59,7 +59,6 @@ async def main(desde: date, hasta: date) -> None:
                 ahora,
                 modo="demo",
                 ingerir=False,
-                solo_localidad="Puerto Patriada",
             )
             for h in hechos:
                 print(f"  {pasada:%d-%m %H:%M} {h['nombre']}: {h['estado']}"
