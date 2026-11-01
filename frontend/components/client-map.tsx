@@ -16,13 +16,16 @@ import {
   type EnsembleAgreementContract,
 } from "@/lib/ensemble-agreement";
 import { geoJsonAreaHa, isochroneAreaHa } from "@/lib/geojson-area";
-import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
+import { realTimestamp, snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
 import type { Estado, Incendio } from "@/lib/operativo";
 import { cn } from "@/lib/utils";
-import type { GriddedWindField } from "@/lib/wind-particles";
+import { compassPoint, WIND_SPEED_GRADIENT, type GriddedWindField } from "@/lib/wind-particles";
 
 const art = (value: string) => `${formatArgentinaDateTime(value)} ${ARGENTINA_TIME_ZONE_LABEL}`;
 const localTime = (value: string) => formatArgentinaDateTime(value);
+const MPH_TO_KMH = 1.609344;
+// Same stops as the particle colours: 40 mph is where the scale tops out.
+const WIND_SCALE_KMH = [0, 16, 32, 48, 64];
 const DEFAULT_VISIBLE_HORIZON_HOURS = 3;
 const MAX_VISIBLE_HORIZON_HOURS = 25;
 
@@ -161,6 +164,11 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
     [isochrones, incendio],
   );
   const pronostico = incendio?.pronostico ?? null;
+  const shownT = Math.round(clock.t * 10) / 10;
+  const stamp = realTimestamp(pronostico?.pasada, shownT);
+  const windBand =
+    wind?.bands[Math.min(Math.floor(clock.t / (wind.step_hours || 1)), wind.bands.length - 1)] ?? null;
+  const windValid = realTimestamp(wind?.forecast_start, shownT);
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
@@ -178,10 +186,7 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
             clock={animable ? clockView : null}
             overlay={
               animable ? (
-                <FireAnimationControls
-                  clock={clock}
-                  ignitionDatetime={pronostico?.pasada ?? null}
-                />
+                <FireAnimationControls clock={clock} />
               ) : null
             }
           />
@@ -227,14 +232,14 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
         {/* Outside the map so the basemap attribution never covers it. */}
         <p className="shrink-0 border-t bg-background px-3 py-1.5 text-center text-xs leading-snug text-foreground">
           Propagación potencial bajo condiciones modeladas, sin supresión ·{" "}
-          <a href="/documentacion" className="underline underline-offset-2">Límites del modelo</a>.
+          <a href="/documentacion?tab=limites" className="underline underline-offset-2">Límites del modelo</a>.
         </p>
       </div>
 
       <aside className="flex max-h-[32dvh] w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-3 md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4">
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {incendios.length === 1 ? "Incendio activo" : `Incendios activos (${incendios.length})`}
+            Incendios activos
           </h2>
           {!estado && <p className="mt-2 text-sm text-muted-foreground">Cargando…</p>}
           {estado && !incendios.length && (
@@ -344,7 +349,37 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                 <Separator />
               </>
             )}
+            {windBand && (
+              <>
+                <section className="flex flex-col gap-2" aria-label="Meteorología">
+                  <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Meteorología
+                  </h2>
+                  <p className="text-sm font-medium">
+                    Viento {(windBand.speed_mph * MPH_TO_KMH).toLocaleString("es", { maximumFractionDigits: 1 })} km/h
+                    hacia el {compassPoint(windBand.blows_to_deg)}
+                  </p>
+                  {windValid && <p className="text-xs text-muted-foreground">Hora: {windValid}</p>}
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{ background: WIND_SPEED_GRADIENT }}
+                    role="img"
+                    aria-label="Escala de color de la velocidad del viento, de 0 a 64 km/h o más"
+                  />
+                  <div className="flex justify-between text-[10px] tabular-nums text-muted-foreground">
+                    {WIND_SCALE_KMH.map((v, i) => (
+                      <span key={v}>{v}{i === WIND_SCALE_KMH.length - 1 ? "+ km/h" : ""}</span>
+                    ))}
+                  </div>
+                  <p className="text-[10px] leading-snug text-muted-foreground">
+                    El color de las líneas del mapa indica la velocidad del viento.
+                  </p>
+                </section>
+                <Separator />
+              </>
+            )}
             <FireGrowthStatsPanel
+              timestamp={stamp}
               row={stats}
               observedAreaHa={observedAreaHa}
               predictedAreaHa={predictedAreaHa}

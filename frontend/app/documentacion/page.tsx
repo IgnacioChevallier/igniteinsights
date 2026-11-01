@@ -118,14 +118,19 @@ const FUENTES: { dato: string; fuente: string; atribucion: string }[] = [
   },
 ];
 
-export default async function DocumentacionPage() {
+export default async function DocumentacionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   return (
     <div className="flex min-h-screen flex-col">
       <ClientHeader active="documentacion" isAdmin={session?.user.role === "admin"} />
       <main className="mx-auto w-full max-w-4xl px-4 py-6 text-sm leading-relaxed sm:py-10">
         <h1 className="text-2xl font-semibold">Documentación</h1>
-        <Tabs defaultValue="introduccion" className="mt-5">
+        <Tabs defaultValue={tab === "limites" || tab === "fuentes" ? tab : "introduccion"} className="mt-5">
           <TabsList className="grid h-auto w-full grid-cols-3">
             <TabsTrigger value="introduccion" className="h-full whitespace-normal px-2 text-xs sm:text-sm">
               Introducción

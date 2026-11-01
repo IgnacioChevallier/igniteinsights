@@ -1,4 +1,4 @@
-import { Flame, Radar, type LucideIcon } from "lucide-react";
+import { CalendarClock, Flame, Radar, type LucideIcon } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 
 // One row per simulation run: ELMFIRE's final-state summary at tstop, not a time
@@ -15,6 +15,7 @@ export type FireSizeStatsRow = {
 const AC_TO_HA = 0.404686;
 
 const TOOLTIPS = {
+  timestamp: "Instante estimado (hora de Argentina) que muestra la animación del mapa.",
   observed:
     "Superficie del perímetro observado usado para iniciar la simulación. Corresponde a lo detectado hasta la última pasada satelital.",
   predicted:
@@ -59,7 +60,10 @@ export function FireGrowthStatsPanel({
   observedAreaHa,
   predictedAreaHa,
   horizonHours,
+  timestamp,
 }: {
+  /** Wall-clock time of the animation frame on screen, already formatted. */
+  timestamp?: string | null;
   row: FireSizeStatsRow | null;
   observedAreaHa?: number | null;
   predictedAreaHa?: number | null;
@@ -80,6 +84,14 @@ export function FireGrowthStatsPanel({
       </div>
       {hasArea ? (
         <div className="flex flex-col gap-3">
+          {timestamp && (
+            <StatRow
+              icon={CalendarClock}
+              label="Fecha y hora"
+              value={timestamp}
+              tooltip={TOOLTIPS.timestamp}
+            />
+          )}
           <StatRow
             icon={Flame}
             label="Área quemada hasta ahora"

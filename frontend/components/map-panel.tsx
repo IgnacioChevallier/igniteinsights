@@ -12,7 +12,7 @@ import { SettingsButton } from "@/components/settings-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFireClock } from "@/hooks/use-fire-clock";
-import { snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
+import { realTimestamp, snapToLevel, summarizeIsochrones } from "@/lib/isochrone-clock";
 import { geoJsonAreaHa, isochroneAreaHa } from "@/lib/geojson-area";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
 import {
@@ -599,7 +599,6 @@ export function MapPanel({ runs }: { runs: Run[] }) {
             animatable ? (
               <FireAnimationControls
                 clock={clock}
-                ignitionDatetime={selectedRun?.ignition_datetime ?? null}
                 untimedCount={summary.untimedCount}
                 horizonControl={{
                   valueHours: horizonHours,
@@ -776,6 +775,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
         <Separator />
 
         <FireGrowthStatsPanel
+          timestamp={realTimestamp(selectedRun?.ignition_datetime, Math.round(clock.t * 10) / 10)}
           row={statsRow}
           observedAreaHa={observedAreaHa}
           predictedAreaHa={predictedAreaHa}
