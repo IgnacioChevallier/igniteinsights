@@ -56,8 +56,18 @@ function bboxCollection([w, s, e, n]: Incendio["bbox"]): GeoJSON.FeatureCollecti
  * wind and the 3D relief; the ensemble agreement only on request. Nothing here starts a
  * computation — the admin decides what is computed, the client only what to look at.
  */
-export function ClientMap({ estado }: { estado: Estado | null }) {
-  const [elegido, setElegido] = useState<string | null>(null);
+export function ClientMap({
+  estado,
+  elegido: elegidoExterno = null,
+  onElegir,
+}: {
+  estado: Estado | null;
+  /** When `onElegir` is given the page owns the selection (header dropdown) and the sidebar list is hidden. */
+  elegido?: string | null;
+  onElegir?: (id: string) => void;
+}) {
+  const [elegidoInterno, setElegido] = useState<string | null>(null);
+  const elegido = onElegir ? elegidoExterno : elegidoInterno;
   const incendios = useMemo(() => estado?.incendios ?? [], [estado]);
   const incendio = incendios.find((i) => i.id === elegido) ?? incendios[0] ?? null;
   const simulacionId = incendio?.pronostico?.simulacion_id ?? null;
@@ -168,7 +178,6 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
   const stamp = realTimestamp(pronostico?.pasada, shownT);
   const windBand =
     wind?.bands[Math.min(Math.floor(clock.t / (wind.step_hours || 1)), wind.bands.length - 1)] ?? null;
-  const windValid = realTimestamp(wind?.forecast_start, shownT);
 
   return (
     <div className="flex h-full min-h-0 flex-col md:flex-row">
@@ -236,7 +245,13 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
         </p>
       </div>
 
-      <aside className="flex max-h-[32dvh] w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-3 md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4">
+      <aside
+        className={cn(
+          "flex max-h-[32dvh] w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-3 md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4",
+          onElegir && !pronostico && "hidden",
+        )}
+      >
+        {!onElegir && (
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Incendios activos
@@ -266,10 +281,11 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
             ))}
           </ul>
         </section>
+        )}
 
         {pronostico && maxVisibleHorizon > 0 && (
           <>
-            <Separator />
+            {!onElegir && <Separator />}
             <section aria-labelledby="prediction-horizon-label">
               <div className="flex items-center justify-between gap-3">
                 <h2
@@ -359,7 +375,6 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                     Viento {(windBand.speed_mph * MPH_TO_KMH).toLocaleString("es", { maximumFractionDigits: 1 })} km/h
                     hacia el {compassPoint(windBand.blows_to_deg)}
                   </p>
-                  {windValid && <p className="text-xs text-muted-foreground">Hora: {windValid}</p>}
                   <div
                     className="h-1.5 rounded-full"
                     style={{ background: WIND_SPEED_GRADIENT }}
@@ -371,9 +386,6 @@ export function ClientMap({ estado }: { estado: Estado | null }) {
                       <span key={v}>{v}{i === WIND_SCALE_KMH.length - 1 ? "+ km/h" : ""}</span>
                     ))}
                   </div>
-                  <p className="text-[10px] leading-snug text-muted-foreground">
-                    El color de las líneas del mapa indica la velocidad del viento.
-                  </p>
                 </section>
                 <Separator />
               </>

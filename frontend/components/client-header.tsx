@@ -1,9 +1,10 @@
 "use client";
 
-import { BookOpen, CircleUserRound, Map, TriangleAlert } from "lucide-react";
+import { BookOpen, ChevronDown, CircleUserRound, Flame, Map, TriangleAlert } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 import { ARGENTINA_TIME_ZONE_LABEL, formatArgentinaDateTime } from "@/lib/date-time";
-import { useEstado } from "@/lib/operativo";
+import { useEstado, type Incendio } from "@/lib/operativo";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -13,6 +14,69 @@ const LINKS = [
 ] as const;
 
 /**
+ * Fire picker: native <details> so there is no popover dependency; closes on pick and on
+ * any click outside. Label collapses to the icon on phones, where the nav already fills the row.
+ */
+function IncendioSelector({
+  incendios,
+  elegido,
+  onElegir,
+}: {
+  incendios: Incendio[];
+  elegido: string | null;
+  onElegir: (id: string) => void;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) ref.current.open = false;
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
+  const actual = incendios.find((i) => i.id === elegido) ?? incendios[0];
+  return (
+    <details ref={ref} className="relative ml-auto">
+      <summary
+        aria-label="Incendios activos"
+        className="flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted sm:text-sm [&::-webkit-details-marker]:hidden"
+      >
+        <Flame className="h-4 w-4 shrink-0 text-orange-600" aria-hidden="true" />
+        <span className="hidden max-w-40 truncate sm:inline">{actual.nombre.split(" · ")[0]}</span>
+        <span className="text-muted-foreground">{incendios.length > 1 ? incendios.length : ""}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      </summary>
+      <ul className="absolute right-0 top-full z-50 mt-1 w-64 rounded-md border bg-background p-1 shadow-lg">
+        <li className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Incendios activos
+        </li>
+        {incendios.map((i) => (
+          <li key={i.id}>
+            <button
+              type="button"
+              onClick={() => {
+                onElegir(i.id);
+                if (ref.current) ref.current.open = false;
+              }}
+              aria-current={i.id === actual.id ? "true" : undefined}
+              className={cn(
+                "w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
+                i.id === actual.id && "bg-primary/5 font-medium",
+              )}
+            >
+              {i.nombre.split(" · ")[0]}
+              <span className="block text-xs font-normal text-muted-foreground">
+                {formatArgentinaDateTime(i.primera_deteccion)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/**
  * The header of every client page, with the demo banner: a frozen January map must never
  * read as a fire burning today. Plain anchors, not next/link: a transition never commits
  * while the map animation writes state every frame (see settings-button.tsx).
@@ -20,9 +84,14 @@ const LINKS = [
 export function ClientHeader({
   active,
   isAdmin = false,
+  elegido = null,
+  onElegir,
 }: {
   active: (typeof LINKS)[number]["id"];
   isAdmin?: boolean;
+  /** Map page only: shows the fire picker when given `onElegir`. */
+  elegido?: string | null;
+  onElegir?: (id: string) => void;
 }) {
   const { estado } = useEstado(300_000);
 
@@ -65,6 +134,9 @@ export function ClientHeader({
             </a>
           )}
         </nav>
+        {onElegir && estado && estado.incendios.length > 0 && (
+          <IncendioSelector incendios={estado.incendios} elegido={elegido} onElegir={onElegir} />
+        )}
       </div>
       {active === "mapa" && estado?.modo === "demo" && (
         <div
