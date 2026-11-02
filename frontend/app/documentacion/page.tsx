@@ -132,10 +132,8 @@ export default async function DocumentacionPage({
             <p className="text-muted-foreground">
               IgniteInsights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE
               cómo podría propagarse hasta 24 h sobre el relieve, la vegetación y el pronóstico del
-              tiempo. Es una herramienta académica, desarrollada como tesis de grado:{" "}
-              <strong className="text-foreground">no es un sistema oficial de alerta</strong> y no
-              reemplaza la información del Servicio Nacional de Manejo del Fuego ni de Parques
-              Nacionales.
+              tiempo. Es una herramienta académica, desarrollada como tesis de grado: no es un
+              sistema oficial de alerta.
             </p>
             <h2 className="mt-7 text-lg font-semibold">Cómo leer el mapa</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
