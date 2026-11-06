@@ -130,7 +130,8 @@ export default async function DocumentacionPage({
 
           <TabsContent value="introduccion" className="rounded-xl border bg-card p-5 sm:p-7">
             <p className="text-muted-foreground">
-              IgniteInsights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE
+              Ignite Insights es una herramienta experimental de apoyo informativo; sus escenarios no incorporan acciones de combate ni reemplazan protocolos, autoridades, observaciones de campo o criterio profesional. La ausencia de una zona en una simulación no demuestra ausencia de riesgo.
+              A alto nivel, Ignite Insights detecta focos con el satélite VIIRS y, para cada uno, simula con ELMFIRE
               cómo podría propagarse hasta 24 h sobre el relieve, la vegetación y el pronóstico del
               tiempo. Es una herramienta académica, desarrollada como tesis de grado: no es un
               sistema oficial de alerta.
