@@ -166,12 +166,9 @@ operativo-<id>`; if they are gone it rebuilds them with `servicio.congelar`, the
 run uses, and says so), runs one step at a time, prints minutes per step, and is resumable (a
 step with `ensemble_agreement.json` is skipped). In demo mode the cron does not run ELMFIRE, so
 it does not compete with another window. Any other demo forecast has no checkbox for the layer.
-In production it runs inside the API service, detached so a dropped SSH session does not kill it:
-
-```bash
-railway ssh -s api -- 'cd /app && PYTHONPATH=/app nohup /app/.venv/bin/python scripts/demo_ensamble.py > /app/data/demo_ensamble.log 2>&1 &'
-railway ssh -s api -- tail -n 20 /app/data/demo_ensamble.log
-```
+It runs against a local database and runner, never on Railway. To put the ensemble of a
+Railway forecast (live or demo) on the dashboard, use the export → local run → register path
+of §10 (skill `ensamble-local`).
 
 ## 9. Accounts
 
@@ -201,7 +198,14 @@ Railway never computes the GEFS ensemble (31 members, ~35 min and ~1.7 GB per ru
 by hand on the local machine and only its `ensemble_agreement.json` is uploaded into the
 forecast's output folder (skill `ensamble-local`); that file is what marks the forecast as
 having an ensemble. Railway keeps `phi.tif` (the seed on the grid) so the local run can rebuild
-the same frozen inputs. At least 24 valid members are required, and the artifact records the
+the same frozen inputs: `scripts/ensamble_exportar.py` (on Railway) prints the window and the
+seed, `scripts/ensamble_local.py` rebuilds the static inputs from `data/operativo/estaticos/`,
+aborts if they do not fall on the seed's grid and runs the 31 members, and
+`scripts/ensamble_registrar.py` (on Railway, contract on stdin) validates it before placing it
+where the map reads it. All three go through `railway ssh`; no public API endpoint. Once a
+forecast is done, `podar` keeps only what the map reads again (`wind-field.json`, `ignicion.*`)
+plus `phi.tif`; a one-off `scripts/podar_volumen.py` applied that to the older forecasts on
+2026-11-07 (34 GB → 0.7 GB). At least 24 valid members are required, and the artifact records the
 effective denominator and failures. `calcular_ensamble` now only decides whether clients see
 the layer (admin toggle "Acuerdo del ensamble visible para clientes"). The client still chooses
 whether to show that layer, which is offered only on forecasts that have it, is off by default
