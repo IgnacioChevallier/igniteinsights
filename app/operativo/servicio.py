@@ -432,6 +432,20 @@ async def _correr(session: AsyncSession, inc: Incendio, p: Pronostico, t0: datet
         await repository.update_simulation_run(
             session, sim.id, status="success", output_dir=str(salidas), elmfire_config=config
         )
+    await asyncio.to_thread(podar, insumos, salidas)
+
+
+# Lo único de los insumos que el mapa vuelve a leer (viento y semilla). El resto, y el clima y las
+# corridas de los 31 miembros GEFS, pesaban ~2 GB por pronóstico y llenaban el volumen.
+INSUMOS_QUE_QUEDAN = (WIND_FIELD_FILENAME, "ignicion.")
+
+
+def podar(insumos: Path, salidas: Path) -> None:
+    """Borra de un pronóstico terminado lo que ya no se lee: queda su producto, no su armado."""
+    shutil.rmtree(salidas / "ensamble", ignore_errors=True)
+    for f in insumos.iterdir():
+        if not f.name.startswith(INSUMOS_QUE_QUEDAN):
+            shutil.rmtree(f) if f.is_dir() else f.unlink()
 
 
 async def congelar(session: AsyncSession, inc: Incendio, pasada: datetime,

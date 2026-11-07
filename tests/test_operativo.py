@@ -137,6 +137,22 @@ def test_el_miembro_gefs_que_no_cubre_la_grilla_falla_en_vez_de_inventar_clima(t
         _preparar_miembro(base, fuente, tmp_path / "miembro")
 
 
+def test_podar_deja_solo_lo_que_el_mapa_vuelve_a_leer(tmp_path):
+    insumos, salidas = tmp_path / "in", tmp_path / "out"
+    for f in ("ws.tif", "m1.tif", "dem.tif", "elmfire.data", "wind-field.json",
+              "ignicion.shp", "ignicion.dbf"):
+        (insumos / f).parent.mkdir(exist_ok=True)
+        (insumos / f).write_text("x")
+    (salidas / "ensamble" / "fuentes" / "c00").mkdir(parents=True)
+    for f in ("hourly_isochrones.shp", "ensemble_agreement.json", "time_of_arrival_1_2.tif"):
+        (salidas / f).write_text("x")
+    s.podar(insumos, salidas)
+    assert sorted(p.name for p in insumos.iterdir()) == [
+        "ignicion.dbf", "ignicion.shp", "wind-field.json"]
+    assert sorted(p.name for p in salidas.iterdir()) == [
+        "ensemble_agreement.json", "hourly_isochrones.shp", "time_of_arrival_1_2.tif"]
+
+
 def test_en_vivo_una_pasada_del_racimo_ya_pronosticado_no_corre_y_en_demo_si():
     def p(horas: float, estado: str = "listo") -> s.Pronostico:
         return s.Pronostico(pasada=T + timedelta(hours=horas), estado=estado)
