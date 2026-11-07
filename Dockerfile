@@ -22,9 +22,9 @@ RUN --mount=type=cache,id=s/0599a1bb-6b61-4686-bc5e-a71e5e248ce7-/root/.cache/uv
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
-COPY scripts/cron_tick.py ./scripts/cron_tick.py
-COPY scripts/demo_operativo.py ./scripts/demo_operativo.py
-COPY scripts/demo_ensamble.py ./scripts/demo_ensamble.py
+# Todo scripts/: los que corren por `railway ssh` (podar_volumen, ensamble_*) llegan sin otra
+# línea acá; un script nuevo sólo necesita estar en los watchPatterns de la api para desplegar.
+COPY scripts/ ./scripts/
 # Casos, recetas y resultados del benchmark de validación: los lee /api/v1/validation.
 COPY benchmarks/ ./benchmarks/
 

@@ -4,8 +4,8 @@ aplicado a los que se corrieron antes, más las carpetas de simulaciones que nin
     railway ssh -s api -- 'cd /app && uv run python scripts/podar_volumen.py'            # lista
     railway ssh -s api -- 'cd /app && uv run python scripts/podar_volumen.py --aplicar'  # borra
 
-Llega a Railway porque está en los watchPatterns de la api (como `scripts/ensamble_*.py`): un
-script nuevo que tenga que correr allá necesita lo mismo, o el push no lo despliega.
+Llega a Railway porque el Dockerfile copia scripts/ y está en los watchPatterns de la api (como
+`scripts/ensamble_*.py`): un script nuevo sin watchPattern no dispara el deploy.
 
 No toca los pronósticos que están corriendo ni las carpetas que una simulación de la base
 referencia (salvo lo que `podar` saca de las operativas: el producto queda).
