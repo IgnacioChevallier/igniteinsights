@@ -73,3 +73,26 @@ def test_transfer_uploads_simulates_downloads_and_cleans(monkeypatch, tmp_path):
         "DELETE /files",
     ]
     assert (outputs / "time_of_arrival_001.tif").read_text() == "toa"
+
+
+def test_a_slow_simulate_keeps_pinging_health_so_railway_does_not_sleep(monkeypatch, tmp_path):
+    calls: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/simulate":
+            await asyncio.sleep(0.2)
+            return httpx.Response(200, json={"status": "success", "run_id": "r1", "outputs": {}})
+        return httpx.Response(200, json={})
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        runner_client.httpx, "AsyncClient",
+        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+    )
+    monkeypatch.setattr(settings, "elmfire_runner_transfer_files", False)
+    monkeypatch.setattr(runner_client, "HEARTBEAT_SECONDS", 0.05)
+    asyncio.run(runner_client.ELMFIRERunnerClient().run_simulation(SimulationRequest(
+        elmfire_data_path=f"{tmp_path}/elmfire.data", inputs_dir=str(tmp_path),
+        outputs_dir=str(tmp_path))))
+    assert calls.count("/health") >= 2

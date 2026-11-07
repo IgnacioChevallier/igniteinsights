@@ -31,6 +31,11 @@ logger = logging.getLogger(__name__)
 # working on.
 JOB_TIMEOUT_BUFFER_SECONDS = 600
 
+# Railway's serverless mode sleeps a service after 5-10 min without outbound packets, and
+# /simulate is one silent request for the whole ELMFIRE run. Pinging /health meanwhile gives
+# both services traffic, so neither is put to sleep mid-run.
+HEARTBEAT_SECONDS = 60
+
 
 def pack_dir(path: str, dest: IO[bytes]) -> None:
     # compresslevel=1: the GeoTIFFs barely compress further and level 9 costs minutes.
@@ -78,6 +83,14 @@ class ELMFIRERunnerClient:
             tmp.seek(0)
             await asyncio.to_thread(unpack_dir, tmp, local_path)
 
+    async def _heartbeat(self, client: httpx.AsyncClient) -> None:
+        while True:
+            await asyncio.sleep(HEARTBEAT_SECONDS)
+            try:
+                await client.get(f"{self._base_url}/health", timeout=10)
+            except httpx.HTTPError as exc:
+                logger.debug("heartbeat to elmfire-runner failed: %s", exc)
+
     async def _cleanup(self, client: httpx.AsyncClient, request: SimulationRequest) -> None:
         for path in (request.inputs_dir, request.outputs_dir):
             try:
@@ -111,10 +124,14 @@ class ELMFIRERunnerClient:
                     await self._upload_dir(
                         client, local_outputs_dir or request.outputs_dir, request.outputs_dir
                     )
-                response = await client.post(
-                    f"{self._base_url}/simulate",
-                    json=request.model_dump(),
-                )
+                heartbeat = asyncio.create_task(self._heartbeat(client))
+                try:
+                    response = await client.post(
+                        f"{self._base_url}/simulate",
+                        json=request.model_dump(),
+                    )
+                finally:
+                    heartbeat.cancel()
                 response.raise_for_status()
                 result = SimulationResult(**response.json())
                 if transfer:
