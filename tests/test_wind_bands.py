@@ -184,3 +184,27 @@ def test_missing_crs_and_nodata_only_fields_are_rejected(tmp_path):
     )
     with pytest.raises(ValueError, match="contains no valid cells"):
         wind_field(nodata_speed, nodata_direction)
+
+
+def test_wind_endpoint_serves_the_sidecar_without_the_rasters(tmp_path, monkeypatch):
+    """`servicio.podar` deletes ws.tif/wd.tif and keeps wind-field.json: the map's wind must
+    still come back for a pruned operational forecast."""
+    import asyncio
+    import uuid
+    from types import SimpleNamespace
+
+    from app.api.v1 import simulations
+
+    ws = _raster(tmp_path / "ws.tif", [np.full((4, 4), 5.0)])
+    wd = _raster(tmp_path / "wd.tif", [np.full((4, 4), 90.0)])
+    expected = write_wind_field(ws, wd, tmp_path / "wind-field.json",
+                                forecast_start=None, forecast_cycle=None)
+    ws.unlink()
+    wd.unlink()
+
+    async def run(_session, _id):
+        return SimpleNamespace(elmfire_config={"inputs_dir": str(tmp_path)})
+
+    monkeypatch.setattr(simulations.repository, "get_simulation_run", run)
+    body = asyncio.run(simulations.get_simulation_wind(uuid.uuid4(), None))
+    assert body["data"] == expected

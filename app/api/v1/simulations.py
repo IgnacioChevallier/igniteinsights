@@ -356,7 +356,8 @@ async def get_simulation_isochrones(
         "store the direction it comes FROM. Each band carries a `direction_consistency` "
         "(1.0 = uniform across the domain); it collapses in calm hours, where the "
         "direction of a sub-1 mph wind carries no information. Returns an empty payload "
-        "for runs with no tracked inputs directory or no weather rasters."
+        "for runs with no tracked inputs directory and neither the wind-field.json sidecar "
+        "nor the weather rasters."
     ),
 )
 async def get_simulation_wind(
@@ -374,11 +375,11 @@ async def get_simulation_wind(
         return _envelope("success", None)
     inputs = _resolve(inputs_dir)
     ws, wd = inputs / "ws.tif", inputs / "wd.tif"
-    if not (ws.exists() and wd.exists()):
-        return _envelope("success", None)
-
     sidecar = inputs / WIND_FIELD_FILENAME
     sidecar_path = sidecar if sidecar.exists() else None
+    # Operational forecasts keep only the sidecar once pruned (servicio.podar).
+    if sidecar_path is None and not (ws.exists() and wd.exists()):
+        return _envelope("success", None)
     return _envelope(
         "success",
         await asyncio.to_thread(
