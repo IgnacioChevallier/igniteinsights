@@ -194,14 +194,15 @@ FIRMS's own latency. VIIRS passes over the AOI cluster at 04–07 and 18–20 UT
 2015–2026: no pass outside them), so with FIRMS's ≤3 h latency the cron only runs 05–10 and
 18–23 UTC and the api and runner can sleep the rest of the day. Within a cluster only the first
 pass that gets a forecast runs ELMFIRE (`RACIMO_H`): the next satellite 1–2 h later would hold the
-runner, and the ensemble, for a near-duplicate. A failed window
+runner for a near-duplicate. A failed window
 (GFS or runner down) is retried on the next tick; the client keeps the last good forecast.
 
-When the admin enables `calcular_ensamble`, each new deterministic P-24 run also freezes its
-non-weather inputs and runs the 31 GEFS members. At least 24 valid members are required. The
-agreement artifact records the effective denominator and failures, and is served with the
-simulation; a failed optional ensemble never hides an otherwise valid deterministic forecast.
-The flag acts only on new runs; it never back-fills forecasts already computed (the demo's
-are back-filled by `scripts/demo_ensamble.py`, §8). The client still chooses whether to show
-that layer, which is offered only on forecasts that have it, is off by default and is
-explicitly described as agreement rather than probability.
+Railway never computes the GEFS ensemble (31 members, ~35 min and ~1.7 GB per run). It is run
+by hand on the local machine and only its `ensemble_agreement.json` is uploaded into the
+forecast's output folder (skill `ensamble-local`); that file is what marks the forecast as
+having an ensemble. Railway keeps `phi.tif` (the seed on the grid) so the local run can rebuild
+the same frozen inputs. At least 24 valid members are required, and the artifact records the
+effective denominator and failures. `calcular_ensamble` now only decides whether clients see
+the layer (admin toggle "Acuerdo del ensamble visible para clientes"). The client still chooses
+whether to show that layer, which is offered only on forecasts that have it, is off by default
+and is explicitly described as agreement rather than probability.

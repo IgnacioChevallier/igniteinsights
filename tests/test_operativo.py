@@ -140,7 +140,7 @@ def test_el_miembro_gefs_que_no_cubre_la_grilla_falla_en_vez_de_inventar_clima(t
 def test_podar_deja_solo_lo_que_el_mapa_vuelve_a_leer(tmp_path):
     insumos, salidas = tmp_path / "in", tmp_path / "out"
     for f in ("ws.tif", "m1.tif", "dem.tif", "elmfire.data", "wind-field.json",
-              "ignicion.shp", "ignicion.dbf"):
+              "ignicion.shp", "ignicion.dbf", "phi.tif"):
         (insumos / f).parent.mkdir(exist_ok=True)
         (insumos / f).write_text("x")
     (salidas / "ensamble" / "fuentes" / "c00").mkdir(parents=True)
@@ -148,7 +148,7 @@ def test_podar_deja_solo_lo_que_el_mapa_vuelve_a_leer(tmp_path):
         (salidas / f).write_text("x")
     s.podar(insumos, salidas)
     assert sorted(p.name for p in insumos.iterdir()) == [
-        "ignicion.dbf", "ignicion.shp", "wind-field.json"]
+        "ignicion.dbf", "ignicion.shp", "phi.tif", "wind-field.json"]
     assert sorted(p.name for p in salidas.iterdir()) == [
         "ensemble_agreement.json", "hourly_isochrones.shp", "time_of_arrival_1_2.tif"]
 

@@ -325,7 +325,7 @@ async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str =
             if previo.pasada == inc.ultima:
                 await session.delete(previo)
         await session.commit()
-        p = await correr(session, inc, modo, calcular_ensamble=operativo.calcular_ensamble)
+        p = await correr(session, inc, modo)
         hechos.append({"incendio_id": p.incendio_id, "nombre": p.nombre,
                        "pasada": p.pasada.isoformat(), "estado": p.estado, "error": p.error})
     return hechos
@@ -338,9 +338,9 @@ def a_pronosticar(previos: Sequence[Pronostico], ultima: datetime, modo: str) ->
     return all(p.estado == "fallido" for p in previos if desde <= p.pasada <= ultima)
 
 
-async def correr(session: AsyncSession, inc: Incendio, modo: str,
-                 calcular_ensamble: bool = False) -> Pronostico:
-    """Arma y corre la ventana de 24 h que arranca en la última pasada de `inc`."""
+async def correr(session: AsyncSession, inc: Incendio, modo: str) -> Pronostico:
+    """Arma y corre la ventana de 24 h que arranca en la última pasada de `inc`. Sólo el P-24:
+    el ensamble GEFS se corre en local y se sube (skill ensamble-local)."""
     pasada = inc.ultima
     t0 = pasada.replace(minute=0, second=0, microsecond=0)
     tstart_s = (pasada - t0).total_seconds()
@@ -351,7 +351,7 @@ async def correr(session: AsyncSession, inc: Incendio, modo: str,
     session.add(p)
     await session.commit()
     try:
-        await _correr(session, inc, p, t0, tstart_s, ciclo, calcular_ensamble)
+        await _correr(session, inc, p, t0, tstart_s, ciclo)
         p.estado = "listo"
     except Exception as exc:   # el tick sigue con los demás incendios; el error queda guardado
         logger.exception("pronóstico %s %s falló", inc.nombre, pasada)
@@ -361,7 +361,7 @@ async def correr(session: AsyncSession, inc: Incendio, modo: str,
 
 
 async def _correr(session: AsyncSession, inc: Incendio, p: Pronostico, t0: datetime,
-                  tstart_s: float, ciclo: datetime, calcular_ensamble: bool) -> None:
+                  tstart_s: float, ciclo: datetime) -> None:
     caja = _caja(inc)
     p.caja = from_shape(box(*caja), srid=4326)
     insumos, salidas = insumos_de(p.id), salidas_de(p.id)
@@ -413,31 +413,13 @@ async def _correr(session: AsyncSession, inc: Incendio, p: Pronostico, t0: datet
     if resultado.outputs.time_of_arrival_tif:
         await repository.create_simulation_output(
             session, sim.id, "time_of_arrival", file_path=resultado.outputs.time_of_arrival_tif)
-    if calcular_ensamble:
-        from app.operativo.ensamble import correr_ensamble
-
-        try:
-            config["ensamble"] = await correr_ensamble(
-                ciclo=ciclo,
-                inicio=t0,
-                tstart_s=tstart_s,
-                caja=caja,
-                insumos_base=insumos,
-                salidas_base=salidas,
-                para_runner=_para_runner,
-            )
-        except Exception as exc:
-            logger.exception("ensamble %s %s falló; se conserva P-24", inc.nombre, p.pasada)
-            config["ensamble"] = {"estado": "fallido", "error": str(exc)}
-        await repository.update_simulation_run(
-            session, sim.id, status="success", output_dir=str(salidas), elmfire_config=config
-        )
     await asyncio.to_thread(podar, insumos, salidas)
 
 
-# Lo único de los insumos que el mapa vuelve a leer (viento y semilla). El resto, y el clima y las
-# corridas de los 31 miembros GEFS, pesaban ~2 GB por pronóstico y llenaban el volumen.
-INSUMOS_QUE_QUEDAN = (WIND_FIELD_FILENAME, "ignicion.")
+# Lo que queda de los insumos: lo que el mapa vuelve a leer (viento y semilla) y phi.tif, la
+# semilla en grilla, que el ensamble local no puede rehacer sin las detecciones de esta base. El
+# resto, y el clima y las corridas GEFS, pesaban ~2 GB por pronóstico y llenaban el volumen.
+INSUMOS_QUE_QUEDAN = (WIND_FIELD_FILENAME, "ignicion.", "phi.tif")
 
 
 def podar(insumos: Path, salidas: Path) -> None:

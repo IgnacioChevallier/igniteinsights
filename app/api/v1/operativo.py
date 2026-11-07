@@ -1,7 +1,7 @@
 """Modo operativo: lo que ve el cliente y lo que el admin controla.
 
 GET  /operativo/estado   — la vista del cliente (incendios activos y su último pronóstico)
-PUT  /operativo          — admin: modo demo/vivo, reloj de la demo, calcular el ensamble
+PUT  /operativo          — admin: modo demo/vivo, reloj de la demo, mostrar el ensamble
 POST /operativo/pasada   — admin: lleva el reloj de la demo a la pasada siguiente o anterior
 POST /operativo/tick     — cron: un ciclo FIRMS → incendios → pronósticos, en segundo plano
 
@@ -56,7 +56,7 @@ class OperativoUpdate(BaseModel):
     calcular_ensamble: bool | None = None
 
 
-@router.put("", summary="Cambiar el modo, el reloj de la demo o el cálculo del ensamble")
+@router.put("", summary="Cambiar el modo, el reloj de la demo o si se muestra el ensamble")
 async def put_operativo(body: OperativoUpdate, session: AsyncSession = Depends(get_db)):
     op = await servicio.leer_operativo(session)
     if body.modo is not None:
