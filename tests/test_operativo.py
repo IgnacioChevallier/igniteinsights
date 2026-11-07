@@ -135,3 +135,15 @@ def test_el_miembro_gefs_que_no_cubre_la_grilla_falla_en_vez_de_inventar_clima(t
             dst.write(np.full((2, 1, 2), valor, "float32"))
     with pytest.raises(RuntimeError, match="no cubre"):
         _preparar_miembro(base, fuente, tmp_path / "miembro")
+
+
+def test_en_vivo_una_pasada_del_racimo_ya_pronosticado_no_corre_y_en_demo_si():
+    def p(horas: float, estado: str = "listo") -> s.Pronostico:
+        return s.Pronostico(pasada=T + timedelta(hours=horas), estado=estado)
+
+    ultima = T + timedelta(hours=2)   # NOAA-21 dos horas después de una SNPP ya pronosticada
+    assert not s.a_pronosticar([p(0)], ultima, "vivo")
+    assert s.a_pronosticar([p(0)], ultima, "demo")
+    assert s.a_pronosticar([p(0, "fallido")], ultima, "vivo")      # el fallido se reintenta
+    assert s.a_pronosticar([p(-12)], ultima, "vivo")               # el racimo anterior no cuenta
+    assert not s.a_pronosticar([p(2, "corriendo")], ultima, "demo")

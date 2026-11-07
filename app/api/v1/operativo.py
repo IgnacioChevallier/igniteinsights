@@ -97,7 +97,7 @@ class TickRequest(BaseModel):
 
 @router.post(
     "/tick",
-    summary="Un ciclo del modo en vivo (lo llama el cron cada 30 min)",
+    summary="Un ciclo del modo en vivo (lo llama el cron en las ventanas de pasada)",
     description=(
         "Si el modo es demo y el pedido no es una precarga de la demo, no hace nada. Si no: baja "
         "FIRMS, agrupa los incendios activos y corre una ventana P-24 por cada pasada nueva. "

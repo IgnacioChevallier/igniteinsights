@@ -1,10 +1,11 @@
 """Pronóstico operativo: de las detecciones FIRMS a una ventana P-24 por incendio.
 
-Es el mismo camino para el modo en vivo (el cron llama a `tick` cada 30 min) y para la
-demostración (`scripts/demo_operativo.py` recorre las pasadas de un incendio pasado con el reloj
-congelado). Lo que ve el cliente depende sólo del reloj: una pasada existe recién cuando FIRMS
-la publicó (`LATENCIA_FIRMS_H`), y su clima es el ciclo GFS que ya estaba publicado entonces
-(`pronostico.ciclo_disponible`), no los análisis posteriores que usa el benchmark (hindcast).
+Es el mismo camino para el modo en vivo (el cron llama a `tick` cada 30 min en las ventanas de
+pasada) y para la demostración (`scripts/demo_operativo.py` recorre las pasadas de un incendio
+pasado con el reloj congelado). Lo que ve el cliente depende sólo del reloj: una pasada existe
+recién cuando FIRMS la publicó (`LATENCIA_FIRMS_H`), y su clima es el ciclo GFS que ya estaba
+publicado entonces (`pronostico.ciclo_disponible`), no los análisis posteriores que usa el
+benchmark (hindcast).
 
 La física es la de modelo-v0 (receta lw-100-obs-001, docs/resultados/MODELO-V0.md): los
 estáticos de la preparación de la app (CCS-BAP, dosel por combustible, quemas previas al año),
@@ -22,6 +23,7 @@ import logging
 import os
 import shutil
 import tempfile
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -64,6 +66,9 @@ ESTATICOS = ("dem.tif", "slp.tif", "asp.tif", "adj.tif", "fbfm40.tif",
 # Horas UTC típicas de las pasadas VIIRS sobre el AOI (histograma de FIRMS SP 2024-2026: dos
 # racimos, 04-07 y 18-20 UTC). Sólo para decirle al cliente cuándo esperar la próxima.
 PASADAS_TIPICAS_UTC = (5.5, 19.0)
+# Las pasadas de un racimo caen en ≤3 h y los racimos están a 12 h: en vivo, una pasada a menos
+# de esto de otra ya pronosticada es del mismo racimo y no vuelve a ocupar el runner.
+RACIMO_H = 6
 
 # Para el nombre automático: "Cerca de <la más cercana a la primera detección>".
 LOCALIDADES = (
@@ -310,18 +315,27 @@ async def tick(session: AsyncSession, ahora: datetime | None = None, modo: str =
     for inc in incendios_activos(detecciones, hasta):
         if solo_localidad and f"Cerca de {solo_localidad} ·" not in inc.nombre:
             continue
-        previo = (await session.execute(select(Pronostico).where(
+        previos = (await session.execute(select(Pronostico).where(
             Pronostico.modo == modo, Pronostico.incendio_id == inc.id,
-            Pronostico.pasada == inc.ultima))).scalar_one_or_none()
-        if previo is not None and previo.estado != "fallido":
+            Pronostico.pasada >= inc.ultima - timedelta(hours=RACIMO_H),
+            Pronostico.pasada <= inc.ultima))).scalars().all()
+        if not a_pronosticar(previos, inc.ultima, modo):
             continue
-        if previo is not None:   # un GFS caído o un runner ocupado: se reintenta en este tick
-            await session.delete(previo)
-            await session.commit()
+        for previo in previos:   # un GFS caído o un runner ocupado: se reintenta en este tick
+            if previo.pasada == inc.ultima:
+                await session.delete(previo)
+        await session.commit()
         p = await correr(session, inc, modo, calcular_ensamble=operativo.calcular_ensamble)
         hechos.append({"incendio_id": p.incendio_id, "nombre": p.nombre,
                        "pasada": p.pasada.isoformat(), "estado": p.estado, "error": p.error})
     return hechos
+
+
+def a_pronosticar(previos: Sequence[Pronostico], ultima: datetime, modo: str) -> bool:
+    """Si la pasada `ultima` corre: no, si ya tiene un pronóstico listo o corriendo (los fallidos
+    se reintentan) o, en vivo, si otra pasada de su racimo ya lo tiene. La demo recorre todas."""
+    desde = ultima - timedelta(hours=RACIMO_H if modo == "vivo" else 0)
+    return all(p.estado == "fallido" for p in previos if desde <= p.pasada <= ultima)
 
 
 async def correr(session: AsyncSession, inc: Incendio, modo: str,

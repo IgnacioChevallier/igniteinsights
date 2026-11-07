@@ -117,7 +117,8 @@ Deployment target: Railway project `Ignite Insights`, production environment.
    `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `BETTER_AUTH_URL` (its public URL).
 4. Create the accounts (§9) and run the demo precompute (§8) against the Railway database and
    runner, or copy the local results.
-5. **cron** (live mode): a Railway cron service, every 30 min, running
+5. **cron** (live mode): a Railway cron service on `*/30 5-10,18-23 * * *` (UTC; only while
+   VIIRS data can arrive, see §10), running
    `curl -fsS -X POST http://api.railway.internal:8000/api/v1/operativo/tick`. The tick does
    nothing while the mode is `demo`.
 
@@ -186,10 +187,14 @@ DATABASE_URL=postgresql://… npm run usuarios -- listar
 
 ## 10. Live mode
 
-The admin switches the mode to `vivo`. Every 30 min the cron ticks: FIRMS (last 2 days) →
-fires → a window for each new pass. Polling every 30 min instead of every 3 h costs one small
+The admin switches the mode to `vivo`. Every 30 min inside the pass windows the cron ticks:
+FIRMS (last 2 days) → fires → a window for each new pass. Polling every 30 min instead of every 3 h costs one small
 FIRMS request per tick (ELMFIRE runs only on a new pass) and avoids adding up to 3 h on top of
-FIRMS's own latency. VIIRS passes over the AOI cluster at 04–07 and 18–20 UTC. A failed window
+FIRMS's own latency. VIIRS passes over the AOI cluster at 04–07 and 18–20 UTC (local FIRMS
+2015–2026: no pass outside them), so with FIRMS's ≤3 h latency the cron only runs 05–10 and
+18–23 UTC and the api and runner can sleep the rest of the day. Within a cluster only the first
+pass that gets a forecast runs ELMFIRE (`RACIMO_H`): the next satellite 1–2 h later would hold the
+runner, and the ensemble, for a near-duplicate. A failed window
 (GFS or runner down) is retried on the next tick; the client keeps the last good forecast.
 
 When the admin enables `calcular_ensamble`, each new deterministic P-24 run also freezes its
