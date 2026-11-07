@@ -74,7 +74,8 @@ const FUENTES: { dato: string; fuente: string; atribucion: string }[] = [
     dato: "Vegetación (combustibles)",
     fuente:
       "Clasificación de Tipos Forestales y Cobertura del Suelo de la Región Bosque Andino Patagónico (CCS-BAP, 2017)",
-    atribucion: "CIEFAP, MAyDS y provincias. Uso autorizado por CIEFAP.",
+    atribucion:
+      "Mohr-Bell D, Díaz G, Príncipe R, Gonzalez C, Bono J, Ciuffoli L, Strada M, Parmuchi G, Chomnalez F, Montenegro C, Loguercio G, Bava J, 2019. Monitoreo de la Superficie de Bosque Nativo de la República Argentina, Región Forestal Bosque Andino Patagónico. Tomo I Informe. Secretaría de Ambiente y Desarrollo Sustentable de la Nación. Esquel (Chubut), Argentina. 87 pp. Uso autorizado por CIEFAP.",
   },
   {
     dato: "Relleno de vegetación en el límite internacional",

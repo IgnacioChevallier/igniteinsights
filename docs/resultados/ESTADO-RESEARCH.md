@@ -51,6 +51,16 @@ La validación cruzada vigente fue regenerada el 2026-10-04 con las cinco receta
 iteraciones completas sobre los siete casos v6. Reemplaza el valor 0,437/0,490 que había quedado
 escrito durante el loop M con otro conjunto de recetas completas.
 
+**Informe, sin Las Golondrinas (2026-11-06).** El informe excluye ese caso límite de sus resultados
+y lo declara en §10.4 y en el Anexo C.1. Por eso informa diez incendios: calibración 0,510 / 0,507
+(n = 6) y validación cruzada 0,483 / 0,498 (n = 6). Prueba y robustez no cambian, y `modelo-v0.json`
+conserva los siete casos (0,439 / 0,501; 0,416 / 0,496). La validación cruzada de seis casos sale de
+la lógica de `benchmark.py validar` sobre `todas`, sin el caso de `limites` y con las seis recetas
+hoy completas (se sumó `lw-100-pavx10-001`). Con los siete casos, ese cálculo reproduce 0,416 / 0,496.
+Fuera de muestra: Alerces 2023 0,528, Epuyén 2025 0,501, Alerces 2024 0,635, Patriada 0,496 y
+Alerces 2016 0,389 con `lw-100-001`; Cholila 0,352 con `lw100-atlas-001`. Ningún incendio apartado
+genera alarma: 0 de 6, con sesgo de 0,60 a 1,86.
+
 El resultado de prueba es deliberadamente descriptivo: no se usa para volver a elegir LW, ADJ,
 crosswalk, CBH ni viento.
 
