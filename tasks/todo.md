@@ -10,11 +10,14 @@ Plan: `tasks/plan.md`.
       ensamble de Patriada responden. La poda rompía el viento (el endpoint pedía ws/wd): arreglado.
 
 ## Fase 2: ensamble local
-- [x] T4 `scripts/ensamble_exportar.py` (último vivo listo o `--id`; phi.tif va en el JSON)
-- [ ] T5 `scripts/ensamble_local.py`: escrito; falta correrlo contra el ensamble demo de Patriada
+- [x] T4 `scripts/ensamble_exportar.py` (último vivo listo o `--id`; los insumos congelados van en
+      el JSON: con los estáticos locales, viejos, Patriada quemaba ~450 ha de más)
+- [x] T5 `scripts/ensamble_local.py`: reproduce el ensamble demo de Patriada (31/31 miembros,
+      19 min; diferencia simétrica 0,0 / 0,4 / 0,0 ha en ≥0,1 / 0,5 / 0,8)
 - [x] T6 `scripts/ensamble_registrar.py` (contrato por stdin; rechazo probado en Railway)
 - [x] T7 skill `.claude/skills/ensamble-local/`
-- [ ] CHECKPOINT B: ensamble real visible en Railway (`docs/dashboard-producto.md` ya actualizado)
+- [x] CHECKPOINT B: Patriada 05-01 19:20 registrado desde local el 2026-11-07; `/operativo/estado`
+      da `ensamble: true` y el endpoint sirve el contrato nuevo. Sin incendios vivos: se usó la demo.
 
 ## Preguntas cerradas
 - [x] Carpetas de AOI completo: borradas las 5 sin referencia y también 29a699db.
