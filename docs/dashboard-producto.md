@@ -199,8 +199,9 @@ by hand on the local machine and only its `ensemble_agreement.json` is uploaded 
 forecast's output folder (skill `ensamble-local`); that file is what marks the forecast as
 having an ensemble. Railway keeps `phi.tif` (the seed on the grid) so the local run can rebuild
 the same frozen inputs: `scripts/ensamble_exportar.py` (on Railway) prints the window and the
-seed, `scripts/ensamble_local.py` rebuilds the static inputs from `data/operativo/estaticos/`,
-aborts if they do not fall on the seed's grid and runs the 31 members, and
+frozen non-weather inputs (Railway's statics cropped to the box, fuel table, seed; ~25 MB of
+base64; local statics can lag behind Railway's), `scripts/ensamble_local.py` writes them and runs
+the 31 members, and
 `scripts/ensamble_registrar.py` (on Railway, contract on stdin) validates it before placing it
 where the map reads it. All three go through `railway ssh`; no public API endpoint. Once a
 forecast is done, `podar` keeps only what the map reads again (`wind-field.json`, `ignicion.*`)

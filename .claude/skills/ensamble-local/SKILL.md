@@ -20,19 +20,17 @@ el runner monta `./data` en `/app/data`.
   (si la api duerme, la primera llamada la despierta).
 - Docker andando y `make dev-simulation` (necesita `../elmfire-runner`). **Un ELMFIRE por vez**
   (VM de 7,75 GB): si otra sesión o un benchmark usa el runner, esperar a que termine.
-- `data/operativo/estaticos/<año del incendio>/` con los 9 estáticos (`servicio.ESTATICOS`).
-  Si faltan, se generan con `servicio.estaticos(session, año)` (la preparación de la app con la
-  base local), por ejemplo corriendo una vez `scripts/demo_operativo.py`.
 
 ## Pasos
 
 ```bash
 # 1. Exportar (por defecto el último pronóstico vivo listo; --id para uno demo).
-#    Imprime la ventana y phi.tif en base64; el aviso de la llave SSH va a stderr.
+#    Imprime la ventana y los insumos congelados (estáticos de Railway recortados, tabla,
+#    phi.tif) en base64, ~25 MB; el aviso de la llave SSH va a stderr.
 railway ssh -s api -- 'cd /app && uv run python scripts/ensamble_exportar.py [--id ID]' \
     2>/dev/null > paquete.json
 
-# 2. Correr (~35 min). Reanudable: si el acuerdo ya está, sólo reimprime el paso 3.
+# 2. Correr (~20-35 min). Reanudable: si el acuerdo ya está, sólo reimprime el paso 3.
 uv run python scripts/ensamble_local.py paquete.json
 
 # 3. Subir y registrar: valida el contrato (layer.id, ≥ 24 miembros) antes de dejarlo visible.
@@ -52,8 +50,11 @@ Y en el dashboard: el pronóstico ofrece "Acuerdo del ensamble" y la capa se dib
 
 - **`phi.tif no está`**: el pronóstico se podó antes de que `podar` conservara la semilla
   (2026-11-07). Ese no se puede ensamblar sin rehacerlo con la base de Railway.
-- **`no coincide` (grilla)**: los estáticos locales salen de otra fuente de combustibles u otro
-  año que los de Railway. No forzar: el ensamble quedaría sobre otro dominio.
+- **`no coincide` (grilla)**: Railway regeneró los estáticos sobre otra grilla después de
+  congelar el pronóstico. No forzar: el ensamble quedaría sobre otro dominio.
+- **No usar los estáticos locales** (`data/operativo/estaticos/`): el 2026-11-07 los de la
+  computadora (23-10) diferían de los de Railway (26-10) en combustibles y dosel, y el ensamble
+  de Patriada quemaba 450 ha de más. Por eso el paquete trae los de Railway.
 - **`sólo N miembros descargados`**: el mínimo es 24 de 31 (`MIN_MIEMBROS_VALIDOS`). Si el
   pronóstico tiene más de 4 días, GEFS sale del archivo histórico (AWS), más lento y a veces
   incompleto; reintentar más tarde.

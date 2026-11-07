@@ -38,14 +38,17 @@ def test_registrar_valida_el_contrato():
         validar({**_contrato(31), "thresholds": []})
 
 
-def test_paquete_lleva_la_ventana_y_la_semilla():
+def test_paquete_lleva_la_ventana_y_los_insumos(tmp_path):
     pasada = datetime(2026, 1, 5, 19, 20, tzinfo=UTC)
     p = SimpleNamespace(id="p1", simulacion_id="s1", nombre="Patriada", modo="demo",
                         pasada=pasada, ciclo_gfs=datetime(2026, 1, 5, 18, tzinfo=UTC))
-    paq = _script("ensamble_exportar").paquete(p, [-71.6, -42.2, -71.4, -42.0], b"phi")
+    (tmp_path / "phi.tif").write_bytes(b"phi")
+    (tmp_path / "fbfm40.tif").write_bytes(b"fbfm")
+    paq = _script("ensamble_exportar").paquete(p, [-71.6, -42.2, -71.4, -42.0], tmp_path)
     assert paq["t0"] == "2026-01-05T19:00:00+00:00"
     assert paq["tstart_s"] == 1200.0
-    assert base64.b64decode(paq["phi_b64"]) == b"phi"
+    assert {n: base64.b64decode(b) for n, b in paq["insumos_b64"].items()} == {
+        "fbfm40.tif": b"fbfm", "phi.tif": b"phi"}
 
 
 def _tif(path: Path, x0: float) -> Path:

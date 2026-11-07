@@ -4,14 +4,18 @@
     railway ssh -s api -- 'cd /app && uv run python scripts/ensamble_exportar.py --id ID' > …
 
 Por defecto, el último pronóstico vivo `listo`; con `--id`, cualquiera (también uno demo). El
-JSON lleva todo lo que `ensamble_local.py` no puede rehacer en la computadora: los metadatos
-de la ventana y `phi.tif` (la semilla, que sale de las detecciones de esta base) en base64.
+JSON lleva los metadatos de la ventana y, en base64, los insumos congelados que no son clima
+tal como los arma `servicio.congelar`: los estáticos de esta base recortados a la caja, la
+tabla de combustibles y `phi.tif` (la semilla). Así el ensamble local no depende de que los
+estáticos de la computadora estén al día (unos 20 MB).
 """
 import argparse
 import asyncio
 import base64
 import json
+import shutil
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -20,17 +24,19 @@ from sqlalchemy import select
 from app.db import repository
 from app.db.session import async_session_factory
 from app.domain.models import Pronostico
+from app.elmfire.builder import fuels_builder, namelist_writer
 from app.operativo import servicio
 
 
-def paquete(p: Pronostico, caja: list[float], phi: bytes) -> dict:
+def paquete(p: Pronostico, caja: list[float], insumos: Path) -> dict:
     t0 = p.pasada.replace(minute=0, second=0, microsecond=0)
     return {
         "id": str(p.id), "simulacion_id": str(p.simulacion_id), "nombre": p.nombre,
         "modo": p.modo, "pasada": p.pasada.isoformat(),
         "ciclo_gfs": p.ciclo_gfs.isoformat() if p.ciclo_gfs else None,
         "caja": list(caja), "t0": t0.isoformat(), "tstart_s": (p.pasada - t0).total_seconds(),
-        "phi_b64": base64.b64encode(phi).decode(),
+        "insumos_b64": {f.name: base64.b64encode(f.read_bytes()).decode()
+                        for f in sorted(insumos.iterdir())},
     }
 
 
@@ -50,10 +56,17 @@ async def main(pronostico_id: uuid.UUID | None) -> None:
         sim = await repository.get_simulation_run(s, p.simulacion_id)
         assert sim is not None   # FK de pronosticos.simulacion_id
         caja = (sim.elmfire_config or {})["operativo"]["caja"]
+        base = await servicio.estaticos(s, p.pasada.year)
     phi = servicio.insumos_de(p.id) / "phi.tif"
     if not phi.is_file():
         sys.exit(f"{phi} no está (podado antes de que podar conservara phi.tif)")
-    print(json.dumps(paquete(p, caja, Path(phi).read_bytes())))
+    with tempfile.TemporaryDirectory() as tmp:
+        insumos = Path(tmp)
+        for nombre in servicio.ESTATICOS:
+            servicio._recortar(base / nombre, tuple(caja), insumos / nombre)
+        shutil.copy2(fuels_builder.FUEL_MODEL_TABLE, insumos / namelist_writer.FUEL_MODEL_FILE)
+        shutil.copy2(phi, insumos / "phi.tif")
+        print(json.dumps(paquete(p, caja, insumos)))
 
 
 if __name__ == "__main__":
