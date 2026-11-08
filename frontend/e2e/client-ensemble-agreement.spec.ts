@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * The client view offers "Acuerdo del ensamble" only on forecasts that have one: the ensemble
- * is computed on a few passes (docs/dashboard-producto.md §8), so a forecast without it shows
+ * is computed on a few passes (docs/producto.md §8), so a forecast without it shows
  * no checkbox and never asks for the artifact.
  */
 test.beforeEach(async ({ page }) => {

@@ -1,6 +1,6 @@
 """Frente 1 del diagnóstico e2e (fase 3): corregir el método de medición, SIN correr ELMFIRE.
 
-Diseño registrado en docs/resultados/DIAGNOSTICO-PRECISION-E2E.md §3 (frente 1) y §4:
+Diseño registrado en docs/resultados/pronostico/precision.md:
 
 (a) Dice de las recetas completas sobre los 7 casos v6 de calibración, con la métrica oficial y con
     la variante corregida: se excluyen SÓLO las islas no vistas (relleno de la cicatriz final sin
@@ -15,7 +15,7 @@ El conjunto de prueba sólo se re-puntúa para informar (tabla aparte); no decid
 
     uv run python scripts/diagnostico_metrica.py
 
-Escribe docs/resultados/diagnostico-e2e/datos/P3_f1*.csv. Las funciones puras se prueban en
+Escribe benchmarks/diagnosticos/e2e/datos/P3_f1*.csv. Las funciones puras se prueban en
 tests/test_diagnostico_metrica.py.
 """
 import re
@@ -33,7 +33,7 @@ from app.validation import puntuacion as p
 from scripts import benchmark as bm
 from scripts import diagnostico_error as de
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 INCENDIOS_P24 = ("los-alerces-2023", "epuyen-2025", "los-alerces-2024", "puerto-patriada-2026",
                  "los-alerces-2016", "cholila-2015")
 RECETA_P24 = "lw-100-obs-001"

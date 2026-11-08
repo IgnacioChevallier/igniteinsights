@@ -6,7 +6,7 @@ centro cae en un polígono de la clase y cuyo código es el que el crosswalk vig
 esa clase (los bordes donde la moda eligió otra clase quedan como estaban). Así una variante
 difiere del mapa base exactamente en lo declarado. Los mapas salen en la grilla de cada
 preparación y entran a un protocolo `-v5x*` con el empaquetador `ampliar_mapas`, como fuente
-`ccsbap-<nombre>` (docs/crosswalk/DECISIONES-MODELO-V0.md).
+`ccsbap-<nombre>` (docs/crosswalk.md).
 
     uv run python scripts/variante_crosswalk.py l1 '[{"clase": "OFL|Le", "a": 143}]'
 

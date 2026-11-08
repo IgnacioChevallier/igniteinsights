@@ -101,8 +101,8 @@ async def run_preparation(
 
     # Hansen GFC lossyear on the grid: what burned (lost its canopy) before the simulation year.
     # Used twice — the fuel of burns the cover map never saw (step 2) and no canopy over any
-    # earlier loss (step 5): docs/resultados/LO-YA-QUEMADO-PROPUESTA.md,
-    # docs/crosswalk/DECISIONES-MODELO-V0.md §3.
+    # earlier loss (step 5): docs/resultados/pronostico/areas-quemadas.md,
+    # docs/crosswalk.md.
     simulation_year = (gfs_at or fires_until or datetime.now(UTC)).year
     lossyear: Path | None = None
     lossyear_raw = _resolve(settings.hansen_lossyear_path)
@@ -367,7 +367,7 @@ async def run_preparation(
 
     # cbh + cbd: derived from the measured canopy rasters, with the CBH of the forest type
     # (the fuel map stands in for the CCS-BAP class) and no canopy where Hansen saw loss before
-    # the simulation year (docs/crosswalk/DECISIONES-MODELO-V0.md §2 and §3).
+    # the simulation year (docs/crosswalk.md).
     if "cc.tif" in generated and "ch.tif" in generated:
         await asyncio.to_thread(
             canopy_builder.derive_cbh_cbd,

@@ -1,6 +1,6 @@
 """Comparación de los tres mapas de combustible sobre el benchmark v5.
 
-Ver docs/resultados/COMPARACION-MAPAS-V5.md.
+Ver docs/resultados/combustibles/resultados.md.
 
 Lee las iteraciones de los protocolos `-v5m` (el paquete v5 más los mapas de WorldCover y
 MapBiomas) y escribe en Markdown: Dice, sesgo y forma por incendio y por mapa; diferencias

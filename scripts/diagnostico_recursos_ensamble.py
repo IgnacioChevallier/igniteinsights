@@ -5,7 +5,7 @@
 desde un checkout con `data/`. Lee `data/ensemble-poc/medicion-recursos/` (log con hora UTC por
 línea y `docker stats` del contenedor del runner) y compara los hashes de TOA y de los mapas de
 acuerdo contra el backtest consolidado. Escribe AD-recursos-ensamble.json en
-docs/resultados/diagnostico-e2e/datos/.
+benchmarks/diagnosticos/e2e/datos/.
 """
 import csv
 import hashlib
@@ -20,7 +20,7 @@ NUEVO = MED / "los-alerces-2023-w01"
 REF = Path("data/ensemble-poc/backtest-lote-a/los-alerces-2023-w01")
 VM_MIB = 7.753 * 1024
 SALIDA = (Path(__file__).resolve().parents[1]
-          / "docs/resultados/diagnostico-e2e/datos/AD-recursos-ensamble.json")
+          / "benchmarks/diagnosticos/e2e/datos/AD-recursos-ensamble.json")
 UNIDADES = {"KiB": 1 / 1024, "MiB": 1, "GiB": 1024, "kB": 1 / 1024, "MB": 1, "GB": 1024}
 
 

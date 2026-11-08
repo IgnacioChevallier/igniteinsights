@@ -54,7 +54,7 @@ function bboxCollection([w, s, e, n]: Incendio["bbox"]): GeoJSON.FeatureCollecti
 }
 
 /**
- * What a client sees (docs/dashboard-producto.md §5): is there a fire, and where will it be
+ * What a client sees (docs/producto.md §5): is there a fire, and where will it be
  * in the selected forecast window. Observed detections and the forecast isochrones from the last VIIRS pass,
  * wind and the 3D relief; the ensemble agreement only on request. Nothing here starts a
  * computation — the admin decides what is computed, the client only what to look at.

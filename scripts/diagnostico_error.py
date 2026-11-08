@@ -6,7 +6,7 @@ calibración (benchmarks/particion.json): una receta `lw-100-001` sobre `calibra
 
     uv run python scripts/diagnostico_error.py
 
-Escribe las tablas en docs/resultados/diagnostico-e2e/datos/ (F1 … F6).
+Escribe las tablas en benchmarks/diagnosticos/e2e/datos/ (F1 … F6).
 Las funciones puras (FSS, distancia de perímetro, eje, ADJ offline, ROS) se prueban en
 tests/test_diagnostico_error.py con rásters sintéticos.
 """
@@ -26,7 +26,7 @@ from app.validation import almacen, cadena, pronostico
 from app.validation import definiciones as d
 from app.validation import puntuacion as p
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 RECETA, RECETA_P24 = "lw-100-001", "lw-100-obs-001"
 ESCALAS_CELDAS = (1, 3, 7, 15, 33, 67)   # 30 m … ~2 km con celdas de 30 m
 PIXEL_VIIRS_M = 375.0

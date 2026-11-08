@@ -13,7 +13,7 @@ export type IsochroneHorizonControl = {
 
 /**
  * Play/pause, scrubber and speed for the fire progression animation
- * (docs/historico/VISUALIZACION-ANIMADA.md A3).
+ * (docs/producto.md A3).
  *
  * The scrubber is not optional garnish: the loop cannot be the only mode, because
  * reading a specific hour is the whole point of having the times per feature.

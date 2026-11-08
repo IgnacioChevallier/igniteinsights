@@ -22,8 +22,7 @@ test("el viento se lee en el mapa, y la losa muestra su combustible", async ({ p
   await card("GR2 · viento del noreste 15 mph").getByRole("button", { name: "Correr en B" }).click();
 
   // The compass point is the part that survives a screenshot.
-  // Generous: the preview is fast, but both slots also kick off a real ELMFIRE run and
-  // the machine is doing two of them at once.
+  // Both slots preview and complete through the deterministic API-contract stub.
   const seen = { timeout: 30_000 };
   await expect(page.getByText("viento 15 mph hacia el S", { exact: true })).toBeVisible(seen);
   await expect(page.getByText("viento 15 mph hacia el SO", { exact: true })).toBeVisible(seen);

@@ -1,6 +1,6 @@
 """Aritmética del benchmark.
 
-Si esto falla, ningún número de docs/historico/RESULTADOS.md vale.
+Si esto falla, ningún número de docs/resultados/modelo/validacion.md vale.
 """
 import numpy as np
 import pytest

@@ -1,6 +1,6 @@
 """Tarea I: ¿por qué el crecimiento de P-24 es casi isótropo? SIN correr ELMFIRE.
 
-Frente 2 de docs/resultados/DIAGNOSTICO-PRECISION-E2E.md §3, con sus criterios registrados. Para
+Frente de isotropía de docs/resultados/pronostico/precision.md. Para
 cada reinicio k ≥ 1 de P-24 (`lw-100-obs-001` sobre `*/pronostico-v6`, semilla FIRMS, referencia
 sin el anillo, como `pronostico.puntuar`), a 12 y 24 h, el crecimiento predicho y el observado se
 reparten en sectores respecto del rumbo observado (semilla → centroide del crecimiento observado):
@@ -10,7 +10,7 @@ semilla dentro o fuera de la cicatriz y orientación.
 
     uv run python scripts/diagnostico_isotropia.py
 
-Escribe docs/resultados/diagnostico-e2e/datos/I_*.csv. Sólo incendios de calibración.
+Escribe benchmarks/diagnosticos/e2e/datos/I_*.csv. Sólo incendios de calibración.
 """
 import csv
 import json

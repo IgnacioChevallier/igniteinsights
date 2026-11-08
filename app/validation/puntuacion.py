@@ -22,7 +22,7 @@ from rasterio.warp import Resampling, reproject, transform_bounds
 from rasterio.windows import Window, from_bounds
 
 # Fuera de este rango lo predicho ya no es comparable con lo observado: un recall alto
-# quemando 458× la referencia no significa nada (docs/historico/RESULTADOS.md §6).
+# quemando 458× la referencia no significa nada (docs/resultados/modelo/validacion.md).
 SESGO_ALARMA = (0.5, 2.0)
 BANDAS_PCT = [(0, 10), (10, 40), (40, 70), (70, 100.1)]
 # Capas de mask-dataset-gen que la máscara NO atribuye al incendio objetivo.

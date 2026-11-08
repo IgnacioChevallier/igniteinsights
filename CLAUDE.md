@@ -8,34 +8,36 @@ input rasters and a namelist from them, and hands them to **ELMFIRE 2025.0212** 
 fire-spread model that runs as a separate microservice, not in this repo — via
 `app/elmfire/runner/client.py`. Results (hourly isochrones, time-of-arrival,
 fireline intensity) are served as GeoJSON and shown on a Next.js dashboard. See
-`docs/architecture.md` for the full pipeline and `docs/elmfire-mapping.md` for the
+`docs/arquitectura.md` for the full pipeline and `docs/elmfire.md` for the
 source-data → ELMFIRE-input mapping.
 
 ## Commands
 
-- `make check` — ruff, mypy, pytest, `tsc` and eslint; exactly what CI runs (~20s). Run it
-  before calling a change done.
+- `make check` — full CI-equivalent suite: ruff, mypy, pytest, TypeScript, eslint and
+  Playwright. It requires Docker because the end-to-end suite uses PostGIS.
+- `make test-unit` — backend unit tests only.
+- `make test-e2e` — starts PostGIS, applies migrations and runs the browser suite against
+  the stub API.
 - `uv run pytest tests/test_namelist_writer.py -k dtdump` — one file / one test.
 - `make dev` — PostGIS + API in Docker, Next.js on the host. `make dev-simulation` adds the
   ELMFIRE runner, which docker-compose builds from the sibling repo `../elmfire-runner`;
   without it, anything that actually runs ELMFIRE (`scripts/benchmark.py correr`, real
   simulations) cannot work.
-- Frontend checks need no backend: `node e2e/stub-api.mjs &`, `npm run dev &`,
-  `npx playwright test` from `frontend/` (details in `frontend/e2e/README.md`).
+- `npm run typecheck` and `npm run lint` from `frontend/` need no backend. Playwright owns
+  the stub API and Next.js processes, but authentication still requires a migrated Postgres;
+  use `make test-e2e` from the repository root (details in `frontend/e2e/README.md`).
 
-Language: planning and results docs (`IGN-*.md`, `RESULTADOS*.md`) and the newer thesis code (`app/validation/`,
-`scripts/benchmark.py`) are in Spanish; the rest of `app/`, `docs/` and the frontend are in
-English. Match the file or module you are editing.
+Documentation and the newer thesis code (`app/validation/`, `scripts/benchmark.py`) are in
+Spanish; older application modules may be in English. Match the file or module you are editing.
 
 ## Where the project state lives
 
-Read these before assuming something is missing. `docs/resultados/ESTADO-RESEARCH.md` is the
-single current status; `docs/resultados/MODELO-V0.md` defines the promoted model;
-`docs/resultados/IGN-26-VALIDACION.md` is the validation method and benchmark; and
-`docs/resultados/PENDING_PARAMETERS.md` separates frozen decisions from non-blocking uncertainties. Active
-crosswalk material is in `docs/crosswalk/`. Finished or superseded documents are in
-`docs/historico/`, deferred scope in `docs/out-of-scope/`, and converted source material in
-`docs/referencias/`. The thesis report itself is written in the sibling repo `../informe`.
+Read these before assuming something is missing. `docs/resultados/modelo/estado.md` is the
+single current status; `docs/resultados/modelo/modelo.md` defines the promoted model;
+`docs/resultados/modelo/validacion.md` is the validation method and benchmark;
+`docs/resultados/modelo/limites.md` contains the declared limitations; and active
+crosswalk material is in `docs/crosswalk.md`. Experimental notes and generated tables live under
+`benchmarks/diagnosticos/`, not under `docs/`.
 
 Benchmark vocabulary is strict: a **recipe** configures experimental iterations, an
 **iteration** is recipe × case, and a **model** under `benchmarks/modelos/` is an immutable
@@ -58,6 +60,6 @@ keywords, raster filenames, or unit scalings.** Before touching anything under
    (`github.com/lautenberger/elmfire`, pinned branch `2025.0212`) rather than
    guessing.
 
-`docs/elmfire-mapping.md` previously drifted out of sync with the real namelist
+`docs/elmfire.md` previously drifted out of sync with the real namelist
 code — if you ever find another doc disagreeing with `namelist_writer.py`, trust the
 code and fix the doc.

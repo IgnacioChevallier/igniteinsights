@@ -1,7 +1,7 @@
 """Frente 2 del diagnóstico e2e (fase 3): ¿hubo copa en el bosque el día 1?, SIN Earth Engine
 ni ELMFIRE. La severidad dNBR sale de los PRE/POST ya guardados por mask-dataset-gen (sólo lectura).
 
-Diseño registrado en docs/resultados/DIAGNOSTICO-PRECISION-E2E.md §3 (frente 2) y §4:
+Diseño registrado en docs/resultados/pronostico/precision.md:
 
 - dNBR de las celdas de bosque con dosel (fbfm40 TU3, TU5, TL2, TL6, TL8 del mapa de la receta
   `lw-100-001`, cc > 0) dentro de los discos (r = 187,5 m) de las detecciones VIIRS hasta la
@@ -24,7 +24,7 @@ guardadas son medianas de reflectancia (S2 SR 0-10000, L8 SR reescalado a la mis
 
     uv run python scripts/diagnostico_severidad.py
 
-Escribe docs/resultados/diagnostico-e2e/datos/P3_f2*.csv. Las funciones puras se prueban en
+Escribe benchmarks/diagnosticos/e2e/datos/P3_f2*.csv. Las funciones puras se prueban en
 tests/test_diagnostico_severidad.py.
 """
 from pathlib import Path
@@ -44,7 +44,7 @@ from app.validation import puntuacion as p
 from scripts import benchmark as bm
 from scripts import diagnostico_error as de
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 RECETA = "lw-100-001"
 RADIO_M = 187.5
 UMBRAL_ALTA = 0.66

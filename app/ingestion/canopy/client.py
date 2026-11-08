@@ -3,7 +3,7 @@ Canopy cover and height downloads from two public COG sources (no auth):
   - Hansen Global Forest Change v1.11 treecover2000 (Google Cloud Storage, 30 m)
   - ETH Global Canopy Height 2020 — Lang et al. (libdrive.ethz.ch, 10 m)
 plus Hansen GFC v1.13 lossyear, to drop the canopy where it burned or was cut before the
-simulation year (docs/crosswalk/DECISIONES-MODELO-V0.md §3).
+simulation year (docs/crosswalk.md).
 """
 import logging
 import math

@@ -115,7 +115,7 @@ def connected_to_anchors(
     `link_m` 3000 m reproduces a 2 km scar-distance oracle on the calibration fires;
     shorter hops split a legitimate front across the gaps between overpasses, and
     `anchor_m` 5000 m covers first detections landing 1.5-3 km from the reported
-    ignition (docs/resultados/diagnostico-e2e/notas/T-semilla.md §2.2).
+    ignition (benchmarks/diagnosticos/e2e/notas/T-semilla.md §2.2).
     """
     if not points_xy:
         return []

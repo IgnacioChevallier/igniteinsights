@@ -1,12 +1,17 @@
 // Stand-in for the FastAPI backend so the dashboard can be driven by Playwright without
 // Python or ELMFIRE. Serves only what the map path touches.
 import http from "node:http";
+import fs from "node:fs";
 
 const PORT = Number(process.env.PORT ?? 8000);
 
 const SIM_ID = "11111111-2222-3333-4444-555555555555";
+const PLAYGROUND_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 const CENTRE = [-71.8, -42.7];
 const HORIZON = 12;
+const PRESETS = JSON.parse(
+  fs.readFileSync(new URL("../../app/playground/presets.json", import.meta.url), "utf8"),
+);
 
 // Ellipses elongated south (wind from the north), growing with time. The API sends
 // cumulative burned area as Polygons, polygonised from the time-of-arrival raster — the
@@ -28,9 +33,9 @@ function ring(hours) {
   return coords;
 }
 
-function isochrones() {
+function isochrones(horizon = HORIZON) {
   const features = [];
-  for (let h = 0; h <= HORIZON; h += 1) {
+  for (let h = 0; h <= horizon; h += 1) {
     features.push({
       type: "Feature",
       properties: { arrival_s: h * 3600, arrival_hours: h },
@@ -42,7 +47,7 @@ function isochrones() {
     features.push({
       type: "Feature",
       properties: { arrival_s: null, arrival_hours: null },
-      geometry: { type: "Polygon", coordinates: [ring(HORIZON + 1 + i)] },
+      geometry: { type: "Polygon", coordinates: [ring(horizon + 1 + i)] },
     });
   }
   return { type: "FeatureCollection", features };
@@ -177,6 +182,121 @@ const SUMMARY = {
   elmfire_outputs: [],
 };
 
+function polygon(cx, cy, rx, ry = rx) {
+  const coordinates = [];
+  for (let i = 0; i <= 32; i += 1) {
+    const angle = (i / 32) * Math.PI * 2;
+    coordinates.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
+  }
+  return { type: "Polygon", coordinates: [coordinates] };
+}
+
+function fuelModel(scenario = {}) {
+  if (scenario.fbfm40_code === 165) {
+    return {
+        code: 165,
+        name: "Bosque con sotobosque",
+        fuel_type: "Timber-Shrub",
+        fuel_type_label: "Bosque con sotobosque",
+        color: "#4a7a3a",
+        label: "TU5 · Bosque con sotobosque",
+      };
+  }
+  if (scenario.fbfm40_code === 183) {
+    return {
+      code: 183,
+      name: "Hojarasca de conífera",
+      fuel_type: "Timber Litter",
+      fuel_type_label: "Hojarasca de bosque",
+      color: "#7b5b3a",
+      label: "TL3 · Hojarasca de conífera",
+    };
+  }
+  return {
+        code: 102,
+        name: "Pastizal seco",
+        fuel_type: "Grass",
+        fuel_type_label: "Pastizal",
+        color: "#d7b44a",
+        label: "GR2 · Pastizal seco",
+      };
+}
+
+function windTowards(scenario = {}) {
+  const azimuth = (Number(scenario.wind_direction_deg ?? 0) + 180) % 360;
+  const labels = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+  return { azimuth, label: labels[Math.round(azimuth / 45) % labels.length] };
+}
+
+function scenarioLayers(scenario = {}) {
+  const wind = windTowards(scenario);
+  const west = CENTRE[0] - 0.07;
+  const east = CENTRE[0] + 0.07;
+  const south = CENTRE[1] - 0.055;
+  const north = CENTRE[1] + 0.055;
+  const features = [
+    {
+      type: "Feature",
+      properties: { kind: "domain", color: fuelModel(scenario).color },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]],
+      },
+    },
+    {
+      type: "Feature",
+      properties: { kind: "ignition" },
+      geometry: polygon(CENTRE[0] - 0.025, CENTRE[1], 0.004),
+    },
+    {
+      type: "Feature",
+      properties: {
+        kind: "wind",
+        label: `viento ${Number(scenario.wind_speed_mph ?? 15)} mph hacia el ${wind.label}`,
+        azimuth_deg: wind.azimuth,
+        speed_mph: Number(scenario.wind_speed_mph ?? 15),
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [[CENTRE[0], CENTRE[1] + 0.025], [CENTRE[0], CENTRE[1] - 0.025]],
+      },
+    },
+  ];
+  if (scenario.terrain === "lake") {
+    features.push({
+      type: "Feature",
+      properties: { kind: "water" },
+      geometry: polygon(CENTRE[0] + 0.025, CENTRE[1], 0.015),
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+const METRICS = {
+  cell_size_m: 30,
+  burned_cells: 420,
+  reached_domain_edge: false,
+  final: {
+    burned_ha: 37.8,
+    max_distance_m: 2100,
+    head_ros_m_per_h: 350,
+    head_ros_class: "moderada",
+    head_direction_deg: 180,
+    aspect_ratio: 2.1,
+  },
+  hourly: [
+    { hour: 0, burned_ha: 0, max_distance_m: 0 },
+    { hour: 6, burned_ha: 37.8, max_distance_m: 2100 },
+  ],
+};
+
+async function readJson(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
 // GET /api/v1/operativo/estado for the client view: one fire whose forecast has the ensemble.
 function estado() {
   return {
@@ -207,11 +327,26 @@ function estado() {
 const ok = (data) => ({ status: "success", data, error: null, meta: { timestamp: new Date().toISOString() } });
 
 http
-  .createServer((req, res) => {
+  .createServer(async (req, res) => {
     const path = req.url.split("?")[0];
     let body;
     if (path === "/api/v1/dashboard/summary") body = ok(SUMMARY);
-    else if (path.endsWith("/isochrones")) body = ok(isochrones());
+    else if (path === "/api/v1/playground/presets") body = ok({ presets: PRESETS });
+    else if (path === "/api/v1/playground/preview") {
+      const scenario = await readJson(req);
+      body = ok({ map_layers: scenarioLayers(scenario), fuel_model: fuelModel(scenario) });
+    } else if (path === "/api/v1/playground/run") {
+      const scenario = await readJson(req);
+      body = ok({
+        simulation_id: PLAYGROUND_ID,
+        scenario,
+        map_layers: scenarioLayers(scenario),
+        fuel_model: fuelModel(scenario),
+      });
+    } else if (path === `/api/v1/playground/${PLAYGROUND_ID}/metrics`) body = ok(METRICS);
+    else if (path.endsWith("/isochrones")) {
+      body = ok(path.includes(PLAYGROUND_ID) ? isochrones(6) : isochrones());
+    }
     else if (path.endsWith("/ignition")) body = ok(ignition());
     else if (path.endsWith("/stats")) body = ok({ rows: [] });
     else if (path.endsWith("/wind")) body = ok(windField());

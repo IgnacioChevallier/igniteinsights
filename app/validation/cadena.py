@@ -139,7 +139,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
             _reescribir(insumos / nombre, lambda a: np.where(sin_dosel, 0, a))
     if "combustible_perdida_reciente" in par:
-        # docs/crosswalk/DECISIONES-MODELO-V0 §3: una quema de 0-1 año es ceniza, fustes en
+        # docs/crosswalk.md: una quema de 0-1 año es ceniza, fustes en
         # pie y rebrote incipiente (Tiribelli et al. 2019; LANDFIRE FDist): casi no se
         # mapa (2013/2017) todavía le da el combustible del bosque. {"anios": n, "codigo": c}
         # pone c donde Hansen marca pérdida en los n años antes del incendio.
@@ -151,7 +151,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
                                       desde=caso.anio_fuego - cfg["anios"])
         _reescribir(insumos / "fbfm40.tif", lambda a: np.where(reciente, cfg["codigo"], a))
     if par.get("combustible_por_edad_quema"):
-        # docs/resultados/LO-YA-QUEMADO-PROPUESTA §4 y §6 (protocolo LYQ-1): la misma regla que
+        # docs/resultados/pronostico/areas-quemadas.md: la misma regla que
         # la preparación de la app, sobre las quemas de Hansen posteriores al mapa del caso.
         if "lossyear.tif" not in archivos:
             raise FileNotFoundError(f"{caso.id} no empaquetó lossyear.tif (protocolo -p)")
@@ -167,7 +167,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         _reescribir(insumos / "fbfm40.tif", lambda a: fuels_builder.reassign_burns_by_age(
             a[0], anio_quema, caso.anio_fuego, anio_mapa, otras)[np.newaxis])
     if par.get("dosel_sin_perdida_previa"):
-        # docs/crosswalk/DECISIONES-MODELO-V0 §3: el dosel es Hansen 2000 + ETH 2020 y los
+        # docs/crosswalk.md: el dosel es Hansen 2000 + ETH 2020 y los
         # dos siguen viendo bosque en las quemas de 2015 (fustes en pie). Sin dosel donde
         # pérdida antes del año del incendio (nunca ese año: sería ver la propia cicatriz).
         if "lossyear.tif" not in archivos:
@@ -180,13 +180,13 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         with rasterio.open(insumos / "fbfm40.tif") as src:
             codigos = src.read(1)
     if "sin_dosel" in par:
-        # docs/crosswalk/DECISIONES-MODELO-V0 §1 (c): el dosel se ignora sólo en las clases
+        # docs/crosswalk.md: el dosel se ignora sólo en las clases
         # declaradas.
         sin = en_codigos(codigos, par["sin_dosel"])
         for nombre in ("cc.tif", "ch.tif", "cbh.tif", "cbd.tif"):
             _reescribir(insumos / nombre, lambda a: np.where(sin, 0, a))
     if "cbh_por_combustible" in par:
-        # docs/crosswalk/DECISIONES-MODELO-V0 §2: CBH por tipo de bosque en vez de
+        # docs/crosswalk.md: CBH por tipo de bosque en vez de
         # CH × (0,2 + 0,3 CC).
         _reescribir(insumos / "cbh.tif",
                     lambda a: por_combustible(codigos, a, par["cbh_por_combustible"], 10))

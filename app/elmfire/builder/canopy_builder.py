@@ -4,7 +4,7 @@ ELMFIRE canopy layer derivation.
   reproject_canopy  — reprojects Hansen CC or ETH CH raw raster to the reference
                       grid (EPSG:32719, 30 m) using bilinear resampling.
   derive_cbh_cbd    — derives canopy base height and bulk density from the
-                      reprojected cc/ch rasters (see docs/historico/ETAPA-A-BASELINE.md §A4).
+                      reprojected cc/ch rasters (see docs/arquitectura.md §A4).
 """
 import logging
 from pathlib import Path
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # cbh/cbd used to be looked up from the FBFM40 code, which was both circular (a *surface*
 # fuel model does not determine crown structure) and fragile: the table held 9 keys, so any
 # new fuel code silently produced -9999. Derived from cc/ch instead, so the failure mode is
-# gone rather than guarded. See docs/historico/ETAPA-A-BASELINE.md §A4.
+# gone rather than guarded. See docs/arquitectura.md §A4.
 #
 # Method (deliberately simple; this is infrastructure, not the thesis contribution):
 #   cbh = ch · f(cc)          self-pruning rises with stand density
@@ -45,7 +45,7 @@ _CANOPY_FUEL_LOAD_FULL = 1.0
 _MIN_CANOPY_DEPTH_M = 1.0
 
 # Canopy base height by forest type
-# (docs/crosswalk/DECISIONES-MODELO-V0.md §2, loop L), where the canopy exists: there is no
+# (docs/crosswalk.md), where the canopy exists: there is no
 # CBH inventory for the native forest, so the values come from the
 # vertical structure described for NW Patagonia. The FBFM40 code is only a proxy for the
 # CCS-BAP forest class (the crosswalk maps one to the other). A code not listed keeps the
@@ -148,7 +148,7 @@ def derive_cbh_cbd(
     or its height is nodata.
     ELMFIRE takes the wind reduction under a canopy from (CC, CH): with CH ≈ 0 and CC ≥ 15 %
     it uses a sheltered factor of 0, and the cell gets no wind at all
-    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 4: Hansen cover without ETH height,
+    (docs/resultados/modelo/auditoria.md, hallazgo 4: Hansen cover without ETH height,
     0.1–2.6 % of the burnable cells).
 
     fuel_path (the fbfm40 on the same grid): CBH and CBD by forest type where there is canopy
@@ -158,7 +158,7 @@ def derive_cbh_cbd(
     canopy (cc = ch = 0, so cbh = cbd = 0 and the unsheltered wind factor) where Hansen saw
     stand-replacing loss before fire_year. Hansen 2000 and ETH 2020 both still see closed
     forest over the 2015 burns (standing dead stems):
-    docs/crosswalk/DECISIONES-MODELO-V0.md §3. Never the loss of fire_year itself, which is
+    docs/crosswalk.md. Never the loss of fire_year itself, which is
     the fire being simulated.
     """
     import rasterio

@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 import { STORAGE_STATE } from "./e2e/auth.setup";
 
+const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const databaseURL =
+  process.env.DATABASE_URL ??
+  "postgresql://igniteinsights:igniteinsights@127.0.0.1:5433/igniteinsights";
+
 /**
  * Visual checks for the map animation. The dev server must already be running against a
  * backend (real, or the stub described in e2e/README.md) on API_BASE_URL.
@@ -11,9 +16,30 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
+  webServer: [
+    {
+      command: "node e2e/stub-api.mjs",
+      port: 8000,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: "npm run dev",
+      url: `${baseURL}/login`,
+      reuseExistingServer: !process.env.CI,
+      env: {
+        ...process.env,
+        API_BASE_URL: "http://localhost:8000",
+        BETTER_AUTH_SECRET:
+          process.env.BETTER_AUTH_SECRET ??
+          "Qq7vF4mN9xL2sK8wC5rT1yH6uJ3pD0bG7zA4eS9nM2cV8fR1",
+        BETTER_AUTH_URL: baseURL,
+        DATABASE_URL: databaseURL,
+      },
+    },
+  ],
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    baseURL,
     storageState: STORAGE_STATE,
     viewport: { width: 1440, height: 900 },
   },

@@ -7,7 +7,7 @@ recién cuando FIRMS la publicó (`LATENCIA_FIRMS_H`), y su clima es el ciclo GF
 publicado entonces (`pronostico.ciclo_disponible`), no los análisis posteriores que usa el
 benchmark (hindcast).
 
-La física es la de modelo-v0 (receta lw-100-obs-001, docs/resultados/MODELO-V0.md): los
+La física es la de modelo-v0 (receta lw-100-obs-001, docs/resultados/modelo/modelo.md): los
 estáticos de la preparación de la app (CCS-BAP, dosel por combustible, quemas previas al año),
 LH 30 % / LW 100 %, y la semilla de cada ventana es todo lo que VIIRS vio del incendio hasta la
 pasada, con la misma reconstrucción que la semilla del benchmark (`build_ignition_layer`).
@@ -15,7 +15,7 @@ pasada, con la misma reconstrucción que la semilla del benchmark (`build_igniti
 Lo que difiere del benchmark, a propósito: el dominio es una caja alrededor de las detecciones
 (los casos tienen una caja puesta a mano sobre la cicatriz final, que en vivo no existe) y la
 ventana 0 arranca en la primera pasada que ve el foco, no en una ignición tomada de la prensa.
-docs/dashboard-producto.md tiene el diseño completo.
+docs/producto.md tiene el diseño completo.
 """
 import asyncio
 import hashlib
@@ -275,7 +275,7 @@ def _incendio_json(inc: Incendio, p: Pronostico | None,
             "disponible": p.disponible.isoformat(),
             "ciclo_gfs": p.ciclo_gfs.isoformat() if p.ciclo_gfs else None,
             # El cliente ofrece la capa sólo donde existe: el ensamble no se calcula en todas
-            # las pasadas (docs/dashboard-producto.md §8).
+            # las pasadas (docs/producto.md §8).
             "ensamble": (salidas_de(p.id) / "ensemble_agreement.json").is_file(),
         },
         "actualizacion": None if actualizacion is None else {

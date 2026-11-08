@@ -1,4 +1,4 @@
-"""Prueba de la premisa de lo ya quemado (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §6, punto 3).
+"""Prueba de la premisa de lo ya quemado (docs/resultados/pronostico/areas-quemadas.md).
 
 ¿Las cicatrices jóvenes frenan al fuego y las de 6-15 años lo atraen? Sólo con MODIS MCD64A1, por
 temporada de incendios (julio-junio: un fuego de diciembre a enero es una sola temporada), en la

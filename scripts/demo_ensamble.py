@@ -6,7 +6,7 @@
 No repite el P-24: reusa los pronósticos demo ya guardados por `scripts/demo_operativo.py` y
 corre sólo los 31 miembros GEFS de cada paso elegido (`ensamble.correr_ensamble`; Railway ya no
 lo corre: ver la skill ensamble-local). El ensamble cuesta ~35 min y 1,4 GiB por
-corrida (docs/resultados/ESTADO-RESEARCH.md §6, nota AD), así que no se calcula en todas las
+corrida (docs/resultados/ensamble.md), así que no se calcula en todas las
 pasadas sino en tres:
 
 - la primera pasada de la demo (2026-01-05 19:20 UTC), donde arranca el recorrido;

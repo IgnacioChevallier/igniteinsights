@@ -1,4 +1,4 @@
-"""Fuel of burns the cover map never saw (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §4, §11)."""
+"""Fuel of burns the cover map never saw (docs/resultados/pronostico/areas-quemadas.md)."""
 import numpy as np
 
 from app.elmfire.builder.fuels_builder import (

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * Visual verification of the fire progression animation (VISUALIZACION-ANIMADA.md parte 1).
@@ -10,7 +11,12 @@ import path from "node:path";
  * screenshot never depends on a tile server being reachable.
  */
 
-const SHOTS = path.join(__dirname, "..", "playwright-screenshots");
+const SHOTS = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "playwright-screenshots",
+);
 
 // 1x1 dark-slate PNG standing in for a basemap tile, so contrast against the fire
 // layers is the same on every run.

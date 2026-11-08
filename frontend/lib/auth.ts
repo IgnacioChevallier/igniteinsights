@@ -4,7 +4,7 @@ import { admin } from "better-auth/plugins";
 import { Pool } from "pg";
 
 /**
- * Users and sessions for the product (docs/dashboard-producto.md §4).
+ * Users and sessions for the product (docs/producto.md §4).
  *
  * Two roles from the admin plugin: "admin" sees everything the dashboard had before, "user"
  * (shown as "cliente") only sees the map, the documentation and their account. Nobody can

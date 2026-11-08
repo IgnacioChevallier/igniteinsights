@@ -3,7 +3,7 @@
     uv run python scripts/demo_operativo.py 2026-01-05 2026-01-09
 
 Ingiere FIRMS de esos días y recorre cada pasada VIIRS con el reloj en `pasada + latencia`,
-llamando al mismo `servicio.tick` que el cron del modo en vivo (docs/dashboard-producto.md §2C).
+llamando al mismo `servicio.tick` que el cron del modo en vivo (docs/producto.md §2C).
 Al final deja el modo en demo con el reloj en el primer pronóstico. Reanudable: un tick no repite
 una pasada ya pronosticada. Corre desde el host contra el runner de docker-compose; el runner
 aguanta una corrida por vez, así que no lanzarlo con otra cola de ELMFIRE en curso.

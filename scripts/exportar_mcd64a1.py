@@ -1,6 +1,6 @@
 """MODIS MCD64A1 v061: una banda por año calendario (1 = quemado ese año), ~463 m, sobre el AOI.
 
-Ver docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §5 (paso 2) y §11. Lo combina
+Ver docs/resultados/pronostico/areas-quemadas.md. Lo combina
 scripts/anio_quema.py. Todos los años y no sólo el último: una celda que se quemó en 2021 y
 otra vez en 2026 tiene que seguir viéndose quemada en 2021 al simular el incendio de 2026. La
 versión de LYQ-2 (commit 8ddff5a) bajaba sólo el último año a mcd64a1_anio_quema_aoi.tif.

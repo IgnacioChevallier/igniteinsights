@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 
 /**
- * The only gate (docs/dashboard-producto.md §4). The FastAPI service has no public domain
+ * The only gate (docs/producto.md §4). The FastAPI service has no public domain
  * and no auth of its own: every browser request reaches it through this app, so this
  * middleware decides who sees what. Deny by default: a "cliente" reaches only the pages
  * and read-only endpoints listed here; an admin reaches everything the dashboard had.

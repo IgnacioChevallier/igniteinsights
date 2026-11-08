@@ -1,6 +1,6 @@
 """¿La lenga de altura arde menos que la vegetación vecina, a igualdad de exposición al fuego?
 
-Evidencia regional FUERA del benchmark para docs/resultados/HUMEDAD-ALTURA-PROPUESTA.md. Sólo
+Evidencia regional FUERA del benchmark para docs/resultados/modelo/limites.md. Sólo
 lee: no toca app/, recetas ni casos, y no corre ELMFIRE.
 
 Diseño (fijado antes de mirar los resultados):

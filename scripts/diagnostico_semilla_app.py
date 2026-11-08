@@ -5,7 +5,7 @@ semilla conexa del benchmark (`pronostico-v7`)? Sin ELMFIRE.
 
 desde un checkout con `data/` (lee los paquetes). `agrupar` sale del código de `main` en
 `COMMIT_MAIN`, no de una copia. Escribe AC-semilla-app.json en
-docs/resultados/diagnostico-e2e/datos/.
+benchmarks/diagnosticos/e2e/datos/.
 """
 import ast
 import subprocess
@@ -25,7 +25,7 @@ COMMIT_MAIN = "81637c3"
 CASOS = ["cholila-2015", "los-alerces-2016", "los-alerces-2023", "epuyen-2025",
          "los-alerces-2024", "puerto-patriada-2026"]
 SALTO_M, HISTORIA = 3000.0, timedelta(days=7)
-DATOS = Path(__file__).resolve().parents[1] / "docs/resultados/diagnostico-e2e/datos"
+DATOS = Path(__file__).resolve().parents[1] / "benchmarks/diagnosticos/e2e/datos"
 SALIDA = DATOS / "AC-semilla-app.json"
 
 

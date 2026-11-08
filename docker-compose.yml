@@ -19,7 +19,7 @@ services:
       - "3000:3000"
     environment:
       API_BASE_URL: http://api:8000
-      # Better Auth (docs/dashboard-producto.md §4): sessions live in the same Postgres.
+      # Better Auth (docs/producto.md §4): sessions live in the same Postgres.
       DATABASE_URL: postgresql://igniteinsights:igniteinsights@db:5432/igniteinsights
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-in-production}
@@ -52,6 +52,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Isolated, disposable database for Playwright. Keeping it off the development volume
+  # prevents the deterministic E2E admin and test sessions from leaking into normal use.
+  db-e2e:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: igniteinsights
+      POSTGRES_USER: igniteinsights
+      POSTGRES_PASSWORD: igniteinsights
+    ports:
+      - "127.0.0.1:5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U igniteinsights"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:

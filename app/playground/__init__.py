@@ -1,1 +1,1 @@
-"""Synthetic sensitivity scenarios — see docs/historico/PLAYGROUND-SENSIBILIDAD.md."""
+"""Synthetic sensitivity scenarios — see docs/arquitectura.md."""

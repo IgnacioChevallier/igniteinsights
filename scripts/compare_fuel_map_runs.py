@@ -2,7 +2,7 @@
 
 Same ignition, same weather, same topography, same ADJ: only fbfm40.tif changes. Scores the
 **growth ring only** — cells the model burned that were not already in the FIRMS seed
-(`docs/resultados/IGN-26-VALIDACION.md` §12.1). Scoring the union would mostly measure the
+(`docs/resultados/modelo/validacion.md`). Scoring the union would mostly measure the
 seed, which matches the burn scar by construction.
 
     uv run python scripts/compare_fuel_map_runs.py

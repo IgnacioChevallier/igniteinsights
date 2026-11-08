@@ -45,7 +45,7 @@ async def run_firms_ingestion(
             day_range=day_range,
             start_date=start_date,
             # SP and NRT cover disjoint dates (SP lags ~3 months): asking both serves a past
-            # fire and a live one alike (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §8).
+            # fire and a live one alike (docs/resultados/pronostico/areas-quemadas.md).
             sources=FIRMS_SOURCES + FIRMS_SOURCES_ARCHIVE,
         )
 

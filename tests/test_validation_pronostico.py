@@ -1,4 +1,4 @@
-"""Protocolo P-24 y diagnóstico de copa (docs/resultados/DIA-1-PROPUESTA.md §2 y §4)."""
+"""Protocolo P-24 y diagnóstico de copa (docs/resultados/pronostico/p24.md)."""
 import csv
 from datetime import UTC, datetime, timedelta
 

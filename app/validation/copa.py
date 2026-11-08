@@ -1,4 +1,4 @@
-"""Diagnóstico de copa del día 1, fuera de línea (docs/resultados/DIA-1-PROPUESTA.md §4).
+"""Diagnóstico de copa del primer reinicio, fuera de línea (docs/resultados/pronostico/p24.md).
 
 Compara, celda por celda y hora por hora, dos criterios de iniciación de copa:
 
@@ -69,7 +69,7 @@ def rothermel(modelo: list[str], m1, m10, m100, mlh: float, mlw: float, u_mf_ft_
     """(velocidad ft/min, intensidad de Byram kW/m) de una fila de `fuel_models.csv` (id, nombre,
     dinámico, cargas lb/ft² 1h/10h/100h/herb/leñosa, SAV 1h/herb/leñosa, profundidad ft, Mx %,
     calor Btu/lb). Humedades en fracción; viento a media llama en ft/min. Sin pendiente ni
-    límite de viento (no muerde en estos combustibles: DIA-1-PROPUESTA §1.3)."""
+    límite de viento (no muerde en estos combustibles; ver diagnóstico P-24)."""
     w1, w10, w100, wh, wl = (float(x) for x in modelo[3:8])
     s1, sh, sl = (float(x) for x in modelo[8:11])
     prof, mx, calor = float(modelo[11]), float(modelo[12]) / 100, float(modelo[13])

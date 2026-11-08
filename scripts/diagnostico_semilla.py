@@ -1,7 +1,8 @@
 """Diagnóstico de la semilla de P-24 (tarea T), SIN correr ELMFIRE.
 
-¿Por qué la semilla de los 34 reinicios de */pronostico-v6 queda 26-61 % fuera de la cicatriz
-final (diagnostico-e2e/notas/D-referencia.md §5, bug 4)? Se re-arma la semilla de cada reinicio
+¿Por qué la semilla de los 34 reinicios de */pronostico-v6 queda 26-61 % fuera de la
+cicatriz final (benchmarks/diagnosticos/e2e/notas/D-referencia.md §5, bug 4)? Se re-arma
+la semilla de cada reinicio
 con la regla de `benchmark._pronostico` (acumulada: previa | ignición | reconstrucción de TODAS
 las detecciones de la caja hasta el reinicio) y se verifica contra el `phi.tif` guardado. Lo que
 cae fuera de la cicatriz final se reparte, en este orden y sin solapes, en:
@@ -21,7 +22,7 @@ Sólo incendios de calibración.
 
     uv run python scripts/diagnostico_semilla.py
 
-Escribe T1-T4 en docs/resultados/diagnostico-e2e/datos/. Las funciones puras se prueban en
+Escribe T1-T4 en benchmarks/diagnosticos/e2e/datos/. Las funciones puras se prueban en
 tests/test_diagnostico_semilla.py.
 """
 import json
@@ -45,7 +46,7 @@ from app.validation import definiciones as d
 from app.validation import puntuacion as p
 from scripts.benchmark import _ventanas_cadena
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 PROTOCOLO, RECETA = "pronostico-v6", "lw-100-obs-001"
 RADIOS_ORACULO_M = (500.0, 1000.0, 2000.0)
 RADIO_PRINCIPAL_M = 1000.0

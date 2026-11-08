@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # margin so the front never reaches the domain edge. The validation dataset spans
     # lon -72.014..-71.201 and lat -42.818..-42.079 (../mask-dataset-gen/dataset/metadata.csv);
     # the old AOI stopped at -42.5 and only 70 of its 196 tiles were scorable.
-    # ~7.8M cells at 30 m, up from ~2.0M. See docs/historico/ETAPA-A-BASELINE.md §A0.
+    # ~7.8M cells at 30 m, up from ~2.0M. See docs/arquitectura.md §A0.
     # South edge moved from -42.90 to -43.20 on 2026-09-26 (IGN-26 §Benchmark): the 2023
     # Población Rosales scar reaches -42.95 and its ignition sat 2 km from the old edge, and
     # the old box left out the southern half of the park. North and west edges unchanged,
@@ -58,8 +58,8 @@ class Settings(BaseSettings):
     # Fuente de cobertura con la que se construye fbfm40.tif. Entra en la clave de
     # caché del ráster, así que cambiarla lo regenera en vez de servir el anterior.
     # "ccsbap"     → CCS-BAP CIEFAP 2017, nivel 3
-    #                  (docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md)
-    # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (docs/crosswalk/IGN-20-CROSSWALK.md)
+    #                  (docs/crosswalk.md)
+    # "mapbiomas"  → MapBiomas Argentina Col. 2 2024 (docs/crosswalk.md)
     # "worldcover" → ESA WorldCover 2021, el baseline de comparación (ETAPA-A §A7)
     fuels_source: FuelsSource = "ccsbap"
     # Recorte al AOI de la capa vectorial de CCS-BAP, derivado con
@@ -69,13 +69,13 @@ class Settings(BaseSettings):
     mapbiomas_raster_path: str = "/app/data/raw/mapbiomas/mapbiomas_2024_aoi.tif"
     # Hansen GFC v1.13 lossyear (40S_080W, una tesela cubre el AOI): sin dosel donde
     # hubo pérdida antes del año de la simulación
-    # (docs/crosswalk/DECISIONES-MODELO-V0.md §3). Si falta, se sigue sin ella.
+    # (docs/crosswalk.md). Si falta, se sigue sin ella.
     hansen_lossyear_path: str = (
         "/app/data/raw/hansen/Hansen_GFC-2025-v1.13_lossyear_40S_080W.tif"
     )
     # Años con quema según otras fuentes (dNBR ∪ MCD64A1, scripts/anio_quema.py; máscara de
     # bits, bit i = 2001 + i): las quemas posteriores al último año de Hansen y las no
-    # forestales (docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §11). Si falta, sólo Hansen.
+    # forestales (docs/resultados/pronostico/areas-quemadas.md). Si falta, sólo Hansen.
     otras_quemas_path: str = "/app/data/raw/cicatrices/otras_quemas_ext.tif"
     aoi_crs_processing: str = "EPSG:32719"
     aoi_crs_output: str = "EPSG:4326"

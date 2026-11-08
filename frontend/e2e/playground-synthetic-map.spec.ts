@@ -5,8 +5,8 @@ import { expect, test } from "@playwright/test";
  * A satellite basemap under that is actively misleading, so the map has to show what the
  * scenario assumes instead — and still let the operator switch back to the real imagery.
  *
- * Runs against the real backend (the scenario geometry and its colour are built
- * server-side, so stubbing them would test the fixture rather than the pipeline).
+ * Runs against the API-contract stub. The Python tests cover the server-side geometry;
+ * this spec verifies that the browser renders that contract and handles terrain changes.
  */
 test.describe("mapa esquemático del playground", () => {
   test.beforeEach(async ({ page }) => {
@@ -32,8 +32,7 @@ test.describe("mapa esquemático del playground", () => {
     await expect(page.getByText("TU5 · Bosque con sotobosque").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Esquemático" }).first()).toBeVisible();
 
-    // The run itself is a real ELMFIRE call on a 12 km domain. Wait for the result.
-    await expect(page.getByText("A · corriendo…")).toBeHidden({ timeout: 180_000 });
+    await expect(page.getByText("A · corriendo…")).toBeHidden();
     await expect(page.getByText("ROS de cabeza")).toBeVisible();
 
     // A synthetic run has no FIRMS input: claiming one in the legend would invite reading

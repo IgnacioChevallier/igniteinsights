@@ -1,14 +1,14 @@
 """Cota sin ELMFIRE de cambiar la reconstrucción de la semilla de P-24 (tarea U).
 
-Decisión 2 de docs/resultados/DIAGNOSTICO-PRECISION-E2E.md §6. Diseño y criterios, fijados antes de
-correr, en docs/resultados/diagnostico-e2e/notas/U-reconstruccion-semilla.md. Tres reglas de tiempo
+Reconstrucción evaluada en docs/resultados/pronostico/precision.md. Diseño y criterios, fijados antes de
+correr, en benchmarks/diagnosticos/e2e/notas/U-reconstruccion-semilla.md. Tres reglas de tiempo
 real (sin la cicatriz) sobre las detecciones conexas de T: la reconstrucción actual, sólo las
 huellas scan × track y el casco sin buffer más las huellas. Cada una se puntúa en dos extremos: el
 frente sin cambio (pesimista) y el recorte de Voronoi de T (optimista).
 
     uv run python -m scripts.diagnostico_reconstruccion
 
-Escribe docs/resultados/diagnostico-e2e/datos/U_*.csv. Sólo incendios de calibración.
+Escribe benchmarks/diagnosticos/e2e/datos/U_*.csv. Sólo incendios de calibración.
 """
 import math
 from datetime import timedelta

@@ -6,7 +6,7 @@ POST /operativo/pasada   — admin: lleva el reloj de la demo a la pasada siguie
 POST /operativo/tick     — cron: un ciclo FIRMS → incendios → pronósticos, en segundo plano
 
 La autorización vive en el frontend (frontend/middleware.ts): esta API no tiene dominio público
-y sólo Next le habla, por la red privada. Ver docs/dashboard-producto.md.
+y sólo Next le habla, por la red privada. Ver docs/producto.md.
 """
 import asyncio
 from datetime import UTC, datetime

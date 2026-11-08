@@ -40,7 +40,7 @@ async def get_or_create_default_aoi(session: AsyncSession) -> AreaOfInterest:
     This used to create the geometry once and then only ever look it up by name, so editing
     `aoi_*` in config changed nothing: the row kept the original box forever while the
     ingestion clients computed tiles from the new one. Config is the single source of truth
-    for the domain; the row tracks it. See docs/historico/ETAPA-A-BASELINE.md §A0.
+    for the domain; the row tracks it. See docs/arquitectura.md §A0.
     """
     from geoalchemy2.shape import from_shape, to_shape
     from shapely.geometry import box

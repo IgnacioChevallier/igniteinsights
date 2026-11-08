@@ -532,7 +532,7 @@ def _semilla_conexa(puntos: list[tuple[float, float]], semilla: dict,
     """Las detecciones que siembran. Con `semilla_inicial.filtro_conexo_m`, sólo las del
     incendio que arrancó en la ignición (`perimeter_reconstruction.connected_to_anchors`, la
     regla de tiempo real); sin él, todo lo detectado en la caja, otros incendios incluidos
-    (diagnostico-e2e/notas/T-semilla.md §2.2)."""
+    (benchmarks/diagnosticos/e2e/notas/T-semilla.md §2.2)."""
     salto = semilla.get("filtro_conexo_m")
     if not salto or not puntos:
         return puntos
@@ -558,7 +558,7 @@ def _firms_gfs(caso: d.Caso) -> dict:
         mapas[nombre], _ = _recortar(Path(ruta), caja)
         comunes[nombre] = almacen.guardar(mapas[nombre])
     if "dosel_por_combustible" in datos["empaquetado"]:
-        # docs/crosswalk/DECISIONES-MODELO-V0 §2 y §3 (protocolos -v6): el CBH del tipo de
+        # docs/crosswalk.md (protocolos -v6): el CBH del tipo de
         # bosque del mapa del caso y sin dosel donde Hansen vio pérdida antes del año del
         # mapa y del año, así que se deriva por caso y no en la preparación.
         dosel = datos["empaquetado"]["dosel_por_combustible"]
@@ -620,7 +620,8 @@ def _firms_gfs(caso: d.Caso) -> dict:
 
 def _ampliar_mapas(caso: d.Caso) -> dict:
     """El paquete de otro caso, byte a byte, más mapas de combustible: lo único que cambia
-    entre las iteraciones de dos mapas es `fbfm40` (docs/resultados/COMPARACION-MAPAS-V5.md)."""
+    entre las iteraciones de dos mapas es `fbfm40`
+    (docs/resultados/combustibles/resultados.md)."""
     datos = caso.datos["empaquetado"]
     base = d.Caso.cargar(datos["base"]).paquete()
     with rasterio.open(almacen.abrir(base["comunes"]["dem.tif"])) as dem:
@@ -765,7 +766,7 @@ def _meteo_observada(caso: d.Caso) -> dict:
                                         "meteo_observada": datos["meteo_observada"]["fuente"]}}
 
 
-# ── P-24: pronóstico desde el perímetro observado (DIA-1-PROPUESTA §2) ──────────
+# ── P-24: pronóstico desde el perímetro observado ──────────────────────────────
 
 REFERENCIAS_VENTANA = {"phi.tif", "ref_firms.tif", "ref_firms_horas.tif", "alcance.tif"}
 # Humedades con historial de secado: un ciclo de pronóstico no las trae y lw-100-obs-001 no las usa.
@@ -875,7 +876,7 @@ def _pronostico(caso: d.Caso) -> dict:
     con_pronostico = datos.get("clima") == "pronostico"
     del_hindcast = {"orog_gfs.tif", "t2m_gfs.tif", "rh_gfs.tif", *HUMEDAD_RETARDO}
     # Con `clima_pronostico`, los reinicios usan el último ciclo GFS ya publicado en vez del
-    # clima del base (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1).
+    # clima del base (benchmarks/diagnosticos/e2e/notas/Z-p24-pronostico-gfs.md §1.1).
     ciclo_conf, ciclos = datos.get("clima_pronostico"), []
     ventanas, previo = [], ignicion
     for n, v in enumerate(caso.ventanas):
@@ -1501,7 +1502,7 @@ def mostrar_modelo(modelo_id: str) -> None:
     }, indent=2, ensure_ascii=False))
 
 
-# ── P-24 y diagnóstico de copa (DIA-1-PROPUESTA §2 y §4) ──────────────────────
+# ── P-24 y diagnóstico de copa ─────────────────────────────────────────────────
 
 def crear_pronostico(base_id: str, semilla: str) -> d.Caso:
     """Escribe el caso P-24 de un caso de calibración: la ventana 0 del base y un reinicio de 24 h
@@ -1522,7 +1523,7 @@ def crear_pronostico(base_id: str, semilla: str) -> d.Caso:
                                          "referencias", "clima") if k in base.datos}
     datos = {
         "descripcion": (
-            f"P-24 (docs/resultados/DIA-1-PROPUESTA.md §2) sobre `{base_id}`: la ventana 0 del "
+            f"P-24 (docs/resultados/pronostico/p24.md) sobre `{base_id}`: la ventana 0 del "
             "caso base (desde la ignición) y un reinicio de 24 h en cada pasada VIIRS SP (última "
             "detección de cada grupo separado por menos de 2 h) que deja 24 h dentro del "
             "horizonte. "

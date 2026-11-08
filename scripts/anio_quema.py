@@ -1,6 +1,6 @@
 """Años con quema según otras fuentes además de Hansen: dNBR ∪ MCD64A1.
 
-Ver docs/resultados/LO-YA-QUEMADO-PROPUESTA.md §5 (paso 2), §10 y §11. Sale en
+Ver docs/resultados/pronostico/areas-quemadas.md. Sale en
 data/raw/cicatrices/otras_quemas_<grilla>.tif como máscara de bits uint32: el bit i es una quema
 en el año 2001 + i (fuels_builder.last_burn_before). Todos los años y no sólo el último: al simular
 un incendio, su propia cicatriz (y las de su temporada) no puede tapar las quemas anteriores de

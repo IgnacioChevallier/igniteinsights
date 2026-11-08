@@ -1,6 +1,6 @@
 name: CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   backend:
@@ -43,3 +43,59 @@ jobs:
 
       - name: Lint
         run: npx eslint .
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: igniteinsights
+          POSTGRES_USER: igniteinsights
+          POSTGRES_PASSWORD: igniteinsights
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U igniteinsights"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://igniteinsights:igniteinsights@127.0.0.1:5432/igniteinsights
+      BETTER_AUTH_SECRET: Qq7vF4mN9xL2sK8wC5rT1yH6uJ3pD0bG7zA4eS9nM2cV8fR1
+      BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v8.3.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: uv sync
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://igniteinsights:igniteinsights@127.0.0.1:5432/igniteinsights
+        run: uv run alembic upgrade head
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        working-directory: frontend
+        run: npm run test:e2e

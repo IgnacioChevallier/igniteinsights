@@ -5,7 +5,7 @@ MapBiomas Argentina Collection 2 COG over HTTP (no 650 MB download), tabulates t
 distribution, and prints it next to the WorldCover-derived FBFM40 distribution.
 
 The decision criterion is fixed BEFORE looking at the output
-(docs/historico/ETAPA-B-INSUMO-PATAGONICO.md §B0): if shrubland stays in the same order as
+(docs/crosswalk.md): if shrubland stays in the same order as
 WorldCover (~0%), MapBiomas adds nothing here and is dropped, with the negative result
 recorded. If it approaches the ~15% Godoy et al. (2022) report for the adjacent
 Esquel-Trevelin area, it is promoted to a third comparison point for the thesis.

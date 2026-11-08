@@ -1,5 +1,5 @@
 /**
- * Accounts are handed out, not requested (docs/dashboard-producto.md §9).
+ * Accounts are handed out, not requested (docs/producto.md §9).
  *
  *   DATABASE_URL=postgres://… npm run usuarios -- crear jurado1@ejemplo.com "Nombre Apellido" [cliente|admin]
  *   DATABASE_URL=postgres://… npm run usuarios -- resetear jurado1@ejemplo.com

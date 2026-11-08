@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  * built from the time-of-arrival raster, so the lake is a hole.
  */
 test("el area quemada nunca pinta el lago", async ({ page }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(45_000);
   await page.route(/tile\.openstreetmap|arcgisonline/, (r) =>
     route(r),
   );
@@ -15,13 +15,13 @@ test("el area quemada nunca pinta el lago", async ({ page }) => {
   await page.getByRole("button", { name: "Simulador" }).click();
   await page.getByRole("button", { name: "Con lago" }).click();
 
-  await page
+  const card = page
     .locator("div.rounded-md.border", { hasText: "GR2 · viento del norte 15 mph" })
-    .first()
-    .getByRole("button", { name: "Correr en A" })
-    .click();
+    .first();
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await card.getByRole("button", { name: "Correr en A" }).click();
 
-  await expect(page.getByText("A · corriendo…")).toBeHidden({ timeout: 280_000 });
+  await expect(page.getByText("A · corriendo…")).toBeHidden({ timeout: 15_000 });
   await expect(page.getByText("ROS de cabeza")).toBeVisible();
   await page.waitForTimeout(1500);
   await page.screenshot({ path: "../playwright-screenshots/burned-area-lake.png" });

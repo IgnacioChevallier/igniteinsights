@@ -3,7 +3,7 @@
 Con `hasta_horizonte`, la cicatriz se trunca a las celdas a ≤ 375 m de alguna detección FIRMS
 («vistas», `benchmark._referencia_cicatriz`) y el resto de la cicatriz pasa a excluido; pero las
 celdas no vistas que NO son cicatriz siguen contando como falso positivo
-(diagnostico-e2e/notas/D-referencia.md §5, bug 1). P-24 repite el patrón en
+(benchmarks/diagnosticos/e2e/notas/D-referencia.md §5, bug 1). P-24 repite el patrón en
 `pronostico.puntuar`. Se re-puntúan las salidas TOA guardadas contra tres referencias:
 
   A. la actual;
@@ -19,7 +19,7 @@ de B: lo predicho fuera de vistas y fuera del perímetro final, que B deja de pe
 
     uv run python scripts/diagnostico_truncado.py
 
-Escribe X1-X4 en docs/resultados/diagnostico-e2e/datos/. Las funciones puras se prueban en
+Escribe X1-X4 en benchmarks/diagnosticos/e2e/datos/. Las funciones puras se prueban en
 tests/test_diagnostico_truncado.py.
 """
 import json
@@ -38,7 +38,7 @@ from app.validation import definiciones as d
 from app.validation import puntuacion as p
 from scripts.benchmark import _discos, _puntos, _ventanas_cadena
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 RECETA_P24 = "lw-100-obs-001"
 REFERENCIAS = ("A", "B", "C")
 NB = (91, 92, 93, 98, 99)

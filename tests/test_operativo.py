@@ -1,4 +1,4 @@
-"""Modo operativo: incendios y ciclo GFS disponible (docs/dashboard-producto.md)."""
+"""Modo operativo: incendios y ciclo GFS disponible (docs/producto.md)."""
 from datetime import UTC, datetime, timedelta
 
 from app.operativo import servicio as s
@@ -112,7 +112,7 @@ def test_el_pronostico_dice_si_tiene_ensamble(monkeypatch, tmp_path):
 def test_el_miembro_gefs_que_no_cubre_la_grilla_falla_en_vez_de_inventar_clima(tmp_path):
     """Patriada 05-01: el recorte GEFS sin margen (1×2 celdas de 0,25°) no llegaba a la mitad sur
     de la caja; reproject rellenaba con el nodata -9999 y salía viento de 27.530 mph y m1 = 1 %
-    en el 70 % de la grilla (docs/resultados/ENSAMBLE-DEMO-DIAGNOSTICO.md)."""
+    en el 70 % de la grilla (docs/resultados/ensamble.md)."""
     import numpy as np
     import pytest
     import rasterio

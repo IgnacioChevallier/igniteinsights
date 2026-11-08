@@ -25,7 +25,7 @@ DEFAULT_DTDUMP_S = 3600.0
 # default is 1, and with 1 ELMFIRE clamps the band index to 1 and holds the FIRST band for
 # the whole run, silently (elmfire_namelists.f90 READ_MONTE_CARLO; the vendor transient
 # tutorials 02/03 set it to 8). Until 2026-09-29 this repo never wrote it, so every run used
-# the weather of its first hour throughout (docs/resultados/AUDITORIA-FISICA.md, hallazgo 1).
+# the weather of its first hour throughout (docs/resultados/modelo/auditoria.md, hallazgo 1).
 WEATHER_RASTERS = ("ws", "wd", "m1", "m10", "m100")
 REQUIRED_NAMELISTS = (
     "INPUTS",
@@ -52,7 +52,7 @@ FUEL_MODEL_FILE = "fuel_models.csv"
 # only emits models with no live load (TL/NB), a first-order driver as soon as it emits
 # SH/GS/TU. ELMFIRE takes a single scalar for the whole domain — there is no live-moisture
 # raster — so any value is an area-weighted mean and the weighting has to be justified.
-# docs/historico/ETAPA-B-INSUMO-PATAGONICO.md §B5: source is Bianchi & Defossé (2015),
+# docs/crosswalk.md: source is Bianchi & Defossé (2015),
 # LFMC by species for Andean Patagonia.
 # ELMFIRE enciende el fuego de copas si el namelist OMITE CROWN_FIRE_MODEL
 # (.claude/skills/elmfire/references/namelist-reference.md: &SIMULATOR, 0 = off,
@@ -170,7 +170,7 @@ def suppression_group(cambios: dict | None) -> str:
 # colihue nunca supera 110 %. Bianchi & Defossé ubican en 110 % el UMBRAL por debajo del cual
 # ocurren los grandes incendios, así que el día de un gran incendio está por debajo. Se toma
 # **100 %**, el valor calibrado contra siete incendios con la interfaz de ELMFIRE corregida
-# (docs/resultados/AUDITORIA-FISICA.md, loop E: intervalo sin sobre-propagación
+# (docs/resultados/modelo/auditoria.md, loop E: intervalo sin sobre-propagación
 # ~[97; 110] %; hasta el 2026-09-30 era 110 %, el borde húmedo). Lenga, coihue y alerce
 # valor por analogía con el ñire, y eso se declara.
 # LH: no hay medición de herbáceas. 30 % representa el pasto **completamente curado** del
@@ -178,7 +178,7 @@ def suppression_group(cambios: dict | None) -> str:
 # convención de modelado declarada, no un dato.
 #
 # El valor anterior (60 % en ambos) no tenía criterio y quedaba por debajo de todo lo medido.
-# Su efecto está cuantificado en docs/crosswalk/IGN-20B-FINAL-CROSSWALK-CCSBAP.md §6.3.
+# Su efecto está documentado en docs/crosswalk.md.
 DEFAULT_LH_MOISTURE_PCT = 30.0
 DEFAULT_LW_MOISTURE_PCT = 100.0
 
@@ -266,7 +266,7 @@ def pad_weather_columns(inputs_dir: Path) -> None:
     Rows count from the south (the reader flips them, elmfire_io.f90:1265), so on a
     weather grid taller than wide every fuel row with IY > NCOLS reads weather row NCOLS: the
     northern strip gets the weather of another latitude
-    (docs/resultados/AUDITORIA-FISICA.md, hallazgo 5).
+    (docs/resultados/modelo/auditoria.md, hallazgo 5).
 
     Each raster's shape comes from its own header (READ_BSQ_HDR_HEADER, elmfire_io.f90:1242)
     and the mapping only uses the weather grid's lower-left corner and cell size

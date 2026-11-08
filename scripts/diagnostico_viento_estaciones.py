@@ -15,7 +15,7 @@ contra las estaciones El Bolsón, Esquel y Futaleufú, en las horas de corrida d
   encadenado). Celda más cercana y bilineal sobre u/v en la grilla Lambert nativa.
 
 Cachea todo en data/benchmark/cache/{synop,smn-wrf}/ y escribe
-docs/resultados/diagnostico-e2e/datos/W_*.csv. Las funciones puras se prueban en
+benchmarks/diagnosticos/e2e/datos/W_*.csv. Las funciones puras se prueban en
 tests/test_diagnostico_viento_estaciones.py.
 """
 import json
@@ -37,7 +37,7 @@ from app.elmfire.builder import weather_builder
 from app.validation import almacen
 from app.validation import definiciones as d
 
-SALIDA = Path("docs/resultados/diagnostico-e2e/datos")
+SALIDA = Path("benchmarks/diagnosticos/e2e/datos")
 CACHE = Path("data/benchmark/cache")
 CASOS = ["los-alerces-2023/pronostico-v6", "los-alerces-2024/pronostico-v6",
          "epuyen-2025/pronostico-v6", "puerto-patriada-2026/pronostico-v6"]

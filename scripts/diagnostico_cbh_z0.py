@@ -1,6 +1,6 @@
 """Nota AE: ¿el rango plausible del CBH nativo o de z0 mueve algo material? SIN correr ELMFIRE.
 
-Diseño y criterios en docs/resultados/diagnostico-e2e/notas/AE-cbh-z0-sensibilidad.md §1–§2. Toma
+Diseño y criterios en benchmarks/diagnosticos/e2e/notas/AE-cbh-z0-sensibilidad.md §1–§2. Toma
 las celdas del día 1 de `benchmark.py copa` (bosque TU/TL con dosel, quemado y visto en la
 ventana 0) y, por celda, la intensidad de Rothermel máxima antes de verse con el WAF de ELMFIRE.
 Como el WAF no depende del CBH, de ahí sale el CBH umbral de Van Wagner y la curva de iniciación
@@ -9,7 +9,7 @@ para cualquier CBH. Para z0, el viento a 20 ft se escala por el cociente de
 
     uv run python scripts/diagnostico_cbh_z0.py
 
-Escribe docs/resultados/diagnostico-e2e/datos/AE_cbh_z0.json.
+Escribe benchmarks/diagnosticos/e2e/datos/AE_cbh_z0.json.
 """
 import csv
 import json

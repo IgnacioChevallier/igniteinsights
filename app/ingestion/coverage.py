@@ -6,7 +6,7 @@ static raster cut to the old, smaller footprint while the config claimed a large
 and nothing failed — every derived raster silently inherited the old extent. Same
 stale-artefact failure as the topography and fbfm40 caches, one layer further upstream.
 
-See docs/historico/ETAPA-A-BASELINE.md §A0.
+See docs/arquitectura.md §A0.
 """
 import logging
 from pathlib import Path

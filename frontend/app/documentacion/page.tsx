@@ -4,8 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth } from "@/lib/auth";
 
 /**
- * What a client must know before reading the map (docs/dashboard-producto.md §6): the
- * model's limits in plain language — the same ones docs/resultados/ESTADO-RESEARCH.md §6
+ * What a client must know before reading the map (docs/producto.md §6): the
+ * model's limits in plain language — the same ones documented in docs/resultados/modelo/limites.md
  * and RIESGOS_Y_SUPOSICIONES.md record — and every data source with its attribution.
  * Keep it in step with those documents when they change.
  */

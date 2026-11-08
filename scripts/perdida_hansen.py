@@ -1,6 +1,6 @@
 """Hansen GFC v1.13 `lossyear` en las grillas de los paquetes v5.
 
-Ver docs/crosswalk/DECISIONES-MODELO-V0 §3.
+Ver docs/crosswalk.md.
 
 Vecino más cercano (es una capa de años). Sale en data/static/canopy/ y entra a los
 protocolos `-x2` como `lossyear.tif` por el empaquetador `ampliar_mapas`; la perilla

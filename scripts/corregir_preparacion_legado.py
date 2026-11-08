@@ -1,5 +1,5 @@
 """Re-arma una preparación de la app anterior a la auditoría física con las correcciones de
-los hallazgos 1–5 (docs/resultados/AUDITORIA-FISICA.md §3), para re-medir los experimentos
+los hallazgos 1–5 (docs/resultados/modelo/auditoria.md), para re-medir los experimentos
 del documento de combustibles (§7.4) sobre los mismos insumos.
 
 Toma el directorio de una corrida vieja (p. ej. `cmp_b5_ccsbap`) y escribe otro nuevo, sin

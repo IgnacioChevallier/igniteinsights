@@ -1,6 +1,6 @@
 """Protocolo P-24: pronóstico a 12 y 24 h desde el perímetro observado.
 
-Diseño en docs/resultados/DIA-1-PROPUESTA.md §2. Cada pasada VIIRS es un reinicio: ELMFIRE arranca
+Diseño en docs/resultados/pronostico/p24.md. Cada pasada VIIRS es un reinicio: ELMFIRE arranca
 de lo observado hasta esa hora y se puntúa sólo el crecimiento (IGN-26 §12.1), contra la cicatriz
 dNBR truncada a lo que VIIRS ya había visto al plazo. Lo comparable es el mismo crecimiento
 predicho por la cadena de modelo-v0 y por una extrapolación ingenua (persistencia).
@@ -50,7 +50,7 @@ def ventana_desde(t: datetime, horas: int = 24) -> dict:
 
 def ultimo_ciclo(t: datetime, latencia_h: float, cada_h: int = 6) -> datetime:
     """El último ciclo GFS ya publicado en `t`: el de hora nominal `c` con `c + latencia_h <= t`
-    (diagnostico-e2e/notas/Z-p24-pronostico-gfs.md §1.1)."""
+    (benchmarks/diagnosticos/e2e/notas/Z-p24-pronostico-gfs.md §1.1)."""
     c = t - timedelta(hours=latencia_h)
     return c.replace(hour=c.hour - c.hour % cada_h, minute=0, second=0, microsecond=0)
 
