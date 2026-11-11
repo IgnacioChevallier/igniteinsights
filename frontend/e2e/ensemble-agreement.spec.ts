@@ -53,7 +53,7 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   await expect(details).toContainText("12 h");
   await details.getByRole("button", { name: "Cerrar" }).click();
   expect(requests).toHaveLength(1);
-  await page.screenshot({ path: "../playwright-screenshots/ensemble-agreement.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/ensemble-agreement.png" });
 
   await arrival.check();
   await expect(agreement).not.toBeChecked();

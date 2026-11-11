@@ -22,7 +22,7 @@ npm run test:e2e:list            # discovery only; does not need Postgres
 npm run test:e2e                 # if the migrated database is already running
 ```
 
-Screenshots land in `../playwright-screenshots/`.
+Screenshots land in `outputs/playwright/current/` at the repository root.
 
 If the environment ships its own chromium (a CI image usually pins a build that does not
 match the one this Playwright version would download), point at it instead of running

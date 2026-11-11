@@ -18,7 +18,7 @@ from shapely.geometry import box
 
 from app.config import settings
 
-SOURCE = Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
+SOURCE = Path("data/raw/ccsbap/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
 MARGEN_GRADOS = 0.02  # ~2 km, para que el recorte no muerda el borde del dominio
 
 

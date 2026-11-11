@@ -28,13 +28,13 @@ test("el viento se lee en el mapa, y la losa muestra su combustible", async ({ p
   await expect(page.getByText("viento 15 mph hacia el SO", { exact: true })).toBeVisible(seen);
 
   await page.waitForTimeout(2500); // let the particle trails build up
-  await page.screenshot({ path: "../playwright-screenshots/wind-particles.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/wind-particles.png" });
 
   // The lake is a different fuel, so it must be a different texture, not just a colour.
   await page.getByRole("button", { name: "Con lago" }).click();
   await expect(page.getByText("lago (no combustible)").first()).toBeVisible();
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: "../playwright-screenshots/wind-particles-lake.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/wind-particles-lake.png" });
 
   // A timber model must not look like a grassland: the texture is the whole point.
   await page.getByRole("button", { name: "Uniforme" }).click();
@@ -43,5 +43,5 @@ test("el viento se lee en el mapa, y la losa muestra su combustible", async ({ p
   await expect(page.getByText(/TL3 ·/).last()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/TU5 ·/).last()).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(2000);
-  await page.screenshot({ path: "../playwright-screenshots/fuel-textures.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/fuel-textures.png" });
 });

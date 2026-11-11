@@ -15,7 +15,9 @@ const SHOTS = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
-  "playwright-screenshots",
+  "outputs",
+  "playwright",
+  "current",
 );
 
 // 1x1 dark-slate PNG standing in for a basemap tile, so contrast against the fire

@@ -16,8 +16,11 @@ data/**
 frontend/test-results/
 frontend/playwright-report/
 frontend/.playwright/
-frontend/playwright-screenshots/
-playwright-screenshots/
+outputs/*
+!outputs/playwright/
+outputs/playwright/*
+!outputs/playwright/reference/
+!outputs/playwright/reference/**
 
 # Credenciales
 .env
@@ -40,11 +43,8 @@ dist/
 # Logs
 *.log
 
-# Insumos CCS-BAP de CIEFAP (4,2 GB, fuera del repo)
-datasets/
-
-# graphify (grafo de conocimiento local)
-graphify-out/
-
 # Scratch local
 tmp/
+
+# PDF del documento de correspondencia: se genera y se publica en Drive
+crosswalk/main.pdf

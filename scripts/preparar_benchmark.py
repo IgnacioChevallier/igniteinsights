@@ -42,8 +42,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
 CANOPY = Path("data/static/canopy/2026-05-24")
 WORLDCOVER = Path("data/raw/worldcover/esa_worldcover_v200_10m.tif")
-CCSBAP = {2013: Path("datasets/CH_2013_Ver20190521_Subido202000316/cob_2013_N3_aok_CH.shp"),
-          2017: Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")}
+CCSBAP = {2013: Path("data/raw/ccsbap/CH_2013_Ver20190521_Subido202000316/cob_2013_N3_aok_CH.shp"),
+          2017: Path("data/raw/ccsbap/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")}
 
 
 DOSEL_DERIVADO = ("cc.tif", "cbh.tif", "cbd.tif")   # lo que escribe derive_cbh_cbd

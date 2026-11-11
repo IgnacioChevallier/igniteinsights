@@ -15,4 +15,4 @@ reemplaza la guía oficial.
 
 Las fuentes geoespaciales y sus licencias están enumeradas en [Fuentes de datos](fuentes.md).
 La bibliografía científica que fundamenta las asignaciones de combustible está citada en
-[Crosswalk CCS-BAP → FBFM40](crosswalk.md#fuentes-principales); no se mantienen copias locales.
+[Correspondencia CCS-BAP → FBFM40](crosswalk.md#fuentes-principales); no se mantienen copias locales.

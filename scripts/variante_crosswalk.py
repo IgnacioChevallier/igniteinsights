@@ -25,8 +25,8 @@ from rasterio.features import rasterize
 
 from app.elmfire.builder import fuels_builder as fb
 
-SHP = {2013: Path("datasets/CH_2013_Ver20190521_Subido202000316/cob_2013_N3_aok_CH.shp"),
-       2017: Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")}
+SHP = {2013: Path("data/raw/ccsbap/CH_2013_Ver20190521_Subido202000316/cob_2013_N3_aok_CH.shp"),
+       2017: Path("data/raw/ccsbap/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")}
 # (mapa base, año, dem de su grilla, sufijo) — los que referencian los paquetes v5.
 EXT = Path("data/elmfire/inputs/benchmark-2026-09-28-asp3-v5")
 BASES = [(Path("data/static/fuel_maps/fbfm40_ccsbap.tif"), 2017,

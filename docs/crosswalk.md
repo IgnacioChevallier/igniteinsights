@@ -1,4 +1,4 @@
-# Crosswalk CCS-BAP → Scott & Burgan FBFM40
+# Correspondencia CCS-BAP → Scott & Burgan FBFM40
 
 ## Objetivo
 
@@ -7,14 +7,15 @@ ELMFIRE. La clave principal es `(Ley_N1, Ley_N2)`: el mismo código de especie p
 bosque (`TF`) o formación leñosa baja (`OFL`). Diez excepciones de nivel 3 separan coberturas que
 no pueden compartir comportamiento.
 
-El crosswalk es una propuesta regional reproducible. No modifica parámetros de FBFM40 ni crea
+La correspondencia es una propuesta regional reproducible. No modifica parámetros de FBFM40 ni crea
 modelos propios.
 
 ## Criterio
 
 La selección sigue a Scott & Burgan (2005): estrato portador, humedad de extinción, estructura y
-carga del lecho, y contraste con comportamiento observado. Para vegetación nativa se usan
-`mex ≥ 25 %`, coherente con umbrales regionales de ignición. Las cargas de arbustal se contrastan
+carga del lecho, y contraste con comportamiento observado. Para las formaciones leñosas nativas
+se usa `mex ≥ 25 %`, porque los umbrales regionales de ignición se midieron en ciprés y ñire. La
+estepa graminosa queda en GR2, con `mex` 15 %. Las cargas de arbustal se contrastan
 con la Publicación Técnica 37 de CIEFAP.
 
 ## Correspondencia
@@ -126,8 +127,9 @@ se reproduce con `scripts/build_fuel_maps.py`.
   Andean Patagonia, Argentina*, IJWF 24(3):340.
 - Cóbar-Carranza et al. (2014), *Effect of Pinus contorta invasion on forest fuel properties*,
   Biological Invasions.
-- Tiribelli (2019), *Cambios en la inflamabilidad con la edad post-fuego...*, tesis doctoral,
-  Universidad Nacional del Comahue.
+- Tiribelli, Kitzberger y Morales (2018), *Changes in vegetation structure and fuel
+  characteristics along post-fire succession promote alternative stable states and positive
+  fire–vegetation feedbacks*, Journal of Vegetation Science 29(2):147-156, DOI 10.1111/jvs.12620.
 - Blackhall et al. (2017), *Effects of biological legacies and herbivory on fuels and
   flammability traits*, Journal of Ecology 105(5), DOI 10.1111/1365-2745.12796.
 

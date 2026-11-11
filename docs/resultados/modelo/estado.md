@@ -13,9 +13,9 @@ calibración abiertas.
 | Tema | Decisión | Evidencia |
 |---|---|---|
 | Modelo | `lw-100-001` promovida como `modelo-v0` | [modelo](modelo.md) |
-| Validación | benchmark inmutable, prueba no usada para ajustar | [validación](validacion.md) |
+| Validación | banco de pruebas inmutable, prueba no usada para ajustar | [validación](validacion.md) |
 | Combustible | CCS-BAP; MapBiomas queda como comparador competitivo | [comparación](../combustibles/resultados.md) |
-| Crosswalk | tabla CCS-BAP → FBFM40 vigente | [crosswalk](../../crosswalk.md) |
+| Combustibles | tabla CCS-BAP → FBFM40 vigente | [correspondencia](../../crosswalk.md) |
 | Pronóstico | reiniciar en cada pasada VIIRS con P-24 | [P-24](../pronostico/p24.md) |
 | Meteorología | usar el último GFS disponible al reinicio | [P-24](../pronostico/p24.md) |
 | Incertidumbre | mostrar acuerdo GEFS, no probabilidad | [ensamble](../ensamble.md) |

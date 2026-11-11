@@ -55,14 +55,14 @@ test.describe("mapa esquemático del playground", () => {
     await expect(page.getByRole("button", { name: "Satélite" }).first()).toBeVisible();
 
     await page.screenshot({
-      path: "../playwright-screenshots/playground-synthetic.png",
+      path: "../outputs/playwright/current/playground-synthetic.png",
       fullPage: false,
     });
 
     await page.getByRole("button", { name: "Satélite" }).first().click();
     await page.waitForTimeout(1200);
     await page.screenshot({
-      path: "../playwright-screenshots/playground-satellite.png",
+      path: "../outputs/playwright/current/playground-satellite.png",
       fullPage: false,
     });
 

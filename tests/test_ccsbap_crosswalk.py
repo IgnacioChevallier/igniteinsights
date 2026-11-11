@@ -13,7 +13,7 @@ from app.elmfire.builder.fuels_builder import (
     valid_fuel_codes,
 )
 
-CCSBAP_SHP = Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
+CCSBAP_SHP = Path("data/raw/ccsbap/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
 
 
 def test_level3_override_beats_level2():

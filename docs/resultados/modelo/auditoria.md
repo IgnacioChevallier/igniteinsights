@@ -23,9 +23,9 @@ esas correcciones no se usan para elegir el modelo ni para informar desempeño v
 
 - El banco de pruebas físicas valida velocidad, pendiente, viento, unidades y orientación.
 - GFS reprodujo 4/4 ventanas y ERA5 3/3 ventanas byte a byte desde artefactos congelados.
-- Los builders validan CRS, dimensiones, cobertura, códigos de combustible y valores nodata antes
+- Los generadores validan CRS, dimensiones, cobertura, códigos de combustible y valores nodata antes
   de ejecutar ELMFIRE.
-- El benchmark registra hashes de insumos, namelist, salidas, versión de código y solver.
+- El banco de pruebas registra hashes de insumos, namelist, salidas, versión de código y simulador.
 
 ## Consecuencias
 
@@ -36,7 +36,7 @@ limitaciones que permanecen —viento regional, supresión, pavesas y transferen
 
 ## Trazabilidad
 
-- Builders: `app/elmfire/builder/`.
+- Generadores: `app/elmfire/builder/`.
 - Pruebas físicas: `scripts/pruebas_fisicas.py` y `tests/test_elmfire_convenciones.py`.
 - Preparación corregida: `scripts/preparar_benchmark.py`.
 - Manifiestos: `benchmarks/iteraciones/`.

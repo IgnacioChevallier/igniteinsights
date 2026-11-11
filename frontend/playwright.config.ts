@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { STORAGE_STATE } from "./e2e/auth.setup";
+
+mkdirSync(fileURLToPath(new URL("../outputs/playwright/current/", import.meta.url)), {
+  recursive: true,
+});
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const databaseURL =

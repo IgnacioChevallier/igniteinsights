@@ -39,7 +39,7 @@ test.describe("lanzar una corrida real desde el mapa", () => {
     // The gear the header already had, now beside the button it configures.
     await expect(aside.getByRole("link", { name: "Configuración" })).toBeVisible();
 
-    await page.screenshot({ path: "../playwright-screenshots/map-real-run.png" });
+    await page.screenshot({ path: "../outputs/playwright/current/map-real-run.png" });
   });
 
   test("el engranaje del mapa configura las mismas fuentes que usa el boton", async ({ page }) => {

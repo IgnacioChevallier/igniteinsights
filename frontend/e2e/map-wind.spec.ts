@@ -43,7 +43,7 @@ test("el mapa anima el viento real de la corrida", async ({ page }) => {
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.getByTestId("wind-hover-readout")).toContainText(/mph · hacia el/);
 
-  await page.screenshot({ path: "../playwright-screenshots/map-wind.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/map-wind.png" });
 
   // Zooming out shrinks the projected wind domain, so its screen-space population must
   // fall with it instead of packing the same number of streaks into a smaller footprint.

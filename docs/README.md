@@ -17,7 +17,7 @@ navegación y los artefactos experimentales viven en `benchmarks/`.
 - [Estado y cierre](resultados/modelo/estado.md)
 - [Modelo v0](resultados/modelo/modelo.md)
 - [Validación](resultados/modelo/validacion.md)
-- [Crosswalk de combustibles](crosswalk.md)
+- [Correspondencia de combustibles](crosswalk.md)
 - [Índice de resultados](resultados/README.md)
 
 Las notas y tablas de diagnóstico están en `benchmarks/diagnosticos/e2e/`. Respaldan los

@@ -1,8 +1,6 @@
 # IgniteInsights
 
-**Ignacio Chevallier Boutell y Manuel Salas Seeber**<br>
-Universidad Austral — Tesis 2026<br>
-Director: Gastón Gadea
+**Ignacio Chevallier Boutell y Manuel Salas Seeber**
 
 IgniteInsights es una plataforma de apoyo para visualizar la propagación potencial de
 incendios forestales en el Parque Nacional Los Alerces y su entorno. Integra detecciones

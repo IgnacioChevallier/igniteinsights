@@ -5,16 +5,16 @@
 ¿Cómo evaluar el modelo de forma reproducible, sin fuga temporal y sin ajustar con el conjunto de
 prueba?
 
-## Benchmark
+## Banco de pruebas
 
-El benchmark separa tres objetos inmutables:
+El banco de pruebas separa tres objetos inmutables:
 
 - **caso:** incendio, ventanas, semilla y referencias identificadas por hash;
 - **receta:** combustible y parámetros declarados;
 - **iteración:** aplicación de una receta a un caso.
 
 Los artefactos se almacenan por SHA-256. Una receta con iteraciones ejecutadas no se modifica: se
-crea otra con un padre explícito. El runner rechaza cambios no declarados y mapas posteriores al
+crea otra con un padre explícito. El ejecutor rechaza cambios no declarados y mapas posteriores al
 incendio, salvo controles rotulados como fuga temporal.
 
 ## Datos y partición
@@ -49,7 +49,7 @@ La comparación controlada de combustibles mantiene CCS-BAP en `modelo-v0`; el d
 
 ## Alcance
 
-El benchmark demuestra reproducibilidad y permite comparar decisiones dentro de este conjunto.
+El banco de pruebas demuestra reproducibilidad y permite comparar decisiones dentro de este conjunto.
 No prueba validez universal, exactitud operativa horaria ni desempeño sobre incendios con
 supresión representada.
 

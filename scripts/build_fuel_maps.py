@@ -27,7 +27,7 @@ MAPBIOMAS_COG = (
     "https://storage.googleapis.com/mapbiomas-public/initiatives/argentina"
     "/collection-2/coverage/argentina_coverage_{year}.tif"
 )
-CCSBAP_SHP = Path("datasets/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
+CCSBAP_SHP = Path("data/raw/ccsbap/CH_2017_Ver20190521_Subido202000316/cob_2017_N3_aok_CH.shp")
 # WorldCover 2020 (v100): el único año anterior a 2021, para el benchmark (COMPARACION-MAPAS-V5).
 # Misma leyenda que v200, así que el mismo crosswalk; misma caja que el v200 local.
 WORLDCOVER_2020 = Path("data/raw/worldcover/esa_worldcover_v100_2020_10m.tif")

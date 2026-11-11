@@ -1,18 +1,18 @@
 # Modelo v0
 
-> Estado: **aprobado internamente para producción** el 2026-10-04. Snapshot ejecutable:
+> Estado: **aprobado internamente para producción** el 2026-10-04. Instantánea ejecutable:
 > `benchmarks/modelos/modelo-v0.json`.
 
 ## Identidad
 
 `modelo-v0` es la promoción de la receta `lw-100-001` sobre la partición v6. No es una receta
-nueva y no duplica corridas. El snapshot fija:
+nueva y no duplica corridas. La instantánea fija:
 
 - SHA de la receta;
 - once casos y sus paquetes por SHA;
 - partición calibración/prueba;
-- resultados del gate;
-- commit de código del cierre físico;
+- resultados del criterio de promoción;
+- revisión de código del cierre físico;
 - limitaciones y regla de reapertura.
 
 Validación local:
@@ -21,7 +21,7 @@ Validación local:
 uv run python scripts/benchmark.py modelo modelo-v0
 ```
 
-## Gate
+## Criterio de promoción
 
 | Criterio | Resultado |
 |---|---|
@@ -32,7 +32,7 @@ uv run python scripts/benchmark.py modelo modelo-v0
 | Prueba | 0,191/0,167 y dos alarmas; informativo, no usado para ajustar |
 | Robustez a la ignición | 0,461/0,497 sobre 21 perturbaciones |
 | Reproducción ejecutable | GFS 4/4 y ERA5 3/3 ventanas iguales byte a byte |
-| Regla de parada | Sólo bug físico o evidencia externa nueva |
+| Regla de parada | Sólo defecto físico o evidencia externa nueva |
 
 La verificación ejecutable del 2026-10-04 reprodujo
 `epuyen-2025/calibracion-v6` (GFS) y
@@ -61,20 +61,21 @@ el modelo es más rápido que el incendio real.
 | Epuyén 2025 | 96 h | 0,501 | 0,334 | 0,43 | 0,60 | 1,41 | 78 h | Arranca muy lento (Dice 0,05 a 24 h) y lo compensa después |
 | Patriada 2026 | 96 h (fusión) | 0,496 | 0,330 | 0,61 | 0,42 | 0,70 | — | Lo que quema está bien ubicado (precisión 0,61), pero le falta un 30 % de área |
 | Alerces 2016 | 72 h | 0,389 | 0,242 | 0,31 | 0,52 | 1,69 | 53 h | Quema de más hacia donde el fuego real no fue (ERA5, sin estación cercana) |
-| Las Golondrinas 2021 | 24 h | 0,012 | 0,006 | 0,28 | 0,01 | 0,02 | — | Caso límite: el GFS no tiene el viento prefrontal del norte ni el aire seco de la noche (a las 21 ART: 29 kt y 27 % reales, contra 6,7 mph y 61 %; RIESGOS §3). Quema 224 de 10.622 ha. Con ese SYNOP sostenido hasta 06Z quema 2.404 ha (Dice 0,24, sesgo 0,23, precisión 0,66): la meteorología explica una parte, no el orden de magnitud. Sostenido hasta 12Z, sesgo 0,44: el freno es TL6 bajo dosel más una franja de agua, no la duración de la ventana (§6). Con SYNOP hasta 03Z más pavesas fuertes (diagnóstico, no modelo), 9.088 ha y Dice 0,545; con el GFS, las mismas pavesas no cambian nada. Hacen falta las dos cosas a la vez (`benchmarks/diagnosticos/e2e/notas/G-golondrinas-meteo-observada.md` §7, `X-pavesas-calibracion.md`). La referencia es válida (perímetro SNMF, MODIS y FIRMS; G §9). Sin pavesas y con 72 h, la forma en `t*` es 0,40: nada de la cicatriz más allá de 15 km (G §8) |
+| Las Golondrinas 2021 | 24 h | 0,012 | 0,006 | 0,28 | 0,01 | 0,02 | — | Caso límite: el GFS no representa el viento prefrontal ni el aire seco observados; meteorología y pavesas explican parte de la diferencia, pero no se incorporan al modelo promovido |
 
 Cinco de los siete casos quedan entre 0,49 y 0,64. La media la baja un solo caso, Las Golondrinas,
 que falla por la meteorología de entrada y, en parte, por el modelo de propagación (sin pavesas ni
 estructuras; nota G). Sin él la media
 sería 0,510. El sesgo sigue un patrón: casi todos los casos se quedan cortos al principio y
 terminan con área de más (1,35–1,86 en Alerces 2023, 2024, 2016 y Epuyén 2025). Es lo esperable
-en un modelo sin supresión que, además, subestima el primer día (`docs/resultados/pronostico/p24.md`).
+en la cadena histórica desde la ignición, sin supresión. El producto operativo comienza en la
+primera pasada VIIRS y usa P-24 (`docs/resultados/pronostico/p24.md`).
 
 **Prueba** (media 0,191, mediana 0,167; informativa, no se usa para ajustar):
 
 | Caso | Horizonte | Dice | Sesgo de área | *t\** | Lectura |
 |---|---:|---:|---:|---:|---|
-| Alerces 2015 | 72 h | 0,309 | 1,48 | 54 h | Sube la ladera en vez de bordear el lago (RIESGOS §3, viento) |
+| Alerces 2015 | 72 h | 0,309 | 1,48 | 54 h | Sube la ladera en vez de bordear el lago por el límite del viento regional |
 | Puerto Café 2025 | 96 h | 0,207 | 0,30 | — | Fase explosiva tras 27 días latente. Quema menos de un tercio del área |
 | Epuyén 2019 | 120 h | 0,128 | 14,6 | 37 h | Se desborda sin supresión: 19.534 ha contra 1.338. La forma a área igualada es razonable (0,346) |
 | El Turbio 2025 | 120 h | 0,122 | 1,08 | 115 h | Área correcta en el lugar equivocado: Dice ~0,1 en todos los cortes |
@@ -114,8 +115,8 @@ Lectura:
   Acortar todos los casos a 72 h bajaría la media de 0,439 a 0,409.
 - **El sesgo pasa de déficit a exceso.** A 24 h todos los casos de calibración salvo Cholila
   queman entre el 2 % y el 77 % del área observada. Al final del horizonte, cuatro de siete
-  queman de más. El modelo es lento el primer día y no se detiene después: le faltan el Día 1
-  explosivo y la supresión, no un horizonte más corto.
+  queman de más. Esta cadena se conserva como evaluación histórica; el producto no pronostica
+  el período anterior a la primera pasada VIIRS.
 - **Cholila a 24 h (0,563) es un artefacto:** son 7 detecciones tempranas con poca área. Desde
   48 h sigue el patrón general.
 - **En prueba, el único caso al que el horizonte largo perjudica es Epuyén 2019.** Su Dice tiene
@@ -130,7 +131,7 @@ Lectura:
 ## Contrato productivo
 
 El nombre `modelo-v0` puede usarse en configuración, documentación y despliegue para seleccionar
-este snapshot. Internamente, la ejecución sigue resolviendo la receta `lw-100-001` y los builders
+esta instantánea. Internamente, la ejecución sigue resolviendo la receta `lw-100-001` y los generadores
 vigentes. Promover un futuro `modelo-v1` exigirá:
 
 1. una receta nueva o una modificación explícita de insumos;
@@ -138,7 +139,7 @@ vigentes. Promover un futuro `modelo-v1` exigirá:
 3. banco físico aprobado;
 4. métricas de calibración, validación cruzada y prueba;
 5. comparación contra modelo-v0;
-6. una justificación que no use el holdout para elegir parámetros.
+6. una justificación que no use el conjunto de prueba para elegir parámetros.
 
 ## Límites de uso
 

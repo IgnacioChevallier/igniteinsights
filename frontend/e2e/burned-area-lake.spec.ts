@@ -24,7 +24,7 @@ test("el area quemada nunca pinta el lago", async ({ page }) => {
   await expect(page.getByText("A · corriendo…")).toBeHidden({ timeout: 15_000 });
   await expect(page.getByText("ROS de cabeza")).toBeVisible();
   await page.waitForTimeout(1500);
-  await page.screenshot({ path: "../playwright-screenshots/burned-area-lake.png" });
+  await page.screenshot({ path: "../outputs/playwright/current/burned-area-lake.png" });
 });
 
 function route(r: import("@playwright/test").Route) {

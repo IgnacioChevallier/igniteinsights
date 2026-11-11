@@ -54,7 +54,7 @@ en MCD64A1 causado por interpretar incorrectamente su CRS.
 ## Decisión
 
 La aplicación adopta `LYQ-3` —Hansen más las otras fuentes y la regla por edad— para preparar
-simulaciones. `modelo-v0` no cambia: el benchmark demuestra que la regla no introduce una
+simulaciones. `modelo-v0` no cambia: el banco de pruebas demuestra que la regla no introduce una
 regresión, no que estime con precisión el combustible real de cada cicatriz.
 
 ## Límites

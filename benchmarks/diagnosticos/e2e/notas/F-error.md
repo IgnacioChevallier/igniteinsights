@@ -270,3 +270,12 @@ Lectura:
   reinicio de cada incendio con información previa (usa la ventana 0, que parte de un punto de ignición:
   la variante "k ≥ 1" lo incluye y no cambia la conclusión).
 - **ROS_mod en celdas alcanzadas** está sesgada hacia las rápidas; para el tipo NB y SH3 no hay valor.
+
+## Extensión a prueba del error de llegada (2026-11-09)
+
+Para el Anexo F del informe se calculó la tabla F2 sobre los cuatro incendios de prueba, en
+`benchmarks/diagnosticos/e2e/datos/F2_toa_resumen_prueba.csv`. Es descriptiva: lee las corridas
+congeladas de `lw-100-001`, no corre ELMFIRE y no se usa para ajustar nada. Se usó la misma `f2`, en
+un proceso aparte que reemplazó `casos_calibracion` por calibración + prueba; `scripts/diagnostico_error.py`
+sigue rechazando los casos de prueba. Control: el mismo proceso reprodujo los 7 valores de calibración
+de `F2_toa_resumen.csv`.
