@@ -36,14 +36,14 @@ function IncendioSelector({
   }, []);
   const actual = incendios.find((i) => i.id === elegido) ?? incendios[0];
   return (
-    <details ref={ref} className="relative ml-auto">
+    <details ref={ref} className="relative ml-auto min-w-0">
       <summary
         aria-label="Incendios activos"
-        className="flex cursor-pointer list-none items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted sm:text-sm [&::-webkit-details-marker]:hidden"
+        className="flex min-w-0 cursor-pointer list-none items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted sm:text-sm [&::-webkit-details-marker]:hidden"
       >
         <Flame className="h-4 w-4 shrink-0 text-orange-600" aria-hidden="true" />
         <span className="hidden max-w-64 truncate sm:inline">{actual.nombre.split(" · ")[0]}</span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <ChevronDown className="hidden h-3.5 w-3.5 shrink-0 sm:block" aria-hidden="true" />
       </summary>
       <ul className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-1.5rem)] rounded-md border bg-background p-1 shadow-lg">
         <li className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -102,9 +102,9 @@ export function ClientHeader({
 
   return (
     <header className="shrink-0 border-b bg-background">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 sm:justify-start sm:gap-6 sm:px-4">
+      <div className="flex items-center gap-2 px-3 py-2 sm:gap-6 sm:px-4">
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- document navigation on purpose: transitions never commit while the map animates */}
-        <a href="/" className="flex items-center gap-2">
+        <a href="/" className="flex shrink-0 items-center gap-2">
           <Image
             src="/images/igniteinsights-celdas.svg"
             alt=""
@@ -124,11 +124,12 @@ export function ClientHeader({
               href={link.href}
               aria-current={active === link.id ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-colors sm:px-3",
+                "flex items-center gap-1 rounded-md px-1.5 py-1.5 font-medium transition-colors sm:gap-1.5 sm:px-3",
                 active === link.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >
-              <link.icon className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
+              {/* Under 360 px there is no room for icons next to the fire picker. */}
+              <link.icon className="hidden h-3.5 w-3.5 shrink-0 min-[360px]:block sm:h-4 sm:w-4" aria-hidden="true" />
               {link.label}
             </a>
           ))}

@@ -10,7 +10,8 @@ export const metadata: Metadata = {
       { url: "/images/igniteinsights-celdas.png", type: "image/png" },
     ],
     shortcut: "/images/igniteinsights-celdas.svg",
-    apple: "/images/igniteinsights-celdas.png",
+    // Own file: iOS paints a transparent icon's background black and crops to the edges.
+    apple: "/images/apple-touch-icon.png",
   },
 };
 
