@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Flame, LoaderCircle, Satellite } from "lucide-react";
+import { ChevronUp, Flame, LoaderCircle, Satellite } from "lucide-react";
 import { EnsembleAgreementLegend } from "@/components/ensemble-agreement-legend";
 import { EnsembleAgreementInfo } from "@/components/ensemble-agreement-info";
 import { FireAnimationControls } from "@/components/fire-animation-controls";
@@ -59,6 +59,12 @@ function bboxCollection([w, s, e, n]: Incendio["bbox"]): GeoJSON.FeatureCollecti
  * wind and the 3D relief; the ensemble agreement only on request. Nothing here starts a
  * computation — the admin decides what is computed, the client only what to look at.
  */
+/**
+ * Map notices sit just under the basemap selector (top-left, ends ~34 px) and stop short of
+ * MapLibre's zoom/compass column (top-right, ~40 px wide), so they never cover either.
+ */
+const NOTICE = "pointer-events-none absolute left-2 right-12 top-11 flex";
+
 export function ClientMap({
   estado,
   elegido: elegidoExterno = null,
@@ -70,6 +76,8 @@ export function ClientMap({
   onElegir?: (id: string) => void;
 }) {
   const [elegidoInterno, setElegido] = useState<string | null>(null);
+  // Phones only: the details panel starts folded so the map gets the whole screen.
+  const [detalles, setDetalles] = useState(false);
   const elegido = onElegir ? elegidoExterno : elegidoInterno;
   const incendios = useMemo(() => estado?.incendios ?? [], [estado]);
   const incendio = incendios.find((i) => i.id === elegido) ?? incendios[0] ?? null;
@@ -203,7 +211,7 @@ export function ClientMap({
             }
           />
           {estado && !incendios.length && (
-            <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+            <div className={NOTICE}>
               <div className="rounded-lg border bg-background/95 px-4 py-3 text-sm shadow-md">
                 <p className="font-medium">Sin focos activos detectados.</p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -214,14 +222,14 @@ export function ClientMap({
             </div>
           )}
           {incendio && !pronostico && estado?.modo === "demo" && (
-            <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+            <div className={NOTICE}>
               <p className="rounded-lg border bg-background/95 px-4 py-2 text-sm shadow-md">
                 Foco de demostración sin pronóstico precalculado.
               </p>
             </div>
           )}
           {incendio && !pronostico && estado?.modo !== "demo" && incendio.actualizacion?.estado !== "fallido" && (
-            <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+            <div className={NOTICE}>
               <p className="flex items-center gap-2 rounded-lg border bg-background/95 px-4 py-2 text-sm shadow-md">
                 <LoaderCircle className="h-4 w-4 animate-spin text-amber-600" />
                 Foco detectado. El pronóstico se está calculando.
@@ -229,7 +237,7 @@ export function ClientMap({
             </div>
           )}
           {incendio?.actualizacion?.estado === "fallido" && (
-            <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+            <div className={NOTICE}>
               <p className="rounded-lg border border-amber-300 bg-amber-50/95 px-4 py-2 text-sm text-amber-950 shadow-md">
                 Actualización demorada. Se mantiene el último pronóstico válido mientras el sistema reintenta.
               </p>
@@ -250,10 +258,24 @@ export function ClientMap({
 
       <aside
         className={cn(
-          "flex max-h-[32dvh] w-full shrink-0 flex-col gap-4 overflow-auto border-t bg-background p-3 md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4",
+          "flex max-h-[50dvh] w-full shrink-0 flex-col overflow-auto border-t bg-background md:max-h-none md:w-80 md:border-l md:border-t-0 md:p-4",
           onElegir && !pronostico && "hidden",
         )}
       >
+        <button
+          type="button"
+          aria-expanded={detalles}
+          aria-controls="client-map-details"
+          onClick={() => setDetalles((open) => !open)}
+          className="sticky top-0 z-10 flex w-full shrink-0 items-center justify-between bg-background px-3 py-2.5 text-sm font-medium md:hidden"
+        >
+          {detalles ? "Ocultar detalles" : "Ver detalles del pronóstico"}
+          <ChevronUp className={cn("h-4 w-4 transition-transform", detalles && "rotate-180")} aria-hidden="true" />
+        </button>
+        <div
+          id="client-map-details"
+          className={cn("flex-col gap-4 px-3 pb-3 md:flex md:p-0", detalles ? "flex" : "hidden")}
+        >
         {!onElegir && (
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -418,6 +440,7 @@ export function ClientMap({
             )}
           </>
         )}
+        </div>
       </aside>
     </div>
   );

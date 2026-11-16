@@ -83,16 +83,22 @@ function IncendioSelector({
 export function ClientHeader({
   active,
   isAdmin = false,
+  signedIn = true,
   elegido = null,
   onElegir,
 }: {
   active: (typeof LINKS)[number]["id"];
   isAdmin?: boolean;
+  /** Public visitors see "Ingresar" instead of "Cuenta". */
+  signedIn?: boolean;
   /** Map page only: shows the fire picker when given `onElegir`. */
   elegido?: string | null;
   onElegir?: (id: string) => void;
 }) {
   const { estado } = useEstado(300_000);
+  const links = LINKS.map((link) =>
+    link.id === "cuenta" && !signedIn ? { ...link, href: "/login", label: "Ingresar" } : link,
+  );
 
   return (
     <header className="shrink-0 border-b bg-background">
@@ -107,12 +113,12 @@ export function ClientHeader({
             height={28}
             className="h-7 w-7"
           />
-          <span className="hidden text-base font-semibold tracking-tight min-[430px]:inline">
+          <span className="hidden text-base font-semibold tracking-tight sm:inline">
             IgniteInsights
           </span>
         </a>
         <nav className="flex min-w-0 items-center gap-0.5 text-xs sm:gap-1 sm:text-sm">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <a
               key={link.id}
               href={link.href}
@@ -122,7 +128,7 @@ export function ClientHeader({
                 active === link.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >
-              <link.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <link.icon className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
               {link.label}
             </a>
           ))}

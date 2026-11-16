@@ -2,8 +2,8 @@
 
 ## Propósito
 
-IgniteInsights es una demostración académica con forma de producto final. Una persona inicia
-sesión, ve los incendios activos dentro del área de estudio y consulta su propagación potencial
+IgniteInsights es una demostración académica con forma de producto final. Cualquier persona,
+sin iniciar sesión, ve los incendios activos dentro del área de estudio y consulta su propagación potencial
 durante las próximas 24 horas.
 
 No es un sistema oficial de alerta. La salida representa propagación bajo condiciones modeladas,
@@ -15,6 +15,8 @@ sin acciones de combate o contención.
   están disponibles.
 - **Cliente:** consulta el mapa, la documentación y su cuenta. Ninguna acción del cliente inicia
   cálculos.
+- **Visitante sin sesión:** ve lo mismo que un cliente salvo la cuenta; el mapa y la
+  documentación son públicos.
 
 La autenticación usa Better Auth con correo y contraseña. El registro público está deshabilitado.
 La interfaz Next.js aplica autorización; FastAPI sólo debe estar disponible en la red privada.

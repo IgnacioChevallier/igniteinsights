@@ -4,12 +4,14 @@ import { auth } from "@/lib/auth";
 /**
  * The only gate (docs/producto.md §4). The FastAPI service has no public domain
  * and no auth of its own: every browser request reaches it through this app, so this
- * middleware decides who sees what. Deny by default: a "cliente" reaches only the pages
- * and read-only endpoints listed here; an admin reaches everything the dashboard had.
+ * middleware decides who sees what. Deny by default: a visitor without a session gets the
+ * product (map and documentation, read-only), a "cliente" also gets its account page, and
+ * an admin reaches everything the dashboard had.
  */
 const PUBLIC = [/^\/login$/, /^\/api\/auth\//];
 
-const CLIENT_PAGES = [/^\/$/, /^\/cuenta$/, /^\/documentacion$/];
+const ANON_PAGES = [/^\/$/, /^\/documentacion$/];
+const CLIENT_PAGES = [...ANON_PAGES, /^\/cuenta$/];
 // GET only. The per-run layers are what the client map draws; terrain feeds the 3D view.
 const CLIENT_API = [
   /^\/api\/v1\/operativo\/estado$/,
@@ -26,6 +28,10 @@ export async function middleware(request: NextRequest) {
   const isApi = path.startsWith("/api/") || path === "/health";
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
+    const anonOk = isApi
+      ? request.method === "GET" && matches(CLIENT_API, path)
+      : matches(ANON_PAGES, path);
+    if (anonOk) return NextResponse.next();
     if (isApi) return NextResponse.json({ detail: "No autenticado" }, { status: 401 });
     const login = new URL("/login", request.url);
     if (path !== "/") login.searchParams.set("next", path);

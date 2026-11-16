@@ -46,12 +46,13 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ panel?: string }>;
 }) {
-  // The middleware already turned away anyone without a session.
+  // Public page: visitors without a session get the product, like a client.
   const session = await auth.api.getSession({ headers: await headers() });
   const isAdmin = session?.user.role === "admin";
   // A client only ever gets the product; an admin gets the full dashboard, with the product
   // as one of its sections, and can open the client view as a client sees it.
-  if (!isAdmin || (await searchParams).panel === "cliente") return <ClientHome isAdmin={isAdmin} />;
+  if (!isAdmin || (await searchParams).panel === "cliente")
+    return <ClientHome isAdmin={isAdmin} signedIn={!!session} />;
 
   const { apiBaseUrl, data, error } = await getDashboardData();
 

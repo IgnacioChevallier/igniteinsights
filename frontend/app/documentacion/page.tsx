@@ -113,7 +113,7 @@ export default async function DocumentacionPage({
   const session = await auth.api.getSession({ headers: await headers() });
   return (
     <div className="flex min-h-screen flex-col">
-      <ClientHeader active="documentacion" isAdmin={session?.user.role === "admin"} />
+      <ClientHeader active="documentacion" isAdmin={session?.user.role === "admin"} signedIn={!!session} />
       <main className="mx-auto w-full max-w-4xl px-4 py-6 text-sm leading-relaxed sm:py-10">
         <h1 className="text-2xl font-semibold">Documentación</h1>
         <Tabs defaultValue={tab === "limites" || tab === "fuentes" ? tab : "introduccion"} className="mt-5">
