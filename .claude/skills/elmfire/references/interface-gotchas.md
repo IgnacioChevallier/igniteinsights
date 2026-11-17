@@ -261,7 +261,8 @@ east to 161 columns, moves 879 m.
 ## Live and foliar moisture CAN be per-cell rasters; the scalar defaults hide two floors and a crown input
 
 Added 2026-10-17 from the 2025.0212 source (tag `2025.0212`); full detail in
-`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §3, §6. `namelist_writer.py` says "there is no
+`ELMFIRE-COMO-FUNCIONA.md` §3, §6 (removed from `docs/` in `da6777f`; read it with
+`git show da6777f^:docs/referencias/ELMFIRE-COMO-FUNCIONA.md`). `namelist_writer.py` says "there is no
 live-moisture raster": that is wrong for this version.
 
 - `USE_CONSTANT_LH` / `USE_CONSTANT_LW` / `USE_CONSTANT_FMC` default `.TRUE.`; with `.FALSE.` ELMFIRE reads
@@ -285,7 +286,7 @@ live-moisture raster": that is wrong for this version.
 
 ## The 2025.0212 documentation disagrees with its own code in several places
 
-Trust the code (`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §11 has the full list). The ones that bite:
+Trust the code (`ELMFIRE-COMO-FUNCIONA.md` §11 has the full list; see the `git show` above). The ones that bite:
 
 - L/W (Anderson) is fed the effective midflame wind **in m/s** (`WSMFEFF_LOW_MULT = 5.07955E-3`,
   `elmfire_namelists.f90:620`); the docs say mph (`tech_ref.rst:176`). At 10 mph that is L/W 2.8, not 8.
@@ -295,8 +296,9 @@ Trust the code (`docs/referencias/ELMFIRE-COMO-FUNCIONA.md` §11 has the full li
 - Keywords the docs mention that do not exist: `DUMP_ISOCHRONE_SHAPEFILES`, `CALCULATE_BURN_PROBABILITY`,
   `DT_INTERPOLATE_WS`/`_WD` (the real one is `DT_INTERPOLATE_WIND`). `STOCHASTIC_SPOTTING` is "not
   currently used" (`elmfire_namelists.f90:726`).
-- `docs/referencias/elmfire/ELMFIRE_Guide.pdf` is the **ELMFIRE 1.1** guide (title page, June 2026): `SURFACE_SPREAD_MODEL`,
-  `WS_IN_KPH` and `LANDSCAPE_FILENAME` are not in the 2025.0212 source. Do not take keywords from it.
+- The `ELMFIRE_Guide.pdf` the repo used to keep (removed in `da6777f`) is the **ELMFIRE 1.1** guide
+  (title page, June 2026): `SURFACE_SPREAD_MODEL`, `WS_IN_KPH` and `LANDSCAPE_FILENAME` are not in the
+  2025.0212 source. Do not take keywords from it, nor from any online guide newer than 2025.0212.
 
 ## CFL control only starts at the 6th time step
 

@@ -13,8 +13,9 @@ source-data → ELMFIRE-input mapping.
 
 ## Commands
 
-- `make check` — full CI-equivalent suite: ruff, mypy, pytest, TypeScript, eslint and
-  Playwright. It requires Docker because the end-to-end suite uses PostGIS.
+- `make check` — full CI-equivalent suite: ruff, mypy, pytest, TypeScript, eslint,
+  Playwright and the Next.js production build. It requires Docker because the end-to-end
+  suite uses PostGIS.
 - `make test-unit` — backend unit tests only.
 - `make test-e2e` — starts PostGIS, applies migrations and runs the browser suite against
   the stub API.

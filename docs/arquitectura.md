@@ -1,7 +1,5 @@
 # Arquitectura
 
-![Arquitectura de Ignite Insights](../public/images/architecture.png)
-
 ## Objetivo del sistema
 
 IgniteInsights es un flujo de predicción de incendios forestales para el Parque Nacional Los Alerces. Integra detecciones satelitales, meteorología, topografía y combustibles para preparar simulaciones con ELMFIRE. Los resultados se publican como isócronas GeoJSON y se muestran en un panel web.

@@ -30,9 +30,11 @@ skip straight to guessing a parameter name or unit**:
    for conventions and gotchas not obvious from the code alone (e.g. unit scaling,
    file-naming rules, MODE differences).
 3. **Upstream ELMFIRE source** (`github.com/lautenberger/elmfire`, pinned branch
-   `2025.0212`) for anything not covered by the above. The vendor "User Guide" PDF
-   we have on file (converted to `docs/referencias/elmfire/user-guide.md`; the PDF is in git history)
-   turned out to be a bare table of contents with no body content — treat namelist
+   `2025.0212`) for anything not covered by the above. The repo no longer keeps vendor
+   docs (`docs/referencias.md` only links them); the old local copies were removed in
+   `da6777f` and are readable with `git show da6777f^:docs/referencias/elmfire/<file>`.
+   The vendor "User Guide" among them (`user-guide.md`) was a bare table of contents
+   with no body content — treat namelist
    groups it lists but that aren't in this skill or in our code (Spotting, Suppression,
    Assets at Risk, full Monte Carlo randomization) as **unverified**.
 
