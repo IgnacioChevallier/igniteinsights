@@ -8,6 +8,8 @@ import {
   type EnsembleAgreementContract,
 } from "@/lib/ensemble-agreement";
 import { FUEL_PATTERN_IDS, fuelPatternImage } from "@/lib/fuel-pattern";
+import { formatArgentinaDateTime } from "@/lib/date-time";
+import { formatSimulatedHour, realTimestamp } from "@/lib/isochrone-clock";
 import {
   compassPoint,
   sampleWindField,
@@ -152,6 +154,7 @@ export function FireMap({
   windTimeHours = 0,
   windSurfaceVisible = false,
   initialBasemap = "satellite",
+  ignitionDatetime = null,
 }: {
   activeFires?: GeoJSON.FeatureCollection | null;
   isochrones?: GeoJSON.FeatureCollection | null;
@@ -182,6 +185,8 @@ export function FireMap({
   /** Optional low-opacity speed wash underneath the fire result. */
   windSurfaceVisible?: boolean;
   initialBasemap?: Basemap;
+  /** Simulation start. Lets the isochrone tooltip say the wall-clock hour, not only "+3 h". */
+  ignitionDatetime?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -205,6 +210,11 @@ export function FireMap({
     speedMph: number;
     azimuthDeg: number;
   } | null>(null);
+  const [featureHover, setFeatureHover] = useState<
+    (FeatureExplanation & { x: number; y: number }) | null
+  >(null);
+  const ignitionRef = useRef(ignitionDatetime);
+  ignitionRef.current = ignitionDatetime;
 
   useEffect(() => {
     if (!showTerrainHelp) return;
@@ -376,29 +386,6 @@ export function FireMap({
           "circle-stroke-width": 1,
         },
       });
-
-      for (const layerId of [BURNED_LAYER, FRONT_LAYER, `${FIRES_SOURCE_ID}-circle`]) {
-        map.on("click", layerId, (e) => {
-          const feature = e.features?.[0];
-          if (!feature) return;
-          new maplibregl.Popup()
-            .setLngLat(e.lngLat)
-            .setHTML(
-              `<pre style="margin:0;font-size:11px;">${JSON.stringify(
-                feature.properties,
-                null,
-                2,
-              )}</pre>`,
-            )
-            .addTo(map);
-        });
-        map.on("mouseenter", layerId, () => {
-          map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", layerId, () => {
-          map.getCanvas().style.cursor = "";
-        });
-      }
 
       setLoaded(true);
     });
@@ -624,6 +611,47 @@ export function FireMap({
     };
   }, [windField, loaded]);
 
+  // What a red dot, the grey perimeter or an isochrone line *is*, on hover — and on tap,
+  // since phones have no hover. A 10 px box so a 2 px line can actually be hit.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!loaded || !map) return;
+    const layers = [
+      `${FIRES_SOURCE_ID}-circle`,
+      FRONT_LAYER,
+      BURNED_LAYER,
+      `${IGNITION_SOURCE_ID}-fill`,
+    ];
+    const onMove = (event: maplibregl.MapMouseEvent) => {
+      const { x, y } = event.point;
+      // Topmost first, so a dot wins over a line and a line over the perimeter under it.
+      const hit = map
+        .queryRenderedFeatures([[x - 5, y - 5], [x + 5, y + 5]], { layers })
+        .map((f) => explainFeature(f, ignitionRef.current))
+        .find(Boolean);
+      map.getCanvas().style.cursor = hit ? "pointer" : "";
+      if (!hit) {
+        setFeatureHover(null);
+        return;
+      }
+      const container = map.getContainer();
+      setFeatureHover({
+        ...hit,
+        x: Math.max(4, Math.min(x + 12, container.clientWidth - 244)),
+        y: Math.max(4, Math.min(y + 12, container.clientHeight - 110)),
+      });
+    };
+    const onLeave = () => setFeatureHover(null);
+    map.on("mousemove", onMove);
+    map.on("click", onMove);
+    map.on("mouseout", onLeave);
+    return () => {
+      map.off("mousemove", onMove);
+      map.off("click", onMove);
+      map.off("mouseout", onLeave);
+    };
+  }, [loaded]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!loaded || !map) return;
@@ -698,7 +726,21 @@ export function FireMap({
         data-wind-surface-visible={windSurfaceVisible ? "true" : "false"}
         className="pointer-events-none absolute inset-0 z-[1]"
       />
-      {windHover && (
+      {featureHover && (
+        <div
+          data-testid="map-feature-tooltip"
+          role="tooltip"
+          className="pointer-events-none absolute z-20 w-60 rounded-md border bg-card/95 px-2.5 py-2 text-[11px] leading-snug text-card-foreground shadow-lg backdrop-blur-sm"
+          style={{ left: featureHover.x, top: featureHover.y }}
+        >
+          <p className="font-semibold">{featureHover.title}</p>
+          {featureHover.detail && (
+            <p className="mt-0.5 tabular-nums">{featureHover.detail}</p>
+          )}
+          <p className="mt-1 text-muted-foreground">{featureHover.body}</p>
+        </div>
+      )}
+      {windHover && !featureHover && (
         <div
           data-testid="wind-hover-readout"
           className="pointer-events-none absolute z-10 rounded-md border border-white/25 bg-slate-950/85 px-2 py-1 text-[10px] font-medium tracking-wide text-white shadow-lg backdrop-blur-sm"
@@ -796,12 +838,20 @@ export function FireMap({
         </div>
       )}
 
-      {(isochrones || ignitionPerimeter) && (
+      {(isochrones || ignitionPerimeter || activeFires?.features?.length) && (
         <div
           className={`absolute left-2 z-10 rounded-md border bg-card/95 p-2 text-[11px] shadow-md ${
             overlay ? "bottom-20" : "bottom-6"
           }`}
         >
+          {activeFires?.features?.length ? (
+            <div className="mb-1 flex items-center gap-2">
+              <span className="inline-flex w-5 shrink-0 justify-center">
+                <span className="h-2.5 w-2.5 rounded-full border border-white bg-[#e11d48]" />
+              </span>
+              <span>Detección satelital (FIRMS)</span>
+            </div>
+          ) : null}
           {/* A4 · the observed seed must stay visually separable from the prediction:
               most of the area a run reports as burned is this polygon, not spread.
               Only shown when there is one — a synthetic playground scenario has no FIRMS
@@ -815,21 +865,61 @@ export function FireMap({
               <span>Perímetro observado</span>
             </div>
           ) : null}
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-1 w-5 shrink-0 rounded-full"
-              style={{ background: "linear-gradient(90deg,#fee08b,#fc8d59,#b30000)" }}
-            />
-            <span>
-              Isócronas previstas 0 → {horizonHours > 0 ? horizonHours.toLocaleString("es", { maximumFractionDigits: 1 }) : 12} h
-            </span>
-          </div>
+          {isochrones || ignitionPerimeter ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-1 w-5 shrink-0 rounded-full"
+                  style={{ background: "linear-gradient(90deg,#fee08b,#fc8d59,#b30000)" }}
+                />
+                <span>
+                  Isócronas previstas 0 → {horizonHours > 0 ? horizonHours.toLocaleString("es", { maximumFractionDigits: 1 }) : 12} h
+                </span>
+              </div>
+              {/* Interview finding: the ramp's direction was not obvious. Spell it out. */}
+              <p className="mt-0.5 pl-7 text-[10px] text-muted-foreground">
+                amarillo: primeras horas · rojo: últimas
+              </p>
+            </>
+          ) : null}
         </div>
       )}
 
       {overlay && <div className="absolute bottom-2 left-2 right-2 z-10">{overlay}</div>}
     </div>
   );
+}
+
+type FeatureExplanation = { title: string; detail?: string; body: string };
+
+/** Plain-language tooltip for a hovered map feature, keyed on the layer it was drawn by. */
+function explainFeature(
+  feature: maplibregl.MapGeoJSONFeature,
+  ignitionDatetime: string | null | undefined,
+): FeatureExplanation | null {
+  const props = feature.properties ?? {};
+  if (feature.layer.id === `${FIRES_SOURCE_ID}-circle`) {
+    const at = typeof props.acq_datetime === "string" ? props.acq_datetime : null;
+    return {
+      title: "Detección satelital (FIRMS)",
+      detail: at ? `Detectado: ${formatArgentinaDateTime(at)}` : undefined,
+      body: "Punto de calor que el satélite vio en esa pasada: indica fuego activo en ese lugar. No es el perímetro del incendio.",
+    };
+  }
+  if (feature.layer.id === `${IGNITION_SOURCE_ID}-fill`) {
+    return {
+      title: "Perímetro observado",
+      body: "Área ya afectada según las detecciones satelitales. Es el punto de partida de la simulación, no una predicción.",
+    };
+  }
+  const hours = Number(props.arrival_hours);
+  if (!Number.isFinite(hours)) return null;
+  const clock = realTimestamp(ignitionDatetime, hours);
+  return {
+    title: `Frente previsto a +${formatSimulatedHour(hours)}`,
+    detail: clock ? `≈ ${clock}` : undefined,
+    body: "Hasta esta línea llegaría el fuego a esa hora, según la simulación.",
+  };
 }
 
 function windFieldBounds(field: WindField): [number, number, number, number] {

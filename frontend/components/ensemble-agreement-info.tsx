@@ -141,9 +141,10 @@ export function EnsembleAgreementInfo({
             >
               <p className="leading-relaxed">
                 Compara varias simulaciones con distintas condiciones meteorológicas. Un acuerdo
-                más alto significa que más simulaciones alcanzan esa zona; no es una certeza de
-                que vaya a quemarse. La capa muestra el acuerdo acumulado a un horizonte fijo de
-                24 h.
+                más alto significa que más simulaciones alcanzan esa zona.{" "}
+                <strong className="font-semibold">No es una probabilidad de quema:</strong> 0,80
+                no quiere decir «80 % de chance». La capa muestra el acuerdo acumulado a un
+                horizonte fijo de 24 h.
               </p>
               <button
                 type="button"
@@ -195,7 +196,8 @@ export function EnsembleAgreementInfo({
                   Cada miembro del ensamble simula el mismo incendio con una variante posible del
                   pronóstico meteorológico. Las bandas muestran qué fracción de esos miembros
                   alcanza cada zona: ≥ 0,80 indica mayor coincidencia; ≥ 0,10, una propagación que
-                  aparece en menos escenarios.
+                  aparece en menos escenarios. Es acuerdo entre simulaciones, no una probabilidad
+                  calibrada: no se validó que una zona con 0,80 se queme el 80 % de las veces.
                 </p>
 
                 {meta ? (

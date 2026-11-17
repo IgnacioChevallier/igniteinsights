@@ -29,6 +29,11 @@ export function EnsembleAgreementLegend({ contract }: { contract: EnsembleAgreem
             </li>
           ))}
         </ul>
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          Fracción de escenarios meteorológicos que alcanzan la zona.{" "}
+          <strong className="font-medium text-card-foreground">No es una probabilidad de quema.</strong>{" "}
+          Sin color: menos del 10 % de los escenarios llega, lo que no garantiza que no se queme.
+        </p>
       </div>
       {meta.valid_members < meta.expected_members && (
         <p className="mt-2 flex items-start gap-1 text-[11px] text-amber-700 dark:text-amber-400">

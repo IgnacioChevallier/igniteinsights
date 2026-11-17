@@ -597,6 +597,7 @@ export function MapPanel({ runs }: { runs: Run[] }) {
           windField={windField}
           windTimeHours={clock.t}
           clock={animatable ? clockView : null}
+          ignitionDatetime={selectedRun?.ignition_datetime ?? null}
           overlay={
             animatable ? (
               <FireAnimationControls

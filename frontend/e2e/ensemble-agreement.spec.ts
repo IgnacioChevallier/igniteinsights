@@ -35,10 +35,12 @@ test("carga el acuerdo sólo al activarlo y muestra su procedencia", async ({ pa
   for (const role of ["alto acuerdo", "escenario central", "propagación posible"]) {
     await expect(legend.getByText(role)).toBeVisible();
   }
+  await expect(legend).toContainText("No es una probabilidad de quema");
   await aside.getByRole("button", { name: "¿Qué es el acuerdo del ensamble?" }).hover();
   const popover = page.getByTestId("ensemble-agreement-popover");
   await expect(popover).toContainText("Compara varias simulaciones");
   await expect(popover).toContainText("horizonte fijo de 24 h");
+  await expect(popover).toContainText("No es una probabilidad de quema");
   const popoverBox = await popover.boundingBox();
   expect(popoverBox).not.toBeNull();
   expect(popoverBox!.x).toBeGreaterThanOrEqual(0);

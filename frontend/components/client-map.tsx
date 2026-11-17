@@ -204,6 +204,7 @@ export function ClientMap({
             windTimeHours={clock.t}
             windSurfaceVisible={false}
             clock={animable ? clockView : null}
+            ignitionDatetime={pronostico?.pasada ?? null}
             overlay={
               animable ? (
                 <FireAnimationControls clock={clock} />

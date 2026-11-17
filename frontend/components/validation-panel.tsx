@@ -204,6 +204,7 @@ export function ValidationPanel() {
           fitTo={isocronas}
           fuelsOverlay={overlay}
           clock={animable ? clockView : null}
+          ignitionDatetime={inicioReloj ?? null}
           overlay={
             animable ? (
               <div className="flex flex-col gap-1">
