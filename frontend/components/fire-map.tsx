@@ -849,7 +849,7 @@ export function FireMap({
               <span className="inline-flex w-5 shrink-0 justify-center">
                 <span className="h-2.5 w-2.5 rounded-full border border-white bg-[#e11d48]" />
               </span>
-              <span>Detección satelital (FIRMS)</span>
+              <span>Detección satelital</span>
             </div>
           ) : null}
           {/* A4 · the observed seed must stay visually separable from the prediction:
@@ -903,7 +903,7 @@ function explainFeature(
     return {
       title: "Detección satelital (FIRMS)",
       detail: at ? `Detectado: ${formatArgentinaDateTime(at)}` : undefined,
-      body: "Punto de calor que el satélite vio en esa pasada: indica fuego activo en ese lugar. No es el perímetro del incendio.",
+      body: "Punto de calor que el satélite vio en esa pasada: indica fuego activo en ese lugar.",
     };
   }
   if (feature.layer.id === `${IGNITION_SOURCE_ID}-fill`) {
