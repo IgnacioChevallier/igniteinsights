@@ -191,7 +191,7 @@ def _preparar(caso: Caso, receta: Receta, n: int, previa: dict | None,
         _reescribir(insumos / "cbh.tif",
                     lambda a: por_combustible(codigos, a, par["cbh_por_combustible"], 10))
     if "cbd_por_combustible" in par:
-        # Ídem para la densidad de copa (p. ej. 0,16 kg/m³ medido en pino, Paritsis et al.
+        # Ídem para la densidad de copa (p. ej. 0,16 kg/m³ estimado en pino, Paritsis et al.
         # 2018); 0 apaga la copa de esa clase sin tocar el viento bajo dosel.
         _reescribir(insumos / "cbd.tif",
                     lambda a: por_combustible(codigos, a, par["cbd_por_combustible"], 100))

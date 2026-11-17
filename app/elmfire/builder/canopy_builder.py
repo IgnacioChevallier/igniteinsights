@@ -50,12 +50,13 @@ _MIN_CANOPY_DEPTH_M = 1.0
 # vertical structure described for NW Patagonia. The FBFM40 code is only a proxy for the
 # CCS-BAP forest class (the crosswalk maps one to the other). A code not listed keeps the
 # CH × f(CC) value above, so an unknown code never blanks the canopy out.
-#   TL6 lenga 6 m: ~6 m gap above the understory (Paritsis, Veblen & Holz 2015).
+#   TL6 lenga 6 m: ~6 m gap above the understory; observed crown base ~7 m
+#       (Paritsis, Veblen & Holz 2015).
 #   TL5 alerce / ciprés de las Guaitecas 4 m: no data; as mature coihue.
 #   TU5 coihue, ciprés, mixtos and TU3 ñire 1.5 m: caña colihue / no vertical gap is a
 #       continuous ladder (Kitzberger et al. 2016; Tiribelli, Kitzberger & Morales 2018).
 #   TL2 maitén, radal, mirtáceas 1 m: continuous tall shrubland (Mermoz et al. 2005).
-#   TL8 unpruned pine 1.5 m and CBD 0.16 kg/m³, measured in NW Patagonian ponderosa
+#   TL8 unpruned pine 1.5 m and CBD 0.16 kg/m³, reported for NW Patagonian ponderosa
 #       plantations (Paritsis et al. 2018).
 CBH_BY_FUEL_MODEL_M: dict[int, float] = {186: 6.0, 185: 4.0, 165: 1.5, 163: 1.5,
                                          182: 1.0, 188: 1.5}
