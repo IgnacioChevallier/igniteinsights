@@ -144,7 +144,7 @@ export function EnsembleAgreementInfo({
                 más alto significa que más simulaciones alcanzan esa zona.{" "}
                 <strong className="font-semibold">No es una probabilidad de quema:</strong> 0,80
                 no quiere decir «80 % de chance». La capa muestra el acuerdo acumulado a un
-                horizonte fijo de 24 h.
+                horizonte fijo de 24 h. Sin color: menos del 10 % de los escenarios llega, lo que no garantiza que no se queme.
               </p>
               <button
                 type="button"
