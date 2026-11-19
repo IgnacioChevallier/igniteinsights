@@ -225,6 +225,20 @@ export function FireMap({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [showTerrainHelp]);
 
+  // Embedded as a slide in the certamen deck (ignite-insights-linktree): once the presenter
+  // clicks the map, the iframe owns the keyboard, so hand the clicker's keys back to the deck.
+  useEffect(() => {
+    if (window.parent === window) return;
+    const NAV = ["ArrowRight", "ArrowLeft", "PageDown", "PageUp", " "];
+    const forward = (event: KeyboardEvent) => {
+      const el = event.target as HTMLElement;
+      if (!NAV.includes(event.key) || el.closest("input, textarea, select, [contenteditable]")) return;
+      window.parent.postMessage({ deckKey: event.key }, "*");
+    };
+    document.addEventListener("keydown", forward);
+    return () => document.removeEventListener("keydown", forward);
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
